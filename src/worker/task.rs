@@ -1,44 +1,23 @@
-
-use graph::common::Sid;
-use graph::dataobj::DataObject;
-use graph::worker::Worker;
+use common::id::Sid;
+use worker::dataobj::DataObject;
 
 use std::io::Bytes;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::hash::{Hash, Hasher};
 
-enum WorkerTaskState {
+
+enum TaskState {
     Assigned,
     AssignedReady,
     Running,
 }
 
-struct WorkerTaskDetails {
-    state: WorkerTaskState,
-}
-
-enum ServerTaskState {
-    NotAssigned,
-    Ready,
-    Assigned,
-    AssignedReady,
-    Running,
-    Finished,
-}
-
-struct ServerTaskDetails {
-    state: ServerTaskState,
-    assigned: Option<Worker>,
-}
-
-enum TaskDetails {
-    ServerTask(ServerTaskDetails),
-    WorkerTask(WorkerTaskDetails),
-}
 
 struct TaskInner {
     id: Sid,
+    state: TaskState,
+
     inputs: Vec<DataObject>,
     outputs: Vec<DataObject>,
 
@@ -47,8 +26,6 @@ struct TaskInner {
 
     procedure_key: String,
     procedure_config: Vec<u8>,
-
-    details: TaskDetails,
 }
 
 
