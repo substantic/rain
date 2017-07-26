@@ -1,7 +1,15 @@
 [package]
 name = "rain"
 version = "0.1.0"
-authors = ["Stanislav Bohm <stanislav.bohm@vsb.cz>"]
+authors = [
+    "Stanislav Bohm <stanislav.bohm@vsb.cz>",
+    "Tomas Gavenciak <gavento@ucw.cz>"
+    ]
+build = "build.rs"
 
 [dependencies]
 bitflags = "*"
+capnp = "*"
+
+[build-dependencies]
+capnpc = "0.8"
