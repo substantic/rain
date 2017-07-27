@@ -10,6 +10,12 @@ build = "build.rs"
 [dependencies]
 bitflags = "*"
 capnp = "*"
+capnp-rpc = "*"
+clap = "*"
+log = "*"
+futures="*"
+tokio-core="*"
+tokio-io="*"
 
 [build-dependencies]
 capnpc = "0.8"

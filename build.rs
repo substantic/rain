@@ -3,7 +3,8 @@ extern crate capnpc;
 fn main() {
     capnpc::CompilerCommand::new()
         .src_prefix("schema")
+        .file("capnp/gate.capnp")
+        .file("capnp/client.capnp")
         .file("capnp/graph.capnp")
-        // can be chained as in: .file("capnp/service.capnp")
         .run().expect("schema compiler command");
 }

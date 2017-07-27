@@ -1,2 +1,6 @@
 target/
 **/*.rs.bk
+Cargo.lock
+.cache
+__pycache__
+tests/pytests/work
