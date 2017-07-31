@@ -5,50 +5,17 @@
 # Also, for now client does know the entire graph so not much sense sending it back
 # (and if, then with a lot of additional info).
 
-# Additonal data - stats, plugin data, user data, ...
-# TODO: Specify in a better and extensible way.
-#       Consider embedding CBOR, MSGPACK, ... as Data.
+using import "common.capnp".TaskId;
+using import "common.capnp".WorkerId;
+using import "common.capnp".DataObjectId;
+using import "common.capnp".Additional;
 
-struct Additional {
-    items @0 :List(Item);
-
-    struct Item {
-        nkey @0 :Text;
-        value :union {
-            int @1 :Int64;
-            float @2 :Float64;
-            text @3 :Text;
-            data @4 :Data;
-        }
-    }
-}
 
 # Unique identifier pair: session ID + Task/Object ID
 # Negative values are reserved and should not be normally used
 # TaskId and ObjectId are distinguished on purpose to allow better type-checking in
 # bindings
 
-struct TaskId {
-    id @0 :Int32;
-    sessionId @1 :Int32;
-}
-
-const noTask :TaskId = ( sessionId = -1, id = 0 );
-
-struct DataObjectId {
-    id @0 :Int32;
-    sessionId @1 :Int32;
-}
-
-const noDataObjecy :DataObjectId = ( sessionId = -1, id = 0 );
-
-struct WorkerId {
-    port @0 :UInt16;
-    address :union {
-        ipv4 @1: Data; # Network-order address (4 bytes)
-        ipv6 @2: Data; # Network-order address (16 bytes)
-    }
-}
 
 # Task instance
 # Sent: Client -> Server (submit or update)
@@ -80,7 +47,7 @@ struct Task {
 struct DataObject {
     id @0 :DataObjectId;
     # Optional, if noTask, then this DataObject is a constant
-    producer @1 :TaskId = .noTask;
+    producer @1 :TaskId = TaskId.none;
     placement @2 :WorkerId;
     size @3 :Int64 = -1; # Positive if known
     additional @4: Additional;

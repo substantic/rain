@@ -11,6 +11,7 @@ extern crate log;
 extern crate clap;
 #[macro_use]
 extern crate bitflags;
+#[macro_use]
 extern crate capnp;
 extern crate futures;
 extern crate tokio_core;
@@ -26,6 +27,17 @@ pub mod client_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/client_capnp.rs"));
 }
 
+pub mod common_capnp {
+    include!(concat!(env!("OUT_DIR"), "/capnp/common_capnp.rs"));
+}
+
+pub mod worker_capnp {
+    include!(concat!(env!("OUT_DIR"), "/capnp/worker_capnp.rs"));
+}
+
+pub mod datastore_capnp {
+    include!(concat!(env!("OUT_DIR"), "/capnp/datastore_capnp.rs"));
+}
 
 fn main() {
     // Command line usage:
