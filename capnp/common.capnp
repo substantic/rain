@@ -1,5 +1,10 @@
 @0xd7b1fdae7f8daa87;
 
+# Both task and data object id share the same numbering space and must use distinct ids.
+# Session id is assigned by the server. Objects from different sessions may not interact.
+# Session id <0 has a special meaning.
+# Task id and data object id are the same struct but are distinct types for type checking.
+
 struct TaskId {
     id @0 :Int32;
     sessionId @1 :Int32;
@@ -7,28 +12,29 @@ struct TaskId {
     const none :TaskId = ( sessionId = -1, id = 0 );
 }
 
-const noTask :TaskId = ( sessionId = -1, id = 0 );
-
 struct DataObjectId {
     id @0 :Int32;
     sessionId @1 :Int32;
+
+    const none :DataObjectId = ( sessionId = -1, id = 0 );
 }
 
-const noDataObjecy :DataObjectId = ( sessionId = -1, id = 0 );
-
-struct WorkerId {
+struct PortAddress {
+    # IPv4/6 address of a port.
     port @0 :UInt16;
     address :union {
-        ipv4 @1: Data; # Network-order address (4 bytes)
-        ipv6 @2: Data; # Network-order address (16 bytes)
+        ipv4 @1: Data; # Network-endian address (4 bytes)
+        ipv6 @2: Data; # Network-endian address (16 bytes)
     }
 }
 
+using WorkerId = PortAddress;
+# Worker id is the address of the RPC listening port.
 
 struct Additional {
     # Additonal data - stats, plugin data, user data, ...
-    # TODO: Specify in a better and extensible way.
-    #       Consider embedding CBOR, MSGPACK, ... as Data.
+    # TODO: Specify in an extensible way.
+    # TODO: Consider embedding CBOR, MSGPACK, ... as Data.
 
     items @0 :List(Item);
 

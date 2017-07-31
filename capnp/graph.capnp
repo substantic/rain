@@ -47,7 +47,7 @@ struct Task {
 struct DataObject {
     id @0 :DataObjectId;
     # Optional, if noTask, then this DataObject is a constant
-    producer @1 :TaskId = TaskId.none;
+    producer @1 :TaskId;
     placement @2 :WorkerId;
     size @3 :Int64 = -1; # Positive if known
     additional @4: Additional;
