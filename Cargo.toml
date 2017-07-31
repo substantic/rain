@@ -7,6 +7,14 @@ authors = [
     ]
 build = "build.rs"
 
+[lib]
+name = "librain"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rain"
+path = "src/bin.rs"
+
 [dependencies]
 bitflags = "*"
 capnp = "*"
@@ -16,6 +24,7 @@ log = "*"
 futures="*"
 tokio-core="*"
 tokio-io="*"
+env_logger = "*"
 
 [build-dependencies]
 capnpc = "0.8"
