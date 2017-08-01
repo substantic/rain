@@ -19,24 +19,18 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
 struct StateInner {
     //graph: Graph,
-
     handle: Handle, // Tokio core handle
-    port: u16       // Listening port
+    port: u16, // Listening port
 }
 
 #[derive(Clone)]
 pub struct State {
-    inner: Rc<RefCell<StateInner>>
+    inner: Rc<RefCell<StateInner>>,
 }
 
 impl State {
-
     pub fn new(handle: Handle, port: u16) -> Self {
-        Self {
-            inner: Rc::new(RefCell::new(StateInner {
-                handle, port
-            }))
-        }
+        Self { inner: Rc::new(RefCell::new(StateInner { handle, port })) }
     }
 
     pub fn get_n_workers(&self) -> usize {
@@ -51,14 +45,15 @@ impl State {
         let listener = TcpListener::bind(&addr, &handle).unwrap();
 
         let state = self.clone();
-        let future = listener.incoming()
+        let future = listener
+            .incoming()
             .for_each(move |(stream, addr)| {
-                state.on_connection(stream, addr);
-                Ok(())
-            })
+                          state.on_connection(stream, addr);
+                          Ok(())
+                      })
             .map_err(|e| {
-                panic!("Listening failed {:?}", e);
-            });
+                         panic!("Listening failed {:?}", e);
+                     });
         handle.spawn(future);
         info!("Start listening on port={}", port);
     }
@@ -73,8 +68,7 @@ impl State {
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
         let (reader, writer) = stream.split();
-        let gate_obj = ::gate_capnp::gate::ToClient::new(
-            GateImpl::new(self, address))
+        let gate_obj = ::gate_capnp::gate::ToClient::new(GateImpl::new(self, address))
             .from_server::<::capnp_rpc::Server>();
 
         let network = twoparty::VatNetwork::new(reader,

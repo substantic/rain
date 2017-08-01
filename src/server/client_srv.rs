@@ -15,13 +15,13 @@ impl ClientServiceImpl {
 }
 
 impl client_service::Server for ClientServiceImpl {
-
     fn get_info(&mut self,
                 _: client_service::GetInfoParams,
                 mut results: client_service::GetInfoResults)
                 -> Promise<(), ::capnp::Error> {
         debug!("Client asked for info");
-        results.get()
+        results
+            .get()
             .set_n_workers(self.state.get_n_workers() as i32);
         Promise::ok(())
     }

@@ -35,4 +35,3 @@ pub mod worker_capnp {
 pub mod datastore_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/datastore_capnp.rs"));
 }
-

@@ -7,7 +7,7 @@ extern crate tokio_core;
 extern crate env_logger;
 
 use librain::{server, VERSION};
-use clap::{ArgMatches};
+use clap::ArgMatches;
 use std::net::{SocketAddr, IpAddr};
 
 const DEFAULT_SERVER_PORT: u16 = 7210;
@@ -29,19 +29,26 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let port = value_t!(cmd_args, "PORT", u16).unwrap_or(DEFAULT_WORKER_PORT);
-    let server_addr = value_t!(cmd_args, "SERVER_ADDRESS", SocketAddr).unwrap_or_else(
-            |_| SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr), DEFAULT_SERVER_PORT)
-        );
-    info!("Starting Rain {} worker at port {} with upstream {}", VERSION, port, server_addr);
+    let server_addr = value_t!(cmd_args, "SERVER_ADDRESS", SocketAddr).unwrap_or_else(|_| {
+        SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr),
+                        DEFAULT_SERVER_PORT)
+    });
+    info!("Starting Rain {} worker at port {} with upstream {}",
+          VERSION,
+          port,
+          server_addr);
     // TODO: Actually run :-)
     //let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
 }
 
 fn run_client(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let server_addr = value_t!(cmd_args, "SERVER_ADDRESS", SocketAddr).unwrap_or_else(
-            |_| SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr), DEFAULT_SERVER_PORT)
-        );
-    info!("Starting Rain {} client for server {}", VERSION, server_addr);
+    let server_addr = value_t!(cmd_args, "SERVER_ADDRESS", SocketAddr).unwrap_or_else(|_| {
+        SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr),
+                        DEFAULT_SERVER_PORT)
+    });
+    info!("Starting Rain {} client for server {}",
+          VERSION,
+          server_addr);
     // TODO: Actually run :-)
     //let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
 }
@@ -83,6 +90,6 @@ fn main() {
         _ => {
             error!("No subcommand provided.");
             ::std::process::exit(1);
-        },
+        }
     }
 }

@@ -7,7 +7,7 @@ use capnp;
 
 use server::client_srv::ClientServiceImpl;
 
-const CLIENT_PROTOCOL_VERSION : i32 = 0;
+const CLIENT_PROTOCOL_VERSION: i32 = 0;
 
 // Gate is the entry point of RPC service. It is created on server and provided
 // to connection that can registered as worker or client.
@@ -19,7 +19,6 @@ pub struct GateImpl {
 }
 
 impl GateImpl {
-
     pub fn new(state: &State, address: SocketAddr) -> Self {
         Self {
             state: state.clone(),
@@ -36,7 +35,6 @@ impl Drop for GateImpl {
 }
 
 impl gate::Server for GateImpl {
-
     fn register_as_client(&mut self,
                           params: gate::RegisterAsClientParams,
                           mut results: gate::RegisterAsClientResults)
@@ -44,8 +42,7 @@ impl gate::Server for GateImpl {
 
         if self.registered {
             error!("Multiple registration from connection {}", self.address);
-            return Promise::err(
-                capnp::Error::failed(format!("Connection already registered")));
+            return Promise::err(capnp::Error::failed(format!("Connection already registered")));
         }
 
         let params = pry!(params.get());
@@ -58,9 +55,9 @@ impl gate::Server for GateImpl {
         self.registered = true;
         info!("Connection {} registered as client", self.address);
 
-        let service = ::client_capnp::client_service::ToClient::new(
-            ClientServiceImpl::new(&self.state))
-            .from_server::<::capnp_rpc::Server>();
+        let service =
+            ::client_capnp::client_service::ToClient::new(ClientServiceImpl::new(&self.state))
+                .from_server::<::capnp_rpc::Server>();
 
         results.get().set_service(service);
         Promise::ok(())
