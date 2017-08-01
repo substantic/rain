@@ -23,12 +23,19 @@ struct PullReply {
         # the requested range).
 
         redirect @4 :WorkerId;
-        # The data are available at the given worker or server. Note that the target
-        # return another redirect.
+        # The data are available at the given worker.
+        # Only sent by server to a worker. That worker may answer notHere with certain
+        # timing.
 
-        gone @5 :Void;
+        notHere @5 :Void;
+        # From worker to worker only. The sender should ask the server for the new
+        # location. Server will reply with a redirect or the data itself.
+
+        removed @6 :Void;
         # The DataObject data was removed and will not be available (under normal
-        # operation).
+        # operation). Server may send this to worker (and then it is usually a bug) or
+        # server may send it to client (and then client has likely asked for non-kept
+        # object)
     }
 }
 

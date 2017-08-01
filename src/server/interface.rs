@@ -1,6 +1,5 @@
-
 use server::state::State;
-use gate_capnp::gate;
+use server_capnp::server_bootstrap;
 use capnp::capability::Promise;
 use std::net::SocketAddr;
 use capnp;
@@ -12,13 +11,13 @@ const CLIENT_PROTOCOL_VERSION: i32 = 0;
 // Gate is the entry point of RPC service. It is created on server and provided
 // to connection that can registered as worker or client.
 
-pub struct GateImpl {
+pub struct ServerBootstrapImpl {
     state: State,
     registered: bool,
     address: SocketAddr,
 }
 
-impl GateImpl {
+impl ServerBootstrapImpl {
     pub fn new(state: &State, address: SocketAddr) -> Self {
         Self {
             state: state.clone(),
@@ -28,16 +27,16 @@ impl GateImpl {
     }
 }
 
-impl Drop for GateImpl {
+impl Drop for ServerBootstrapImpl {
     fn drop(&mut self) {
-        debug!("Gate dropped {}", self.address);
+        debug!("ServerBootstrap dropped {}", self.address);
     }
 }
 
-impl gate::Server for GateImpl {
+impl server_bootstrap::Server for ServerBootstrapImpl {
     fn register_as_client(&mut self,
-                          params: gate::RegisterAsClientParams,
-                          mut results: gate::RegisterAsClientResults)
+                          params: server_bootstrap::RegisterAsClientParams,
+                          mut results: server_bootstrap::RegisterAsClientResults)
                           -> Promise<(), ::capnp::Error> {
 
         if self.registered {

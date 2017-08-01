@@ -16,8 +16,8 @@ pub mod server;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-pub mod gate_capnp {
-    include!(concat!(env!("OUT_DIR"), "/capnp/gate_capnp.rs"));
+pub mod server_capnp {
+    include!(concat!(env!("OUT_DIR"), "/capnp/server_capnp.rs"));
 }
 
 pub mod client_capnp {

@@ -19,8 +19,8 @@ struct DataObjectId {
     const none :DataObjectId = ( sessionId = -1, id = 0 );
 }
 
-struct PortAddress {
-    # IPv4/6 address of a port.
+struct SocketAddress {
+    # IPv4/6 address of a socket.
     port @0 :UInt16;
     address :union {
         ipv4 @1: Data; # Network-endian address (4 bytes)
@@ -28,7 +28,7 @@ struct PortAddress {
     }
 }
 
-using WorkerId = PortAddress;
+using WorkerId = SocketAddress;
 # Worker id is the address of the RPC listening port.
 
 struct Additional {

@@ -7,7 +7,7 @@ use std::net::Ipv4Addr;
 
 use server::graph::Graph;
 use server::worker::Worker;
-use server::gate::GateImpl;
+use server::interface::ServerBootstrapImpl;
 
 use futures::Future;
 use futures::Stream;
@@ -68,7 +68,9 @@ impl State {
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
         let (reader, writer) = stream.split();
-        let gate_obj = ::gate_capnp::gate::ToClient::new(GateImpl::new(self, address))
+        let bootstrap_obj = ::server_capnp::server_bootstrap::ToClient::new(ServerBootstrapImpl::new
+            (self,
+                                                                                      address))
             .from_server::<::capnp_rpc::Server>();
 
         let network = twoparty::VatNetwork::new(reader,
@@ -76,7 +78,7 @@ impl State {
                                                 rpc_twoparty_capnp::Side::Server,
                                                 Default::default());
 
-        let rpc_system = RpcSystem::new(Box::new(network), Some(gate_obj.client));
+        let rpc_system = RpcSystem::new(Box::new(network), Some(bootstrap_obj.client));
         self.inner
             .borrow()
             .handle

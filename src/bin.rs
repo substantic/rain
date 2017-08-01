@@ -72,8 +72,8 @@ fn main() {
             )
         (@subcommand worker =>
             (about: "Start a worker and connect to a given server.")
-            (@arg SERVER_ADDRESS: +required "Server address ADDR[:PORT] (default port is 0 = autoassign)")
-            (@arg PORT: -p --port +takes_value "Listening port (default 0)")
+            (@arg SERVER_ADDRESS: +required "Server address ADDR[:PORT] (default port is 7210)")
+            (@arg PORT: -p --port +takes_value "Listening port (default 0 = autoassign)")
             )
         (@subcommand client =>
             (about: "Connect to upstream server as a client.")

@@ -5,7 +5,7 @@ CLIENT_PROTOCOL_VERSION = 0
 
 SRC_DIR = os.path.dirname(__file__)
 capnp.remove_import_hook()
-gate_capnp = capnp.load(SRC_DIR + "/../../../capnp/gate.capnp")
+gate_capnp = capnp.load(SRC_DIR + "/../../../capnp/server.capnp")
 
 
 class Client:

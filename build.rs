@@ -4,7 +4,7 @@ fn main() {
     capnpc::CompilerCommand::new()
 //        .src_prefix("capnp")
         .file("capnp/common.capnp")
-        .file("capnp/gate.capnp")
+        .file("capnp/server.capnp")
         .file("capnp/client.capnp")
         .file("capnp/graph.capnp")
         .file("capnp/datastore.capnp")
@@ -13,7 +13,7 @@ fn main() {
 }
 /*
         .file("capnp/common.capnp")
-        .file("capnp/gate.capnp")
+        .file("capnp/server.capnp")
         .file("capnp/client.capnp")
         .file("capnp/graph.capnp")
         .file("capnp/datastore.capnp")

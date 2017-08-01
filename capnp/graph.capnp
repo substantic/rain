@@ -11,11 +11,6 @@ using import "common.capnp".DataObjectId;
 using import "common.capnp".Additional;
 
 
-# Unique identifier pair: session ID + Task/Object ID
-# Negative values are reserved and should not be normally used
-# TaskId and ObjectId are distinguished on purpose to allow better type-checking in
-# bindings
-
 
 # Task instance
 # Sent: Client -> Server (submit or update)
