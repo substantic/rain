@@ -10,11 +10,11 @@ use librain::{server, VERSION};
 use clap::{ArgMatches};
 use std::net::{SocketAddr, IpAddr};
 
-const SERVER_PORT: u16 = 7210;
-const WORKER_PORT: u16 = 7211;
+const DEFAULT_SERVER_PORT: u16 = 7210;
+const DEFAULT_WORKER_PORT: u16 = 0;
 
 fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let port = value_t!(cmd_args, "PORT", u16).unwrap_or(SERVER_PORT);
+    let port = value_t!(cmd_args, "PORT", u16).unwrap_or(DEFAULT_SERVER_PORT);
     info!("Starting Rain {} server at port {}", VERSION, port);
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
@@ -28,9 +28,9 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 
 fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let port = value_t!(cmd_args, "PORT", u16).unwrap_or(WORKER_PORT);
+    let port = value_t!(cmd_args, "PORT", u16).unwrap_or(DEFAULT_WORKER_PORT);
     let server_addr = value_t!(cmd_args, "SERVER_ADDRESS", SocketAddr).unwrap_or_else(
-            |_| SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr), SERVER_PORT)
+            |_| SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr), DEFAULT_SERVER_PORT)
         );
     info!("Starting Rain {} worker at port {} with upstream {}", VERSION, port, server_addr);
     // TODO: Actually run :-)
@@ -39,7 +39,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 fn run_client(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let server_addr = value_t!(cmd_args, "SERVER_ADDRESS", SocketAddr).unwrap_or_else(
-            |_| SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr), SERVER_PORT)
+            |_| SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr), DEFAULT_SERVER_PORT)
         );
     info!("Starting Rain {} client for server {}", VERSION, server_addr);
     // TODO: Actually run :-)
@@ -65,8 +65,8 @@ fn main() {
             )
         (@subcommand worker =>
             (about: "Start a worker and connect to a given server.")
-            (@arg SERVER_ADDRESS: +required "Server address ADDR[:PORT] (default port is 7210)")
-            (@arg PORT: -p --port +takes_value "Listening port (default 7211)")
+            (@arg SERVER_ADDRESS: +required "Server address ADDR[:PORT] (default port is 0 = autoassign)")
+            (@arg PORT: -p --port +takes_value "Listening port (default 0)")
             )
         (@subcommand client =>
             (about: "Connect to upstream server as a client.")
