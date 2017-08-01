@@ -62,15 +62,14 @@ class TestEnv(Env):
         env["RUST_BACKTRACE"] = "1"
 
         # Start SERVER
-        args = (RAIN_DEBUG_BIN, "--debug", "server", str(self.PORT))
-        gate = self.start_process("server", args, env=env)
+        args = (RAIN_DEBUG_BIN, "server", "--port", str(self.PORT))
+        server = self.start_process("server", args, env=env)
         time.sleep(0.1)
-        assert not gate.poll()
+        assert not server.poll()
 
         # Start WORKERS
         workers = []
         args = (RAIN_DEBUG_BIN,
-                "--debug",
                 "worker", "127.0.0.1:" + str(self.PORT))
         for i in range(n_workers):
             name = "worker{}".format(i)
@@ -80,7 +79,7 @@ class TestEnv(Env):
         # Check that everything is still running
         for worker in workers:
             assert not worker.poll()
-        assert not gate.poll()
+        assert not server.poll()
 
     @property
     def client(self):
