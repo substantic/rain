@@ -1,7 +1,7 @@
 @0xa7976aed3d85b454;
 
-using import "graph.capnp".WorkerId;
-using import "graph.capnp".DataObjectId;
+using import "common.capnp".WorkerId;
+using import "common.capnp".DataObjectId;
 
 struct PullReply {
     # Reply to DataStore.pullData.

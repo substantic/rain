@@ -5,16 +5,18 @@
 # Session id <0 has a special meaning.
 # Task id and data object id are the same struct but are distinct types for type checking.
 
+using SessionId = Int32;
+
 struct TaskId {
     id @0 :Int32;
-    sessionId @1 :Int32;
+    sessionId @1 :SessionId;
 
     const none :TaskId = ( sessionId = -1, id = 0 );
 }
 
 struct DataObjectId {
     id @0 :Int32;
-    sessionId @1 :Int32;
+    sessionId @1 :SessionId;
 
     const none :DataObjectId = ( sessionId = -1, id = 0 );
 }

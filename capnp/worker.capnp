@@ -21,6 +21,23 @@ interface WorkerBootstrap {
     # internally handy.
 }
 
+struct WorkerStateUpdate {
+    tasks @0 :List(TaskUpdate);
+    objects @1 :List(DataObjectUpdate);
+
+    struct TaskUpdate {
+        id @0 :TaskId;
+        state @1 :TaskState;
+    }
+
+    struct DataObjectUpdate {
+        id @0 :DataObjectId;
+        state @1 :DataObjectState;
+        size @2 :UInt64;
+        # Only valid when the state is `finished` and `removed`, otherwise should be 0.
+    }
+}
+
 interface WorkerUpstream {
     # Every worker has one connection to the server. This is the interface that server
     # provides for messages from the worker.
@@ -29,9 +46,7 @@ interface WorkerUpstream {
     # Returns the data handle of the server. It does not make sense to take more
     # than one instance of this.
 
-    updateStates @1 (task_states: Map(TaskId, TaskState),
-                     do_states: Map(DataObjectId, DataObjectState),
-                     do_sizes: Map(DataObjectId, UInt64)) -> ();
+    updateStates @1 (update: WorkerStateUpdate) -> ();
     # Notify server about object state changes. The sizes are reported for
     # data objects that moved from `running` state to `finished` or directly to `removed`.
 
@@ -48,11 +63,11 @@ interface WorkerControl {
     # Returns the data handle of the worker. It does not make sense to take more than
     # one instance of this per worker.
 
-    addNodes @2 (new_tasks :List(Task), new_objects :List(DataObject)) -> ();
+    addNodes @1 (newTasks :List(Task), newObjects :List(DataObject)) -> ();
 
-    removeNodes @3 (remove_tasks :List(TaskId), remove_objects :List(DataObjectId)) -> ();
+    removeNodes @2 (removeTasks :List(TaskId), removeObjects :List(DataObjectId)) -> ();
 
-    getWorkerState @3 () -> (status: Void)
+    getWorkerState @3 () -> (status: Void);
     # TODO: actual status: CPU, resources, counters, ...
 
     # TODO: Control worker (shutdown, pause) etc ...
@@ -102,7 +117,8 @@ struct DataObject {
     # In bytes, positive if known.
 
     state @4 :DataObjectState;
-    # Current object state (locally assigned objects are always `assigned`)
+    # Current object state. All input objects (external or local) should be `finished` or
+    # `running` (when streaming), output objects `assigned`.
 
     additional @5: Additional;
 }

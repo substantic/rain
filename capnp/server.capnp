@@ -3,13 +3,15 @@
 using import "client.capnp".ClientService;
 using import "worker.capnp".WorkerControl;
 using import "worker.capnp".WorkerUpstream;
+using import "common.capnp".SocketAddress;
+using import "common.capnp".WorkerId;
 
 interface ServerBootstrap {
     registerAsClient @0 (version :Int32) -> (service :ClientService);
     # Registers as a client, verifies the API version and returns the Client interface.
 
     registerAsWorker @1 (version :Int32, address :SocketAddress, interface: WorkerControl)
-     -> (upstream :WorkerUpstream, worker_id :WorkerId);
+     -> (upstream :WorkerUpstream, workerId :WorkerId);
     # Registers as a worker, verifies the API version and returns the Worker upstream
     # interface (for calling the server with updates) and assigned worker id.
     # The `address` is the socket address with listening WorkerBootstrap interface.
