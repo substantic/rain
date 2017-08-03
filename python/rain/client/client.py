@@ -1,6 +1,8 @@
 import capnp
 import os
 
+from .session import Session
+
 CLIENT_PROTOCOL_VERSION = 0
 
 SRC_DIR = os.path.dirname(__file__)
@@ -18,6 +20,11 @@ class Client:
         bootstrap = self.rpc_client.bootstrap().cast_as(server_capnp.ServerBootstrap)
         registration = bootstrap.registerAsClient(CLIENT_PROTOCOL_VERSION)
         self.service = registration.wait().service
+
+    def new_session(self):
+        # TODO: Ask server for session_id
+        session_id = 111
+        return Session(self, session_id)
 
     def get_server_info(self):
         """ Returns basic server info """
