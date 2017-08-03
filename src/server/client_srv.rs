@@ -15,9 +15,9 @@ impl ClientServiceImpl {
 }
 
 impl client_service::Server for ClientServiceImpl {
-    fn get_info(&mut self,
-                _: client_service::GetInfoParams,
-                mut results: client_service::GetInfoResults)
+    fn get_server_info(&mut self,
+                _: client_service::GetServerInfoParams,
+                mut results: client_service::GetServerInfoResults)
                 -> Promise<(), ::capnp::Error> {
         debug!("Client asked for info");
         results

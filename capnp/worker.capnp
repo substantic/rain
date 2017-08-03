@@ -7,6 +7,8 @@ using import "common.capnp".WorkerId;
 using import "common.capnp".TaskId;
 using import "common.capnp".DataObjectId;
 using import "common.capnp".Additional;
+using import "common.capnp".TaskState;
+using import "common.capnp".DataObjectState;
 
 interface WorkerBootstrap {
     # Interface for entities connecting directly to the worker.
@@ -81,8 +83,8 @@ struct Task {
     inputs @1 :List(IODataObject);
     outputs @2 :List(IODataObject);
 
-    procedureKey @3 :Text;
-    procedureConfig @4 :Data;
+    taskType @3 :Text;
+    taskConfig @4 :Data;
 
     additional @5: Additional;
 
@@ -92,14 +94,6 @@ struct Task {
         label @1 :Text;
         # NOTE: May add other attributes of the input/output (streaming?)
     }
-}
-
-enum TaskState {
-        notAssigned @0;
-        assigned @1;
-        ready @2;
-        running @3;
-        finished @4;
 }
 
 # Data object instance information (not the data)
@@ -122,13 +116,3 @@ struct DataObject {
 
     additional @5: Additional;
 }
-
-enum DataObjectState {
-    notAssigned @0;
-    assigned @1;
-    running @2;
-    finished @3;
-    removed @4;
-}
-
-

@@ -5,7 +5,7 @@ CLIENT_PROTOCOL_VERSION = 0
 
 SRC_DIR = os.path.dirname(__file__)
 capnp.remove_import_hook()
-gate_capnp = capnp.load(SRC_DIR + "/../../../capnp/server.capnp")
+server_capnp = capnp.load(SRC_DIR + "/../../../capnp/server.capnp")
 
 
 class Client:
@@ -15,13 +15,13 @@ class Client:
         self.handles = {}
         self.rpc_client = capnp.TwoPartyClient("{}:{}".format(address, port))
 
-        gate = self.rpc_client.bootstrap().cast_as(gate_capnp.Gate)
-        registration = gate.registerAsClient(CLIENT_PROTOCOL_VERSION)
+        bootstrap = self.rpc_client.bootstrap().cast_as(server_capnp.ServerBootstrap)
+        registration = bootstrap.registerAsClient(CLIENT_PROTOCOL_VERSION)
         self.service = registration.wait().service
 
-    def get_info(self):
+    def get_server_info(self):
         """ Returns basic server info """
-        info = self.service.getInfo().wait()
+        info = self.service.getServerInfo().wait()
         return {
             "n_workers": info.nWorkers
         }

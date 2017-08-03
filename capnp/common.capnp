@@ -7,6 +7,9 @@
 
 using SessionId = Int32;
 
+const allTasksId :Int32 = -2;
+const allDataObjectsId :Int32 = -2;
+
 struct TaskId {
     id @0 :Int32;
     sessionId @1 :SessionId;
@@ -32,6 +35,22 @@ struct SocketAddress {
 
 using WorkerId = SocketAddress;
 # Worker id is the address of the RPC listening port.
+
+enum TaskState {
+        notAssigned @0;
+        assigned @1;
+        ready @2;
+        running @3;
+        finished @4;
+}
+
+enum DataObjectState {
+    notAssigned @0;
+    assigned @1;
+    running @2;
+    finished @3;
+    removed @4;
+}
 
 struct Additional {
     # Additonal data - stats, plugin data, user data, ...
