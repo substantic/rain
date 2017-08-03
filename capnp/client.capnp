@@ -80,7 +80,11 @@ struct Task {
     outputs @2 :List(LabelledDataObject);
     taskType @3 :Text;
     taskConfig @4 :Data;
-    additional @5: Additional;
+    additional @5 :Additional;
+
+    nCpus @6 :Int32;
+    # Number of request CPUs; will be replaced by more sophisticated
+    # resource requests
 
     # Labels for Sid-referenced inputs
     struct LabelledDataObject {

@@ -80,16 +80,20 @@ interface WorkerControl {
 struct Task {
     id @0 :TaskId;
 
-    inputs @1 :List(IODataObject);
-    outputs @2 :List(IODataObject);
+    inputs @1 :List(IoDataObject);
+    outputs @2 :List(IoDataObject);
 
     taskType @3 :Text;
     taskConfig @4 :Data;
 
     additional @5: Additional;
 
+    nCpus @6: Int32;
+    # Number of request CPUs; will be replaced by more sophisticated
+    # resource requests
+
     # Labels for inputs and outputs
-    struct IODataObject {
+    struct IoDataObject {
         id @0 :DataObjectId;
         label @1 :Text;
         # NOTE: May add other attributes of the input/output (streaming?)
