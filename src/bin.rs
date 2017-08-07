@@ -30,25 +30,33 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let port = value_t!(cmd_args, "PORT", u16).unwrap_or(DEFAULT_WORKER_PORT);
     let server_addr = value_t!(cmd_args, "SERVER_ADDRESS", SocketAddr).unwrap_or_else(|_| {
-        SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr),
-                        DEFAULT_SERVER_PORT)
+        SocketAddr::new(
+            value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr),
+            DEFAULT_SERVER_PORT,
+        )
     });
-    info!("Starting Rain {} worker at port {} with upstream {}",
-          VERSION,
-          port,
-          server_addr);
+    info!(
+        "Starting Rain {} worker at port {} with upstream {}",
+        VERSION,
+        port,
+        server_addr
+    );
     // TODO: Actually run :-)
     //let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
 }
 
 fn run_client(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let server_addr = value_t!(cmd_args, "SERVER_ADDRESS", SocketAddr).unwrap_or_else(|_| {
-        SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr),
-                        DEFAULT_SERVER_PORT)
+        SocketAddr::new(
+            value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr),
+            DEFAULT_SERVER_PORT,
+        )
     });
-    info!("Starting Rain {} client for server {}",
-          VERSION,
-          server_addr);
+    info!(
+        "Starting Rain {} client for server {}",
+        VERSION,
+        server_addr
+    );
     // TODO: Actually run :-)
     //let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
 }
@@ -62,7 +70,7 @@ fn main() {
     }
     env_logger::init().unwrap();
 
-    let args :ArgMatches = clap_app!(Rain =>
+    let args: ArgMatches = clap_app!(Rain =>
         (version: VERSION)
         (about: "Task-based workflow manager and executor (server and worker binary).")
         //(@arg debug: --debug "Enables debug mode (not much effect now - use RUST_LOG)")

@@ -23,20 +23,23 @@ impl WorkerBootstrapImpl {
 }
 
 impl worker_bootstrap::Server for WorkerBootstrapImpl {
-    fn get_data_store(&mut self,
-                      _arg: worker_bootstrap::GetDataStoreParams<>,
-                      mut res: worker_bootstrap::GetDataStoreResults<>)
-        -> Promise<(), capnp::Error> {
+    fn get_data_store(
+        &mut self,
+        _arg: worker_bootstrap::GetDataStoreParams,
+        mut res: worker_bootstrap::GetDataStoreResults,
+    ) -> Promise<(), capnp::Error> {
         ::capnp::capability::Promise::err(::capnp::Error::unimplemented(
-            "method not implemented".to_string()))
+            "method not implemented".to_string(),
+        ))
     }
 
-    fn get_worker_control(&mut self,
-                          _arg: worker_bootstrap::GetWorkerControlParams<>,
-                          mut res: worker_bootstrap::GetWorkerControlResults<>)
-        -> Promise<(), ::capnp::Error> {
-        let control = worker_control::ToClient::new(
-            WorkerControlImpl::new(&self.state)).from_server::<::capnp_rpc::Server>();
+    fn get_worker_control(
+        &mut self,
+        _arg: worker_bootstrap::GetWorkerControlParams,
+        mut res: worker_bootstrap::GetWorkerControlResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let control = worker_control::ToClient::new(WorkerControlImpl::new(&self.state))
+            .from_server::<::capnp_rpc::Server>();
         res.get().set_control(control);
         Promise::ok(())
     }

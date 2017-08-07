@@ -5,6 +5,7 @@ use std::net::SocketAddr;
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
 
+use common::id::SessionId;
 use server::graph::Graph;
 use server::worker::Worker;
 use server::interface::ServerBootstrapImpl;
@@ -21,6 +22,8 @@ struct StateInner {
     //graph: Graph,
     handle: Handle, // Tokio core handle
     port: u16, // Listening port
+
+    session_id_counter: SessionId,
 }
 
 #[derive(Clone)]
@@ -30,7 +33,13 @@ pub struct State {
 
 impl State {
     pub fn new(handle: Handle, port: u16) -> Self {
-        Self { inner: Rc::new(RefCell::new(StateInner { handle, port })) }
+        Self {
+            inner: Rc::new(RefCell::new(StateInner {
+                handle: handle,
+                port: port,
+                session_id_counter: 1,
+            })),
+        }
     }
 
     pub fn get_n_workers(&self) -> usize {
@@ -48,14 +57,23 @@ impl State {
         let future = listener
             .incoming()
             .for_each(move |(stream, addr)| {
-                          state.on_connection(stream, addr);
-                          Ok(())
-                      })
+                state.on_connection(stream, addr);
+                Ok(())
+            })
             .map_err(|e| {
-                         panic!("Listening failed {:?}", e);
-                     });
+                panic!("Listening failed {:?}", e);
+            });
         handle.spawn(future);
         info!("Start listening on port={}", port);
+    }
+
+    // Creates a new session and returns its id
+    pub fn new_session(&self) -> SessionId {
+        let mut inner = self.inner.borrow_mut();
+        let session_id = inner.session_id_counter;
+        inner.session_id_counter += 1;
+        debug!("Creating a new session (session_id={})", session_id);
+        session_id
     }
 
     pub fn turn(&self) {
@@ -68,20 +86,20 @@ impl State {
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
         let (reader, writer) = stream.split();
-        let bootstrap_obj = ::server_capnp::server_bootstrap::ToClient::new(ServerBootstrapImpl::new
-            (self,
-                                                                                      address))
-            .from_server::<::capnp_rpc::Server>();
+        let bootstrap_obj = ::server_capnp::server_bootstrap::ToClient::new(
+            ServerBootstrapImpl::new(self, address),
+        ).from_server::<::capnp_rpc::Server>();
 
-        let network = twoparty::VatNetwork::new(reader,
-                                                writer,
-                                                rpc_twoparty_capnp::Side::Server,
-                                                Default::default());
+        let network = twoparty::VatNetwork::new(
+            reader,
+            writer,
+            rpc_twoparty_capnp::Side::Server,
+            Default::default(),
+        );
 
         let rpc_system = RpcSystem::new(Box::new(network), Some(bootstrap_obj.client));
-        self.inner
-            .borrow()
-            .handle
-            .spawn(rpc_system.map_err(|e| panic!("RPC error: {:?}", e)));
+        self.inner.borrow().handle.spawn(rpc_system.map_err(|e| {
+            panic!("RPC error: {:?}", e)
+        }));
     }
 }

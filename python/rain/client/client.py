@@ -22,8 +22,7 @@ class Client:
         self.service = registration.wait().service
 
     def new_session(self):
-        # TODO: Ask server for session_id
-        session_id = 111
+        session_id = self.service.newSession().wait().sessionId
         return Session(self, session_id)
 
     def get_server_info(self):

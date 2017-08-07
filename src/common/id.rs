@@ -1,14 +1,15 @@
 
-type Id = i32;
+pub type Id = i32;
+pub type SessionId = i32;
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Sid {
-    session_id: Id,
+    session_id: SessionId,
     id: Id,
 }
 
 impl Sid {
-    pub fn new(session_id: Id, id: Id) -> Self {
+    pub fn new(session_id: SessionId, id: Id) -> Self {
         Self {
             session_id: session_id,
             id: id,
@@ -21,7 +22,7 @@ impl Sid {
     }
 
     #[inline]
-    pub fn get_session_id(&self) -> Id {
+    pub fn get_session_id(&self) -> SessionId {
         self.session_id
     }
 }

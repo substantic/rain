@@ -33,3 +33,14 @@ def test_active_session(test_env):
 
     with pytest.raises(Exception):
         session.get_active_session()
+
+
+def test_new_session_id(test_env):
+    test_env.start(0)
+    client = test_env.client
+
+    s1 = client.new_session()
+    s2 = client.new_session()
+
+    assert s1.session_id != s2.session_id
+

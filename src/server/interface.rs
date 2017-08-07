@@ -34,14 +34,17 @@ impl Drop for ServerBootstrapImpl {
 }
 
 impl server_bootstrap::Server for ServerBootstrapImpl {
-    fn register_as_client(&mut self,
-                          params: server_bootstrap::RegisterAsClientParams,
-                          mut results: server_bootstrap::RegisterAsClientResults)
-                          -> Promise<(), ::capnp::Error> {
+    fn register_as_client(
+        &mut self,
+        params: server_bootstrap::RegisterAsClientParams,
+        mut results: server_bootstrap::RegisterAsClientResults,
+    ) -> Promise<(), ::capnp::Error> {
 
         if self.registered {
             error!("Multiple registration from connection {}", self.address);
-            return Promise::err(capnp::Error::failed(format!("Connection already registered")));
+            return Promise::err(capnp::Error::failed(
+                format!("Connection already registered"),
+            ));
         }
 
         let params = pry!(params.get());
@@ -54,9 +57,9 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         self.registered = true;
         info!("Connection {} registered as client", self.address);
 
-        let service =
-            ::client_capnp::client_service::ToClient::new(ClientServiceImpl::new(&self.state))
-                .from_server::<::capnp_rpc::Server>();
+        let service = ::client_capnp::client_service::ToClient::new(
+            ClientServiceImpl::new(&self.state),
+        ).from_server::<::capnp_rpc::Server>();
 
         results.get().set_service(service);
         Promise::ok(())

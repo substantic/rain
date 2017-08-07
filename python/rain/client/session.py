@@ -30,6 +30,9 @@ class Session:
         s = _global_sessions.pop()
         assert s == self
 
+    def __repr__(self):
+        return "<Session session_id={}>".format(self.session_id)
+
     def add_task(self, task):
         assert task.session is None
         task.session = self
