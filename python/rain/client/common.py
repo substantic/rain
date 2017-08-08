@@ -1,0 +1,4 @@
+
+
+class RainException(Exception):
+    pass

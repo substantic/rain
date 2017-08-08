@@ -1,4 +1,6 @@
 from rain.client import session
+from rain import RainException
+
 import pytest
 
 
@@ -31,7 +33,7 @@ def test_active_session(test_env):
 
         assert session.get_active_session() == s
 
-    with pytest.raises(Exception):
+    with pytest.raises(RainException):
         session.get_active_session()
 
 
