@@ -1,11 +1,17 @@
+from .task import Task
+import struct
 
 
 def concat(*objs):
     """Creates a task that Concatenate data objects"""
-    raise Exception("Not implemented")
+    return Task("concat", inputs=objs)
 
 
-def sleep(timeout_ms, dataobj):
-    """Task that forwards argument 'dataobj' after 'timeout_ms' miliseconds.
+def sleep(timeout, dataobj):
+    """Task that forwards argument 'dataobj' after 'timeout' seconds.
     This task serves for testing purpose"""
-    raise Exception("Not implemented")
+    time_ms = int(timeout * 1000)
+    return Task("sleep",
+                struct.pack(">I", time_ms),
+                inputs=(dataobj,))
+
