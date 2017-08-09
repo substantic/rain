@@ -7,10 +7,7 @@ import pytest
 
 
 def test_task_construction(test_env):
-    test_env.start(0)  # Start server with no workers
-    client = test_env.client
-
-    with client.new_session() as session:
+    with test_env.fake_session() as session:
         t1 = Task("dummy")
         t2 = Task("dummy")
 
@@ -20,10 +17,7 @@ def test_task_construction(test_env):
 
 
 def test_task_outputs(test_env):
-    test_env.start(0)  # Start server with no workers
-    client = test_env.client
-
-    with client.new_session() as session:
+    with test_env.fake_session() as session:
         t1 = Task("dummy", outputs=("a", "long_name", "space inside", ""))
 
         assert t1.has_output("a")

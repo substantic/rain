@@ -7,6 +7,7 @@ import time
 import shutil
 import pytest
 
+
 PYTEST_DIR = os.path.dirname(__file__)
 ROOT = os.path.dirname(os.path.dirname(PYTEST_DIR))
 PYTHON_DIR = os.path.join(ROOT, "python")
@@ -53,6 +54,7 @@ class TestEnv(Env):
         Env.__init__(self)
         self._client = None
         self.n_workers = None
+        self.id_counter = 1
 
     def start(self, n_workers=1):
         """
@@ -89,6 +91,13 @@ class TestEnv(Env):
         client = rain.Client("127.0.0.1", self.PORT)
         self._client = client
         return client
+
+    def fake_session(self):
+        """Returns a new fake session for tests that do not need any server"""
+        import rain
+        self.id_counter += 1
+        return rain.client.session.Session(None, self.id_counter)
+
 
     def close(self):
         self._client = None

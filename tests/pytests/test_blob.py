@@ -3,10 +3,7 @@ import pytest
 
 
 def test_blob_construction(test_env):
-    test_env.start(0)  # Start server with no workers
-    client = test_env.client
-
-    with client.new_session() as session:
+    with test_env.fake_session() as session:
         b1 = blob("abc")
         assert b1.session == session
 
