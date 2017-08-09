@@ -56,7 +56,7 @@ def to_data(obj):
         return obj
     if isinstance(obj, Task):
         outputs = obj.outputs.values()
-        if len(outputs) != 1:
+        if len(outputs) == 1:
             return outputs[0]
         if len(outputs) == 0:
             raise RainException("{} does not have any output".format(obj))
@@ -64,8 +64,7 @@ def to_data(obj):
             raise RainException("{} returns more outputs".format(obj))
 
     if isinstance(obj, str) or isinstance(obj, bytes):
-        # TODO: Check cache / call blob
-        raise Exception("Not implemented")
+        return blob(obj)
 
     raise RainException("{!r} cannot be used as data object".format(obj))
 
