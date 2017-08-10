@@ -9,6 +9,7 @@ class Task:
     # None = Not submitted
     state = None
     id = None
+    nCpus = 1
 
     def __init__(self,
                  task_type,
@@ -59,3 +60,4 @@ class Task:
 
     def __repr__(self):
         return "<Task id={}/{} type={}>".format(self.session.session_id, self.id, self.task_type)
+

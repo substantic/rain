@@ -3,7 +3,8 @@ name = "rain"
 version = "0.1.0"
 authors = [
     "Stanislav Bohm <spirali@kreatrix.org>",
-    "Tomas Gavenciak <gavento@ucw.cz>"
+    "Tomas Gavenciak <gavento@ucw.cz>",
+    "Vojtech Cima" <cima.vojtech@gmail.com>
     ]
 build = "build.rs"
 

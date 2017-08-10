@@ -1,4 +1,4 @@
-from rain.client import session
+from rain.client import session, tasks
 from rain import RainException
 
 import pytest
@@ -46,3 +46,16 @@ def test_new_session_id(test_env):
 
     assert s1.session_id != s2.session_id
 
+
+def test_submit(test_env):
+    test_env.start(0)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        t1 = tasks.concat("a", "b")
+        t2 = tasks.sleep(1, t1)
+    assert s.task_count == 2
+    assert s.dataobj_count == 4  # "a", "b", "ab", "ab"
+    s.submit()
+    assert s.task_count == 0
+    assert s.dataobj_count == 0

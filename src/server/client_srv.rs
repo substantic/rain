@@ -45,4 +45,20 @@ impl client_service::Server for ClientServiceImpl {
         results.get().set_session_id(session_id);
         Promise::ok(())
     }
+
+    fn submit(
+        &mut self,
+        params: client_service::SubmitParams,
+        _: client_service::SubmitResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let tasks = pry!(params.get_tasks());
+        let dataobjs = pry!(params.get_objects());
+        info!("New task submission ({} tasks, {} data objects) from client",
+              tasks.len(), dataobjs.len());
+
+        //TODO: Do something useful with received tasks
+
+        Promise::ok(())
+    }
 }

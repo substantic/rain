@@ -29,6 +29,13 @@ class Session:
         # TODO: It is not now implemented
         self.const_cache = {}
 
+    @property
+    def task_count(self):
+        return len(self.tasks)
+
+    @property
+    def dataobj_count(self):
+        return len(self.dataobjs)
 
     def __enter__(self):
         global _global_sessions
@@ -67,7 +74,9 @@ class Session:
 
     def submit(self):
         """"Submit all registered objects"""
-        pass
+        self.client._submit(self.tasks, self.dataobjs)
+        self.tasks = []
+        self.dataobjs = []
 
     def wait_all(self):
         """Wait until all registered tasks are finished"""

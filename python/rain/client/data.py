@@ -14,8 +14,8 @@ class DataObject:
     # None = Not submitted
     state = None
 
-    # Value of dataca object (value can be filled by client if it is constant, or by fetching from server)
-    value = None
+    # Value of data object (value can be filled by client if it is constant, or by fetching from server)
+    data = None
 
     def __init__(self, session):
         self.session = session
@@ -28,6 +28,10 @@ class DataObject:
     def keep(self):
         """Set flag that is object should be kept on the server"""
         self._keep = True
+
+    def is_kept(self):
+        """Returns the value of self._keep"""
+        return self._keep
 
     def __del__(self):
         if self.state is not None and self._keep:
@@ -46,7 +50,7 @@ def blob(value):
         raise RainException("Invalid blob type (only str or bytes are allowed)")
 
     dataobj = DataObject(get_active_session())
-    dataobj.value = value
+    dataobj.data = value
     return dataobj
 
 
@@ -57,7 +61,7 @@ def to_data(obj):
     if isinstance(obj, Task):
         outputs = obj.outputs.values()
         if len(outputs) == 1:
-            return outputs[0]
+            return tuple(outputs)[0]
         if len(outputs) == 0:
             raise RainException("{} does not have any output".format(obj))
         else:
