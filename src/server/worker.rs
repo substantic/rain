@@ -1,9 +1,8 @@
-use std::net::SocketAddr;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::hash::{Hash, Hasher};
 
-pub type WorkerId = SocketAddr;
+use common::id::WorkerId;
 
 struct WorkerInner {
     id: WorkerId,

@@ -8,7 +8,7 @@ use std::rc::Rc;
 use std::hash::{Hash, Hasher};
 
 
-enum TaskState {
+pub enum TaskState {
     NotAssigned,
     Ready,
     Assigned(Worker),

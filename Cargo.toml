@@ -25,6 +25,7 @@ futures="*"
 tokio-core="*"
 tokio-io="*"
 env_logger = "*"
+arrayref = "*"
 
 [build-dependencies]
 capnpc = "0.8"

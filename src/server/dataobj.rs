@@ -9,7 +9,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-enum DataObjState {
+pub enum DataObjState {
     NotAssigned,
     Assigned,
     Finished(usize),
