@@ -5,7 +5,8 @@ use std::net::SocketAddr;
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
 
-use common::id::SessionId;
+use common::id::{SessionId, WorkerId};
+use common::rpc::new_rpc_system;
 use server::graph::Graph;
 use server::worker::Worker;
 use server::interface::ServerBootstrapImpl;
@@ -18,10 +19,13 @@ use tokio_core::net::TcpStream;
 use tokio_io::AsyncRead;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
+
 struct StateInner {
     //graph: Graph,
     handle: Handle, // Tokio core handle
     port: u16, // Listening port
+
+    workers: Vec<Worker>,
 
     session_id_counter: SessionId,
 }
@@ -37,14 +41,18 @@ impl State {
             inner: Rc::new(RefCell::new(StateInner {
                 handle: handle,
                 port: port,
+                workers: Vec::new(),
                 session_id_counter: 1,
             })),
         }
     }
 
+    pub fn add_worker(&self, worker: Worker) {
+        self.inner.borrow_mut().workers.push(worker);
+    }
+
     pub fn get_n_workers(&self) -> usize {
-        // Return number of workers
-        0 // TODO
+        self.inner.borrow().workers.len()
     }
 
     pub fn start(&self) {
@@ -85,19 +93,11 @@ impl State {
 
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
-        let (reader, writer) = stream.split();
-        let bootstrap_obj = ::server_capnp::server_bootstrap::ToClient::new(
+        let bootstrap = ::server_capnp::server_bootstrap::ToClient::new(
             ServerBootstrapImpl::new(self, address),
         ).from_server::<::capnp_rpc::Server>();
 
-        let network = twoparty::VatNetwork::new(
-            reader,
-            writer,
-            rpc_twoparty_capnp::Side::Server,
-            Default::default(),
-        );
-
-        let rpc_system = RpcSystem::new(Box::new(network), Some(bootstrap_obj.client));
+        let rpc_system = new_rpc_system(stream, Some(bootstrap.client));
         self.inner.borrow().handle.spawn(rpc_system.map_err(|e| {
             panic!("RPC error: {:?}", e)
         }));

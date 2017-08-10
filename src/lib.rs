@@ -17,6 +17,8 @@ pub mod worker;
 pub mod server;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+pub const WORKER_PROTOCOL_VERSION: i32 = 0;
+pub const CLIENT_PROTOCOL_VERSION: i32 = 0;
 
 // NOTE: Development solution to get type autocompletion and go-to-definition
 pub mod capnp_gen;

@@ -79,22 +79,24 @@ class TestEnv(Env):
         time.sleep(0.2)
 
         # Check that everything is still running
-        for worker in workers:
-            assert not worker.poll()
-        assert not server.poll()
+        for i, worker in enumerate(workers):
+            if worker.poll():
+                raise Exception("Worker {} is not running".format(i))
+        if server.poll():
+            raise Exception("Server is not running")
 
     @property
     def client(self):
         if self._client is not None:
             return self._client
-        import rain
+        import rain  # noqa
         client = rain.Client("127.0.0.1", self.PORT)
         self._client = client
         return client
 
     def fake_session(self):
         """Returns a new fake session for tests that do not need any server"""
-        import rain
+        import rain  # noqa
         self.id_counter += 1
         return rain.client.session.Session(None, self.id_counter)
 

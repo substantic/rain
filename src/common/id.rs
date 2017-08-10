@@ -1,4 +1,4 @@
-use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, Ipv4Addr, Ipv6Addr};
+use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, Ipv4Addr, Ipv6Addr, IpAddr};
 use common_capnp::{task_id, data_object_id, socket_address};
 use super::convert::{FromCapnp, ToCapnp, ReadCapnp, WriteCapnp};
 use std::io::Read;
@@ -198,4 +198,8 @@ mod tests {
         id.write_capnp(&mut buf);
         assert_eq!(id, DataObjectId::read_capnp(&mut Cursor::new(&buf)));
     }
+}
+
+pub fn empty_worker_id() -> WorkerId {
+    SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)
 }

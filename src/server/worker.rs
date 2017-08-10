@@ -7,6 +7,8 @@ use common::id::WorkerId;
 struct WorkerInner {
     id: WorkerId,
 
+    control: ::worker_capnp::worker_control::Client,
+
     // Resources
     n_cpus: u32,
     free_n_cpus: u32,
@@ -31,3 +33,16 @@ impl PartialEq for Worker {
 }
 
 impl Eq for Worker {}
+
+impl Worker {
+    pub fn new(worker_id: WorkerId, control: ::worker_capnp::worker_control::Client) -> Self {
+        Worker {
+            inner: Rc::new(RefCell::new(WorkerInner {
+                id: worker_id,
+                control: control,
+                n_cpus: 0,
+                free_n_cpus: 0,
+            }))
+        }
+    }
+}
