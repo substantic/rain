@@ -28,3 +28,10 @@ env_logger = "*"
 
 [build-dependencies]
 capnpc = "0.8"
+
+[features]
+
+default = []
+
+# with this, always re-run capnp compiler, do not use precompiled *_capnp.rs files
+generated_capnp = []
