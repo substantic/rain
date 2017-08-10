@@ -9,6 +9,8 @@ extern crate tokio_core;
 extern crate tokio_io;
 #[macro_use]
 extern crate capnp_rpc;
+#[macro_use]
+extern crate arrayref;
 
 pub mod common;
 pub mod worker;
@@ -16,33 +18,28 @@ pub mod server;
 
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
-#[cfg(not(feature = "generated_capnp"))]
+// NOTE: Development solution to get type autocompletion and go-to-definition
 pub mod capnp_gen;
-
-#[cfg(not(feature = "generated_capnp"))]
 pub use capnp_gen::*;
 
-#[cfg(feature = "generated_capnp")]
+/* // NOTE: PyCharm does not support feature switching, so using comments :'(
 pub mod server_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/server_capnp.rs"));
 }
 
-#[cfg(feature = "generated_capnp")]
 pub mod client_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/client_capnp.rs"));
 }
 
-#[cfg(feature = "generated_capnp")]
 pub mod common_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/common_capnp.rs"));
 }
 
-#[cfg(feature = "generated_capnp")]
 pub mod worker_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/worker_capnp.rs"));
 }
 
-#[cfg(feature = "generated_capnp")]
 pub mod datastore_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/datastore_capnp.rs"));
 }
+*/
