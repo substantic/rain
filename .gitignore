@@ -4,3 +4,4 @@ Cargo.lock
 .cache
 __pycache__
 tests/pytests/work
+src/capnp_gen/*_capnp.rs
