@@ -6,6 +6,7 @@ use std::net::Ipv4Addr;
 use std::process::exit;
 
 use common::id::{SessionId, WorkerId, empty_worker_id};
+use common::convert::{ToCapnp, FromCapnp};
 use worker::graph::Graph;
 
 use futures::Future;
@@ -94,13 +95,21 @@ impl State {
         req.get().set_version(WORKER_PROTOCOL_VERSION);
         req.get().set_control(worker_control);
 
+        let address = SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+             self.inner.borrow().port);
+        address.to_capnp(&mut req.get().get_address().unwrap());
+
         let state = self.clone();
         let future = req.send()
             .promise
             .and_then(move |response| {
                 let response = pry!(response.get());
                 let upstream = pry!(response.get_upstream());
-                state.inner.borrow_mut().upstream = Some(upstream);
+                let worker_id = pry!(response.get_worker_id());
+                let mut inner = state.inner.borrow_mut();
+                inner.upstream = Some(upstream);
+                //inner.worker_id = WorkerId::from_capnp(&worker_id); // UNCOMMENT THIS TO CRASH
                 debug!("Registration completed");
                 Promise::ok(())
             })
@@ -122,6 +131,7 @@ impl State {
         let listener = TcpListener::bind(&addr, &handle).unwrap();
         let port = listener.local_addr().unwrap().port();
         info!("Start listening on port={}", port);
+        self.inner.borrow_mut().port = port;
 
         let state = self.clone();
         let future = listener
