@@ -1,7 +1,14 @@
 use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, Ipv4Addr, Ipv6Addr};
-
 use common_capnp::{task_id, data_object_id, socket_address};
-use super::{FromCapnp, ToCapnp};
+use super::convert::{FromCapnp, ToCapnp, ReadCapnp, WriteCapnp};
+use std::io::Read;
+use capnp::{serialize};
+
+/// Generic ID type. Negative values have special meaning.
+pub type Id = i32;
+
+/// Session ID type. Negative values have special meaning.
+pub type SessionId = i32;
 
 /// Type identifying a worker, in this case its address and port as seen by server.
 /// When the worker has multiple addresses, one is selected and fixed on registrtion.
@@ -37,13 +44,16 @@ impl<'a> ToCapnp<'a> for WorkerId {
     }
 }
 
-/// Generic ID type. Negative values have special meaning.
-pub type Id = i32;
+impl ReadCapnp for WorkerId {
+    fn read_capnp<R: Read>(r: &mut R) -> Self {
+        let msg = serialize::read_message(r, Default::default()).unwrap();
+        let read = msg.get_root::<socket_address::Reader>().unwrap();
+        WorkerId::from_capnp(&read)
+    }
+}
 
-/// Session ID type. Negative values have special meaning.
-pub type SessionId = i32;
-
-trait SId: for<'a> FromCapnp<'a> + for <'a> ToCapnp<'a> {
+/// Common trait for `TaskId` and `DataObjectID`.
+trait SId: for <'a> ToCapnp<'a> + for <'a> FromCapnp<'a> + WriteCapnp + ReadCapnp {
     fn new(session_id: SessionId, id: Id) -> Self;
     fn get_id(&self) -> Id;
     fn get_session_id(&self) -> SessionId;
@@ -83,33 +93,109 @@ impl<'a> ToCapnp<'a> for TaskId {
     }
 }
 
+impl ReadCapnp for TaskId {
+    fn read_capnp<R: Read>(r: &mut R) -> Self {
+        let msg = serialize::read_message(r, Default::default()).unwrap();
+        let read = msg.get_root::<task_id::Reader>().unwrap();
+        TaskId::from_capnp(&read)
+    }
+}
+
 impl<'a> FromCapnp<'a> for TaskId {
     type Reader = task_id::Reader<'a>;
 
-    #[inline]
-    fn from_capnp(read: &Self::Reader) -> Self {
+    fn from_capnp(read: &'a Self::Reader) -> Self {
         TaskId::new(read.get_session_id(), read.get_id())
+    }
+}
+
+/// ID type for task objects.
+#[derive(Copy, Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Hash)]
+pub struct DataObjectId {
+    session_id: SessionId,
+    id: Id,
+}
+
+impl SId for DataObjectId {
+    #[inline]
+    fn new(session_id: SessionId, id: Id) -> Self {
+        DataObjectId { session_id: session_id, id: id }
+    }
+
+    #[inline]
+    fn get_id(&self) -> Id {
+        self.id
+    }
+
+    #[inline]
+    fn get_session_id(&self) -> SessionId {
+        self.session_id
+    }
+}
+
+impl<'a> ToCapnp<'a> for DataObjectId {
+    type Builder = data_object_id::Builder<'a>;
+
+    #[inline]
+    fn to_capnp(self: &Self, build: &mut Self::Builder) {
+        build.set_id(self.id);
+        build.set_session_id(self.session_id);
+    }
+}
+
+impl ReadCapnp for DataObjectId {
+    fn read_capnp<R: Read>(r: &mut R) -> Self {
+        let msg = serialize::read_message(r, Default::default()).unwrap();
+        let read = msg.get_root::<data_object_id::Reader>().unwrap();
+        DataObjectId::from_capnp(&read)
+    }
+}
+
+impl<'a> FromCapnp<'a> for DataObjectId {
+    type Reader = data_object_id::Reader<'a>;
+
+    fn from_capnp(read: &'a Self::Reader) -> Self {
+        DataObjectId::new(read.get_session_id(), read.get_id())
     }
 }
 
 // TODO(gavento): Replace Sid by Task/DO ID
 pub type Sid = TaskId;
-// TODO(gavento): Create DataObjectId as an independent object
-pub type DataObjectId = TaskId;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::{FromCapnp, ToCapnp};
-    use common_capnp::{task_id, data_object_id, socket_address};
-    use capnp::{message, serialize};
+    use std::io::Cursor;
 
     #[test]
-    fn worker_id_capnp() {
-        let addr6: SocketAddr = "[fd75::c5a:7c4e]:1024".parse().unwrap();
-        let mut msg = message::Builder::new_default();
-        addr6.to_capnp(&mut msg.get_root::<socket_address::Builder>().unwrap());
+    fn worker_id_capnp_v6() {
         let mut buf: Vec<u8> = Vec::new();
-        serialize::write_message(&mut buf, &msg).unwrap();
+        let addr6: SocketAddr = "[fd75::c5a:7c4e]:1024".parse().unwrap();
+        addr6.write_capnp(&mut buf);
+        assert_eq!(addr6, SocketAddr::read_capnp(&mut Cursor::new(&buf)));
+    }
+
+    #[test]
+    fn worker_id_capnp_v4() {
+        let mut buf: Vec<u8> = Vec::new();
+        let addr4: SocketAddr = "156.234.100.2:32109".parse().unwrap();
+        addr4.write_capnp(&mut buf);
+        assert_eq!(addr4, WorkerId::read_capnp(&mut Cursor::new(&buf)));
+    }
+
+    #[test]
+    fn task_id_capnp() {
+        let mut buf: Vec<u8> = Vec::new();
+        let id = TaskId::new(424242, -323232);
+        id.write_capnp(&mut buf);
+        assert_eq!(id, TaskId::read_capnp(&mut Cursor::new(&buf)));
+    }
+
+    #[test]
+    fn data_object_id_capnp() {
+        let mut buf: Vec<u8> = Vec::new();
+        let id = DataObjectId::new(-1424242, 1323232);
+        id.write_capnp(&mut buf);
+        assert_eq!(id, DataObjectId::read_capnp(&mut Cursor::new(&buf)));
     }
 }
