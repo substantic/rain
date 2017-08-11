@@ -7,8 +7,8 @@ use super::{FromCapnp, ToCapnp};
 /// When the worker has multiple addresses, one is selected and fixed on registrtion.
 pub type WorkerId = SocketAddr;
 
-impl FromCapnp for WorkerId {
-    type Reader = socket_address::Reader<'static>;
+impl<'a> FromCapnp<'a> for WorkerId {
+    type Reader = socket_address::Reader<'a>;
 
     fn from_capnp(read: &Self::Reader) -> Self {
         match read.get_address().which().unwrap() {
@@ -24,8 +24,8 @@ impl FromCapnp for WorkerId {
     }
 }
 
-impl ToCapnp for WorkerId {
-    type Builder = socket_address::Builder<'static>;
+impl<'a> ToCapnp<'a> for WorkerId {
+    type Builder = socket_address::Builder<'a>;
 
     fn to_capnp(self: &WorkerId, build: &mut Self::Builder) {
         build.set_port(self.port());
@@ -43,7 +43,7 @@ pub type Id = i32;
 /// Session ID type. Negative values have special meaning.
 pub type SessionId = i32;
 
-trait SId: FromCapnp + ToCapnp {
+trait SId: for<'a> FromCapnp<'a> + for <'a> ToCapnp<'a> {
     fn new(session_id: SessionId, id: Id) -> Self;
     fn get_id(&self) -> Id;
     fn get_session_id(&self) -> SessionId;
@@ -73,8 +73,8 @@ impl SId for TaskId {
     }
 }
 
-impl ToCapnp for TaskId {
-    type Builder = task_id::Builder<'static>;
+impl<'a> ToCapnp<'a> for TaskId {
+    type Builder = task_id::Builder<'a>;
 
     #[inline]
     fn to_capnp(self: &Self, build: &mut Self::Builder) {
@@ -83,8 +83,8 @@ impl ToCapnp for TaskId {
     }
 }
 
-impl FromCapnp for TaskId {
-    type Reader = task_id::Reader<'static>;
+impl<'a> FromCapnp<'a> for TaskId {
+    type Reader = task_id::Reader<'a>;
 
     #[inline]
     fn from_capnp(read: &Self::Reader) -> Self {
@@ -102,11 +102,14 @@ mod tests {
     use super::*;
     use common::{FromCapnp, ToCapnp};
     use common_capnp::{task_id, data_object_id, socket_address};
-    use capnp::message::{Builder, HeapAllocator};
+    use capnp::{message, serialize};
+
     #[test]
-    fn worker_id_works() {
+    fn worker_id_capnp() {
         let addr6: SocketAddr = "[fd75::c5a:7c4e]:1024".parse().unwrap();
-        let mut build = Builder::new(HeapAllocator::new());
-        addr6.to_capnp();
+        let mut msg = message::Builder::new_default();
+        addr6.to_capnp(&mut msg.get_root::<socket_address::Builder>().unwrap());
+        let mut buf: Vec<u8> = Vec::new();
+        serialize::write_message(&mut buf, &msg).unwrap();
     }
 }
