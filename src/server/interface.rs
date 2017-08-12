@@ -13,13 +13,14 @@ use server::upstream::WorkerUpstreamImpl;
 use CLIENT_PROTOCOL_VERSION;
 use WORKER_PROTOCOL_VERSION;
 
-// Gate is the entry point of RPC service. It is created on server and provided
-// to connection that can registered as worker or client.
+// ServerBootstrap is the entry point of RPC service.
+// It is created on the server and provided
+// to every incomming connections
 
 pub struct ServerBootstrapImpl {
     state: State,
-    registered: bool,
-    address: SocketAddr,
+    registered: bool, // true if the connection is already registered
+    address: SocketAddr, // Remote address of the connection
 }
 
 impl ServerBootstrapImpl {
@@ -94,8 +95,9 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
 
         self.registered = true;
 
+        // TODO: If address is NOT 0.0.0.0:PORT then reuse address fully as worker_id
         let port = pry!(params.get_address()).get_port();
-        let mut worker_id = self.address; // TODO(spirali): Replace with real worker adress
+        let mut worker_id = self.address;
         worker_id.set_port(port);
 
         info!("Connection {} registered as worker {}", self.address, worker_id);
