@@ -1,6 +1,7 @@
 
 from .session import get_active_session
 from .common import RainException
+from .rpc import common
 
 
 class DataObject:
@@ -32,6 +33,12 @@ class DataObject:
     def is_kept(self):
         """Returns the value of self._keep"""
         return self._keep
+
+    def to_capnp(self, out):
+        out.id.id = self.id
+        out.keep = self._keep
+        if self.data:
+            out.data = self.data
 
     def __del__(self):
         if self.state is not None and self._keep:

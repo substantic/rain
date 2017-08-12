@@ -9,7 +9,7 @@ class Task:
     # None = Not submitted
     state = None
     id = None
-    nCpus = 1
+    n_cpus = 1
 
     def __init__(self,
                  task_type,
@@ -51,6 +51,29 @@ class Task:
 
     def has_output(self, name):
         return name in self.outputs
+
+    def to_capnp(self, out):
+        out.id.id = self.id
+        out.id.sessionId = self.session.session_id
+        out.init("inputs", len(self.inputs))
+        for tii in range(len(self.inputs)):
+            out.inputs[tii].id.id = self.inputs[tii].id
+            out.inputs[tii].id.sessionId = self.inputs[tii].session.session_id
+            out.inputs[tii].label = ""
+
+        out.init("outputs", len(self.outputs))
+        toi = 0
+        for out_label, out_task in self.outputs.items():
+            out.outputs[toi].id.id = out_task.id
+            out.outputs[toi].label = out_label
+            toi += 1
+        out.taskType = self.task_type
+
+        if self.task_config:  # We need this since, task_config may be None
+            out.taskConfig = self.task_config
+
+        out.nCpus = self.n_cpus
+        out.taskType = self.task_type
 
     def __getitem__(self, name):
         output = self.outputs.get(name)
