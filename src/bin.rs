@@ -5,6 +5,8 @@ extern crate clap;
 extern crate log;
 extern crate tokio_core;
 extern crate env_logger;
+extern crate num_cpus;
+use std::process::exit;
 
 use librain::{server, worker, VERSION};
 use clap::ArgMatches;
@@ -37,13 +39,25 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
             DEFAULT_SERVER_PORT,
         )
     });
+
+    let cpus = value_t!(cmd_args, "CPUS", u32).unwrap_or_else(|_| {
+        debug!("Detecting number of cpus");
+        let cpus = num_cpus::get();
+        if (cpus < 1) {
+            error!("Autodetection of CPUs failed. Use --cpus argument.");
+            exit(1);
+        }
+        cpus as u32
+    });
+
     info!("Starting Rain {} as worker", VERSION);
+    info!("Resources: {} cpus", cpus);
 
     let listen_address =    SocketAddr::new(
         IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), port);
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
-    let state =  worker::state::State::new(tokio_core.handle(), 1);
+    let state =  worker::state::State::new(tokio_core.handle(), cpus);
     state.start(server_address, listen_address);
     loop {
         tokio_core.turn(None);
@@ -70,7 +84,8 @@ fn main() {
         (@subcommand worker =>
             (about: "Start a worker and connect to a given server.")
             (@arg SERVER_ADDRESS: +required "Server address ADDR[:PORT] (default port is 7210)")
-            (@arg PORT: -p --port +takes_value "Listening port (default 0 = autoassign)")
+            (@arg PORT: -p --port +takes_value "Listening port (default = autoassign)")
+            (@arg CPUS: --cpus +takes_value "Number of cpus (default = autoassign)")
             )
         ).get_matches();
 

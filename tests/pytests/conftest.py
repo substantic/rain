@@ -56,7 +56,7 @@ class TestEnv(Env):
         self.n_workers = None
         self.id_counter = 1
 
-    def start(self, n_workers=1):
+    def start(self, n_workers=1, n_cpus=1):
         """
         Start infrastructure: server & n workers
         """
@@ -72,7 +72,7 @@ class TestEnv(Env):
         # Start WORKERS
         workers = []
         args = (RAIN_DEBUG_BIN,
-                "worker", "127.0.0.1:" + str(self.PORT))
+                "worker", "127.0.0.1:" + str(self.PORT), "--cpus", str(n_cpus))
         for i in range(n_workers):
             name = "worker{}".format(i)
             workers.append(self.start_process(name, args, env=env))
