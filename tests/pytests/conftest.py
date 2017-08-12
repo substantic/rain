@@ -56,6 +56,9 @@ class TestEnv(Env):
         self.n_workers = None
         self.id_counter = 1
 
+        self.server = None
+        self.workers = []
+
     def start(self, n_workers=1, n_cpus=1):
         """
         Start infrastructure: server & n workers
@@ -67,7 +70,8 @@ class TestEnv(Env):
         args = (RAIN_DEBUG_BIN, "server", "--port", str(self.PORT))
         server = self.start_process("server", args, env=env)
         time.sleep(0.1)
-        assert not server.poll()
+        if server.poll():
+            raise Exception("Server is not running")
 
         # Start WORKERS
         workers = []
@@ -78,12 +82,24 @@ class TestEnv(Env):
             workers.append(self.start_process(name, args, env=env))
         time.sleep(0.2)
 
-        # Check that everything is still running
-        for i, worker in enumerate(workers):
+        self.server = server
+        self.workers = workers
+
+        self.check_running_processes()
+
+
+    def check_running_processes(self):
+        """Checks that everything is still running"""
+        for i, worker in enumerate(self.workers):
             if worker.poll():
-                raise Exception("Worker {} is not running".format(i))
-        if server.poll():
-            raise Exception("Server is not running")
+                self.workers = []
+                raise Exception(
+                    "Worker {0} crashed "
+                    "(log in {1}/worker{0}.out)".format(i, WORK_DIR))
+        if self.server and self.server.poll():
+            self.server = None
+            raise Exception(
+                "Server crashed (log in {}/server.out)".format(WORK_DIR))
 
     @property
     def client(self):
@@ -99,7 +115,6 @@ class TestEnv(Env):
         import rain  # noqa
         self.id_counter += 1
         return rain.client.session.Session(None, self.id_counter)
-
 
     def close(self):
         self._client = None
@@ -141,5 +156,8 @@ def test_env():
     env = TestEnv()
     yield env
     time.sleep(0.1)
-    env.close()
-    env.kill_all()
+    try:
+        env.check_running_processes()
+    finally:
+        env.close()
+        env.kill_all()
