@@ -1,11 +1,11 @@
 use common::id::WorkerId;
+use common::convert::{FromCapnp, ToCapnp};
 use server::state::State;
 use server::worker::Worker;
 use server_capnp::server_bootstrap;
 use capnp::capability::Promise;
 use std::net::SocketAddr;
 use capnp;
-use common::convert::FromCapnp;
 
 use server::client_srv::ClientServiceImpl;
 use server::upstream::WorkerUpstreamImpl;
@@ -95,7 +95,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         self.registered = true;
 
         let port = pry!(params.get_address()).get_port();
-        let mut worker_id = self.address;
+        let mut worker_id = self.address; // TODO(spirali): Replace with real worker adress
         worker_id.set_port(port);
 
         info!("Connection {} registered as worker {}", self.address, worker_id);
@@ -109,6 +109,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         ).from_server::<::capnp_rpc::Server>();
 
         results.get().set_upstream(upstream);
+        worker_id.to_capnp(&mut results.get().get_worker_id().unwrap());
         Promise::ok(())
     }
 }

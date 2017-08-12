@@ -106,7 +106,7 @@ impl State {
                 let worker_id = pry!(response.get_worker_id());
                 let mut inner = state.inner.borrow_mut();
                 inner.upstream = Some(upstream);
-                //inner.worker_id = WorkerId::from_capnp(&worker_id); // UNCOMMENT THIS TO CRASH
+                inner.worker_id = WorkerId::from_capnp(&worker_id);
                 debug!("Registration completed");
                 Promise::ok(())
             })
