@@ -24,10 +24,11 @@ use WORKER_PROTOCOL_VERSION;
 pub struct InnerState {
 
     handle: Handle, // Tokio core handle
-    port: u16, // Listening port
 
     worker_id: WorkerId,
     upstream: Option<::worker_capnp::worker_upstream::Client>,
+
+    n_cpus: u32,  // Resources
 
     graph: Graph,
 }
@@ -39,11 +40,11 @@ pub struct State {
 
 
 impl State {
-    pub fn new(handle: Handle, port: u16) -> Self {
+    pub fn new(handle: Handle, n_cpus: u32) -> Self {
         Self {
             inner: Rc::new(RefCell::new(InnerState {
-                handle: handle,
-                port: port,
+                handle,
+                n_cpus,
                 upstream: None,
                 worker_id: empty_worker_id(),
                 graph: Graph::new(),
@@ -79,7 +80,7 @@ impl State {
     }
 
     // This is called when worker connection to server is established
-    pub fn on_connected_to_server(&self, stream: TcpStream) {
+    pub fn on_connected_to_server(&self, stream: TcpStream, listen_address: SocketAddr) {
         info!("Connected to server; registering as worker");
         stream.set_nodelay(true).unwrap();
         let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
@@ -94,11 +95,7 @@ impl State {
 
         req.get().set_version(WORKER_PROTOCOL_VERSION);
         req.get().set_control(worker_control);
-
-        let address = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-             self.inner.borrow().port);
-        address.to_capnp(&mut req.get().get_address().unwrap());
+        listen_address.to_capnp(&mut req.get().get_address().unwrap());
 
         let state = self.clone();
         let future = req.send()
@@ -123,15 +120,12 @@ impl State {
             .spawn(rpc_system.map_err(|e| println!("RPC error: {:?}", e)));
     }
 
-    pub fn start(&self, server_address: SocketAddr) {
+    pub fn start(&self, server_address: SocketAddr, listen_address: SocketAddr) {
         // --- Start listening ----
-        let port = self.inner.borrow().port;
         let handle = self.inner.borrow().handle.clone();
-        let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), port);
-        let listener = TcpListener::bind(&addr, &handle).unwrap();
+        let listener = TcpListener::bind(&listen_address, &handle).unwrap();
         let port = listener.local_addr().unwrap().port();
         info!("Start listening on port={}", port);
-        self.inner.borrow_mut().port = port;
 
         let state = self.clone();
         let future = listener
@@ -150,7 +144,7 @@ impl State {
         info!("Connecting to server addr={}", server_address);
         let connect = TcpStream::connect(&server_address, &handle)
             .and_then(move |stream| {
-                core1.on_connected_to_server(stream);
+                core1.on_connected_to_server(stream, listen_address);
                 Ok(())
             })
             .map_err(|e| {

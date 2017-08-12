@@ -8,7 +8,7 @@ extern crate env_logger;
 
 use librain::{server, worker, VERSION};
 use clap::ArgMatches;
-use std::net::{SocketAddr, IpAddr};
+use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 
 const DEFAULT_SERVER_PORT: u16 = 7210;
 const DEFAULT_WORKER_PORT: u16 = 0;
@@ -39,9 +39,12 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     });
     info!("Starting Rain {} as worker", VERSION);
 
+    let listen_address =    SocketAddr::new(
+        IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), port);
+
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
-    let state =  worker::state::State::new(tokio_core.handle(), port);
-    state.start(server_address);
+    let state =  worker::state::State::new(tokio_core.handle(), 1);
+    state.start(server_address, listen_address);
     loop {
         tokio_core.turn(None);
         state.turn();
