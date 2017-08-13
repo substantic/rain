@@ -117,13 +117,19 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             debug!("Creating worker {} with {} cpus", worker_id, n_cpus);
 
             let worker = Worker::new(worker_id, control, n_cpus);
-            let upstream = ::worker_capnp::worker_upstream::ToClient::new(
-                WorkerUpstreamImpl::new(&state),
-            ).from_server::<::capnp_rpc::Server>();
-
-            results.get().set_upstream(upstream);
             worker_id.to_capnp(&mut results.get().get_worker_id().unwrap());
-            state.add_worker(worker);
+
+            // The order is important here:
+            // 1) add worker
+            // 2) create upstream
+            // reason: upstream drop tries to remove worker
+
+            state.add_worker(worker.clone());
+
+            let upstream = ::worker_capnp::worker_upstream::ToClient::new(
+                WorkerUpstreamImpl::new(&state, &worker),
+            ).from_server::<::capnp_rpc::Server>();
+            results.get().set_upstream(upstream);
             Promise::ok(())
         }))
     }

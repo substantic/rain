@@ -51,6 +51,11 @@ impl State {
         self.inner.borrow_mut().workers.push(worker);
     }
 
+    pub fn remove_worker(&self, worker: &Worker) {
+        // TODO removing workers
+        panic!("Worker removed; not implemented yet");
+    }
+
     pub fn get_n_workers(&self) -> usize {
         self.inner.borrow().workers.len()
     }

@@ -14,6 +14,14 @@ impl ClientServiceImpl {
     }
 }
 
+impl Drop for ClientServiceImpl {
+    fn drop(&mut self)
+    {
+        // TODO handle client disconnections
+        panic!("Client connection lost; not implemented yet");
+    }
+}
+
 impl client_service::Server for ClientServiceImpl {
     fn get_server_info(
         &mut self,

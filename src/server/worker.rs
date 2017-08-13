@@ -47,4 +47,9 @@ impl Worker {
             }))
         }
     }
+
+    #[inline]
+    pub fn get_id(&self) -> WorkerId {
+        self.inner.borrow().id
+    }
 }
