@@ -35,13 +35,15 @@ impl PartialEq for Worker {
 impl Eq for Worker {}
 
 impl Worker {
-    pub fn new(worker_id: WorkerId, control: ::worker_capnp::worker_control::Client) -> Self {
+    pub fn new(worker_id: WorkerId,
+               control: ::worker_capnp::worker_control::Client,
+               n_cpus: u32) -> Self {
         Worker {
             inner: Rc::new(RefCell::new(WorkerInner {
                 id: worker_id,
                 control: control,
-                n_cpus: 0,
-                free_n_cpus: 0,
+                n_cpus: n_cpus,
+                free_n_cpus: n_cpus,
             }))
         }
     }

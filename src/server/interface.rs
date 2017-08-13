@@ -1,10 +1,13 @@
+
+use futures::Future;
+use std::net::SocketAddr;
+
 use common::id::WorkerId;
 use common::convert::{FromCapnp, ToCapnp};
 use server::state::State;
 use server::worker::Worker;
 use server_capnp::server_bootstrap;
 use capnp::capability::Promise;
-use std::net::SocketAddr;
 use capnp;
 
 use server::client_srv::ClientServiceImpl;
@@ -103,15 +106,25 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         info!("Connection {} registered as worker {}", self.address, worker_id);
 
         let control = pry!(params.get_control());
-        let worker = Worker::new(worker_id, control);
-        self.state.add_worker(worker);
+        let state = self.state.clone();
 
-        let upstream = ::worker_capnp::worker_upstream::ToClient::new(
-            WorkerUpstreamImpl::new(&self.state),
-        ).from_server::<::capnp_rpc::Server>();
+        // Ask for resources and then create a new worker in server
+        let req = control.get_worker_resources_request();
+        Promise::from_future(req.send().promise.and_then(move |response| {
+            let response = pry!(response.get());
+            let n_cpus = response.get_n_cpus();
 
-        results.get().set_upstream(upstream);
-        worker_id.to_capnp(&mut results.get().get_worker_id().unwrap());
-        Promise::ok(())
+            debug!("Creating worker {} with {} cpus", worker_id, n_cpus);
+
+            let worker = Worker::new(worker_id, control, n_cpus);
+            let upstream = ::worker_capnp::worker_upstream::ToClient::new(
+                WorkerUpstreamImpl::new(&state),
+            ).from_server::<::capnp_rpc::Server>();
+
+            results.get().set_upstream(upstream);
+            worker_id.to_capnp(&mut results.get().get_worker_id().unwrap());
+            state.add_worker(worker);
+            Promise::ok(())
+        }))
     }
 }

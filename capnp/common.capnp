@@ -69,3 +69,7 @@ struct Additional {
         }
     }
 }
+
+struct Resources {
+    nCpus @0 : UInt32;
+}

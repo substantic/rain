@@ -52,6 +52,11 @@ impl State {
         }
     }
 
+    // Get number of cpus for assigned to this worker
+    pub fn get_n_cpus(&self) -> u32 {
+        self.inner.borrow().n_cpus
+    }
+
     // This is called when an incomming connection arrives
     fn on_connection(&self, stream: TcpStream, address: SocketAddr) {
         // Handle an incoming connection; spawn gate object for it

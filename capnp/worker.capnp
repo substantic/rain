@@ -9,6 +9,7 @@ using import "common.capnp".DataObjectId;
 using import "common.capnp".Additional;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
+using import "common.capnp".Resources;
 
 interface WorkerBootstrap {
     # Interface for entities connecting directly to the worker.
@@ -70,6 +71,8 @@ interface WorkerControl {
     removeNodes @2 (removeTasks :List(TaskId), removeObjects :List(DataObjectId)) -> ();
 
     getWorkerState @3 () -> (status: Void);
+
+    getWorkerResources @4 () -> Resources;
     # TODO: actual status: CPU, resources, counters, ...
 
     # TODO: Control worker (shutdown, pause) etc ...

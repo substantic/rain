@@ -23,19 +23,11 @@ impl Drop for WorkerControlImpl {
 
 impl worker_control::Server for WorkerControlImpl {
 
-    /*fn submit(&mut self,
-              params: worker_service::SubmitParams,
-              mut _results: worker_service::SubmitResults)
+    fn get_worker_resources(&mut self,
+              _params: worker_control::GetWorkerResourcesParams,
+              mut results: worker_control::GetWorkerResourcesResults)
               -> Promise<(), ::capnp::Error> {
-        let tasks = pry!(pry!(params.get()).get_tasks());
-        debug!("New task submission ({} tasks)", tasks.len());
-        for t in tasks.iter() {
-            let task = Task::new(t.get_id(),
-                                 t.get_procedure_id(),
-                                 Vec::new(),
-                                 pry!(t.get_config()).to_vec());
-            self.core.add_task(task);
-        }
+        results.get().set_n_cpus(self.state.get_n_cpus());
         Promise::ok(())
-    }*/
+    }
 }
