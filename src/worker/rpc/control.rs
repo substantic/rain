@@ -119,10 +119,30 @@ impl worker_control::Server for WorkerControlImpl {
                 });
             state.spawn_panic_on_error(future);
         }
-
-
         state.need_scheduling();
+        Promise::ok(())
+    }
 
+    fn get_monitoring_frames(&mut self,
+              _params: worker_control::GetMonitoringFramesParams,
+              mut results: worker_control::GetMonitoringFramesResults)
+              -> Promise<(), ::capnp::Error> {
+        let mut state = self.state.get_mut();
+        let monitor = state.monitor_mut();
+        let frames = monitor.collect_frames();
+        let mut capnp_frames = results.get().init_frames(frames.len() as u32);
+
+        for (i, f) in frames.iter().enumerate() {
+            let worker_frame = frames.get(i);
+            let mut capnp_frame = capnp_frames.borrow().get(0);
+            capnp_frame.set_timestamp(f.timestamp.elapsed().unwrap().as_secs());
+            capnp_frame.set_mem_usage(f.mem_usage as u8);
+
+            let mut capnp_usage = capnp_frame.init_cpu_usage(f.cpu_usage.len() as u32);
+            for (j, u) in f.cpu_usage.iter().enumerate() {
+                capnp_usage.set(j as u32, u.clone());
+            }
+        }
         Promise::ok(())
     }
 }

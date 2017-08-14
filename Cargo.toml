@@ -35,6 +35,8 @@ num_cpus = "*"
 nix = "*"
 lazy_static = "*"
 bytes = "*"
+sysconf = "*"
+sys-info = "*"
 
 [build-dependencies]
 capnpc = "0.8"

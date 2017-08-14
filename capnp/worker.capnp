@@ -11,6 +11,7 @@ using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
 using import "common.capnp".DataObjectType;
 using import "common.capnp".Resources;
+using import "monitor.capnp".MonitoringFrames;
 
 interface WorkerBootstrap {
     # Interface for entities connecting directly to the worker.
@@ -74,6 +75,9 @@ interface WorkerControl {
     getWorkerState @3 () -> (status: Void);
 
     getWorkerResources @4 () -> Resources;
+
+    getMonitoringFrames @5 () -> MonitoringFrames;
+
     # TODO: actual status: CPU, resources, counters, ...
 
     # TODO: Control worker (shutdown, pause) etc ...

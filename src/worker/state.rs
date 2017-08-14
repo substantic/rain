@@ -18,6 +18,8 @@ use common::convert::{ToCapnp, FromCapnp};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
+use common::monitoring::{Monitor, Frame};
+
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState,
                     Graph, TaskRef, TaskInput, TaskState, SubworkerRef, start_python_subworker,
                     DataBuilder, BlobBuilder, Data};
@@ -65,6 +67,8 @@ pub struct State {
     work_dir: PathBuf,
 
     resources: Resources,
+
+    monitor: Monitor,
 }
 
 pub type StateRef = WrappedRcRefCell<State>;
@@ -343,6 +347,10 @@ impl State {
             unimplemented!();
         }
     }
+
+    pub fn monitor_mut(&mut self) -> &mut Monitor {
+        &mut self.monitor
+    }
 }
 
 impl StateRef {
@@ -362,6 +370,7 @@ impl StateRef {
                        worker_id: empty_worker_id(),
                        graph: Graph::new(),
                        need_scheduling: false,
+                       monitor: Monitor::new(),
                    })
     }
 
@@ -497,6 +506,22 @@ impl StateRef {
                          panic!("Listening failed {:?}", e);
                      });
         handle.spawn(future);
+
+        // --- Start monitoring ---
+        let MONITORING_INTERVAL = 10; // Monitoring interval in seconds
+        let state = self.clone();
+        let timer = state.get().timer.clone();
+        let interval = timer.interval(Duration::from_secs(MONITORING_INTERVAL));
+
+        let monitoring = interval
+            .for_each(move |()| {
+                state.get_mut().monitor.collect_samples();
+                Ok(())
+            })
+            .map_err(|e| {
+                error!("Monitoring error {}", e)
+            });
+        handle.spawn(monitoring);
 
         // --- Start connection to server ----
         let core1 = self.clone();
