@@ -7,6 +7,7 @@ using import "common.capnp".Additional;
 using import "common.capnp".SessionId;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
+using import "datastore.capnp".DataStore;
 
 struct ServerInfo {
   nWorkers @0 :Int32;
@@ -53,7 +54,11 @@ interface ClientService {
     # Get current state of tasks and objects
     # allTaskId / allDataObjectsId is allowed
 
-    terminateServer @8 () -> ();
+    getDataStore @8 () -> (store :DataStore);
+    # Returns the data handle of the server. It does not make sense to take more
+    # than one instance of this.
+
+    terminateServer @9 () -> ();
     # Quit server; the connection to the server will be closed after this call
 }
 
