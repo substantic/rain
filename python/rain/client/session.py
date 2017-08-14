@@ -13,6 +13,10 @@ get_active_session()
 """
 _global_sessions = []
 
+import weakref
+
+from rain.client import rpc
+
 from .common import RainException
 
 class Session:
@@ -23,6 +27,8 @@ class Session:
         self.tasks = []
         self.dataobjs = []
         self.id_counter = 9
+        self.submitted_tasks = []
+        self.submitted_dataobjs = []
 
         # Cache for not submited constants: bytes/str -> DataObject
         # It is cleared on submit
@@ -75,12 +81,48 @@ class Session:
     def submit(self):
         """"Submit all registered objects"""
         self.client._submit(self.tasks, self.dataobjs)
+        for task in self.tasks:
+            task.state = rpc.common.TaskState.notAssigned
+            self.submitted_tasks.append(weakref.ref(task))
+        for dataobj in self.dataobjs:
+            dataobj.state = rpc.common.DataObjectState.notAssigned
+            self.submitted_dataobjs.append(weakref.ref(dataobj))
         self.tasks = []
         self.dataobjs = []
 
+    def wait(self, tasks, dataobjs):
+        """Wait until specified tasks/dataobjects are finished"""
+        self.client._wait(tasks, dataobjs)
+
+        for task in tasks:
+            task.state = rpc.common.TaskState.finished
+
+        for dataobj in dataobjs:
+            dataobj.state = rpc.common.DataObjectState.finished
+
+    def wait_some(self, tasks, dataobjects):
+        """Wait until some of specified tasks/dataobjects are finished"""
+        finished_tasks, finished_dataobjs = self.client._wait_some(tasks, dataobjects)
+
+        for task in finished_tasks:
+            task.state = rpc.common.TaskState.finished
+
+        for dataobj in finished_dataobjs:
+            dataobj.state = rpc.common.DataObjectState.finished
+
+        return finished_tasks, finished_dataobjs
+
     def wait_all(self):
         """Wait until all registered tasks are finished"""
-        pass
+        self.client._wait_all(self.session_id)
+
+        for task in self.submitted_tasks:
+            if task:
+                task().state = rpc.common.TaskState.finished
+
+        for dataobj in self.submitted_dataobjs:
+            if dataobj:
+                dataobj().state = rpc.common.DataObjectState.finished
 
 
 def get_active_session():

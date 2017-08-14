@@ -61,4 +61,39 @@ impl client_service::Server for ClientServiceImpl {
 
         Promise::ok(())
     }
+
+    fn wait(
+        &mut self,
+        params: client_service::WaitParams,
+        _: client_service::WaitResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let task_ids = pry!(params.get_task_ids());
+        let object_ids = pry!(params.get_object_ids());
+        info!("New wait request ({} tasks, {} data objects) from client",
+              task_ids.len(), object_ids.len());
+
+        //TODO: Wait for tasks / dataobjs to finish
+
+        Promise::ok(())
+    }
+
+    fn wait_some(
+        &mut self,
+        params: client_service::WaitSomeParams,
+        mut results: client_service::WaitSomeResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let task_ids = pry!(params.get_task_ids());
+        let object_ids = pry!(params.get_object_ids());
+        info!("New wait_some request ({} tasks, {} data objects) from client",
+              task_ids.len(), object_ids.len());
+
+        //TODO: Wait for some tasks / dataobjs to finish.
+        // Current implementation returns received task/object ids.
+
+        results.get().set_finished_tasks(task_ids);
+        results.get().set_finished_objects(object_ids);
+        Promise::ok(())
+    }
 }
