@@ -40,7 +40,7 @@ struct PullReply {
 }
 
 interface DataStore {
-    pullData @0 (id :DataObjectId, offset :UInt64, length :UInt64) -> (reply: PullReply);
+    pullData @0 (id :DataObjectId, offset :UInt64, length :UInt64) -> PullReply;
     # Request a data block from the given data object.
     # This call will only return when the data is actually available, so it may be
     # pending for a very long time.

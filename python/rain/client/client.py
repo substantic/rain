@@ -16,6 +16,7 @@ class Client:
         bootstrap = self.rpc_client.bootstrap().cast_as(rpc.server.ServerBootstrap)
         registration = bootstrap.registerAsClient(CLIENT_PROTOCOL_VERSION)
         self.service = registration.wait().service
+        self.datastore = self.service.getDataStore().wait()
 
     def new_session(self):
         session_id = self.service.newSession().wait().sessionId

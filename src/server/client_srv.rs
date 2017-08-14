@@ -3,6 +3,7 @@ use capnp::capability::Promise;
 use capnp;
 use client_capnp::client_service;
 use server::state::State;
+use server::datastore::DataStoreImpl;
 
 pub struct ClientServiceImpl {
     state: State,
@@ -59,6 +60,17 @@ impl client_service::Server for ClientServiceImpl {
 
         //TODO: Do something useful with received tasks
 
+        Promise::ok(())
+    }
+
+    fn get_data_store(
+        &mut self,
+        params: client_service::GetDataStoreParams,
+        mut results: client_service::GetDataStoreResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let datastore = ::datastore_capnp::data_store::ToClient::new(
+            DataStoreImpl::new(&self.state)).from_server::<::capnp_rpc::Server>();
+        results.get().set_store(datastore);
         Promise::ok(())
     }
 }
