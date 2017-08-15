@@ -6,7 +6,11 @@ extern crate log;
 extern crate tokio_core;
 extern crate env_logger;
 extern crate num_cpus;
+extern crate nix;
+
 use std::process::exit;
+use std::path::{Path, PathBuf};
+use std::error::Error;
 
 use librain::{server, worker, VERSION};
 use clap::ArgMatches;
@@ -32,6 +36,34 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         tokio_core.turn(None);
         state.turn();
     }
+}
+
+
+// Creates a working directory of the following scheme prefix + "/rain/" + base_name + process_pid
+// It checks that 'prefix' exists, but not the full path
+fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, String> {
+    if !prefix.exists() {
+        return Err(format!("Working directory prefix {:?} does not exists", prefix));
+    }
+
+    if !prefix.is_dir() {
+        return Err(format!("Working directory prefix {:?} is not directory", prefix));
+    }
+
+    let pid = nix::unistd::getpid();
+    let work_dir = prefix.join("rain").join(
+        format!("{}{}", base_name, pid));
+
+    if work_dir.exists() {
+        return Err(format!("Working directory {:?} already exists", work_dir));
+    }
+
+    debug!("Creating working directory {:?}", work_dir);
+    if let Err(e) = std::fs::create_dir_all(work_dir.clone()) {
+        return Err(format!("Working directory {:?} cannot by created: {}",
+                           work_dir, e.description()));
+    }
+    Ok(work_dir)
 }
 
 
@@ -61,14 +93,24 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         cpus as u32
     };
 
+    let work_dir_prefix = Path::new(cmd_args.value_of("WORK_DIR")
+        .unwrap_or("/tmp"));
+
+    let work_dir = make_working_directory(work_dir_prefix, "worker-")
+        .unwrap_or_else(|e| {
+            error!("{}", e);
+            exit(1);
+        });
+
     info!("Starting Rain {} as worker", VERSION);
     info!("Resources: {} cpus", cpus);
+    info!("Working directory: {:?}", work_dir);
 
     let listen_address =    SocketAddr::new(
         IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), port);
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
-    let state =  worker::state::State::new(tokio_core.handle(), cpus);
+    let state =  worker::state::State::new(tokio_core.handle(), work_dir, cpus);
     state.start(server_address, listen_address);
     loop {
         tokio_core.turn(None);
@@ -97,6 +139,7 @@ fn main() {
             (@arg SERVER_ADDRESS: +required "Server address ADDR[:PORT] (default port is 7210)")
             (@arg PORT: -p --port +takes_value "Listening port (default = autoassign)")
             (@arg CPUS: --cpus +takes_value "Number of cpus (default = autoassign)")
+            (@arg WORK_DIR: --workdir +takes_value "Working directory (default = /tmp)")
             )
         ).get_matches();
 

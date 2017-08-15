@@ -17,6 +17,7 @@ use tokio_core::net::TcpStream;
 use tokio_io::AsyncRead;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use capnp::capability::Promise;
+use std::path::PathBuf;
 
 use WORKER_PROTOCOL_VERSION;
 
@@ -28,8 +29,8 @@ pub struct InnerState {
     worker_id: WorkerId,
     upstream: Option<::worker_capnp::worker_upstream::Client>,
 
+    work_dir: PathBuf,
     n_cpus: u32,  // Resources
-
     graph: Graph,
 }
 
@@ -40,12 +41,13 @@ pub struct State {
 
 
 impl State {
-    pub fn new(handle: Handle, n_cpus: u32) -> Self {
+    pub fn new(handle: Handle, work_dir: PathBuf, n_cpus: u32) -> Self {
         Self {
             inner: Rc::new(RefCell::new(InnerState {
                 handle,
                 n_cpus,
                 upstream: None,
+                work_dir,
                 worker_id: empty_worker_id(),
                 graph: Graph::new(),
             })),

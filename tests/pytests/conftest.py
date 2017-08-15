@@ -76,7 +76,9 @@ class TestEnv(Env):
         # Start WORKERS
         workers = []
         args = (RAIN_DEBUG_BIN,
-                "worker", "127.0.0.1:" + str(self.PORT), "--cpus", str(n_cpus))
+                "worker", "127.0.0.1:" + str(self.PORT),
+                "--cpus", str(n_cpus),
+                "--workdir", WORK_DIR)
         for i in range(n_workers):
             name = "worker{}".format(i)
             workers.append(self.start_process(name, args, env=env))

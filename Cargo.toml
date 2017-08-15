@@ -28,6 +28,7 @@ tokio-io="*"
 env_logger = "*"
 arrayref = "*"
 num_cpus = "*"
+nix = "*"
 
 [build-dependencies]
 capnpc = "0.8"
