@@ -18,7 +18,11 @@ const CLIENT_PROTOCOL_VERSION: i32 = 0;
 const WORKER_PROTOCOL_VERSION: i32 = 0;
 
 fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let port = value_t!(cmd_args, "PORT", u16).unwrap_or(DEFAULT_SERVER_PORT);
+    let port = if cmd_args.is_present("PORT") {
+        value_t_or_exit!(cmd_args, "PORT", u16)
+    } else {
+        DEFAULT_SERVER_PORT
+    };
     info!("Starting Rain {} server at port {}", VERSION, port);
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
@@ -32,7 +36,12 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 
 fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let port = value_t!(cmd_args, "PORT", u16).unwrap_or(DEFAULT_WORKER_PORT);
+    let port = if cmd_args.is_present("PORT") {
+        value_t_or_exit!(cmd_args, "PORT", u16)
+    } else {
+        DEFAULT_WORKER_PORT
+    };
+
     let server_address = value_t!(cmd_args, "SERVER_ADDRESS", SocketAddr).unwrap_or_else(|_| {
         SocketAddr::new(
             value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr),
@@ -40,7 +49,9 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         )
     });
 
-    let cpus = value_t!(cmd_args, "CPUS", u32).unwrap_or_else(|_| {
+    let cpus = if cmd_args.is_present("CPUS") {
+        value_t_or_exit!(cmd_args, "CPUS", u32)
+    } else {
         debug!("Detecting number of cpus");
         let cpus = num_cpus::get();
         if (cpus < 1) {
@@ -48,7 +59,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
             exit(1);
         }
         cpus as u32
-    });
+    };
 
     info!("Starting Rain {} as worker", VERSION);
     info!("Resources: {} cpus", cpus);
