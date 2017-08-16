@@ -109,7 +109,7 @@ def test_remove(test_env):
     s = client.new_session()
     with s:
         t1 = tasks.concat("a", "b")
-        t1_output = list(t1.outputs.values())[0]
+        t1_output = t1.out.output
         t1_output.keep()
         t2 = tasks.sleep(1, t1)
     with pytest.raises(RainException):

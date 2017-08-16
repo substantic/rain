@@ -72,10 +72,9 @@ def to_data(obj):
     if isinstance(obj, DataObject):
         return obj
     if isinstance(obj, Task):
-        outputs = obj.outputs.values()
-        if len(outputs) == 1:
-            return tuple(outputs)[0]
-        if len(outputs) == 0:
+        if len(obj.out) == 1:
+            return tuple(obj.out)[0][1]
+        if len(obj.out) == 0:
             raise RainException("{} does not have any output".format(obj))
         else:
             raise RainException("{} returns more outputs".format(obj))

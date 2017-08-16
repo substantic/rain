@@ -25,17 +25,16 @@ def test_task_outputs(fake_session):
         assert t1.has_output("")
         assert not t1.has_output("XXX")
 
-        assert isinstance(t1["a"], DataObject)
-        assert isinstance(t1[""], DataObject)
-        assert isinstance(t1["space inside"], DataObject)
-        assert isinstance(t1["long_name"], DataObject)
+        assert isinstance(t1.out["a"], DataObject)
+        assert isinstance(t1.out[""], DataObject)
+        assert isinstance(t1.out["space inside"], DataObject)
+        assert isinstance(t1.out["long_name"], DataObject)
 
-        with pytest.raises(RainException):
-            t1["XXX"]
+        with pytest.raises(KeyError):
+            t1.out["XXX"]
 
-        assert t1["a"] != t1[""]
-        assert t1["a"] != t1["long_name"]
+        assert t1.out["a"] != t1.out[""]
+        assert t1.out["a"] != t1.out["long_name"]
 
-        assert t1["a"] == t1.out_a
-        assert t1["long_name"] == t1.out_long_name
-        assert t1[""] == t1.out
+        assert t1.out["a"] == t1.out.a
+        assert t1.out["long_name"] == t1.out.long_name
