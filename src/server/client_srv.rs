@@ -96,4 +96,19 @@ impl client_service::Server for ClientServiceImpl {
         results.get().set_finished_objects(object_ids);
         Promise::ok(())
     }
+
+        fn remove(
+        &mut self,
+        params: client_service::RemoveParams,
+        _: client_service::RemoveResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let object_ids = pry!(params.get_object_ids());
+        info!("New remove request ({} data objects) from client",
+              object_ids.len());
+
+        //TODO: Set keep=False for specified dataobjs
+
+        Promise::ok(())
+    }
 }

@@ -94,3 +94,13 @@ class Client:
         req.objectIds[0].sessionId = session_id
 
         req.send().wait()
+
+    def _remove(self, dataobjs):
+        req = self.service.remove_request()
+
+        req.init("objectIds", len(dataobjs))
+        for i in range(len(dataobjs)):
+            req.objectIds[i].id = dataobjs[i].id
+            req.objectIds[i].sessionId = dataobjs[i].session.session_id
+
+        req.send().wait()

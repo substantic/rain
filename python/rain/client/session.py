@@ -69,15 +69,6 @@ class Session:
         self.id_counter += 1
         return self.id_counter
 
-    def free(self, dataobj):
-        """Free data object from server. Throws an error if self.keep is False or not submitted """
-        if dataobj.state is None:
-            raise RainException("Object is not submitted")
-        if not dataobj._keep:
-            raise RainException("Object is not kept on server")
-        dataobj._keep = False
-        raise Exception("Not implemented")
-
     def submit(self):
         """"Submit all registered objects"""
         self.client._submit(self.tasks, self.dataobjs)
@@ -123,6 +114,21 @@ class Session:
         for dataobj in self.submitted_dataobjs:
             if dataobj:
                 dataobj().state = rpc.common.DataObjectState.finished
+
+    def remove(self, dataobjects):
+        """Remove data objects"""
+        for dataobj in dataobjects:
+            if not dataobj.is_kept():
+                raise RainException("Object {} is not kept".format(dataobj.id))
+            if dataobj.state is None:
+                raise RainException("Object {} not submitted".format(dataobj.id))
+            if dataobj.state == rpc.common.DataObjectState.removed:
+                raise RainException("Object {} already removed".format(dataobj.id))
+
+        self.client._remove(dataobjects)
+
+        for dataobj in dataobjects:
+            dataobj._free()
 
 
 def get_active_session():

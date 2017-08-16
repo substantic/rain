@@ -101,3 +101,20 @@ def test_wait_all(test_env):
     s.submit()
     s.wait_all()
     assert t1.state == rpc.common.TaskState.finished
+
+
+def test_remove(test_env):
+    test_env.start(0)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        t1 = tasks.concat("a", "b")
+        t1_output = list(t1.outputs.values())[0]
+        t1_output.keep()
+        t2 = tasks.sleep(1, t1)
+    with pytest.raises(RainException):
+        t1_output.remove()
+    s.submit()
+    assert t1_output.is_kept() is True
+    t1_output.remove()
+    assert t1_output.is_kept() is False
