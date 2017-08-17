@@ -22,12 +22,18 @@ class DataObject:
         self.session = session
         self.id = session.register_dataobj(self)
 
-    def free(self):
-        """Free data object from server. Throws an error if self.keep is False or not submitted """
-        self.session.free(self)
+    def _free(self):
+        """Set flag that object is not available on the server """
+        self._keep = False
+
+    def remove(self):
+        """Remove data object from the server"""
+        self.session.remove((self,))
 
     def keep(self):
         """Set flag that is object should be kept on the server"""
+        if self.state is not None:
+            raise RainException("Cannot keep submitted task")
         self._keep = True
 
     def is_kept(self):
