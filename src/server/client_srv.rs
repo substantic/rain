@@ -111,4 +111,40 @@ impl client_service::Server for ClientServiceImpl {
 
         Promise::ok(())
     }
+
+    fn get_state(
+        &mut self,
+        params: client_service::GetStateParams,
+        mut results: client_service::GetStateResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let task_ids = pry!(params.get_task_ids());
+        let object_ids = pry!(params.get_object_ids());
+        info!("New get_state request ({} tasks, {} data objects) from client",
+              task_ids.len(), object_ids.len());
+
+        {
+            let mut task_updates = results.get().init_tasks(task_ids.len());
+            for i in 0..task_ids.len() {
+                let mut update = task_updates.borrow().get(i);
+                update.set_id(task_ids.get(i));
+
+                //TODO: set current task state
+                //update.set_state(...)
+            }
+        }
+
+        {
+            let mut object_updates = results.get().init_objects(object_ids.len());
+            for i in 0..object_ids.len() {
+                let mut update = object_updates.borrow().get(i);
+                update.set_id(object_ids.get(i));
+
+                //TODO: set current data object state
+                //update.set_state(...)
+            }
+        }
+
+        Promise::ok(())
+    }
 }

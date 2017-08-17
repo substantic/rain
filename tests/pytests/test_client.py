@@ -118,3 +118,13 @@ def test_remove(test_env):
     assert t1_output.is_kept() is True
     t1_output.remove()
     assert t1_output.is_kept() is False
+
+
+def test_get_state(test_env):
+    test_env.start(0)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        t1 = tasks.concat("a", "b")
+    s.submit()
+    s.get_state((t1,), ())

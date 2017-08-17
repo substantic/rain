@@ -130,6 +130,9 @@ class Session:
         for dataobj in dataobjects:
             dataobj._free()
 
+    def get_state(self, tasks, dataobjects):
+        self.client._get_state(tasks, dataobjects)
+
 
 def get_active_session():
     if not _global_sessions:

@@ -104,3 +104,31 @@ class Client:
             req.objectIds[i].sessionId = dataobjs[i].session.session_id
 
         req.send().wait()
+
+    def _get_state(self, tasks, dataobjs):
+        req = self.service.getState_request()
+
+        tasks_dict = {}
+        req.init("taskIds", len(tasks))
+        for i in range(len(tasks)):
+            tasks_dict[tasks[i].id] = tasks[i]
+            req.taskIds[i].id = tasks[i].id
+            req.taskIds[i].sessionId = tasks[i].session.session_id
+
+        dataobjs_dict = {}
+        req.init("objectIds", len(dataobjs))
+        for i in range(len(dataobjs)):
+            dataobjs_dict[dataobjs[i].id] = dataobjs[i]
+            req.objectIds[i].id = dataobjs[i].id
+            req.objectIds[i].sessionId = dataobjs[i].session.session_id
+
+        results = req.send().wait()
+
+        for task_update in results.tasks:
+            task = tasks_dict[task_update.id.id]
+            task.state = task_update.state
+
+        for object_update in results.objects:
+            dataobj = dataobjs_dict[object_update.id.id]
+            dataobj.state = object_update.state
+            dataobj.size = object_update.size
