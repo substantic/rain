@@ -46,6 +46,9 @@ class DataObject:
         if self.data:
             out.data = self.data
 
+    def wait(self):
+        self.session.wait((), (self,))
+
     def __del__(self):
         if self.state is not None and self._keep:
             self.session.free(self)

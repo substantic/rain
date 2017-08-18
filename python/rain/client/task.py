@@ -64,6 +64,9 @@ class Task:
         out.nCpus = self.n_cpus
         out.taskType = self.task_type
 
+    def wait(self):
+        self.session.wait((self,), ())
+
     def __repr__(self):
         return "<Task id={}/{} type={}>".format(self.session.session_id, self.id, self.task_type)
 

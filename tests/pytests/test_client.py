@@ -128,3 +128,30 @@ def test_get_state(test_env):
         t1 = tasks.concat("a", "b")
     s.submit()
     s.get_state((t1,), ())
+
+
+def test_task_wait(test_env):
+    test_env.start(0)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        t1 = tasks.concat("a", "b")
+    assert t1.state is None
+    s.submit()
+    assert t1.state == rpc.common.TaskState.notAssigned
+    t1.wait()
+    assert t1.state == rpc.common.TaskState.finished
+
+
+def test_dataobj_wait(test_env):
+    test_env.start(0)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        t1 = tasks.concat("a", "b")
+        o1 = t1.out.output
+    assert t1.state is None
+    s.submit()
+    assert o1.state == rpc.common.DataObjectState.notAssigned
+    o1.wait()
+    assert o1.state == rpc.common.DataObjectState.finished
