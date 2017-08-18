@@ -2,8 +2,8 @@ from rain import blob, RainException
 import pytest
 
 
-def test_blob_construction(test_env):
-    with test_env.fake_session() as session:
+def test_blob_construction(fake_session):
+    with fake_session as session:
         b1 = blob("abc")
         assert b1.session == session
 

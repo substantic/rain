@@ -6,8 +6,8 @@ from rain import RainException
 import pytest
 
 
-def test_task_construction(test_env):
-    with test_env.fake_session() as session:
+def test_task_construction(fake_session):
+    with fake_session as session:
         t1 = Task("dummy")
         t2 = Task("dummy")
 
@@ -16,8 +16,8 @@ def test_task_construction(test_env):
         assert t1.id != t2.id
 
 
-def test_task_outputs(test_env):
-    with test_env.fake_session() as session:
+def test_task_outputs(fake_session):
+    with fake_session as session:
         t1 = Task("dummy", outputs=("a", "long_name", "space inside", ""))
 
         assert t1.has_output("a")

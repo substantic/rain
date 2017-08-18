@@ -112,12 +112,6 @@ class TestEnv(Env):
         self._client = client
         return client
 
-    def fake_session(self):
-        """Returns a new fake session for tests that do not need any server"""
-        import rain  # noqa
-        self.id_counter += 1
-        return rain.client.session.Session(None, self.id_counter)
-
     def close(self):
         self._client = None
 
@@ -163,3 +157,13 @@ def test_env():
     finally:
         env.close()
         env.kill_all()
+
+id_counter = 0
+
+@pytest.fixture
+def fake_session():
+    """Returns a new fake session for tests that do not need any server"""
+    import rain  # noqa
+    global id_counter
+    id_counter += 1
+    return rain.client.session.Session(None, id_counter)
