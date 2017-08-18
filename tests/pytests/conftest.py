@@ -154,7 +154,7 @@ def test_env():
     prepare()
     env = TestEnv()
     yield env
-    time.sleep(0.1)
+    time.sleep(0.2)
     try:
         env.check_running_processes()
     finally:

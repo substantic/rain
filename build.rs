@@ -7,6 +7,7 @@ fn main() {
         .file("capnp/client.capnp")
         .file("capnp/datastore.capnp")
         .file("capnp/worker.capnp")
+        .file("capnp/subworker.capnp")
         .run()
         .expect("schema compiler command");
 }

@@ -7,6 +7,8 @@ extern crate capnp;
 extern crate futures;
 extern crate tokio_core;
 extern crate tokio_io;
+extern crate tokio_uds;
+extern crate tokio_process;
 #[macro_use]
 extern crate capnp_rpc;
 #[macro_use]
