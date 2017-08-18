@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
 use std::process::exit;
+use std;
 
 use common::id::{SessionId, WorkerId, empty_worker_id};
 use common::convert::{ToCapnp, FromCapnp};
@@ -17,7 +18,7 @@ use tokio_core::net::TcpStream;
 use tokio_io::AsyncRead;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use capnp::capability::Promise;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use WORKER_PROTOCOL_VERSION;
 
@@ -128,6 +129,12 @@ impl State {
     }
 
     pub fn start(&self, server_address: SocketAddr, listen_address: SocketAddr) {
+
+        // --- Create workdir layout ---
+        self.create_dir_in_work_dir(Path::new("subworkers")).unwrap();
+        self.create_dir_in_work_dir(Path::new("data")).unwrap();
+        self.create_dir_in_work_dir(Path::new("tasks")).unwrap();
+
         // --- Start listening ----
         let handle = self.inner.borrow().handle.clone();
         let listener = TcpListener::bind(&listen_address, &handle).unwrap();
@@ -163,5 +170,14 @@ impl State {
 
     pub fn turn(&self) {
         // Now do nothing
+    }
+
+    #[inline]
+    pub fn path_in_work_dir(&self, path: &Path) -> PathBuf {
+        self.inner.borrow().work_dir.join(path)
+    }
+
+    pub fn create_dir_in_work_dir(&self, path: &Path) -> std::io::Result<()> {
+        std::fs::create_dir(self.path_in_work_dir(path))
     }
 }
