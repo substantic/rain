@@ -6,7 +6,7 @@ import subprocess
 import time
 import shutil
 import pytest
-
+import signal
 
 PYTEST_DIR = os.path.dirname(__file__)
 ROOT = os.path.dirname(os.path.dirname(PYTEST_DIR))
@@ -28,6 +28,7 @@ class Env:
         if catch_io:
             with open(fname + ".out", "w") as out:
                 p = subprocess.Popen(args,
+                                     preexec_fn=os.setsid,
                                      stdout=out,
                                      stderr=subprocess.STDOUT,
                                      cwd=WORK_DIR,
@@ -43,7 +44,8 @@ class Env:
         for fn in self.cleanups:
             fn()
         for n, p in self.processes:
-            p.kill()
+            # Kill the whole group since the process may spawn a child
+            os.killpg(os.getpgid(p.pid), signal.SIGTERM)
 
 
 class TestEnv(Env):
@@ -65,6 +67,7 @@ class TestEnv(Env):
         """
         env = os.environ.copy()
         env["RUST_BACKTRACE"] = "1"
+        env["PYTHONPATH"] = PYTHON_DIR
 
         # Start SERVER
         args = (RAIN_DEBUG_BIN, "server", "--port", str(self.PORT))
