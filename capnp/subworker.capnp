@@ -24,7 +24,11 @@ interface SubworkerUpstream {
     pullLocalObjects @1 (objectIds :List(DataObjectId)) -> (objects: List(LocalDataObject));
     # Get local objects from worker to subworker
 
-    registerControl @2 (version :Int32, control :SubworkerControl) -> ();
+    register @2 (version :Int32, subworkerId: Int32, control :SubworkerControl) -> ();
+    # Subworker ID is annoucted through environment variable RAIN_SUBWORKER_ID
+    # We cannot assign subworker_id through RPC since ID has to be
+    # allocated before process start, because we need to create files for redirection of stdout/stderr
+    # and they already contains subworker_id in the name
 }
 
 struct LocalDataObject {

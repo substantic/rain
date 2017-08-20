@@ -14,6 +14,8 @@ pub type SessionId = i32;
 /// When the worker has multiple addresses, one is selected and fixed on registrtion.
 pub type WorkerId = SocketAddr;
 
+pub type SubworkerId = Id;
+
 impl<'a> FromCapnp<'a> for WorkerId {
     type Reader = socket_address::Reader<'a>;
 

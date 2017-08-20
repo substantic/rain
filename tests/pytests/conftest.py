@@ -45,7 +45,8 @@ class Env:
             fn()
         for n, p in self.processes:
             # Kill the whole group since the process may spawn a child
-            os.killpg(os.getpgid(p.pid), signal.SIGTERM)
+            if not p.poll():
+                os.killpg(os.getpgid(p.pid), signal.SIGTERM)
 
 
 class TestEnv(Env):
@@ -92,7 +93,6 @@ class TestEnv(Env):
 
         self.check_running_processes()
 
-
     def check_running_processes(self):
         """Checks that everything is still running"""
         for i, worker in enumerate(self.workers):
@@ -100,11 +100,15 @@ class TestEnv(Env):
                 self.workers = []
                 raise Exception(
                     "Worker {0} crashed "
-                    "(log in {1}/worker{0}.out)".format(i, WORK_DIR))
+                    "(log in {1}/worker{0}.out; "
+                    "Note: If you are running more tests, "
+                    "log may be overridden or deleted)".format(i, WORK_DIR))
         if self.server and self.server.poll():
             self.server = None
             raise Exception(
-                "Server crashed (log in {}/server.out)".format(WORK_DIR))
+                "Server crashed (log in {}/server.out; "
+                "Note: If you are running more tests, "
+                "log may be overridden or deleted)".format(WORK_DIR))
 
     @property
     def client(self):
@@ -161,7 +165,9 @@ def test_env():
         env.close()
         env.kill_all()
 
+
 id_counter = 0
+
 
 @pytest.fixture
 def fake_session():

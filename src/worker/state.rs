@@ -11,7 +11,8 @@ use common::convert::{ToCapnp, FromCapnp};
 use common::rpc::new_rpc_system;
 use worker::graph::Graph;
 use worker::subworker::{start_python_subworker,
-                        SubworkerUpstreamImpl};
+                        SubworkerUpstreamImpl,
+                        Subworker};
 
 use futures::Future;
 use futures::Stream;
@@ -207,6 +208,10 @@ impl State {
                 exit(1);
             });
         handle.spawn(connect);
+    }
+
+    pub fn add_subworker(&self, subworker: Subworker) {
+        // TODO
     }
 
     pub fn turn(&self) {

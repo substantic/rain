@@ -5,29 +5,36 @@ use std::rc::Rc;
 use std::fs::File;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 
-use common::id::Id;
+use common::id::SubworkerId;
 use worker::state::State;
 use subworker_capnp::subworker_upstream;
 
 use capnp::capability::Promise;
 use tokio_process::CommandExt;
 use futures::Future;
+use capnp;
+
+use SUBWORKER_PROTOCOL_VERSION;
 
 struct Inner {
-
+    subworker_id: SubworkerId,
+    control: ::subworker_capnp::subworker_control::Client
 }
 
 #[derive(Clone)]
-struct Subworker {
+pub struct Subworker {
     inner: Rc<RefCell<Inner>>
 }
 
 impl Subworker {
 
-    pub fn new() -> Self {
+    pub fn new(
+        subworker_id: SubworkerId,
+        control: ::subworker_capnp::subworker_control::Client) -> Self {
         Self {
             inner: Rc::new(RefCell::new(Inner {
-
+                subworker_id,
+                control
             }))
         }
     }
@@ -52,18 +59,27 @@ impl Drop for SubworkerUpstreamImpl {
 
 impl subworker_upstream::Server for SubworkerUpstreamImpl {
 
-    /*
-    fn get_worker_resources(&mut self,
-              _params: worker_control::GetWorkerResourcesParams,
-              mut results: worker_control::GetWorkerResourcesResults)
+    fn register(&mut self,
+              params: subworker_upstream::RegisterParams,
+              mut _results: subworker_upstream::RegisterResults)
               -> Promise<(), ::capnp::Error> {
-        results.get().set_n_cpus(self.state.get_n_cpus());
+        let params = pry!(params.get());
+
+        if params.get_version() != SUBWORKER_PROTOCOL_VERSION {
+            return Promise::err(capnp::Error::failed(
+                format!("Invalid subworker protocol; expected = {}",
+                        SUBWORKER_PROTOCOL_VERSION)));
+        }
+
+        let control = pry!(params.get_control());
+        let subworker = Subworker::new(params.get_subworker_id(), control);
+        self.state.add_subworker(subworker);
         Promise::ok(())
-    }*/
+    }
 }
 
 
-pub fn start_python_subworker(state: &State) -> Id
+pub fn start_python_subworker(state: &State) -> SubworkerId
 {
     let subworker_id = state.get_new_id();
     let (log_path_out, log_path_err) = state.subworker_log_paths(subworker_id);
