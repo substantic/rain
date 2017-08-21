@@ -6,6 +6,7 @@ extern crate bitflags;
 extern crate capnp;
 extern crate futures;
 extern crate tokio_core;
+extern crate tokio_timer;
 extern crate tokio_io;
 #[macro_use]
 extern crate capnp_rpc;

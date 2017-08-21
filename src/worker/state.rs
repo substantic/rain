@@ -4,6 +4,8 @@ use std::net::SocketAddr;
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
 use std::process::exit;
+use std::path::{Path, PathBuf};
+use std::time::Duration;
 use std;
 
 use common::id::{SessionId, WorkerId, empty_worker_id};
@@ -16,9 +18,9 @@ use tokio_core::reactor::Handle;
 use tokio_core::net::TcpListener;
 use tokio_core::net::TcpStream;
 use tokio_io::AsyncRead;
+use tokio_timer;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use capnp::capability::Promise;
-use std::path::{Path, PathBuf};
 
 use WORKER_PROTOCOL_VERSION;
 
@@ -29,7 +31,7 @@ pub struct InnerState {
 
     worker_id: WorkerId,
     upstream: Option<::worker_capnp::worker_upstream::Client>,
-
+    timer: tokio_timer::Timer,
     work_dir: PathBuf,
     n_cpus: u32,  // Resources
     graph: Graph,
@@ -48,6 +50,9 @@ impl State {
                 handle,
                 n_cpus,
                 upstream: None,
+                timer: tokio_timer::wheel()
+                    .tick_duration(Duration::from_millis(100))
+                    .num_slots(256).build(),
                 work_dir,
                 worker_id: empty_worker_id(),
                 graph: Graph::new(),
