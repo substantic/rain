@@ -2,24 +2,17 @@ use std::rc::Rc;
 use capnp::capability::{Promise, Results, Params};
 use capnp;
 use worker_capnp::{worker_bootstrap, worker_upstream, worker_control};
-
-pub type WorkerState = Rc<WorkerStateInner>;
-
-#[derive(Debug, Clone)]
-pub struct WorkerStateInner {
-    // TODO: STUB
-}
-
-
-#[derive(Debug, Clone)]
-pub struct WorkerBootstrapImpl {
-    state: WorkerState,
-}
+use worker::state::State;
+use worker::control::WorkerControlImpl;
 
 impl WorkerBootstrapImpl {
-    pub fn new(state: &WorkerState) -> Self {
+    pub fn new(state: &State) -> Self {
         WorkerBootstrapImpl { state: state.clone() }
     }
+}
+
+pub struct WorkerBootstrapImpl {
+    state: State,
 }
 
 impl worker_bootstrap::Server for WorkerBootstrapImpl {
@@ -43,22 +36,4 @@ impl worker_bootstrap::Server for WorkerBootstrapImpl {
         res.get().set_control(control);
         Promise::ok(())
     }
-}
-
-
-
-
-#[derive(Debug, Clone)]
-pub struct WorkerControlImpl {
-    state: WorkerState,
-}
-
-impl WorkerControlImpl {
-    pub fn new(state: &WorkerState) -> Self {
-        WorkerControlImpl { state: state.clone() }
-    }
-}
-
-impl worker_control::Server for WorkerControlImpl {
-    // TODO
 }
