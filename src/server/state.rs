@@ -23,11 +23,11 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 struct StateInner {
     //graph: Graph,
     handle: Handle, // Tokio core handle
-    port: u16, // Listening port
 
     workers: Vec<Worker>,
 
     session_id_counter: SessionId,
+    listen_address: SocketAddr, // Listening port
 }
 
 #[derive(Clone)]
@@ -36,11 +36,11 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(handle: Handle, port: u16) -> Self {
+    pub fn new(handle: Handle, listen_address: SocketAddr) -> Self {
         Self {
             inner: Rc::new(RefCell::new(StateInner {
                 handle: handle,
-                port: port,
+                listen_address: listen_address,
                 workers: Vec::new(),
                 session_id_counter: 1,
             })),
@@ -61,10 +61,9 @@ impl State {
     }
 
     pub fn start(&self) {
-        let port = self.inner.borrow().port;
+        let listen_address = self.inner.borrow().listen_address;
         let handle = self.inner.borrow().handle.clone();
-        let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), port);
-        let listener = TcpListener::bind(&addr, &handle).unwrap();
+        let listener = TcpListener::bind(&listen_address, &handle).unwrap();
 
         let state = self.clone();
         let future = listener
@@ -77,7 +76,7 @@ impl State {
                 panic!("Listening failed {:?}", e);
             });
         handle.spawn(future);
-        info!("Start listening on port={}", port);
+        info!("Start listening on address={}", listen_address);
     }
 
     // Creates a new session and returns its id

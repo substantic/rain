@@ -48,7 +48,8 @@ class Env:
 
 class TestEnv(Env):
 
-    PORT = 17010
+    default_listen_port = "17010"
+    running_port = None
 
     def __init__(self):
         Env.__init__(self)
@@ -59,15 +60,31 @@ class TestEnv(Env):
         self.server = None
         self.workers = []
 
-    def start(self, n_workers=1, n_cpus=1):
+    def start(self, n_workers=1, n_cpus=1, listen_addr=None, listen_port=None):
         """
         Start infrastructure: server & n workers
         """
         env = os.environ.copy()
         env["RUST_BACKTRACE"] = "1"
 
+        if listen_addr:
+            if listen_port:
+                addr = listen_addr + ":" + listen_port
+                port = listen_port
+            else:
+                addr = listen_addr
+                port = self.default_listen_port
+        else:
+            if listen_port:
+                addr = listen_port
+                port = listen_port
+            else:
+                addr = self.default_listen_port
+                port = self.default_listen_port
+        self.running_port = port
+
         # Start SERVER
-        args = (RAIN_DEBUG_BIN, "server", "--port", str(self.PORT))
+        args = (RAIN_DEBUG_BIN, "server", "--listen", str(addr))
         server = self.start_process("server", args, env=env)
         time.sleep(0.1)
         if server.poll():
@@ -76,7 +93,7 @@ class TestEnv(Env):
         # Start WORKERS
         workers = []
         args = (RAIN_DEBUG_BIN,
-                "worker", "127.0.0.1:" + str(self.PORT),
+                "worker", "127.0.0.1:" + str(port),
                 "--cpus", str(n_cpus),
                 "--workdir", WORK_DIR)
         for i in range(n_workers):
@@ -108,7 +125,7 @@ class TestEnv(Env):
         if self._client is not None:
             return self._client
         import rain  # noqa
-        client = rain.Client("127.0.0.1", self.PORT)
+        client = rain.Client("127.0.0.1", self.running_port)
         self._client = client
         return client
 
