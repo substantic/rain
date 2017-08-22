@@ -5,7 +5,9 @@ use std::net::IpAddr;
 use std::net::Ipv4Addr;
 use std::process::exit;
 use std::path::{Path, PathBuf};
+use std::io::Write;
 use std::time::Duration;
+use std::error::Error;
 use std;
 
 use common::id::{SessionId, WorkerId, empty_worker_id, Id};
@@ -159,7 +161,7 @@ impl State {
         inner.handle.spawn(rpc_system.map_err(|e| error!("RPC error: {:?}", e)));
     }
 
-    pub fn start(&self, server_address: SocketAddr, listen_address: SocketAddr) {
+    pub fn start(&self, server_address: SocketAddr, listen_address: SocketAddr, ready_file: Option<&str>) {
         let handle = self.inner.borrow().handle.clone();
 
         // --- Create workdir layout ---
@@ -183,7 +185,7 @@ impl State {
         handle.spawn(future);
 
         // -- Start python subworker (FOR TESTING PURPOSE)
-        start_python_subworker(self);
+        //start_python_subworker(self);
 
         // --- Start listening TCP/IP for worker2worker communications ----
         let listener = TcpListener::bind(&listen_address, &handle).unwrap();
@@ -204,10 +206,23 @@ impl State {
 
         // --- Start connection to server ----
         let core1 = self.clone();
+        let ready_file = ready_file.map(|f| f.to_string());
         info!("Connecting to server addr={}", server_address);
         let connect = TcpStream::connect(&server_address, &handle)
             .and_then(move |stream| {
                 core1.on_connected_to_server(stream, listen_address);
+
+                // TODO: Move after registration
+                // Create ready file - a file that is created when worker is connected
+                if let Some(name) = ready_file {
+                    match std::fs::File::create(Path::new(&name)) {
+                        Ok(mut file) => file.write_all(b"ready\n").unwrap(),
+                        Err(e) => {
+                            error!("Cannot create ready file: {}", e.description());
+                            exit(1);
+                        }
+                    }
+                }
                 Ok(())
             })
             .map_err(|e| {
