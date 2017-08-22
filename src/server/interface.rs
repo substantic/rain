@@ -98,10 +98,15 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
 
         self.registered = true;
 
-        // TODO: If address is NOT 0.0.0.0:PORT then reuse address fully as worker_id
-        let port = pry!(params.get_address()).get_port();
-        let mut worker_id = self.address;
-        worker_id.set_port(port);
+        // If worker fully specifies its address, then we use it as worker_id
+        // otherwise we use announced port number and assign IP address of connection
+        let address = WorkerId::from_capnp(&pry!(params.get_address()));
+        let worker_id;
+        if address.ip().is_unspecified() {
+            worker_id = SocketAddr::new(self.address.ip(), address.port());
+        } else {
+            worker_id = address;
+        }
 
         info!("Connection {} registered as worker {}", self.address, worker_id);
 
