@@ -8,6 +8,8 @@ extern crate futures;
 extern crate tokio_core;
 extern crate tokio_timer;
 extern crate tokio_io;
+extern crate tokio_uds;
+extern crate tokio_process;
 #[macro_use]
 extern crate capnp_rpc;
 #[macro_use]
@@ -21,6 +23,8 @@ pub mod server;
 pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 pub const WORKER_PROTOCOL_VERSION: i32 = 0;
 pub const CLIENT_PROTOCOL_VERSION: i32 = 0;
+pub const SUBWORKER_PROTOCOL_VERSION: i32 = 0;
+
 
 // NOTE: Development solution to get type autocompletion and go-to-definition
 pub mod capnp_gen;

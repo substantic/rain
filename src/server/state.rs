@@ -106,4 +106,9 @@ impl State {
             panic!("RPC error: {:?}", e)
         }));
     }
+
+    #[inline]
+    pub fn handle(&self) -> Handle {
+        self.inner.borrow().handle.clone()
+    }
 }

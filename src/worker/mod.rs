@@ -5,3 +5,4 @@ mod dataobj;
 mod graph;
 mod rpc;
 mod control;
+mod subworker;
