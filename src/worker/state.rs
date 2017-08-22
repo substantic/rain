@@ -35,6 +35,8 @@ pub struct InnerState {
     worker_id: WorkerId,
     upstream: Option<::worker_capnp::worker_upstream::Client>,
 
+    subworkers: Vec<Subworker>,
+
     work_dir: PathBuf,
     n_cpus: u32,  // Resources
     graph: Graph,
@@ -58,6 +60,7 @@ impl State {
                 work_dir,
                 worker_id: empty_worker_id(),
                 graph: Graph::new(),
+                subworkers: Vec::new(),
                 id_counter: 0
             })),
         }
@@ -211,7 +214,9 @@ impl State {
     }
 
     pub fn add_subworker(&self, subworker: Subworker) {
-        // TODO
+        info!("Subworker registered subworker_id={}", subworker.id());
+        self.inner.borrow_mut().subworkers.push(subworker);
+        // TODO: Someone probably started subworker and he wants to be notified
     }
 
     pub fn turn(&self) {

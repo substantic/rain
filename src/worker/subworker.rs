@@ -39,6 +39,9 @@ impl Subworker {
         }
     }
 
+    pub fn id(&self) -> SubworkerId {
+        self.inner.borrow().subworker_id
+    }
 }
 
 pub struct SubworkerUpstreamImpl {
