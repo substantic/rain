@@ -85,7 +85,7 @@ struct Task {
     id @0 :TaskId;
 
     inputs @1 :List(InDataObject);
-    outputs @2 :List(OutDataObject);
+    outputs @2 :List(DataObjectId);
 
     taskType @3 :Text;
     taskConfig @4 :Data;
@@ -100,11 +100,6 @@ struct Task {
         id @0 :DataObjectId;
         label @1 :Text;
         path @2 :Text;
-    }
-
-    struct OutDataObject {
-        id @0 :DataObjectId;
-        label @1 :Text;
     }
 }
 
@@ -128,5 +123,7 @@ struct DataObject {
     # Current object state. All input objects (external or local) should be `finished` or
     # `running` (when streaming), output objects `assigned`.
 
-    additional @6: Additional;
+    label @6 :Text;
+
+    additional @7: Additional;
 }

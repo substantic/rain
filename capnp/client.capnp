@@ -83,7 +83,7 @@ struct Update {
 struct Task {
     id @0 :TaskId;
     inputs @1 :List(InDataObject);
-    outputs @2 :List(OutDataObject);
+    outputs @2 :List(DataObjectId);
     taskType @3 :Text;
     taskConfig @4 :Data;
     additional @5 :Additional;
@@ -97,11 +97,6 @@ struct Task {
         label @1 :Text;
         path @2 :Text;
     }
-
-    struct OutDataObject {
-        id @0 :DataObjectId;
-        label @1 :Text;
-    }
 }
 
 
@@ -110,5 +105,6 @@ struct DataObject {
     keep @1 :Bool;
     data @2 :Data;
     type @3 :DataObjectType;
-    additional @4: Additional;
+    label @4 :Text;
+    additional @5: Additional;
 }
