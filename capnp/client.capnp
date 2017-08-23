@@ -7,6 +7,7 @@ using import "common.capnp".Additional;
 using import "common.capnp".SessionId;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
+using import "common.capnp".DataObjectType;
 using import "datastore.capnp".DataStore;
 
 struct ServerInfo {
@@ -81,8 +82,8 @@ struct Update {
 
 struct Task {
     id @0 :TaskId;
-    inputs @1 :List(LabelledDataObject);
-    outputs @2 :List(LabelledDataObject);
+    inputs @1 :List(InDataObject);
+    outputs @2 :List(OutDataObject);
     taskType @3 :Text;
     taskConfig @4 :Data;
     additional @5 :Additional;
@@ -91,8 +92,13 @@ struct Task {
     # Number of request CPUs; will be replaced by more sophisticated
     # resource requests
 
-    # Labels for Sid-referenced inputs
-    struct LabelledDataObject {
+    struct InDataObject {
+        id @0 :DataObjectId;
+        label @1 :Text;
+        path @2 :Text;
+    }
+
+    struct OutDataObject {
         id @0 :DataObjectId;
         label @1 :Text;
     }
@@ -103,5 +109,6 @@ struct DataObject {
     id @0 :DataObjectId;
     keep @1 :Bool;
     data @2 :Data;
-    additional @3: Additional;
+    type @3 :DataObjectType;
+    additional @4: Additional;
 }

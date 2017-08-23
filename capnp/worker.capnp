@@ -9,6 +9,7 @@ using import "common.capnp".DataObjectId;
 using import "common.capnp".Additional;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
+using import "common.capnp".DataObjectType;
 using import "common.capnp".Resources;
 
 interface WorkerBootstrap {
@@ -83,8 +84,8 @@ interface WorkerControl {
 struct Task {
     id @0 :TaskId;
 
-    inputs @1 :List(IoDataObject);
-    outputs @2 :List(IoDataObject);
+    inputs @1 :List(InDataObject);
+    outputs @2 :List(OutDataObject);
 
     taskType @3 :Text;
     taskConfig @4 :Data;
@@ -95,11 +96,15 @@ struct Task {
     # Number of request CPUs; will be replaced by more sophisticated
     # resource requests
 
-    # Labels for inputs and outputs
-    struct IoDataObject {
+    struct InDataObject {
         id @0 :DataObjectId;
         label @1 :Text;
-        # NOTE: May add other attributes of the input/output (streaming?)
+        path @2 :Text;
+    }
+
+    struct OutDataObject {
+        id @0 :DataObjectId;
+        label @1 :Text;
     }
 }
 
@@ -114,12 +119,14 @@ struct DataObject {
     placement @2 :WorkerId;
     # If equal to local worker id, then local, otherwise remote.
 
-    size @3 :Int64 = -1;
+    type @3 :DataObjectType;
+
+    size @4 :Int64 = -1;
     # In bytes, positive if known.
 
-    state @4 :DataObjectState;
+    state @5 :DataObjectState;
     # Current object state. All input objects (external or local) should be `finished` or
     # `running` (when streaming), output objects `assigned`.
 
-    additional @5: Additional;
+    additional @6: Additional;
 }

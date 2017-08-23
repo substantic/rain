@@ -52,6 +52,24 @@ enum DataObjectState {
     removed @4;
 }
 
+enum DataObjectType {
+    blob @0;
+    # Data object is plain data
+
+    directory @1;
+    # Data object is a tree of structure where leafs are blobs
+
+    stream @2;
+    # Data object is stream; stream continously creates data, hence
+    # the is not known in advance. Task that depends on task
+    # may be started even the stream is not fully constructed
+
+    token @3;
+    # Data object is just s signal that task (or a phase in task) is finished.
+    # It is designed for usage in tasks with side-effects, but no outputs.
+    # Token has no content, hence it cannot be read or mapped to the file system.
+}
+
 struct Additional {
     # Additonal data - stats, plugin data, user data, ...
     # TODO: Specify in an extensible way.

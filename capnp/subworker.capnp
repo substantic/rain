@@ -2,6 +2,8 @@
 
 using import "worker.capnp".Task;
 using import "common.capnp".DataObjectId;
+using import "common.capnp".DataObjectType;
+using import "datastore.capnp".Stream;
 
 interface SubworkerControl {
     # This object serves also as bootstrap
@@ -31,14 +33,18 @@ interface SubworkerUpstream {
     # and they already contains subworker_id in the name
 }
 
+
 struct LocalDataObject {
     id @0 :DataObjectId;
+    type @1 :DataObjectType;
 
     union {
-        file @1 :UInt64;
+        filesystem @2 :Text;
         # The object is in file, the argument is the size in bytes
 
-        memory @2 :Data;
+        memory @3 :Data;
         # Actual content of the data object
+
+        stream @4 :Stream;
     }
 }

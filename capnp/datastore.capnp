@@ -2,6 +2,7 @@
 
 using import "common.capnp".WorkerId;
 using import "common.capnp".DataObjectId;
+using import "common.capnp".DataObjectType;
 
 struct PullReply {
     # Reply to DataStore.pullData.
@@ -12,16 +13,36 @@ struct PullReply {
 
     union {
         ok @1 :Void;
-        # The full requested range has been returned.
+        # The data is non empty, and stream is not depleted.
 
         eof @2 :Void;
-        # All the data until the end of the data object has been returned (but less than
-        # the requested range).
+        # All the data until the end of the stream has been returned
+        # Calling "pull" again on Stream returns empty data and eof
+    }
+}
 
-        streamHead @3 :Void;
-        # All the data until the current stream head has been returned (but less than
-        # the requested range).
+interface Stream {
+    pull @0 (size :UInt64) -> PullReply;
 
+    # TODO: Push API??
+    # startPushing(size: UInt64, pushCallback: PushCallback);
+}
+
+struct StreamResponse {
+
+    stream @0 :Stream;
+
+    dataobjectType @1 :DataObjectType;
+    # Type of streamed object, the main purpose is to check that we are receiving
+    # what we realy wants
+
+    union {
+        streamWithSize @2 :UInt64;
+        # Stream attribute is valid stream, that has known size.
+
+        streamUnknownSize @3 :Void;
+        # Stream attribute is valid stream, but the other side does not know the size of stream
+        
         redirect @4 :WorkerId;
         # The data are available at the given worker.
         # Only sent by server to a worker. That worker may answer notHere with certain
@@ -37,11 +58,19 @@ struct PullReply {
         # server may send it to client (and then client has likely asked for non-kept
         # object)
     }
+
 }
 
 interface DataStore {
-    pullData @0 (id :DataObjectId, offset :UInt64, length :UInt64) -> PullReply;
-    # Request a data block from the given data object.
-    # This call will only return when the data is actually available, so it may be
-    # pending for a very long time.
+    createStream @0 (id :DataObjectId, path: Text, offset :UInt64) -> StreamResponse;
+    # Stream data (or its part), if data object is blob than path has to be
+    # empty, if object is directry than empty path means the whole directory,
+    # othwerwise some sub-directory or blob in directory can be specified by
+    # path. Offset allows to set start of the stream (and possibly skip some
+    # prefix of stream).
+
+    listDirectory @1 (id :DataObjectId, path: Text) -> StreamResponse;
+    # Create stream that contains listing of directory (TODO: FORMAT?) 'id' has
+    # to be id of directory; path may specified sub-directory or blob in the
+    # directory. If path is empty than the whole directory is listed
 }
