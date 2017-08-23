@@ -18,8 +18,14 @@ class DataObject:
     # Value of data object (value can be filled by client if it is constant, or by fetching from server)
     data = None
 
-    def __init__(self, session):
+    type = None
+    # Type of object, this should be set by subclass
+
+    def __init__(self, label, session=None):
+        if session is None:
+            session = get_active_session()
         self.session = session
+        self.label = label
         self.id = session.register_dataobj(self)
 
     def _free(self):
@@ -43,6 +49,9 @@ class DataObject:
     def to_capnp(self, out):
         out.id.id = self.id
         out.keep = self._keep
+        out.label = self.label
+        out.type = common.DataObjectType.blob
+
         if self.data:
             out.data = self.data
 
@@ -53,11 +62,30 @@ class DataObject:
         if self.state is not None and self._keep:
             self.session.free(self)
 
+    def is_blob(self):
+        return self.type == common.DataObjectType.blob
+
+    def is_directory(self):
+        return self.type == common.DataObjectType.directory
+
+
+class Blob(DataObject):
+
+    type = common.DataObjectType.directory
+
     def __repr__(self):
-        return "<DataObject {}/{}>".format(self.session.session_id, self.id)
+        return "<Blob {}/{}>".format(self.session.session_id, self.id)
 
 
-def blob(value):
+class Directory(DataObject):
+
+    type = common.DataObjectType.directory
+
+    def __repr__(self):
+        return "<Directory {}/{}>".format(self.session.session_id, self.id)
+
+
+def blob(value, label=""):
     """Create a constant data object"""
 
     if isinstance(value, str):
@@ -65,7 +93,7 @@ def blob(value):
     elif not isinstance(value, bytes):
         raise RainException("Invalid blob type (only str or bytes are allowed)")
 
-    dataobj = DataObject(get_active_session())
+    dataobj = DataObject(label)
     dataobj.data = value
     return dataobj
 
