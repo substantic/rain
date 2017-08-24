@@ -81,8 +81,33 @@ class Directory(DataObject):
 
     type = common.DataObjectType.directory
 
+    def get_blob(self, path):
+        return DataObjectPart(self, path, common.DataObjectType.blob)
+
+    def get_directory(self, path):
+        return DataObjectPart(self, path, common.DataObjectType.directory)
+
+    def fetch_listing(self):
+        """Returns a list of nodes in directory"""
+        raise Exception("Not implemented")
+
     def __repr__(self):
         return "<Directory {}/{}>".format(self.session.session_id, self.id)
+
+
+class DataObjectPart:
+
+    def __init__(self, dataobject, path, type):
+        self.dataobject = dataobject
+        self.path = path
+        self.type = type
+
+    def make_dataobject(self):
+        """Return DataObject created from DataObject part"""
+        raise Exception("TODO")
+
+    def fetch(self):
+        raise Exception("TODO")
 
 
 def blob(value, label=""):
@@ -99,8 +124,10 @@ def blob(value, label=""):
 
 
 def to_data(obj):
-    """Convert an object to DataObject"""
+    """Convert an object to DataObject/DataObjectPart"""
     if isinstance(obj, DataObject):
+        return obj
+    if isinstance(obj, DataObjectPart):
         return obj
     if isinstance(obj, Task):
         if len(obj.out) == 1:
