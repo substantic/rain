@@ -14,6 +14,9 @@ pub type SessionId = i32;
 /// When the worker has multiple addresses, one is selected and fixed on registrtion.
 pub type WorkerId = SocketAddr;
 
+/// Type identifying a client, in this case its address and port as seen by server.
+pub type ClientId = SocketAddr;
+
 pub type SubworkerId = Id;
 
 impl<'a> FromCapnp<'a> for WorkerId {

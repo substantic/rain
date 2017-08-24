@@ -1,17 +1,42 @@
-
 use capnp::capability::Promise;
 use capnp;
+use std::net::SocketAddr;
+
 use client_capnp::client_service;
 use server::state::State;
 use server::datastore::DataStoreImpl;
+use server::session::Session;
+use common::wrapped::WrappedRcRefCell;
+use common::id::ClientId;
+use common::RcSet;
+
+pub struct Inner {
+    id: ClientId,
+    sessions: RcSet<Session>,
+}
+
+pub type Client = WrappedRcRefCell<Inner>;
+
+impl Client {
+    pub fn new(address: &SocketAddr) -> Self {
+        Self::wrap(Inner {
+            id: address.clone(),
+            sessions: Default::default(),
+        })
+    }
+}
+
+
+// TODO: Functional cleanup and review of code below after structures specification
 
 pub struct ClientServiceImpl {
     state: State,
+    client: Client,
 }
 
 impl ClientServiceImpl {
-    pub fn new(state: &State) -> Self {
-        Self { state: state.clone() }
+    pub fn new(state: &State, address: &SocketAddr) -> Self {
+        Self { state: state.clone(), client: Client::new(address), }
     }
 }
 

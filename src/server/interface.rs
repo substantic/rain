@@ -10,7 +10,7 @@ use server_capnp::server_bootstrap;
 use capnp::capability::Promise;
 use capnp;
 
-use server::client_srv::ClientServiceImpl;
+use server::client::ClientServiceImpl;
 use server::upstream::WorkerUpstreamImpl;
 
 use CLIENT_PROTOCOL_VERSION;
@@ -68,7 +68,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         info!("Connection {} registered as client", self.address);
 
         let service = ::client_capnp::client_service::ToClient::new(
-            ClientServiceImpl::new(&self.state),
+            ClientServiceImpl::new(&self.state, &self.address),
         ).from_server::<::capnp_rpc::Server>();
 
         results.get().set_service(service);
