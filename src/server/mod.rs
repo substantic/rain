@@ -4,6 +4,6 @@ mod task;
 mod dataobj;
 mod worker;
 mod interface;
-mod client_srv;
+mod client;
 mod upstream;
 mod datastore;

@@ -7,6 +7,7 @@ use server::datastore::DataStoreImpl;
 
 pub struct ClientServiceImpl {
     state: State,
+    // TODO: add sessions set. Or even standalone Client struct?
 }
 
 impl ClientServiceImpl {
