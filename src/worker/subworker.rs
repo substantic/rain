@@ -6,6 +6,7 @@ use std::fs::File;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 
 use common::id::SubworkerId;
+use common::wrapped::WrappedRcRefCell;
 use worker::state::State;
 use subworker_capnp::subworker_upstream;
 
@@ -21,26 +22,22 @@ struct Inner {
     control: ::subworker_capnp::subworker_control::Client
 }
 
-#[derive(Clone)]
-pub struct Subworker {
-    inner: Rc<RefCell<Inner>>
-}
+pub type Subworker = WrappedRcRefCell<Inner>;
+
 
 impl Subworker {
 
     pub fn new(
         subworker_id: SubworkerId,
         control: ::subworker_capnp::subworker_control::Client) -> Self {
-        Self {
-            inner: Rc::new(RefCell::new(Inner {
+            Self::wrap(Inner {
                 subworker_id,
                 control
-            }))
-        }
+            })
     }
 
     pub fn id(&self) -> SubworkerId {
-        self.inner.borrow().subworker_id
+        self.get().subworker_id
     }
 }
 

@@ -11,6 +11,7 @@ use std;
 use common::id::{SessionId, WorkerId, empty_worker_id, Id};
 use common::convert::{ToCapnp, FromCapnp};
 use common::rpc::new_rpc_system;
+use common::wrapped::WrappedRcRefCell;
 use worker::graph::Graph;
 use worker::subworker::{start_python_subworker,
                         SubworkerUpstreamImpl,
@@ -29,8 +30,7 @@ use capnp::capability::Promise;
 
 use WORKER_PROTOCOL_VERSION;
 
-
-pub struct InnerState {
+pub struct Inner {
 
     handle: Handle, // Tokio core handle
 
@@ -44,17 +44,12 @@ pub struct InnerState {
     id_counter: Id, // Internal Id counter
 }
 
-#[derive(Clone)]
-pub struct State {
-    inner: Rc<RefCell<InnerState>>,
-}
-
+pub type State = WrappedRcRefCell<Inner>;
 
 impl State {
 
     pub fn new(handle: Handle, work_dir: PathBuf, n_cpus: u32) -> Self {
-        Self {
-            inner: Rc::new(RefCell::new(InnerState {
+        Self::wrap(Inner {
                 handle,
                 n_cpus,
                 upstream: None,
@@ -66,19 +61,19 @@ impl State {
                 graph: Graph::new(),
                 subworkers: Vec::new(),
                 id_counter: 0
-            })),
-        }
+            })
     }
 
     pub fn get_new_id(&self) -> Id {
-        let mut inner = self.inner.borrow_mut();
+        let mut inner = self.get_mut();
         inner.id_counter += 1;
         inner.id_counter
     }
 
     // Get number of cpus for assigned to this worker
-    pub fn get_n_cpus(&self) -> u32 {
-        self.inner.borrow().n_cpus
+    pub fn get_n_cpus(&self) -> u32
+    {
+        self.get_mut().n_cpus
     }
 
     // This is called when an incomming connection arrives
@@ -133,7 +128,7 @@ impl State {
                 let response = pry!(response.get());
                 let upstream = pry!(response.get_upstream());
                 let worker_id = pry!(response.get_worker_id());
-                let mut inner = state.inner.borrow_mut();
+                let mut inner = state.get_mut();
                 inner.upstream = Some(upstream);
                 inner.worker_id = WorkerId::from_capnp(&worker_id);
                 debug!("Registration completed");
@@ -143,7 +138,7 @@ impl State {
                 panic!("Error {}", e);
             });
 
-        let inner = self.inner.borrow();
+        let inner = self.get();
         inner.handle.spawn(future);
         inner.handle
             .spawn(rpc_system.map_err(|e| error!("RPC error: {:?}", e)));
@@ -155,12 +150,12 @@ impl State {
             SubworkerUpstreamImpl::new(self),
         ).from_server::<::capnp_rpc::Server>();
         let rpc_system = new_rpc_system(stream, Some(upstream.client));
-        let inner = self.inner.borrow();
+        let inner = self.get();
         inner.handle.spawn(rpc_system.map_err(|e| error!("RPC error: {:?}", e)));
     }
 
     pub fn start(&self, server_address: SocketAddr, listen_address: SocketAddr) {
-        let handle = self.inner.borrow().handle.clone();
+        let handle = self.get().handle.clone();
 
         // --- Create workdir layout ---
         self.create_dir_in_work_dir(Path::new("data")).unwrap();
@@ -219,7 +214,7 @@ impl State {
 
     pub fn add_subworker(&self, subworker: Subworker) {
         info!("Subworker registered subworker_id={}", subworker.id());
-        self.inner.borrow_mut().subworkers.push(subworker);
+        self.get_mut().subworkers.push(subworker);
         // TODO: Someone probably started subworker and he wants to be notified
     }
 
@@ -229,7 +224,7 @@ impl State {
 
     #[inline]
     pub fn path_in_work_dir(&self, path: &Path) -> PathBuf {
-        self.inner.borrow().work_dir.join(path)
+        self.get().work_dir.join(path)
     }
 
     pub fn create_dir_in_work_dir(&self, path: &Path) -> std::io::Result<()> {
@@ -248,11 +243,11 @@ impl State {
 
     #[inline]
     pub fn handle(&self) -> Handle {
-        self.inner.borrow().handle.clone()
+        self.get().handle.clone()
     }
 
     #[inline]
     pub fn spawn<F>(&self, f: F) where F: Future<Item = (), Error = ()> + 'static {
-        self.inner.borrow().handle.spawn(f);
+        self.get().handle.spawn(f);
     }
 }

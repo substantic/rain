@@ -1,6 +1,7 @@
 
 use common::id::Sid;
 use common::keeppolicy::KeepPolicy;
+use common::wrapped::WrappedRcRefCell;
 use worker::task::Task;
 
 use std::net::SocketAddr;
@@ -17,7 +18,7 @@ enum DataObjState {
     FinishedInMem(Vec<u8>),
 }
 
-struct DataObjectInner {
+struct Inner {
     id: Sid,
     state: DataObjState,
 
@@ -27,6 +28,4 @@ struct DataObjectInner {
     keep: KeepPolicy,
 }
 
-pub struct DataObject {
-    inner: Rc<RefCell<DataObjectInner>>,
-}
+pub type DataObject = WrappedRcRefCell<Inner>;

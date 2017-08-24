@@ -5,7 +5,7 @@ use std::io::Bytes;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::hash::{Hash, Hasher};
-
+use common::wrapped::WrappedRcRefCell;
 
 enum TaskState {
     Assigned,
@@ -14,7 +14,7 @@ enum TaskState {
 }
 
 
-struct TaskInner {
+struct Inner {
     id: Sid,
     state: TaskState,
 
@@ -28,24 +28,4 @@ struct TaskInner {
     procedure_config: Vec<u8>,
 }
 
-
-#[derive(Clone)]
-pub struct Task {
-    inner: Rc<RefCell<TaskInner>>,
-}
-
-
-impl Hash for Task {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let ptr = &*self.inner as *const _;
-        ptr.hash(state);
-    }
-}
-
-impl PartialEq for Task {
-    fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.inner, &other.inner)
-    }
-}
-
-impl Eq for Task {}
+pub type Task = WrappedRcRefCell<Inner>;
