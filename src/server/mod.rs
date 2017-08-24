@@ -7,3 +7,5 @@ mod interface;
 mod client;
 mod upstream;
 mod datastore;
+mod session;
+

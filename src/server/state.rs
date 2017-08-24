@@ -1,68 +1,71 @@
+use std::net::{SocketAddr, IpAddr, Ipv4Addr};
+use std::collections::HashMap;
 
-use std::rc::Rc;
-use std::cell::RefCell;
-use std::net::SocketAddr;
-use std::net::IpAddr;
-use std::net::Ipv4Addr;
-
-use common::id::{SessionId, WorkerId};
-use common::rpc::new_rpc_system;
-use server::graph::Graph;
-use server::worker::Worker;
-use server::interface::ServerBootstrapImpl;
-
-use futures::Future;
-use futures::Stream;
+use futures::{Future, Stream};
 use tokio_core::reactor::Handle;
-use tokio_core::net::TcpListener;
-use tokio_core::net::TcpStream;
+use tokio_core::net::{TcpListener, TcpStream};
 use tokio_io::AsyncRead;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
+use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId};
+use common::rpc::new_rpc_system;
+use server::worker::Worker;
+use server::dataobj::DataObject;
+use server::task::Task;
+use server::session::Session;
+use server::interface::ServerBootstrapImpl;
+use server::client::Client;
+use common::wrapped::WrappedRcRefCell;
 
-struct StateInner {
-    //graph: Graph,
-    handle: Handle, // Tokio core handle
-
-    workers: Vec<Worker>,
+pub struct Inner {
+    // Contained objects
+    workers: HashMap<WorkerId, Worker>,
+    tasks: HashMap<TaskId, Task>,
+    objects: HashMap<DataObjectId, DataObject>,
+    sessions: HashMap<SessionId, Session>,
+    clients: HashMap<ClientId, Client>,
 
     session_id_counter: SessionId,
-    listen_address: SocketAddr, // Listening port
+
+    /// Listening port and address.
+    listen_address: SocketAddr,
+
+    /// Tokio core handle.
+    handle: Handle,
 }
 
-#[derive(Clone)]
-pub struct State {
-    inner: Rc<RefCell<StateInner>>,
-}
+pub type State = WrappedRcRefCell<Inner>;
+
+
+// TODO: Functional cleanup of code below after structures specification
 
 impl State {
     pub fn new(handle: Handle, listen_address: SocketAddr) -> Self {
-        Self {
-            inner: Rc::new(RefCell::new(StateInner {
-                handle: handle,
-                listen_address: listen_address,
-                workers: Vec::new(),
-                session_id_counter: 1,
-            })),
-        }
+        Self::wrap(Inner {
+            workers: Default::default(),
+            tasks: Default::default(),
+            objects: Default::default(),
+            sessions: Default::default(),
+            clients: Default::default(),
+            listen_address: listen_address,
+            session_id_counter: 1,
+            handle: handle,
+        })
     }
 
     pub fn add_worker(&self, worker: Worker) {
-        self.inner.borrow_mut().workers.push(worker);
+        unimplemented!();
     }
 
     pub fn remove_worker(&self, worker: &Worker) {
-        // TODO removing workers
-        panic!("Worker removed; not implemented yet");
+        unimplemented!();
     }
 
-    pub fn get_n_workers(&self) -> usize {
-        self.inner.borrow().workers.len()
-    }
+    pub fn get_n_workers(&self) -> usize { self.get().workers.len() }
 
     pub fn start(&self) {
-        let listen_address = self.inner.borrow().listen_address;
-        let handle = self.inner.borrow().handle.clone();
+        let listen_address = self.get().listen_address;
+        let handle = self.get().handle.clone();
         let listener = TcpListener::bind(&listen_address, &handle).unwrap();
 
         let state = self.clone();
@@ -81,7 +84,7 @@ impl State {
 
     // Creates a new session and returns its id
     pub fn new_session(&self) -> SessionId {
-        let mut inner = self.inner.borrow_mut();
+        let mut inner = self.get_mut();
         let session_id = inner.session_id_counter;
         inner.session_id_counter += 1;
         debug!("Creating a new session (session_id={})", session_id);
@@ -102,13 +105,13 @@ impl State {
         ).from_server::<::capnp_rpc::Server>();
 
         let rpc_system = new_rpc_system(stream, Some(bootstrap.client));
-        self.inner.borrow().handle.spawn(rpc_system.map_err(|e| {
+        self.get().handle.spawn(rpc_system.map_err(|e| {
             panic!("RPC error: {:?}", e)
         }));
     }
 
     #[inline]
     pub fn handle(&self) -> Handle {
-        self.inner.borrow().handle.clone()
+        self.get().handle.clone()
     }
 }

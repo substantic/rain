@@ -1,55 +1,58 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::hash::{Hash, Hasher};
+use futures::unsync::oneshot::Sender;
 
+use common::wrapped::WrappedRcRefCell;
 use common::id::WorkerId;
+use common::RcSet;
+use server::task::Task;
+use server::dataobj::DataObject;
 
-struct WorkerInner {
+pub struct Inner {
+    /// Unique ID, here the registration socket address.
     id: WorkerId,
 
+    /// Assigned tasks. The task state is stored in the `Task`.
+    tasks: RcSet<Task>,
+
+    /// Obects fully located on the worker.
+    located: RcSet<DataObject>,
+
+    /// Objects located or assigned to appear on the worker. Superset of `located`.
+    assigned: RcSet<DataObject>,
+
+    /// Control interface
     control: ::worker_capnp::worker_control::Client,
 
-    // Resources
+    // Resources. TODO: Extract into separate struct
     n_cpus: u32,
     free_n_cpus: u32,
 }
 
-#[derive(Clone)]
-pub struct Worker {
-    inner: Rc<RefCell<WorkerInner>>,
-}
+pub type Worker = WrappedRcRefCell<Inner>;
 
-impl Hash for Worker {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let ptr = &*self.inner as *const _;
-        ptr.hash(state);
-    }
-}
 
-impl PartialEq for Worker {
-    fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.inner, &other.inner)
-    }
-}
-
-impl Eq for Worker {}
+// TODO: Functional cleanup of code below
 
 impl Worker {
+    pub fn push_task(&self, task: &Task) {
+        self.get();
+    }
+
     pub fn new(worker_id: WorkerId,
                control: ::worker_capnp::worker_control::Client,
                n_cpus: u32) -> Self {
-        Worker {
-            inner: Rc::new(RefCell::new(WorkerInner {
-                id: worker_id,
-                control: control,
-                n_cpus: n_cpus,
-                free_n_cpus: n_cpus,
-            }))
-        }
+        Self::wrap(Inner {
+            id: worker_id,
+            tasks: Default::default(),
+            located: Default::default(),
+            assigned: Default::default(),
+            control: control,
+            n_cpus: n_cpus,
+            free_n_cpus: n_cpus,
+        })
     }
 
     #[inline]
     pub fn get_id(&self) -> WorkerId {
-        self.inner.borrow().id
+        self.get().id
     }
 }

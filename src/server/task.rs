@@ -1,12 +1,11 @@
-use common::id::Sid;
+use futures::unsync::oneshot::Sender;
+
+use common::id::TaskId;
 use server::dataobj::DataObject;
 use server::worker::Worker;
-
-use std::io::Bytes;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::hash::{Hash, Hasher};
-
+use common::wrapped::WrappedRcRefCell;
+use common::RcSet;
+use server::session::Session;
 
 pub enum TaskState {
     NotAssigned,
@@ -17,39 +16,44 @@ pub enum TaskState {
     Finished(Worker),
 }
 
+pub struct Input {
+    /// Input data object.
+    object: DataObject,
+    /// Label may indicate the role the object plays for this task.
+    label: String,
+    // TODO: add any input params or flags
+}
 
-struct TaskInner {
-    id: Sid,
+pub struct Inner {
+    /// Unique ID within a `Session`
+    id: TaskId,
+
+    /// Current state.
     state: TaskState,
 
-    inputs: Vec<DataObject>,
-    outputs: Vec<DataObject>,
+    /// Ordered inputs for the task. Note that
+    inputs: Vec<Input>,
+    outputs: RcSet<DataObject>,
 
-    input_labels: Vec<String>,
-    output_labels: Vec<String>,
+    /// Unfinished objects that we wait for. These must be a subset of `inputs`,
+    /// but multiplicities in `inputs` are here represented only once.
+    waiting_for: RcSet<DataObject>,
 
+    /// Worker with the scheduled task.
+    assigned: Option<Worker>,
+
+    /// Owning session. Must match `SessionId`.
+    session: Session,
+
+    /// Task type
+    // TODO: specify task types or make a better type ID system
     procedure_key: String,
+
+    /// Task configuration - task type dependent
     procedure_config: Vec<u8>,
+
+    /// Hooks executed when the task is finished
+    finish_hooks: Vec<Sender<()>>,
 }
 
-
-#[derive(Clone)]
-pub struct Task {
-    inner: Rc<RefCell<TaskInner>>,
-}
-
-
-impl Hash for Task {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let ptr = &*self.inner as *const _;
-        ptr.hash(state);
-    }
-}
-
-impl PartialEq for Task {
-    fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.inner, &other.inner)
-    }
-}
-
-impl Eq for Task {}
+pub type Task = WrappedRcRefCell<Inner>;
