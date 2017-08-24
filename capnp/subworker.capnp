@@ -3,7 +3,7 @@
 using import "worker.capnp".Task;
 using import "common.capnp".DataObjectId;
 using import "common.capnp".DataObjectType;
-using import "datastore.capnp".Stream;
+using import "datastore.capnp".Reader;
 
 interface SubworkerControl {
     # This object serves also as bootstrap
@@ -45,6 +45,6 @@ struct LocalDataObject {
         memory @3 :Data;
         # Actual content of the data object
 
-        stream @4 :Stream;
+        stream @4 :Reader;
     }
 }
