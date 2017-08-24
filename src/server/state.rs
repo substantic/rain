@@ -1,4 +1,4 @@
-use std::net::{SocketAddr, IpAddr, Ipv4Addr};
+use std::net::{SocketAddr};
 use std::collections::HashMap;
 
 use futures::{Future, Stream};
@@ -9,12 +9,8 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId};
 use common::rpc::new_rpc_system;
-use server::worker::Worker;
-use server::dataobj::DataObject;
-use server::task::Task;
-use server::session::Session;
-use server::interface::ServerBootstrapImpl;
-use server::client::Client;
+use server::graph::{Worker, DataObject, Task, Session, Client};
+use server::rpc::ServerBootstrapImpl;
 use common::wrapped::WrappedRcRefCell;
 
 pub struct Inner {

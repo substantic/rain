@@ -1,10 +1,9 @@
 use futures::unsync::oneshot::Sender;
 
 use common::wrapped::WrappedRcRefCell;
-use common::id::WorkerId;
 use common::RcSet;
-use server::task::Task;
-use server::dataobj::DataObject;
+use common::id::WorkerId;
+use super::{Task, DataObject};
 
 pub struct Inner {
     /// Unique ID, here the registration socket address.

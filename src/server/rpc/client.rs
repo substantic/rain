@@ -1,31 +1,10 @@
 use capnp::capability::Promise;
-use capnp;
 use std::net::SocketAddr;
 
 use client_capnp::client_service;
 use server::state::State;
-use server::datastore::DataStoreImpl;
-use server::session::Session;
-use common::wrapped::WrappedRcRefCell;
-use common::id::ClientId;
-use common::RcSet;
-
-pub struct Inner {
-    id: ClientId,
-    sessions: RcSet<Session>,
-}
-
-pub type Client = WrappedRcRefCell<Inner>;
-
-impl Client {
-    pub fn new(address: &SocketAddr) -> Self {
-        Self::wrap(Inner {
-            id: address.clone(),
-            sessions: Default::default(),
-        })
-    }
-}
-
+use super::datastore::DataStoreImpl;
+use server::graph::Client;
 
 // TODO: Functional cleanup and review of code below after structures specification
 
@@ -129,8 +108,8 @@ impl client_service::Server for ClientServiceImpl {
         //TODO: Wait for some tasks / dataobjs to finish.
         // Current implementation returns received task/object ids.
 
-        results.get().set_finished_tasks(task_ids);
-        results.get().set_finished_objects(object_ids);
+        pry!(results.get().set_finished_tasks(task_ids));
+        pry!(results.get().set_finished_objects(object_ids));
         Promise::ok(())
     }
 
@@ -164,7 +143,7 @@ impl client_service::Server for ClientServiceImpl {
             let mut task_updates = results.get().init_tasks(task_ids.len());
             for i in 0..task_ids.len() {
                 let mut update = task_updates.borrow().get(i);
-                update.set_id(task_ids.get(i));
+                pry!(update.set_id(task_ids.get(i)));
 
                 //TODO: set current task state
                 //update.set_state(...)
@@ -175,7 +154,7 @@ impl client_service::Server for ClientServiceImpl {
             let mut object_updates = results.get().init_objects(object_ids.len());
             for i in 0..object_ids.len() {
                 let mut update = object_updates.borrow().get(i);
-                update.set_id(object_ids.get(i));
+                pry!(update.set_id(object_ids.get(i)));
 
                 //TODO: set current data object state
                 //update.set_state(...)

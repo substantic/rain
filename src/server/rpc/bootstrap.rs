@@ -1,17 +1,14 @@
-
 use futures::Future;
 use std::net::SocketAddr;
-
-use common::id::WorkerId;
-use common::convert::{FromCapnp, ToCapnp};
-use server::state::State;
-use server::worker::Worker;
-use server_capnp::server_bootstrap;
 use capnp::capability::Promise;
 use capnp;
 
-use server::client::ClientServiceImpl;
-use server::upstream::WorkerUpstreamImpl;
+use super::{ClientServiceImpl, WorkerUpstreamImpl};
+use common::id::WorkerId;
+use common::convert::{FromCapnp, ToCapnp};
+use server::state::State;
+use server::graph::{Worker, Client};
+use server_capnp::server_bootstrap;
 
 use CLIENT_PROTOCOL_VERSION;
 use WORKER_PROTOCOL_VERSION;

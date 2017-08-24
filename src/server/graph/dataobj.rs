@@ -4,9 +4,7 @@ use common::wrapped::WrappedRcRefCell;
 use common::id::DataObjectId;
 use common::RcSet;
 use common::keeppolicy::KeepPolicy;
-use server::task::Task;
-use server::worker::Worker;
-use server::session::Session;
+use super::{Task, Worker, Session};
 
 pub enum DataObjectState {
     NotAssigned,

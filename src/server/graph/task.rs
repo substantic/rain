@@ -1,11 +1,9 @@
 use futures::unsync::oneshot::Sender;
 
-use common::id::TaskId;
-use server::dataobj::DataObject;
-use server::worker::Worker;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
-use server::session::Session;
+use common::id::TaskId;
+use super::{DataObject, Worker, Session};
 
 pub enum TaskState {
     NotAssigned,
@@ -16,7 +14,7 @@ pub enum TaskState {
     Finished(Worker),
 }
 
-pub struct Input {
+pub struct TaskInput {
     /// Input data object.
     object: DataObject,
     /// Label may indicate the role the object plays for this task.
@@ -32,7 +30,7 @@ pub struct Inner {
     state: TaskState,
 
     /// Ordered inputs for the task. Note that
-    inputs: Vec<Input>,
+    inputs: Vec<TaskInput>,
     outputs: RcSet<DataObject>,
 
     /// Unfinished objects that we wait for. These must be a subset of `inputs`,

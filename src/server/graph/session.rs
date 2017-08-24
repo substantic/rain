@@ -1,11 +1,9 @@
 use futures::unsync::oneshot::Sender;
 
-use common::id::SessionId;
-use server::client::Client;
-use server::dataobj::DataObject;
-use server::task::Task;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
+use common::id::SessionId;
+use super::{Client, DataObject, Task};
 
 pub struct Inner {
     /// Unique ID
