@@ -25,7 +25,7 @@ pub struct ServerBootstrapImpl {
 
 impl ServerBootstrapImpl {
     pub fn new(state: &State, address: SocketAddr) -> Self {
-        Self {
+        ServerBootstrapImpl {
             state: state.clone(),
             registered: false,
             address: address,
@@ -116,9 +116,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             let response = pry!(response.get());
             let n_cpus = response.get_n_cpus();
 
-            debug!("Creating worker {} with {} cpus", worker_id, n_cpus);
-
-            let worker = Worker::new(worker_id, control, n_cpus);
+            let worker = Worker::new(&state.get().graph, worker_id, Some(control), n_cpus);
             worker_id.to_capnp(&mut results.get().get_worker_id().unwrap());
 
             // The order is important here:

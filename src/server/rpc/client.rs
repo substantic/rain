@@ -4,7 +4,7 @@ use std::net::SocketAddr;
 use client_capnp::client_service;
 use server::state::State;
 use super::datastore::DataStoreImpl;
-use server::graph::Client;
+use server::graph::{Session, Client};
 
 // TODO: Functional cleanup and review of code below after structures specification
 
@@ -15,7 +15,7 @@ pub struct ClientServiceImpl {
 
 impl ClientServiceImpl {
     pub fn new(state: &State, address: &SocketAddr) -> Self {
-        Self { state: state.clone(), client: Client::new(address), }
+        Self { state: state.clone(), client: Client::new(&state.get().graph, address.clone()), }
     }
 }
 
@@ -34,8 +34,9 @@ impl client_service::Server for ClientServiceImpl {
         mut results: client_service::GetServerInfoResults,
     ) -> Promise<(), ::capnp::Error> {
         debug!("Client asked for info");
+        let g = &self.state.get().graph;
         results.get().set_n_workers(
-            self.state.get_n_workers() as i32,
+            g.get().workers.len() as i32,
         );
         Promise::ok(())
     }
@@ -46,8 +47,8 @@ impl client_service::Server for ClientServiceImpl {
         mut results: client_service::NewSessionResults,
     ) -> Promise<(), ::capnp::Error> {
         info!("Client asked for a new session");
-        let session_id = self.state.new_session();
-        results.get().set_session_id(session_id);
+        let session = Session::new(&self.state.get().graph, &self.client);
+        results.get().set_session_id(session.get_id());
         Promise::ok(())
     }
 

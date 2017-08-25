@@ -1,5 +1,6 @@
 #![allow(non_upper_case_globals)]
 bitflags! {
+    #[derive(Default)]
     pub struct KeepPolicy: u32 {
         const Client       = 0b00000001;
         const BorderObject = 0b00000010;

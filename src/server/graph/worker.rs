@@ -1,57 +1,74 @@
 use futures::unsync::oneshot::Sender;
+use std::net::SocketAddr;
 
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
 use common::id::WorkerId;
-use super::{Task, DataObject};
+use super::{Task, DataObject, Graph};
 
 pub struct Inner {
     /// Unique ID, here the registration socket address.
     id: WorkerId,
 
     /// Assigned tasks. The task state is stored in the `Task`.
-    tasks: RcSet<Task>,
+    pub(super) tasks: RcSet<Task>,
 
     /// Obects fully located on the worker.
-    located: RcSet<DataObject>,
+    pub(super) located: RcSet<DataObject>,
 
     /// Objects located or assigned to appear on the worker. Superset of `located`.
-    assigned: RcSet<DataObject>,
+    pub(super) assigned: RcSet<DataObject>,
 
-    /// Control interface
-    control: ::worker_capnp::worker_control::Client,
+    /// Control interface. Optional for testing and modelling.
+    control: Option<::worker_capnp::worker_control::Client>,
 
-    // Resources. TODO: Extract into separate struct
+    // Resources. TODO: Extract resources into separate struct
     n_cpus: u32,
     free_n_cpus: u32,
 }
 
 pub type Worker = WrappedRcRefCell<Inner>;
 
-
-// TODO: Functional cleanup of code below
-
 impl Worker {
-    pub fn push_task(&self, task: &Task) {
-        self.get();
-    }
-
-    pub fn new(worker_id: WorkerId,
-               control: ::worker_capnp::worker_control::Client,
+    pub fn new(graph: &Graph,
+               address: SocketAddr,
+               control: Option<::worker_capnp::worker_control::Client>,
                n_cpus: u32) -> Self {
-        Self::wrap(Inner {
-            id: worker_id,
+        let s = Worker::wrap(Inner {
+            id: address,
             tasks: Default::default(),
             located: Default::default(),
             assigned: Default::default(),
             control: control,
             n_cpus: n_cpus,
             free_n_cpus: n_cpus,
-        })
+        });
+        debug!("Creating worker {} with {} cpus", s.get_id(), s.get().n_cpus);
+        // add to graph
+        graph.get_mut().workers.insert(s.get().id, s.clone());
+        s
     }
 
-    #[inline]
-    pub fn get_id(&self) -> WorkerId {
-        self.get().id
+    pub fn delete(self, graph: &Graph) {
+        debug!("Deleting worker {}", self.get_id());
+        // remove from objects
+        for o in self.get_mut().assigned.iter() {
+            assert!(o.get_mut().assigned.remove(&self));
+        }
+        for o in self.get_mut().located.iter() {
+            assert!(o.get_mut().located.remove(&self));
+        }
+        // remove from tasks
+        for t in self.get_mut().tasks.iter() {
+            debug_assert!(t.get_mut().assigned == Some(self.clone()));
+            t.get_mut().assigned = None;
+        }
+        // remove from graph
+        graph.get_mut().workers.remove(&self.get().id).unwrap();
+        // assert that we hold the last reference, then drop it
+        assert_eq!(self.get_num_refs(), 1);
     }
+
+    /// Return the object ID in graph.
+    pub fn get_id(&self) -> WorkerId { self.get().id }
 }
