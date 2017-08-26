@@ -2,7 +2,7 @@
 use common::id::Sid;
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
-use worker::task::Task;
+use super::Task;
 
 use std::net::SocketAddr;
 use std::cell::RefCell;

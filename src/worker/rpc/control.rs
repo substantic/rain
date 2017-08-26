@@ -1,5 +1,5 @@
 
-use worker::state::State;
+use worker::State;
 use worker_capnp::worker_control;
 use capnp::capability::Promise;
 use std::process::exit;

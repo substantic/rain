@@ -12,10 +12,8 @@ use common::id::{SessionId, WorkerId, empty_worker_id, Id};
 use common::convert::{ToCapnp, FromCapnp};
 use common::rpc::new_rpc_system;
 use common::wrapped::WrappedRcRefCell;
-use worker::graph::Graph;
-use worker::subworker::{start_python_subworker,
-                        SubworkerUpstreamImpl,
-                        Subworker};
+use worker::graph::{Graph, Subworker, start_python_subworker};
+use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 
 use futures::Future;
 use futures::Stream;
@@ -112,7 +110,7 @@ impl State {
             rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
         let worker_control = ::worker_capnp::worker_control::ToClient::new(
-            ::worker::control::WorkerControlImpl::new(self))
+            WorkerControlImpl::new(self))
             .from_server::<::capnp_rpc::Server>();
 
         let mut req = bootstrap.register_as_worker_request();

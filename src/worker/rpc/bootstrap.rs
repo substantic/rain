@@ -2,8 +2,8 @@ use std::rc::Rc;
 use capnp::capability::{Promise, Results, Params};
 use capnp;
 use worker_capnp::{worker_bootstrap, worker_upstream, worker_control};
-use worker::state::State;
-use worker::control::WorkerControlImpl;
+use worker::State;
+use super::WorkerControlImpl;
 
 impl WorkerBootstrapImpl {
     pub fn new(state: &State) -> Self {

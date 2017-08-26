@@ -1,7 +1,6 @@
 
 use common::id::Sid;
-use worker::task::Task;
-use worker::dataobj::DataObject;
+use super::{Task, DataObject};
 use std::collections::HashMap;
 
 

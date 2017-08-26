@@ -1,5 +1,5 @@
 use common::id::Sid;
-use worker::dataobj::DataObject;
+use super::DataObject;
 
 use std::io::Bytes;
 use std::cell::RefCell;
