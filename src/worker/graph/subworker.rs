@@ -40,7 +40,7 @@ impl Subworker {
 
 pub fn start_python_subworker(state: &State) -> SubworkerId
 {
-    let subworker_id = state.get_new_id();
+    let subworker_id = state.make_subworker_id();
     let (log_path_out, log_path_err) = state.subworker_log_paths(subworker_id);
 
     info!("Staring new subworker {}", subworker_id);

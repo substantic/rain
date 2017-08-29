@@ -17,6 +17,7 @@ pub type WorkerId = SocketAddr;
 /// Type identifying a client, in this case its address and port as seen by server.
 pub type ClientId = SocketAddr;
 
+/// Type identifying a subworker
 pub type SubworkerId = Id;
 
 impl<'a> FromCapnp<'a> for WorkerId {

@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 use std;
 
-use common::id::{SessionId, WorkerId, empty_worker_id, Id};
+use common::id::{SubworkerId, SessionId, WorkerId, empty_worker_id, Id};
 use common::convert::{ToCapnp, FromCapnp};
 use common::rpc::new_rpc_system;
 use common::wrapped::WrappedRcRefCell;
@@ -30,16 +30,25 @@ use WORKER_PROTOCOL_VERSION;
 
 pub struct Inner {
 
-    handle: Handle, // Tokio core handle
-
-    worker_id: WorkerId,
-    upstream: Option<::worker_capnp::worker_upstream::Client>,
-    timer: tokio_timer::Timer,
-    subworkers: Vec<Subworker>,
-    work_dir: PathBuf,
-    n_cpus: u32,  // Resources
     graph: Graph,
-    id_counter: Id, // Internal Id counter
+
+    /// Tokio core handle
+    handle: Handle,
+
+    /// Handle to WorkerUpstream (that resides in server)
+    upstream: Option<::worker_capnp::worker_upstream::Client>,
+
+    /// A worker assigned to this worker
+    worker_id: WorkerId,
+
+
+    timer: tokio_timer::Timer,
+
+    /// Path to working directory
+    work_dir: PathBuf,
+
+    /// TODO: Create a resource container
+    n_cpus: u32,  // Resources
 }
 
 pub type State = WrappedRcRefCell<Inner>;
@@ -57,15 +66,7 @@ impl State {
                 work_dir,
                 worker_id: empty_worker_id(),
                 graph: Graph::new(),
-                subworkers: Vec::new(),
-                id_counter: 0
             })
-    }
-
-    pub fn get_new_id(&self) -> Id {
-        let mut inner = self.get_mut();
-        inner.id_counter += 1;
-        inner.id_counter
     }
 
     // Get number of cpus for assigned to this worker
@@ -210,10 +211,12 @@ impl State {
         handle.spawn(connect);
     }
 
+    pub fn make_subworker_id(&self) -> SubworkerId {
+        self.get_mut().graph.make_subworker_id()
+    }
+
     pub fn add_subworker(&self, subworker: Subworker) {
-        info!("Subworker registered subworker_id={}", subworker.id());
-        self.get_mut().subworkers.push(subworker);
-        // TODO: Someone probably started subworker and he wants to be notified
+        self.get_mut().graph.add_subworker(subworker);
     }
 
     pub fn turn(&self) {
