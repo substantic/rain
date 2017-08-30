@@ -20,7 +20,7 @@ pub type ClientId = SocketAddr;
 /// Type identifying a subworker
 pub type SubworkerId = Id;
 
-impl<'a> FromCapnp<'a> for WorkerId {
+impl<'a> FromCapnp<'a> for SocketAddr {
     type Reader = socket_address::Reader<'a>;
 
     fn from_capnp(read: &Self::Reader) -> Self {
@@ -37,7 +37,7 @@ impl<'a> FromCapnp<'a> for WorkerId {
     }
 }
 
-impl<'a> ToCapnp<'a> for WorkerId {
+impl<'a> ToCapnp<'a> for SocketAddr {
     type Builder = socket_address::Builder<'a>;
 
     fn to_capnp(self: &WorkerId, build: &mut Self::Builder) {
@@ -50,7 +50,7 @@ impl<'a> ToCapnp<'a> for WorkerId {
     }
 }
 
-impl ReadCapnp for WorkerId {
+impl ReadCapnp for SocketAddr {
     fn read_capnp<R: Read>(r: &mut R) -> Self {
         let msg = serialize::read_message(r, Default::default()).unwrap();
         let read = msg.get_root::<socket_address::Reader>().unwrap();
@@ -59,7 +59,7 @@ impl ReadCapnp for WorkerId {
 }
 
 /// Common trait for `TaskId` and `DataObjectID`.
-trait SId: for <'a> ToCapnp<'a> + for <'a> FromCapnp<'a> + WriteCapnp + ReadCapnp {
+pub trait SId: for <'a> ToCapnp<'a> + for <'a> FromCapnp<'a> + WriteCapnp + ReadCapnp {
     fn new(session_id: SessionId, id: Id) -> Self;
     fn get_id(&self) -> Id;
     fn get_session_id(&self) -> SessionId;

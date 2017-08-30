@@ -1,9 +1,6 @@
-
 use server::state::State;
-use server::worker::Worker;
+use server::graph::Worker;
 use worker_capnp::worker_upstream;
-use capnp::capability::Promise;
-use std::process::exit;
 
 pub struct WorkerUpstreamImpl {
     state: State,

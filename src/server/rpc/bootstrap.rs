@@ -1,17 +1,14 @@
-
 use futures::Future;
 use std::net::SocketAddr;
-
-use common::id::WorkerId;
-use common::convert::{FromCapnp, ToCapnp};
-use server::state::State;
-use server::worker::Worker;
-use server_capnp::server_bootstrap;
 use capnp::capability::Promise;
 use capnp;
 
-use server::client::ClientServiceImpl;
-use server::upstream::WorkerUpstreamImpl;
+use super::{ClientServiceImpl, WorkerUpstreamImpl};
+use common::id::WorkerId;
+use common::convert::{FromCapnp, ToCapnp};
+use server::state::State;
+use server::graph::{Worker, Client};
+use server_capnp::server_bootstrap;
 
 use CLIENT_PROTOCOL_VERSION;
 use WORKER_PROTOCOL_VERSION;
@@ -28,7 +25,7 @@ pub struct ServerBootstrapImpl {
 
 impl ServerBootstrapImpl {
     pub fn new(state: &State, address: SocketAddr) -> Self {
-        Self {
+        ServerBootstrapImpl {
             state: state.clone(),
             registered: false,
             address: address,
@@ -119,9 +116,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             let response = pry!(response.get());
             let n_cpus = response.get_n_cpus();
 
-            debug!("Creating worker {} with {} cpus", worker_id, n_cpus);
-
-            let worker = Worker::new(worker_id, control, n_cpus);
+            let worker = Worker::new(&state.get().graph, worker_id, Some(control), n_cpus);
             worker_id.to_capnp(&mut results.get().get_worker_id().unwrap());
 
             // The order is important here:

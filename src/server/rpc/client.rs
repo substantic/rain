@@ -1,31 +1,10 @@
 use capnp::capability::Promise;
-use capnp;
 use std::net::SocketAddr;
 
 use client_capnp::client_service;
 use server::state::State;
-use server::datastore::DataStoreImpl;
-use server::session::Session;
-use common::wrapped::WrappedRcRefCell;
-use common::id::ClientId;
-use common::RcSet;
-
-pub struct Inner {
-    id: ClientId,
-    sessions: RcSet<Session>,
-}
-
-pub type Client = WrappedRcRefCell<Inner>;
-
-impl Client {
-    pub fn new(address: &SocketAddr) -> Self {
-        Self::wrap(Inner {
-            id: address.clone(),
-            sessions: Default::default(),
-        })
-    }
-}
-
+use super::datastore::DataStoreImpl;
+use server::graph::{Session, Client};
 
 // TODO: Functional cleanup and review of code below after structures specification
 
@@ -36,7 +15,7 @@ pub struct ClientServiceImpl {
 
 impl ClientServiceImpl {
     pub fn new(state: &State, address: &SocketAddr) -> Self {
-        Self { state: state.clone(), client: Client::new(address), }
+        Self { state: state.clone(), client: Client::new(&state.get().graph, address.clone()), }
     }
 }
 
@@ -55,8 +34,9 @@ impl client_service::Server for ClientServiceImpl {
         mut results: client_service::GetServerInfoResults,
     ) -> Promise<(), ::capnp::Error> {
         debug!("Client asked for info");
+        let g = &self.state.get().graph;
         results.get().set_n_workers(
-            self.state.get_n_workers() as i32,
+            g.get().workers.len() as i32,
         );
         Promise::ok(())
     }
@@ -67,8 +47,8 @@ impl client_service::Server for ClientServiceImpl {
         mut results: client_service::NewSessionResults,
     ) -> Promise<(), ::capnp::Error> {
         info!("Client asked for a new session");
-        let session_id = self.state.new_session();
-        results.get().set_session_id(session_id);
+        let session = Session::new(&self.state.get().graph, &self.client);
+        results.get().set_session_id(session.get_id());
         Promise::ok(())
     }
 
@@ -129,8 +109,8 @@ impl client_service::Server for ClientServiceImpl {
         //TODO: Wait for some tasks / dataobjs to finish.
         // Current implementation returns received task/object ids.
 
-        results.get().set_finished_tasks(task_ids);
-        results.get().set_finished_objects(object_ids);
+        pry!(results.get().set_finished_tasks(task_ids));
+        pry!(results.get().set_finished_objects(object_ids));
         Promise::ok(())
     }
 
@@ -164,7 +144,7 @@ impl client_service::Server for ClientServiceImpl {
             let mut task_updates = results.get().init_tasks(task_ids.len());
             for i in 0..task_ids.len() {
                 let mut update = task_updates.borrow().get(i);
-                update.set_id(task_ids.get(i));
+                pry!(update.set_id(task_ids.get(i)));
 
                 //TODO: set current task state
                 //update.set_state(...)
@@ -175,7 +155,7 @@ impl client_service::Server for ClientServiceImpl {
             let mut object_updates = results.get().init_objects(object_ids.len());
             for i in 0..object_ids.len() {
                 let mut update = object_updates.borrow().get(i);
-                update.set_id(object_ids.get(i));
+                pry!(update.set_id(object_ids.get(i)));
 
                 //TODO: set current data object state
                 //update.set_state(...)

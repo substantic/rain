@@ -1,4 +1,4 @@
-use std::net::{SocketAddr, IpAddr, Ipv4Addr};
+use std::net::{SocketAddr};
 use std::collections::HashMap;
 
 use futures::{Future, Stream};
@@ -9,23 +9,13 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId};
 use common::rpc::new_rpc_system;
-use server::worker::Worker;
-use server::dataobj::DataObject;
-use server::task::Task;
-use server::session::Session;
-use server::interface::ServerBootstrapImpl;
-use server::client::Client;
+use server::graph::{Graph, Worker, DataObject, Task, Session, Client};
+use server::rpc::ServerBootstrapImpl;
 use common::wrapped::WrappedRcRefCell;
 
 pub struct Inner {
     // Contained objects
-    workers: HashMap<WorkerId, Worker>,
-    tasks: HashMap<TaskId, Task>,
-    objects: HashMap<DataObjectId, DataObject>,
-    sessions: HashMap<SessionId, Session>,
-    clients: HashMap<ClientId, Client>,
-
-    session_id_counter: SessionId,
+    pub(super) graph: Graph,
 
     /// Listening port and address.
     listen_address: SocketAddr,
@@ -42,13 +32,8 @@ pub type State = WrappedRcRefCell<Inner>;
 impl State {
     pub fn new(handle: Handle, listen_address: SocketAddr) -> Self {
         Self::wrap(Inner {
-            workers: Default::default(),
-            tasks: Default::default(),
-            objects: Default::default(),
-            sessions: Default::default(),
-            clients: Default::default(),
+            graph: Default::default(),
             listen_address: listen_address,
-            session_id_counter: 1,
             handle: handle,
         })
     }
@@ -60,8 +45,6 @@ impl State {
     pub fn remove_worker(&self, worker: &Worker) {
         unimplemented!();
     }
-
-    pub fn get_n_workers(&self) -> usize { self.get().workers.len() }
 
     pub fn start(&self) {
         let listen_address = self.get().listen_address;
@@ -80,15 +63,6 @@ impl State {
             });
         handle.spawn(future);
         info!("Start listening on address={}", listen_address);
-    }
-
-    // Creates a new session and returns its id
-    pub fn new_session(&self) -> SessionId {
-        let mut inner = self.get_mut();
-        let session_id = inner.session_id_counter;
-        inner.session_id_counter += 1;
-        debug!("Creating a new session (session_id={})", session_id);
-        session_id
     }
 
     pub fn turn(&self) {
