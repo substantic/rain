@@ -55,13 +55,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     // Create ready file - a file that is created when server is ready
     if let Some(name) = ready_file {
-        match std::fs::File::create(Path::new(name)) {
-            Ok(mut file) => file.write_all(b"ready\n"),
-            Err(e) => {
-                error!("Cannot create ready file: {}", e.description());
-                exit(1);
-            }
-        };
+        ::librain::common::fs::create_ready_file(Path::new(name));
     }
 
     loop {

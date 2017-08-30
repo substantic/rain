@@ -111,7 +111,10 @@ impl State {
     }
 
     // This is called when worker connection to server is established
-    pub fn on_connected_to_server(&self, stream: TcpStream, listen_address: SocketAddr) {
+    pub fn on_connected_to_server(&self,
+                                  stream: TcpStream,
+                                  listen_address: SocketAddr,
+                                  ready_file: Option<String>) {
         info!("Connected to server; registering as worker");
         stream.set_nodelay(true).unwrap();
         let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
@@ -139,6 +142,12 @@ impl State {
                 inner.upstream = Some(upstream);
                 inner.worker_id = WorkerId::from_capnp(&worker_id);
                 debug!("Registration completed");
+
+                // Create ready file - a file that is created when worker is connected & registered
+                if let Some(name) = ready_file {
+                    ::common::fs::create_ready_file(Path::new(&name));
+                }
+
                 Promise::ok(())
             })
             .map_err(|e| {
@@ -210,19 +219,7 @@ impl State {
         info!("Connecting to server addr={}", server_address);
         let connect = TcpStream::connect(&server_address, &handle)
             .and_then(move |stream| {
-                core1.on_connected_to_server(stream, listen_address);
-
-                // TODO: Move after registration
-                // Create ready file - a file that is created when worker is connected
-                if let Some(name) = ready_file {
-                    match std::fs::File::create(Path::new(&name)) {
-                        Ok(mut file) => file.write_all(b"ready\n").unwrap(),
-                        Err(e) => {
-                            error!("Cannot create ready file: {}", e.description());
-                            exit(1);
-                        }
-                    }
-                }
+                core1.on_connected_to_server(stream, listen_address, ready_file);
                 Ok(())
             })
             .map_err(|e| {
