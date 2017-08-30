@@ -13,7 +13,7 @@ use capnp::capability::Promise;
 use tokio_process::CommandExt;
 use futures::Future;
 
-struct Inner {
+pub struct Inner {
     subworker_id: SubworkerId,
     control: ::subworker_capnp::subworker_control::Client
 }

@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-enum DataObjState {
+pub enum DataObjState {
     Assigned,
     Remote(SocketAddr),
 
@@ -27,13 +27,13 @@ enum DataObjState {
     FinishedInMem(Vec<u8>),
 }
 
-enum DataObjectType {
+pub enum DataObjectType {
     Blob,
     Directory,
     Stream
 }
 
-struct Inner {
+pub struct Inner {
     id: DataObjectId,
 
     state: DataObjState,

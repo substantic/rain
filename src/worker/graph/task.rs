@@ -27,7 +27,7 @@ pub struct TaskInput {
 }
 
 
-struct Inner {
+pub struct Inner {
     id: TaskId,
 
     state: TaskState,
