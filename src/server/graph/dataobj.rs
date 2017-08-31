@@ -1,67 +1,90 @@
 use futures::unsync::oneshot::Sender;
 
 use common::wrapped::WrappedRcRefCell;
-use common::id::DataObjectId;
-use common::RcSet;
+use common::id::{DataObjectId, SId};
+use common::{RcSet, Additional};
 use common::keeppolicy::KeepPolicy;
 use super::{TaskRef, WorkerRef, SessionRef, Graph};
-
-pub enum DataObjectState {
-    NotAssigned,
-    Assigned,
-    Finished(usize),
-    Removed(usize),
-}
+pub use common_capnp::{DataObjectState, DataObjectType};
 
 pub struct DataObject {
     /// Unique ID within a `Session`
-    id: DataObjectId,
+    pub(in super::super) id: DataObjectId,
 
     /// Producer task, if any.
-    pub(super) producer: Option<TaskRef>,
+    pub(in super::super) producer: Option<TaskRef>,
 
     /// Label may be the role that the output has in the `producer`, or it may be
     /// the name of the initial uploaded object.
-    label: String,
+    pub(in super::super) label: String,
 
     /// Current state.
-    state: DataObjectState,
+    pub(in super::super) state: DataObjectState,
+
+    /// The type of this object.
+    pub(in super::super) object_type: DataObjectType,
 
     /// Consumer set, e.g. to notify of completion.
-    pub(super) consumers: RcSet<TaskRef>,
+    pub(in super::super) consumers: RcSet<TaskRef>,
 
     /// Workers with full copy of this object.
-    pub(super) located: RcSet<WorkerRef>,
+    pub(in super::super) located: RcSet<WorkerRef>,
 
     /// Workers that have been instructed to pull this object or already have it.
     /// Superset of `located`.
-    pub(super) assigned: RcSet<WorkerRef>,
+    pub(in super::super) assigned: RcSet<WorkerRef>,
 
     /// Assigned session. Must match SessionId.
-    session: SessionRef,
+    pub(in super::super) session: SessionRef,
 
     /// Reasons to keep the object alive
-    keep: KeepPolicy,
+    pub(in super::super) keep: KeepPolicy,
 
     /// Hooks executed when the task is finished
-    finish_hooks: Vec<Sender<()>>,
+    pub(in super::super) finish_hooks: Vec<Sender<()>>,
+
+    /// Final size if known. Must match `data` size when `data` present.
+    pub(in super::super) size: Option<usize>,
+
+    /// Optinal *final* data when submitted from client or downloaded
+    /// by the server (for any reason thinkable).
+    pub(in super::super) data: Option<Vec<u8>>,
+
+    /// Additional attributes (WIP)
+    pub(in super::super) additional: Additional,
 }
 
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
 impl DataObjectRef {
-    pub fn new(graph: &mut Graph, session: &SessionRef, id: DataObjectId /* TODO: more */) -> Self {
+    pub fn new(graph: &mut Graph,
+               session: &SessionRef,
+               id: DataObjectId,
+               object_type: DataObjectType,
+               keep: KeepPolicy,
+               label: String,
+               data: Option<Vec<u8>>,
+               additional: Additional) -> Self {
+        assert_eq!(id.get_session_id(), session.get_id());
         let s = DataObjectRef::wrap(DataObject {
             id: id,
             producer: Default::default(),
-            label: Default::default(),
-            state: DataObjectState::NotAssigned,
+            label: label,
+            state: if data.is_none() {
+                DataObjectState::NotAssigned
+            } else {
+                DataObjectState::Finished
+            } ,
+            object_type: object_type,
             consumers: Default::default(),
             located: Default::default(),
             assigned: Default::default(),
             session: session.clone(),
-            keep: Default::default(),
-            finish_hooks: Default::default(),
+            keep: keep,
+            finish_hooks: Vec::new(),
+            size: data.as_ref().map(|v| v.len()),
+            data: data,
+            additional: additional,
         });
         // add to graph
         graph.objects.insert(s.get().id, s.clone());

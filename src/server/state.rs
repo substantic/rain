@@ -32,21 +32,21 @@ impl State {
                       address: SocketAddr,
                       control: Option<::worker_capnp::worker_control::Client>,
                       resources: Resources) -> WorkerRef {
-        unimplemented!()
+        WorkerRef::new(&mut self.graph, address, control, resources)
     }
 
     pub fn remove_worker(&mut self, worker: &WorkerRef) {
         unimplemented!()
     }
 
-    pub fn add_client(&mut self, address: &SocketAddr) -> ClientRef {
-        unimplemented!()
+    pub fn add_client(&mut self, address: SocketAddr) -> ClientRef {
+        ClientRef::new(&mut self.graph, address)
     }
 
     pub fn remove_client(&mut self, client: &ClientRef) { unimplemented!() }
 
     pub fn add_session(&mut self, client: &ClientRef) -> SessionRef {
-        unimplemented!()
+        SessionRef::new(&mut self.graph, client)
     }
 
     pub fn remove_session(&mut self, session: &SessionRef) { unimplemented!() }

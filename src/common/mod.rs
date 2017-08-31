@@ -9,3 +9,6 @@ pub mod resources;
 use std::collections::HashSet;
 
 pub type RcSet<T> = HashSet<T>;
+
+#[derive(Clone, Default)]
+pub struct Additional {}

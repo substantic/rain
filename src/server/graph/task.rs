@@ -1,82 +1,102 @@
 use futures::unsync::oneshot::Sender;
 
 use common::wrapped::WrappedRcRefCell;
-use common::RcSet;
-use common::id::TaskId;
-use super::{DataObjectRef, WorkerRef, SessionRef, Graph};
-
-pub enum TaskState {
-    NotAssigned,
-    Ready,
-    Assigned(WorkerRef),
-    AssignedReady(WorkerRef),
-    Running(WorkerRef),
-    Finished(WorkerRef),
-}
+use common::{RcSet, Additional};
+use common::id::{TaskId, SId};
+use super::{DataObjectRef, WorkerRef, SessionRef, Graph, DataObjectState, DataObjectType};
+pub use common_capnp::TaskState;
+use errors::Result;
 
 pub struct TaskInput {
     /// Input data object.
-    object: DataObjectRef,
+    pub object: DataObjectRef,
     /// Label may indicate the role the object plays for this task.
-    label: String,
+    pub label: String,
+    /// Optional path within the object
+    pub path: String,
     // TODO: add any input params or flags
 }
 
 pub struct Task {
     /// Unique ID within a `Session`
-    id: TaskId,
+    pub(in super::super) id: TaskId,
 
     /// Current state.
-    state: TaskState,
+    pub(in super::super) state: TaskState,
 
     /// Ordered inputs for the task. Note that one object can be present as multiple inputs!
-    inputs: Vec<TaskInput>,
+    pub(in super::super) inputs: Vec<TaskInput>,
 
     /// Ordered outputs for the task. Every object in the list must be distinct.
-    outputs: RcSet<DataObjectRef>,
+    pub(in super::super) outputs: RcSet<DataObjectRef>,
 
     /// Unfinished objects that we wait for. These must be a subset of `inputs`,
     /// but multiplicities in `inputs` are here represented only once.
-    waiting_for: RcSet<DataObjectRef>,
+    pub(in super::super) waiting_for: RcSet<DataObjectRef>,
 
     /// Worker with the scheduled task.
-    pub(super) assigned: Option<WorkerRef>,
+    pub(in super::super) assigned: Option<WorkerRef>,
 
     /// Owning session. Must match `SessionId`.
-    session: SessionRef,
+    pub(in super::super) session: SessionRef,
 
     /// Task type
     // TODO: specify task types or make a better type ID system
-    procedure_key: String,
+    pub(in super::super) task_type: String,
 
     /// Task configuration - task type dependent
-    procedure_config: Vec<u8>,
+    pub(in super::super) task_config: Vec<u8>,
 
     /// Hooks executed when the task is finished
-    finish_hooks: Vec<Sender<()>>,
+    pub(in super::super) finish_hooks: Vec<Sender<()>>,
+
+    /// Additional attributes
+    pub(in super::super) additional: Additional,
 }
 
 pub type TaskRef = WrappedRcRefCell<Task>;
 
 impl TaskRef {
-    pub fn new(graph: &mut Graph, session: &SessionRef, id: TaskId /* TODO: more */) -> Self {
+    pub fn new(graph: &mut Graph,
+               session: &SessionRef,
+               id: TaskId,
+               inputs: Vec<TaskInput>,
+               outputs: Vec<DataObjectRef>,
+               task_type: String,
+               task_config: Vec<u8>,
+               additional: Additional) -> Result<Self> {
+        assert_eq!(id.get_session_id(), session.get_id());
+        let mut waiting = RcSet::new();
+        for i in inputs.iter() {
+            let o = i.object.get();
+            match o.state {
+                DataObjectState::Removed =>
+                    Err(format!("Can't create Task {} with Finished input object {}", id, o.id))?,
+                DataObjectState::Finished => (),
+                _ => { waiting.insert(i.object.clone()); },
+            }
+            if o.object_type == DataObjectType::Stream && o.state != DataObjectState::NotAssigned {
+                Err(format!("Can't create Task {} with active input stream object {}", id, o.id))?
+            }
+        }
         let s = TaskRef::wrap(Task {
             id: id,
             state: TaskState::NotAssigned,
-            inputs: Default::default(),
-            outputs: Default::default(),
-            waiting_for: Default::default(),
+            inputs: inputs,
+            outputs: outputs.into_iter().collect(),
+            waiting_for: waiting, /// TODO
             assigned: Default::default(),
             session: session.clone(),
-            procedure_key: Default::default(),
-            procedure_config: Default::default(),
+            task_type: task_type,
+            task_config: task_config,
             finish_hooks: Default::default(),
+            additional: additional,
         });
         // add to graph
         graph.tasks.insert(s.get().id, s.clone());
         // add to session
         session.get_mut().tasks.insert(s.clone());
-        s
+        Ok(s)
     }
 
     pub fn delete(self, graph: &mut Graph) {
