@@ -7,26 +7,26 @@ use std::os::unix::io::{FromRawFd, IntoRawFd};
 
 use common::id::SubworkerId;
 use common::wrapped::WrappedRcRefCell;
-use worker::State;
+use worker::StateRef;
 use subworker_capnp::subworker_upstream;
 use capnp::capability::Promise;
 use tokio_process::CommandExt;
 use futures::Future;
 
-pub struct Inner {
+pub struct Subworker {
     subworker_id: SubworkerId,
     control: ::subworker_capnp::subworker_control::Client
 }
 
-pub type Subworker = WrappedRcRefCell<Inner>;
+pub type SubworkerRef = WrappedRcRefCell<Subworker>;
 
 
-impl Subworker {
+impl SubworkerRef {
 
     pub fn new(
         subworker_id: SubworkerId,
         control: ::subworker_capnp::subworker_control::Client) -> Self {
-            Self::wrap(Inner {
+            Self::wrap(Subworker {
                 subworker_id,
                 control
             })
@@ -38,8 +38,9 @@ impl Subworker {
 }
 
 
-pub fn start_python_subworker(state: &State) -> SubworkerId
+pub fn start_python_subworker(state: &StateRef) -> SubworkerId
 {
+    let mut state = state.get_mut();
     let subworker_id = state.make_subworker_id();
     let (log_path_out, log_path_err) = state.subworker_log_paths(subworker_id);
 

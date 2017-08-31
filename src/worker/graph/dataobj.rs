@@ -3,7 +3,7 @@ use common::id::{DataObjectId};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
-use super::{Task, Graph};
+use super::{TaskRef, Graph};
 
 use std::net::SocketAddr;
 use std::cell::RefCell;
@@ -33,7 +33,7 @@ pub enum DataObjectType {
     Stream
 }
 
-pub struct Inner {
+pub struct DataObject {
     id: DataObjectId,
 
     state: DataObjState,
@@ -42,7 +42,7 @@ pub struct Inner {
     // producer: Option<Task>,
 
     /// Consumer set, e.g. to notify of completion.
-    consumers: RcSet<Task>,
+    consumers: RcSet<TaskRef>,
 
 
     obj_type: DataObjectType,
@@ -56,19 +56,18 @@ pub struct Inner {
     label: String
 }
 
-pub type DataObject = WrappedRcRefCell<Inner>;
+pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
 
-impl DataObject {
+impl DataObjectRef {
 
-    pub fn new(graph: &Graph,
-               id: DataObjectId,
+    pub fn new(id: DataObjectId,
                state: DataObjState,
                obj_type: DataObjectType,
                keep: KeepPolicy,
                size: usize,
                label: String) -> Self {
-        Self::wrap(Inner {
+        Self::wrap(DataObject {
             id,
             state,
             size,
@@ -77,6 +76,15 @@ impl DataObject {
             consumers: Default::default(),
             label
         })
+    }
+
+    #[inline]
+    pub fn is_finished(&self) -> bool {
+        match self.get().state {
+            DataObjState::FinishedInFile => true,
+            DataObjState::FinishedInMem(_) => true,
+            _ => false
+        }
     }
 
     #[inline]

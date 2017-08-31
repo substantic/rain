@@ -116,7 +116,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     info!("Working directory: {:?}", work_dir);
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
-    let state =  worker::state::State::new(tokio_core.handle(), work_dir, cpus);
+    let state =  worker::state::StateRef::new(tokio_core.handle(), work_dir, cpus);
     state.start(server_address, listen_address);
     loop {
         tokio_core.turn(None);

@@ -1,5 +1,5 @@
-use worker::State;
-use worker::graph::Subworker;
+use worker::StateRef;
+use worker::graph::SubworkerRef;
 use subworker_capnp::subworker_upstream;
 use futures::Future;
 use capnp;
@@ -9,11 +9,11 @@ use capnp::capability::Promise;
 use SUBWORKER_PROTOCOL_VERSION;
 
 pub struct SubworkerUpstreamImpl {
-    state: State,
+    state: StateRef,
 }
 
 impl SubworkerUpstreamImpl {
-    pub fn new(state: &State) -> Self {
+    pub fn new(state: &StateRef) -> Self {
         Self { state: state.clone() }
     }
 }
@@ -39,7 +39,7 @@ impl subworker_upstream::Server for SubworkerUpstreamImpl {
         }
 
         let control = pry!(params.get_control());
-        let subworker = Subworker::new(params.get_subworker_id(), control);
+        let subworker = SubworkerRef::new(params.get_subworker_id(), control);
         self.state.add_subworker(subworker);
         Promise::ok(())
     }

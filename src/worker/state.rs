@@ -6,13 +6,15 @@ use std::net::Ipv4Addr;
 use std::process::exit;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use std::iter::FromIterator;
 use std;
 
-use common::id::{SubworkerId, SessionId, WorkerId, empty_worker_id, Id};
+use common::RcSet;
+use common::id::{TaskId, SubworkerId, SessionId, WorkerId, empty_worker_id, Id};
 use common::convert::{ToCapnp, FromCapnp};
 use common::rpc::new_rpc_system;
 use common::wrapped::WrappedRcRefCell;
-use worker::graph::{Graph, Subworker, start_python_subworker};
+use worker::graph::{Graph, TaskRef, TaskInput, SubworkerRef, start_python_subworker};
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 
 use futures::Future;
@@ -28,7 +30,7 @@ use capnp::capability::Promise;
 
 use WORKER_PROTOCOL_VERSION;
 
-pub struct Inner {
+pub struct State {
 
     graph: Graph,
 
@@ -51,12 +53,50 @@ pub struct Inner {
     n_cpus: u32,  // Resources
 }
 
-pub type State = WrappedRcRefCell<Inner>;
+pub type StateRef = WrappedRcRefCell<State>;
 
 impl State {
 
+
+    pub fn make_subworker_id(&mut self) -> SubworkerId {
+        self.graph.make_id()
+    }
+
+    #[inline]
+    pub fn path_in_work_dir(&self, path: &Path) -> PathBuf {
+        self.work_dir.join(path)
+    }
+
+    pub fn create_dir_in_work_dir(&self, path: &Path) -> std::io::Result<()> {
+        std::fs::create_dir(self.path_in_work_dir(path))
+    }
+
+    pub fn subworker_listen_path(&self) -> PathBuf {
+        self.path_in_work_dir(Path::new("subworkers/listen"))
+    }
+
+    pub fn subworker_log_paths(&self, id: Id) -> (PathBuf, PathBuf) {
+        let out = self.path_in_work_dir(Path::new(&format!("subworkers/logs/subworker-{}.out", id)));
+        let err = self.path_in_work_dir(Path::new(&format!("subworkers/logs/subworker-{}.err", id)));
+        (out, err)
+    }
+
+    #[inline]
+    pub fn handle(&self) -> Handle {
+        self.handle.clone()
+    }
+
+    #[inline]
+    pub fn spawn<F>(&self, f: F) where F: Future<Item = (), Error = ()> + 'static {
+        self.handle.spawn(f);
+    }
+}
+
+
+impl StateRef {
+
     pub fn new(handle: Handle, work_dir: PathBuf, n_cpus: u32) -> Self {
-        Self::wrap(Inner {
+        Self::wrap(State {
                 handle,
                 n_cpus,
                 upstream: None,
@@ -157,13 +197,16 @@ impl State {
         let handle = self.get().handle.clone();
 
         // --- Create workdir layout ---
-        self.create_dir_in_work_dir(Path::new("data")).unwrap();
-        self.create_dir_in_work_dir(Path::new("tasks")).unwrap();
-        self.create_dir_in_work_dir(Path::new("subworkers")).unwrap();
-        self.create_dir_in_work_dir(Path::new("subworkers/logs")).unwrap();
+        {
+            let state = self.get();
+            state.create_dir_in_work_dir(Path::new("data")).unwrap();
+            state.create_dir_in_work_dir(Path::new("tasks")).unwrap();
+            state.create_dir_in_work_dir(Path::new("subworkers")).unwrap();
+            state.create_dir_in_work_dir(Path::new("subworkers/logs")).unwrap();
+        }
 
         // --- Start listening Unix socket for subworkers ----
-        let listener = UnixListener::bind(self.subworker_listen_path(), &handle)
+        let listener = UnixListener::bind(self.get().subworker_listen_path(), &handle)
             .expect("Cannot initialize unix socket for subworkers");
         let state = self.clone();
         let future = listener.incoming()
@@ -211,44 +254,51 @@ impl State {
         handle.spawn(connect);
     }
 
-    pub fn make_subworker_id(&self) -> SubworkerId {
-        self.get_mut().graph.make_subworker_id()
+    pub fn add_subworker(&self, subworker: SubworkerRef) {
+        info!("Subworker registered subworker_id={}", subworker.id());
+        let subworker_id = subworker.id();
+        self.get_mut().graph.subworkers.insert(subworker_id,subworker);
+        // TODO: Someone probably started subworker and he wants to be notified
     }
 
-    pub fn add_subworker(&self, subworker: Subworker) {
-        self.get_mut().graph.add_subworker(subworker);
+    pub fn plan_scheduling(&self) {
+        unimplemented!();
     }
+
+    pub fn task_is_ready(&self, task: &TaskRef) {
+        task.set_ready();
+        self.plan_scheduling();
+    }
+
+    pub fn add_task(&self,
+                    id: TaskId,
+                    inputs: Vec<TaskInput>,
+                    procedure_key: String,
+                    procedure_config: Vec<u8>)
+    {
+        let wait_for = RcSet::from_iter((&inputs).iter()
+            .map(|input| input.object.clone())
+            .filter( |obj| !obj.is_finished()));
+        let is_ready = wait_for.is_empty();
+        let task = TaskRef::new(id, inputs, wait_for, procedure_key, procedure_config);
+
+        if is_ready {
+            self.get_mut().graph.tasks.insert(id, task.clone());
+            self.task_is_ready(&task);
+        } else {
+            self.get_mut().graph.tasks.insert(id, task);
+        }
+    }
+
+    /*
+    pub fn add_dataobject(&self,
+                          id: DataObjectId,
+                          obj_type: DataObjectType) {
+        let dataobject = DataObject::new(id, obj_type, )
+    }*/
 
     pub fn turn(&self) {
         // Now do nothing
     }
 
-    #[inline]
-    pub fn path_in_work_dir(&self, path: &Path) -> PathBuf {
-        self.get().work_dir.join(path)
-    }
-
-    pub fn create_dir_in_work_dir(&self, path: &Path) -> std::io::Result<()> {
-        std::fs::create_dir(self.path_in_work_dir(path))
-    }
-
-    pub fn subworker_listen_path(&self) -> PathBuf {
-        self.path_in_work_dir(Path::new("subworkers/listen"))
-    }
-
-    pub fn subworker_log_paths(&self, id: Id) -> (PathBuf, PathBuf) {
-        let out = self.path_in_work_dir(Path::new(&format!("subworkers/logs/subworker-{}.out", id)));
-        let err = self.path_in_work_dir(Path::new(&format!("subworkers/logs/subworker-{}.err", id)));
-        (out, err)
-    }
-
-    #[inline]
-    pub fn handle(&self) -> Handle {
-        self.get().handle.clone()
-    }
-
-    #[inline]
-    pub fn spawn<F>(&self, f: F) where F: Future<Item = (), Error = ()> + 'static {
-        self.get().handle.spawn(f);
-    }
 }

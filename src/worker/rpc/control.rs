@@ -1,15 +1,15 @@
 
-use worker::State;
+use worker::StateRef;
 use worker_capnp::worker_control;
 use capnp::capability::Promise;
 use std::process::exit;
 
 pub struct WorkerControlImpl {
-    state: State,
+    state: StateRef,
 }
 
 impl WorkerControlImpl {
-    pub fn new(state: &State) -> Self {
+    pub fn new(state: &StateRef) -> Self {
         Self { state: state.clone() }
     }
 }
