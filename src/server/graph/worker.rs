@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
 use common::id::WorkerId;
+use common::resources::Resources;
 use super::{Task, DataObject, Graph};
 
 pub struct Inner {
@@ -23,8 +24,8 @@ pub struct Inner {
     control: Option<::worker_capnp::worker_control::Client>,
 
     // Resources. TODO: Extract resources into separate struct
-    n_cpus: u32,
-    free_n_cpus: u32,
+    resources: Resources,
+    free_resources: Resources,
 }
 
 pub type Worker = WrappedRcRefCell<Inner>;
@@ -33,17 +34,17 @@ impl Worker {
     pub fn new(graph: &Graph,
                address: SocketAddr,
                control: Option<::worker_capnp::worker_control::Client>,
-               n_cpus: u32) -> Self {
+               resources: Resources) -> Self {
         let s = Worker::wrap(Inner {
             id: address,
             tasks: Default::default(),
             located: Default::default(),
             assigned: Default::default(),
             control: control,
-            n_cpus: n_cpus,
-            free_n_cpus: n_cpus,
+            resources: resources.clone(),
+            free_resources: resources,
         });
-        debug!("Creating worker {} with {} cpus", s.get_id(), s.get().n_cpus);
+        debug!("Creating worker {}", s.get_id());
         // add to graph
         graph.get_mut().workers.insert(s.get().id, s.clone());
         s

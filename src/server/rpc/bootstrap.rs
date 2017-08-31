@@ -6,6 +6,7 @@ use capnp;
 use super::{ClientServiceImpl, WorkerUpstreamImpl};
 use common::id::WorkerId;
 use common::convert::{FromCapnp, ToCapnp};
+use common::resources::Resources;
 use server::state::State;
 use server::graph::{Worker, Client};
 use server_capnp::server_bootstrap;
@@ -98,12 +99,11 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         // If worker fully specifies its address, then we use it as worker_id
         // otherwise we use announced port number and assign IP address of connection
         let address = WorkerId::from_capnp(&pry!(params.get_address()));
-        let worker_id;
-        if address.ip().is_unspecified() {
-            worker_id = SocketAddr::new(self.address.ip(), address.port());
+        let worker_id = if address.ip().is_unspecified() {
+            SocketAddr::new(self.address.ip(), address.port())
         } else {
-            worker_id = address;
-        }
+            address
+        };
 
         info!("Connection {} registered as worker {}", self.address, worker_id);
 
@@ -114,22 +114,19 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         let req = control.get_worker_resources_request();
         Promise::from_future(req.send().promise.and_then(move |response| {
             let response = pry!(response.get());
-            let n_cpus = response.get_n_cpus();
-
-            let worker = Worker::new(&state.get().graph, worker_id, Some(control), n_cpus);
-            worker_id.to_capnp(&mut results.get().get_worker_id().unwrap());
+            // TODO: Fill other resources
+            let resources: Resources = Resources { n_cpus: response.get_n_cpus() };
 
             // The order is important here:
             // 1) add worker
             // 2) create upstream
             // reason: upstream drop tries to remove worker
-
-            state.add_worker(worker.clone());
-
+            let worker = state.add_worker(worker_id, Some(control), resources);
             let upstream = ::worker_capnp::worker_upstream::ToClient::new(
                 WorkerUpstreamImpl::new(&state, &worker),
             ).from_server::<::capnp_rpc::Server>();
             results.get().set_upstream(upstream);
+            worker_id.to_capnp(&mut results.get().get_worker_id().unwrap());
             Promise::ok(())
         }))
     }

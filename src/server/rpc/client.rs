@@ -1,12 +1,12 @@
 use capnp::capability::Promise;
 use std::net::SocketAddr;
 
+use common::id::{DataObjectId, TaskId, SessionId};
+use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
 use server::state::State;
 use super::datastore::DataStoreImpl;
-use server::graph::{Session, Client};
-
-// TODO: Functional cleanup and review of code below after structures specification
+use server::graph::{Session, Client, DataObject, Task};
 
 pub struct ClientServiceImpl {
     state: State,
@@ -22,8 +22,8 @@ impl ClientServiceImpl {
 impl Drop for ClientServiceImpl {
     fn drop(&mut self)
     {
-        // TODO handle client disconnections
-        panic!("Client connection lost; not implemented yet");
+        info!("Client {} disconnected", self.client.get_id());
+        self.state.remove_client(&self.client);
     }
 }
 
@@ -46,8 +46,8 @@ impl client_service::Server for ClientServiceImpl {
         _: client_service::NewSessionParams,
         mut results: client_service::NewSessionResults,
     ) -> Promise<(), ::capnp::Error> {
-        info!("Client asked for a new session");
-        let session = Session::new(&self.state.get().graph, &self.client);
+        debug!("Client asked for a new session");
+        let session = self.state.add_session(&self.client);
         results.get().set_session_id(session.get_id());
         Promise::ok(())
     }
@@ -114,17 +114,21 @@ impl client_service::Server for ClientServiceImpl {
         Promise::ok(())
     }
 
-        fn remove(
+    fn unkeep(
         &mut self,
-        params: client_service::RemoveParams,
-        _: client_service::RemoveResults,
+        params: client_service::UnkeepParams,
+        _: client_service::UnkeepResults,
     ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let object_ids = pry!(params.get_object_ids());
-        info!("New remove request ({} data objects) from client",
+        info!("New unkeep request ({} data objects) from client",
               object_ids.len());
 
-        //TODO: Set keep=False for specified dataobjs
+        for oid in object_ids.iter() {
+            let id: DataObjectId = DataObjectId::from_capnp(&oid);
+            let o: DataObject = pry!(self.state.get_object(id));
+            self.state.unkeep_object(&o);
+        }
 
         Promise::ok(())
     }

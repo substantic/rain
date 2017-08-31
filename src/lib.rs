@@ -36,11 +36,17 @@ pub mod errors {
     error_chain!{
         foreign_links {
             Io(::std::io::Error);
+            Capnp(::capnp::Error);
         }
-
     }
-
 }
+
+impl std::convert::From<errors::Error> for capnp::Error {
+    fn from(e: errors::Error) -> Self {
+        capnp::Error::failed(e.description().to_string())
+    }
+}
+
 
 
 /* // NOTE: PyCharm does not support feature switching, so using comments :'(
