@@ -103,6 +103,7 @@ struct Task {
 struct DataObject {
     id @0 :DataObjectId;
     keep @1 :Bool;
+    hasData @6 :Bool;
     data @2 :Data;
     type @3 :DataObjectType;
     label @4 :Text;
