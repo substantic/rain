@@ -40,7 +40,7 @@ impl subworker_upstream::Server for SubworkerUpstreamImpl {
 
         let control = pry!(params.get_control());
         let subworker = SubworkerRef::new(params.get_subworker_id(), control);
-        self.state.add_subworker(subworker);
+        self.state.get_mut().add_subworker(subworker);
         Promise::ok(())
     }
 }

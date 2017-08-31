@@ -165,6 +165,7 @@ impl<'a> FromCapnp<'a> for DataObjectId {
     }
 }
 
+
 // TODO(gavento): Replace Sid by Task/DO ID
 pub type Sid = TaskId;
 

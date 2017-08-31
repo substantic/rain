@@ -108,22 +108,19 @@ struct Task {
 struct DataObject {
     id @0 :DataObjectId;
 
-    producer @1 :TaskId;
-    # Optional, if Task.none, then this DataObject is a constant
-
-    placement @2 :WorkerId;
+    placement @1 :WorkerId;
     # If equal to local worker id, then local, otherwise remote.
 
-    type @3 :DataObjectType;
+    type @2 :DataObjectType;
 
-    size @4 :Int64 = -1;
+    size @3 :Int64 = -1;
     # In bytes, positive if known.
 
-    state @5 :DataObjectState;
+    state @4 :DataObjectState;
     # Current object state. All input objects (external or local) should be `finished` or
     # `running` (when streaming), output objects `assigned`.
 
-    label @6 :Text;
+    label @5 :Text;
 
-    additional @7: Additional;
+    additional @6: Additional;
 }

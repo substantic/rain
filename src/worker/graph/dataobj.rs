@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 
-pub enum DataObjState {
+pub enum DataObjectState {
     Assigned,
     Remote(SocketAddr),
 
@@ -36,7 +36,7 @@ pub enum DataObjectType {
 pub struct DataObject {
     id: DataObjectId,
 
-    state: DataObjState,
+    state: DataObjectState,
 
     /// Task that produces data object; it is None if task not computed in this worker
     // producer: Option<Task>,
@@ -44,12 +44,11 @@ pub struct DataObject {
     /// Consumer set, e.g. to notify of completion.
     consumers: RcSet<TaskRef>,
 
-
     obj_type: DataObjectType,
 
     keep: KeepPolicy,
 
-    size: usize,
+    size: Option<usize>,
 
     /// Label may be the role that the output has in the `producer`, or it may be
     /// the name of the initial uploaded object.
@@ -61,13 +60,14 @@ pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
 impl DataObjectRef {
 
-    pub fn new(id: DataObjectId,
-               state: DataObjState,
+    pub fn new(graph: &mut Graph,
+               id: DataObjectId,
+               state: DataObjectState,
                obj_type: DataObjectType,
                keep: KeepPolicy,
-               size: usize,
+               size: Option<usize>,
                label: String) -> Self {
-        Self::wrap(DataObject {
+        let dataobj = Self::wrap(DataObject {
             id,
             state,
             size,
@@ -75,14 +75,16 @@ impl DataObjectRef {
             obj_type,
             consumers: Default::default(),
             label
-        })
+        });
+        graph.objects.insert(dataobj.get().id, dataobj.clone());
+        dataobj
     }
 
     #[inline]
     pub fn is_finished(&self) -> bool {
         match self.get().state {
-            DataObjState::FinishedInFile => true,
-            DataObjState::FinishedInMem(_) => true,
+            DataObjectState::FinishedInFile => true,
+            DataObjectState::FinishedInMem(_) => true,
             _ => false
         }
     }
@@ -93,8 +95,7 @@ impl DataObjectRef {
     }
 
     #[inline]
-    pub fn size(&self) -> usize {
+    pub fn size(&self) -> Option<usize> {
         self.get().size
     }
-
 }

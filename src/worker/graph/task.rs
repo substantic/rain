@@ -52,13 +52,14 @@ pub type TaskRef = WrappedRcRefCell<Task>;
 impl TaskRef {
 
     pub fn new(
+        graph: &mut Graph,
         id: TaskId,
         inputs: Vec<TaskInput>,
         waiting_for: RcSet<DataObjectRef>,
         procedure_key: String,
         procedure_config: Vec<u8>
     ) -> Self {
-        Self::wrap(Task {
+        let task = Self::wrap(Task {
             id: id,
             state: TaskState::Assigned,
             inputs,
@@ -66,7 +67,9 @@ impl TaskRef {
             procedure_key,
             procedure_config,
             outputs: Default::default()
-        })
+        });
+        graph.tasks.insert(id, task.clone());
+        task
     }
 
     /// Change internal state of task to AssignedReady
