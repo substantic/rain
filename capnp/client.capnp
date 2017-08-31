@@ -30,10 +30,10 @@ interface ClientService {
     # Submit new tasks and data objects into server
     # allTaskId / allDataObjectsId is NOT allowed
 
-    remove @4 (objectIds :List(DataObjectId)) -> ();
+    unkeep @4 (objectIds :List(DataObjectId)) -> ();
     # Removed "keep" flag from data objects
     # It is an error if called for non-keep object 
-    # allTaskId / allDataObjectsId is allowed
+    # allDataObjectsId is allowed
 
     wait @5 (taskIds :List(TaskId), objectIds: List(DataObjectId)) -> ();
     # Wait until all given data objects are not produced
