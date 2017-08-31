@@ -7,8 +7,8 @@ use super::{ClientServiceImpl, WorkerUpstreamImpl};
 use common::id::WorkerId;
 use common::convert::{FromCapnp, ToCapnp};
 use common::resources::Resources;
-use server::state::State;
-use server::graph::{Worker, Client};
+use server::state::StateRef;
+use server::graph::{WorkerRef, ClientRef};
 use server_capnp::server_bootstrap;
 
 use CLIENT_PROTOCOL_VERSION;
@@ -19,13 +19,13 @@ use WORKER_PROTOCOL_VERSION;
 // to every incomming connections
 
 pub struct ServerBootstrapImpl {
-    state: State,
+    state: StateRef,
     registered: bool, // true if the connection is already registered
     address: SocketAddr, // Remote address of the connection
 }
 
 impl ServerBootstrapImpl {
-    pub fn new(state: &State, address: SocketAddr) -> Self {
+    pub fn new(state: &StateRef, address: SocketAddr) -> Self {
         ServerBootstrapImpl {
             state: state.clone(),
             registered: false,
@@ -121,7 +121,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             // 1) add worker
             // 2) create upstream
             // reason: upstream drop tries to remove worker
-            let worker = state.add_worker(worker_id, Some(control), resources);
+            let worker = state.get_mut().add_worker(worker_id, Some(control), resources);
             let upstream = ::worker_capnp::worker_upstream::ToClient::new(
                 WorkerUpstreamImpl::new(&state, &worker),
             ).from_server::<::capnp_rpc::Server>();

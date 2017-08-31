@@ -50,7 +50,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     info!("Starting Rain {} server at port {}", VERSION, listen_address);
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
-    let state = server::state::State::new(tokio_core.handle(), listen_address);
+    let state = server::state::StateRef::new(tokio_core.handle(), listen_address);
     state.start();
 
     // Create ready file - a file that is created when server is ready

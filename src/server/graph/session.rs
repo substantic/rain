@@ -4,32 +4,32 @@ use futures::unsync::oneshot::Sender;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
 use common::id::SessionId;
-use super::{Client, DataObject, Task, Graph};
+use super::{ClientRef, DataObjectRef, TaskRef, Graph};
 
-pub struct Inner {
+pub struct Session {
     /// Unique ID
     id: SessionId,
 
     /// Contained tasks.
     /// NB: These are owned by the Session and are cleaned up by it.
-    pub(super) tasks: RcSet<Task>,
+    pub(super) tasks: RcSet<TaskRef>,
 
     /// Contained objects.
     /// NB: These are owned by the Session and are cleaned up by it.
-    pub(super) objects: RcSet<DataObject>,
+    pub(super) objects: RcSet<DataObjectRef>,
 
     /// Client holding the session alive.
-    client: Client,
+    client: ClientRef,
 
     /// Hooks executed when all tasks are finished.
     finish_hooks: Vec<Sender<()>>,
 }
 
-pub type Session = WrappedRcRefCell<Inner>;
+pub type SessionRef = WrappedRcRefCell<Session>;
 
-impl Session {
-    pub fn new(graph: &Graph, client: &Client) -> Self {
-        let s = Session::wrap(Inner {
+impl SessionRef {
+    pub fn new(graph: &mut Graph, client: &ClientRef) -> Self {
+        let s = SessionRef::wrap(Session {
             id: graph.new_session_id(),
             tasks: Default::default(),
             objects: Default::default(),
@@ -38,13 +38,13 @@ impl Session {
         });
         debug!("Creating session {} for client {}", s.get_id(), s.get().client.get_id());
         // add to graph
-        graph.get_mut().sessions.insert(s.get().id, s.clone());
+        graph.sessions.insert(s.get().id, s.clone());
         // add to client
         client.get_mut().sessions.insert(s.clone());
         s
     }
 
-    pub fn delete(self, graph: &Graph) {
+    pub fn delete(self, graph: &mut Graph) {
         debug!("Deleting session {} for client {}", self.get_id(), self.get().client.get_id());
         // delete owned children
         let mut tasks = self.get_mut().tasks.iter().map(|x| x.clone()).collect::<Vec<_>>();
@@ -55,7 +55,7 @@ impl Session {
         let mut inner = self.get_mut();
         assert!(inner.client.get_mut().sessions.remove(&self));
         // remove from graph
-        graph.get_mut().sessions.remove(&inner.id).unwrap();
+        graph.sessions.remove(&inner.id).unwrap();
         // assert that we hold the last reference, then drop it
         assert_eq!(self.get_num_refs(), 1);
     }

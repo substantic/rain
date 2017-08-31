@@ -1,16 +1,16 @@
-use server::state::State;
-use server::graph::Worker;
+use server::state::StateRef;
+use server::graph::WorkerRef;
 use worker_capnp::worker_upstream;
 use capnp::capability::Promise;
 use server::rpc::DataStoreImpl;
 
 pub struct WorkerUpstreamImpl {
-    state: State,
-    worker: Worker,
+    state: StateRef,
+    worker: WorkerRef,
 }
 
 impl WorkerUpstreamImpl {
-    pub fn new(state: &State, worker: &Worker) -> Self {
+    pub fn new(state: &StateRef, worker: &WorkerRef) -> Self {
         Self {
             state: state.clone(),
             worker: worker.clone(),
@@ -21,7 +21,8 @@ impl WorkerUpstreamImpl {
 impl Drop for WorkerUpstreamImpl {
     fn drop(&mut self) {
         error!("Connection to worker {} lost", self.worker.get_id());
-        self.state.remove_worker(&self.worker);
+        let mut s = self.state.get_mut();
+        s.remove_worker(&self.worker);
     }
 }
 

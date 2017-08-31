@@ -4,7 +4,7 @@ use common::wrapped::WrappedRcRefCell;
 use common::id::DataObjectId;
 use common::RcSet;
 use common::keeppolicy::KeepPolicy;
-use super::{Task, Worker, Session, Graph};
+use super::{TaskRef, WorkerRef, SessionRef, Graph};
 
 pub enum DataObjectState {
     NotAssigned,
@@ -13,12 +13,12 @@ pub enum DataObjectState {
     Removed(usize),
 }
 
-pub struct Inner {
+pub struct DataObject {
     /// Unique ID within a `Session`
     id: DataObjectId,
 
     /// Producer task, if any.
-    pub(super) producer: Option<Task>,
+    pub(super) producer: Option<TaskRef>,
 
     /// Label may be the role that the output has in the `producer`, or it may be
     /// the name of the initial uploaded object.
@@ -28,17 +28,17 @@ pub struct Inner {
     state: DataObjectState,
 
     /// Consumer set, e.g. to notify of completion.
-    pub(super) consumers: RcSet<Task>,
+    pub(super) consumers: RcSet<TaskRef>,
 
     /// Workers with full copy of this object.
-    pub(super) located: RcSet<Worker>,
+    pub(super) located: RcSet<WorkerRef>,
 
     /// Workers that have been instructed to pull this object or already have it.
     /// Superset of `located`.
-    pub(super) assigned: RcSet<Worker>,
+    pub(super) assigned: RcSet<WorkerRef>,
 
     /// Assigned session. Must match SessionId.
-    session: Session,
+    session: SessionRef,
 
     /// Reasons to keep the object alive
     keep: KeepPolicy,
@@ -47,11 +47,11 @@ pub struct Inner {
     finish_hooks: Vec<Sender<()>>,
 }
 
-pub type DataObject = WrappedRcRefCell<Inner>;
+pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
-impl DataObject {
-    pub fn new(graph: &Graph, session: &Session, id: DataObjectId /* TODO: more */) -> Self {
-        let s = DataObject::wrap(Inner {
+impl DataObjectRef {
+    pub fn new(graph: &mut Graph, session: &SessionRef, id: DataObjectId /* TODO: more */) -> Self {
+        let s = DataObjectRef::wrap(DataObject {
             id: id,
             producer: Default::default(),
             label: Default::default(),
@@ -64,13 +64,13 @@ impl DataObject {
             finish_hooks: Default::default(),
         });
         // add to graph
-        graph.get_mut().objects.insert(s.get().id, s.clone());
+        graph.objects.insert(s.get().id, s.clone());
         // add to session
         session.get_mut().objects.insert(s.clone());
         s
     }
 
-    pub fn delete(self, graph: &Graph) {
+    pub fn delete(self, graph: &mut Graph) {
         let mut inner = self.get_mut();
         assert!(inner.consumers.is_empty(), "Can only remove objects without consumers.");
         assert!(inner.producer.is_none(), "Can only remove objects without a producer.");
@@ -84,7 +84,7 @@ impl DataObject {
         // remove from owner
         assert!(inner.session.get_mut().objects.remove(&self));
         // remove from graph
-        graph.get_mut().objects.remove(&inner.id).unwrap();
+        graph.objects.remove(&inner.id).unwrap();
         // assert that we hold the last reference, , then drop it
         assert_eq!(self.get_num_refs(), 1);
     }

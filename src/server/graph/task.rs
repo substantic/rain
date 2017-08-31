@@ -3,26 +3,26 @@ use futures::unsync::oneshot::Sender;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
 use common::id::TaskId;
-use super::{DataObject, Worker, Session, Graph};
+use super::{DataObjectRef, WorkerRef, SessionRef, Graph};
 
 pub enum TaskState {
     NotAssigned,
     Ready,
-    Assigned(Worker),
-    AssignedReady(Worker),
-    Running(Worker),
-    Finished(Worker),
+    Assigned(WorkerRef),
+    AssignedReady(WorkerRef),
+    Running(WorkerRef),
+    Finished(WorkerRef),
 }
 
 pub struct TaskInput {
     /// Input data object.
-    object: DataObject,
+    object: DataObjectRef,
     /// Label may indicate the role the object plays for this task.
     label: String,
     // TODO: add any input params or flags
 }
 
-pub struct Inner {
+pub struct Task {
     /// Unique ID within a `Session`
     id: TaskId,
 
@@ -33,17 +33,17 @@ pub struct Inner {
     inputs: Vec<TaskInput>,
 
     /// Ordered outputs for the task. Every object in the list must be distinct.
-    outputs: RcSet<DataObject>,
+    outputs: RcSet<DataObjectRef>,
 
     /// Unfinished objects that we wait for. These must be a subset of `inputs`,
     /// but multiplicities in `inputs` are here represented only once.
-    waiting_for: RcSet<DataObject>,
+    waiting_for: RcSet<DataObjectRef>,
 
     /// Worker with the scheduled task.
-    pub(super) assigned: Option<Worker>,
+    pub(super) assigned: Option<WorkerRef>,
 
     /// Owning session. Must match `SessionId`.
-    session: Session,
+    session: SessionRef,
 
     /// Task type
     // TODO: specify task types or make a better type ID system
@@ -56,11 +56,11 @@ pub struct Inner {
     finish_hooks: Vec<Sender<()>>,
 }
 
-pub type Task = WrappedRcRefCell<Inner>;
+pub type TaskRef = WrappedRcRefCell<Task>;
 
-impl Task {
-    pub fn new(graph: &Graph, session: &Session, id: TaskId /* TODO: more */) -> Self {
-        let s = Task::wrap(Inner {
+impl TaskRef {
+    pub fn new(graph: &mut Graph, session: &SessionRef, id: TaskId /* TODO: more */) -> Self {
+        let s = TaskRef::wrap(Task {
             id: id,
             state: TaskState::NotAssigned,
             inputs: Default::default(),
@@ -73,13 +73,13 @@ impl Task {
             finish_hooks: Default::default(),
         });
         // add to graph
-        graph.get_mut().tasks.insert(s.get().id, s.clone());
+        graph.tasks.insert(s.get().id, s.clone());
         // add to session
         session.get_mut().tasks.insert(s.clone());
         s
     }
 
-    pub fn delete(self, graph: &Graph) {
+    pub fn delete(self, graph: &mut Graph) {
         let mut inner = self.get_mut();
         // remove from outputs
         for o in inner.outputs.iter() {
@@ -98,8 +98,7 @@ impl Task {
         // remove from owner
         assert!(inner.session.get_mut().tasks.remove(&self));
         // remove from graph
-        println!("Tasks: {}", graph.get_mut().tasks.len());
-        graph.get_mut().tasks.remove(&inner.id).unwrap();
+        graph.tasks.remove(&inner.id).unwrap();
         // assert that we hold the last reference, then drop it
         assert_eq!(self.get_num_refs(), 1);
     }

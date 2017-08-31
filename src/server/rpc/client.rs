@@ -4,26 +4,30 @@ use std::net::SocketAddr;
 use common::id::{DataObjectId, TaskId, SessionId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
-use server::state::State;
+use server::state::StateRef;
 use super::datastore::DataStoreImpl;
-use server::graph::{Session, Client, DataObject, Task};
+use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef};
 
 pub struct ClientServiceImpl {
-    state: State,
-    client: Client,
+    state: StateRef,
+    client: ClientRef,
 }
 
 impl ClientServiceImpl {
-    pub fn new(state: &State, address: &SocketAddr) -> Self {
-        Self { state: state.clone(), client: Client::new(&state.get().graph, address.clone()), }
+    pub fn new(state: &StateRef, address: &SocketAddr) -> Self {
+        Self {
+            state: state.clone(),
+            client: ClientRef::new(&mut state.get_mut().graph, address.clone()),
+        }
     }
 }
 
 impl Drop for ClientServiceImpl {
     fn drop(&mut self)
     {
+        let mut s = self.state.get_mut();
         info!("Client {} disconnected", self.client.get_id());
-        self.state.remove_client(&self.client);
+        s.remove_client(&self.client);
     }
 }
 
@@ -34,9 +38,9 @@ impl client_service::Server for ClientServiceImpl {
         mut results: client_service::GetServerInfoResults,
     ) -> Promise<(), ::capnp::Error> {
         debug!("Client asked for info");
-        let g = &self.state.get().graph;
+        let s = self.state.get();
         results.get().set_n_workers(
-            g.get().workers.len() as i32,
+            s.graph.workers.len() as i32,
         );
         Promise::ok(())
     }
@@ -47,7 +51,8 @@ impl client_service::Server for ClientServiceImpl {
         mut results: client_service::NewSessionResults,
     ) -> Promise<(), ::capnp::Error> {
         debug!("Client asked for a new session");
-        let session = self.state.add_session(&self.client);
+        let mut s = self.state.get_mut();
+        let session = s.add_session(&self.client);
         results.get().set_session_id(session.get_id());
         Promise::ok(())
     }
@@ -57,6 +62,7 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::SubmitParams,
         _: client_service::SubmitResults,
     ) -> Promise<(), ::capnp::Error> {
+        let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let tasks = pry!(params.get_tasks());
         let dataobjs = pry!(params.get_objects());
@@ -84,6 +90,7 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::WaitParams,
         _: client_service::WaitResults,
     ) -> Promise<(), ::capnp::Error> {
+        let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
@@ -100,6 +107,7 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::WaitSomeParams,
         mut results: client_service::WaitSomeResults,
     ) -> Promise<(), ::capnp::Error> {
+        let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
@@ -119,6 +127,7 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::UnkeepParams,
         _: client_service::UnkeepResults,
     ) -> Promise<(), ::capnp::Error> {
+        let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let object_ids = pry!(params.get_object_ids());
         info!("New unkeep request ({} data objects) from client",
@@ -126,8 +135,8 @@ impl client_service::Server for ClientServiceImpl {
 
         for oid in object_ids.iter() {
             let id: DataObjectId = DataObjectId::from_capnp(&oid);
-            let o: DataObject = pry!(self.state.get_object(id));
-            self.state.unkeep_object(&o);
+            let o: DataObjectRef = pry!(s.object_by_id(id));
+            s.unkeep_object(&o);
         }
 
         Promise::ok(())
