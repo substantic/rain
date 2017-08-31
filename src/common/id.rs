@@ -3,6 +3,7 @@ use common_capnp::{task_id, data_object_id, socket_address};
 use super::convert::{FromCapnp, ToCapnp, ReadCapnp, WriteCapnp};
 use std::io::Read;
 use capnp::{serialize};
+use std::fmt;
 
 /// Generic ID type. Negative values have special meaning.
 pub type Id = i32;
@@ -85,6 +86,18 @@ impl SId for TaskId {
     #[inline]
     fn get_session_id(&self) -> SessionId {
         self.session_id
+    }
+}
+
+impl fmt::Display for TaskId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({},{})", self.get_session_id(), self.get_id())
+    }
+}
+
+impl fmt::Display for DataObjectId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({},{})", self.get_session_id(), self.get_id())
     }
 }
 
