@@ -14,7 +14,8 @@ extern crate tokio_process;
 extern crate capnp_rpc;
 #[macro_use]
 extern crate arrayref;
-
+#[macro_use]
+extern crate error_chain;
 
 pub mod common;
 pub mod worker;
@@ -29,6 +30,24 @@ pub const SUBWORKER_PROTOCOL_VERSION: i32 = 0;
 // NOTE: Development solution to get type autocompletion and go-to-definition
 pub mod capnp_gen;
 pub use capnp_gen::*;
+
+pub mod errors {
+    // Create the Error, ErrorKind, ResultExt, and Result types
+    error_chain!{
+        foreign_links {
+            Io(::std::io::Error);
+            Capnp(::capnp::Error);
+        }
+    }
+}
+
+impl std::convert::From<errors::Error> for capnp::Error {
+    fn from(e: errors::Error) -> Self {
+        capnp::Error::failed(e.description().to_string())
+    }
+}
+
+
 
 /* // NOTE: PyCharm does not support feature switching, so using comments :'(
 pub mod server_capnp {

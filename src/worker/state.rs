@@ -5,8 +5,10 @@ use std::net::IpAddr;
 use std::net::Ipv4Addr;
 use std::process::exit;
 use std::path::{Path, PathBuf};
+use std::io::Write;
 use std::time::Duration;
 use std::iter::FromIterator;
+use std::error::Error;
 use std;
 
 use common::RcSet;
@@ -143,7 +145,10 @@ impl StateRef {
     }
 
     // This is called when worker connection to server is established
-    pub fn on_connected_to_server(&self, stream: TcpStream, listen_address: SocketAddr) {
+    pub fn on_connected_to_server(&self,
+                                  stream: TcpStream,
+                                  listen_address: SocketAddr,
+                                  ready_file: Option<String>) {
         info!("Connected to server; registering as worker");
         stream.set_nodelay(true).unwrap();
         let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
@@ -171,6 +176,12 @@ impl StateRef {
                 inner.upstream = Some(upstream);
                 inner.worker_id = WorkerId::from_capnp(&worker_id);
                 debug!("Registration completed");
+
+                // Create ready file - a file that is created when worker is connected & registered
+                if let Some(name) = ready_file {
+                    ::common::fs::create_ready_file(Path::new(&name));
+                }
+
                 Promise::ok(())
             })
             .map_err(|e| {
@@ -193,7 +204,8 @@ impl StateRef {
         inner.handle.spawn(rpc_system.map_err(|e| error!("RPC error: {:?}", e)));
     }
 
-    pub fn start(&self, server_address: SocketAddr, listen_address: SocketAddr) {
+
+    pub fn start(&self, server_address: SocketAddr, listen_address: SocketAddr, ready_file: Option<&str>) {
         let handle = self.get().handle.clone();
 
         // --- Create workdir layout ---
@@ -220,7 +232,7 @@ impl StateRef {
         handle.spawn(future);
 
         // -- Start python subworker (FOR TESTING PURPOSE)
-        start_python_subworker(self);
+        //start_python_subworker(self);
 
         // --- Start listening TCP/IP for worker2worker communications ----
         let listener = TcpListener::bind(&listen_address, &handle).unwrap();
@@ -241,10 +253,11 @@ impl StateRef {
 
         // --- Start connection to server ----
         let core1 = self.clone();
+        let ready_file = ready_file.map(|f| f.to_string());
         info!("Connecting to server addr={}", server_address);
         let connect = TcpStream::connect(&server_address, &handle)
             .and_then(move |stream| {
-                core1.on_connected_to_server(stream, listen_address);
+                core1.on_connected_to_server(stream, listen_address, ready_file);
                 Ok(())
             })
             .map_err(|e| {

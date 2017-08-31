@@ -1,12 +1,12 @@
 use datastore_capnp::data_store;
-use server::state::State;
+use server::state::StateRef;
 
 pub struct DataStoreImpl {
-    state: State,
+    state: StateRef,
 }
 
 impl DataStoreImpl {
-    pub fn new(state: &State) -> Self {
+    pub fn new(state: &StateRef) -> Self {
         Self { state: state.clone() }
     }
 }

@@ -1,29 +1,33 @@
 use capnp::capability::Promise;
 use std::net::SocketAddr;
 
+use common::id::{DataObjectId, TaskId, SessionId};
+use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
-use server::state::State;
+use server::state::StateRef;
 use super::datastore::DataStoreImpl;
-use server::graph::{Session, Client};
-
-// TODO: Functional cleanup and review of code below after structures specification
+use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef};
 
 pub struct ClientServiceImpl {
-    state: State,
-    client: Client,
+    state: StateRef,
+    client: ClientRef,
 }
 
 impl ClientServiceImpl {
-    pub fn new(state: &State, address: &SocketAddr) -> Self {
-        Self { state: state.clone(), client: Client::new(&state.get().graph, address.clone()), }
+    pub fn new(state: &StateRef, address: &SocketAddr) -> Self {
+        Self {
+            state: state.clone(),
+            client: ClientRef::new(&mut state.get_mut().graph, address.clone()),
+        }
     }
 }
 
 impl Drop for ClientServiceImpl {
     fn drop(&mut self)
     {
-        // TODO handle client disconnections
-        panic!("Client connection lost; not implemented yet");
+        let mut s = self.state.get_mut();
+        info!("Client {} disconnected", self.client.get_id());
+        s.remove_client(&self.client);
     }
 }
 
@@ -34,9 +38,9 @@ impl client_service::Server for ClientServiceImpl {
         mut results: client_service::GetServerInfoResults,
     ) -> Promise<(), ::capnp::Error> {
         debug!("Client asked for info");
-        let g = &self.state.get().graph;
+        let s = self.state.get();
         results.get().set_n_workers(
-            g.get().workers.len() as i32,
+            s.graph.workers.len() as i32,
         );
         Promise::ok(())
     }
@@ -46,8 +50,9 @@ impl client_service::Server for ClientServiceImpl {
         _: client_service::NewSessionParams,
         mut results: client_service::NewSessionResults,
     ) -> Promise<(), ::capnp::Error> {
-        info!("Client asked for a new session");
-        let session = Session::new(&self.state.get().graph, &self.client);
+        debug!("Client asked for a new session");
+        let mut s = self.state.get_mut();
+        let session = s.add_session(&self.client);
         results.get().set_session_id(session.get_id());
         Promise::ok(())
     }
@@ -57,6 +62,7 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::SubmitParams,
         _: client_service::SubmitResults,
     ) -> Promise<(), ::capnp::Error> {
+        let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let tasks = pry!(params.get_tasks());
         let dataobjs = pry!(params.get_objects());
@@ -84,6 +90,7 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::WaitParams,
         _: client_service::WaitResults,
     ) -> Promise<(), ::capnp::Error> {
+        let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
@@ -100,6 +107,7 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::WaitSomeParams,
         mut results: client_service::WaitSomeResults,
     ) -> Promise<(), ::capnp::Error> {
+        let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
@@ -114,17 +122,22 @@ impl client_service::Server for ClientServiceImpl {
         Promise::ok(())
     }
 
-        fn remove(
+    fn unkeep(
         &mut self,
-        params: client_service::RemoveParams,
-        _: client_service::RemoveResults,
+        params: client_service::UnkeepParams,
+        _: client_service::UnkeepResults,
     ) -> Promise<(), ::capnp::Error> {
+        let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let object_ids = pry!(params.get_object_ids());
-        info!("New remove request ({} data objects) from client",
+        info!("New unkeep request ({} data objects) from client",
               object_ids.len());
 
-        //TODO: Set keep=False for specified dataobjs
+        for oid in object_ids.iter() {
+            let id: DataObjectId = DataObjectId::from_capnp(&oid);
+            let o: DataObjectRef = pry!(s.object_by_id(id));
+            s.unkeep_object(&o);
+        }
 
         Promise::ok(())
     }

@@ -1,37 +1,37 @@
 use std::net::SocketAddr;
 
-use server::graph::{Session, Graph};
+use super::{SessionRef, Graph};
 use common::wrapped::WrappedRcRefCell;
 use common::id::ClientId;
 use common::RcSet;
 
-pub struct Inner {
+pub struct Client {
     id: ClientId,
-    pub(super) sessions: RcSet<Session>,
+    pub(super) sessions: RcSet<SessionRef>,
 }
 
-pub type Client = WrappedRcRefCell<Inner>;
+pub type ClientRef = WrappedRcRefCell<Client>;
 
-impl Client {
-    pub fn new(graph: &Graph,
+impl ClientRef {
+    pub fn new(graph: &mut Graph,
                address: SocketAddr) -> Self {
-        let c = Client::wrap(Inner {
+        let c = ClientRef::wrap(Client {
             id: address.clone(),
             sessions: Default::default(),
         });
         debug!("Creating client {}", c.get_id());
         // add to graph
-        graph.get_mut().clients.insert(c.get().id, c.clone());
+        graph.clients.insert(c.get().id, c.clone());
         c
     }
 
-    pub fn delete(self, graph: &Graph) {
+    pub fn delete(self, graph: &mut Graph) {
         debug!("Deleting client {}", self.get_id());
         // delete sessions
         let mut sessions = self.get_mut().sessions.iter().map(|x| x.clone()).collect::<Vec<_>>();
         for s in sessions { s.delete(graph); }
         // remove from graph
-        graph.get_mut().clients.remove(&self.get().id).unwrap();
+        graph.clients.remove(&self.get().id).unwrap();
         // assert that we hold the last reference, then drop it
         assert_eq!(self.get_num_refs(), 1);
     }

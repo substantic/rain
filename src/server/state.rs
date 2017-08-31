@@ -7,13 +7,16 @@ use tokio_core::net::{TcpListener, TcpStream};
 use tokio_io::AsyncRead;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
+use errors::Result;
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId};
 use common::rpc::new_rpc_system;
-use server::graph::{Graph, Worker, DataObject, Task, Session, Client};
+use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef, ClientRef};
 use server::rpc::ServerBootstrapImpl;
 use common::wrapped::WrappedRcRefCell;
 
-pub struct Inner {
+use common::resources::Resources;
+
+pub struct State {
     // Contained objects
     pub(super) graph: Graph,
 
@@ -24,27 +27,95 @@ pub struct Inner {
     handle: Handle,
 }
 
-pub type State = WrappedRcRefCell<Inner>;
-
-
-// TODO: Functional cleanup of code below after structures specification
-
 impl State {
+    pub fn add_worker(&mut self,
+                      address: SocketAddr,
+                      control: Option<::worker_capnp::worker_control::Client>,
+                      resources: Resources) -> WorkerRef {
+        unimplemented!()
+    }
+
+    pub fn remove_worker(&mut self, worker: &WorkerRef) {
+        unimplemented!()
+    }
+
+    pub fn add_client(&mut self, address: &SocketAddr) -> ClientRef {
+        unimplemented!()
+    }
+
+    pub fn remove_client(&mut self, client: &ClientRef) { unimplemented!() }
+
+    pub fn add_session(&mut self, client: &ClientRef) -> SessionRef {
+        unimplemented!()
+    }
+
+    pub fn remove_session(&mut self, session: &SessionRef) { unimplemented!() }
+
+    pub fn add_object(&mut self, session: &SessionRef, id: DataObjectId /* TODO: more */) -> DataObjectRef {
+        unimplemented!()
+    }
+
+    pub fn remove_object(&mut self, object: &DataObjectRef) { unimplemented!() }
+
+    pub fn unkeep_object(&mut self, object: &DataObjectRef) { unimplemented!() }
+
+    pub fn add_task(&mut self, session: &SessionRef, id: TaskId /* TODO: more */) -> TaskRef {
+        unimplemented!()
+    }
+
+    pub fn remove_task(&mut self, task: &TaskRef) { unimplemented!() }
+
+    pub fn worker_by_id(&self, id: WorkerId) -> Result<WorkerRef> {
+        match self.graph.workers.get(&id) {
+            Some(w) => Ok(w.clone()),
+            None => Err(format!("Worker {:?} not found", id))?,
+        }
+    }
+
+    pub fn client_by_id(&self, id: ClientId) -> Result<ClientRef> {
+        match self.graph.clients.get(&id) {
+            Some(c) => Ok(c.clone()),
+            None => Err(format!("Client {:?} not found", id))?,
+        }
+    }
+
+    pub fn session_by_id(&self, id: SessionId) -> Result<SessionRef> {
+        match self.graph.sessions.get(&id) {
+            Some(s) => Ok(s.clone()),
+            None => Err(format!("Session {:?} not found", id))?,
+        }
+    }
+
+    pub fn object_by_id(&self, id: DataObjectId) -> Result<DataObjectRef> {
+        match self.graph.objects.get(&id) {
+            Some(o) => Ok(o.clone()),
+            None => Err(format!("Object {:?} not found", id))?,
+        }
+    }
+
+    pub fn task_by_id(&self, id: TaskId) -> Result<TaskRef> {
+        match self.graph.tasks.get(&id) {
+            Some(t) => Ok(t.clone()),
+            None => Err(format!("Task {:?} not found", id))?,
+        }
+    }
+}
+
+/// Note: No `Drop` impl as a `State` is assumed to live forever.
+pub type StateRef = WrappedRcRefCell<State>;
+
+impl StateRef {
     pub fn new(handle: Handle, listen_address: SocketAddr) -> Self {
-        Self::wrap(Inner {
+        Self::wrap(State {
             graph: Default::default(),
             listen_address: listen_address,
             handle: handle,
         })
     }
 
-    pub fn add_worker(&self, worker: Worker) {
-        unimplemented!();
-    }
 
-    pub fn remove_worker(&self, worker: &Worker) {
-        unimplemented!();
-    }
+    // TODO: Functional cleanup of code below after structures specification
+
 
     pub fn start(&self) {
         let listen_address = self.get().listen_address;
