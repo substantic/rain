@@ -52,7 +52,8 @@ class DataObject:
         out.label = self.label
         out.type = common.DataObjectType.blob
 
-        if self.data:
+        if self.data is not None:
+            out.hasData = True
             out.data = self.data
 
     def wait(self):
