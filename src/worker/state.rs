@@ -17,6 +17,7 @@ use common::convert::{ToCapnp, FromCapnp};
 use common::rpc::new_rpc_system;
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
+use common::resources::Resources;
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState,
                     Graph, TaskRef, TaskInput, SubworkerRef, start_python_subworker};
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
@@ -51,13 +52,13 @@ pub struct State {
     /// Path to working directory
     work_dir: PathBuf,
 
-    /// TODO: Create a resource container
-    n_cpus: u32, // Resources
+    resources: Resources,
 }
 
 pub type StateRef = WrappedRcRefCell<State>;
 
 impl State {
+
     pub fn make_subworker_id(&mut self) -> SubworkerId {
         self.graph.make_id()
     }
@@ -103,6 +104,10 @@ impl State {
     pub fn set_task_as_ready(&mut self, task: &TaskRef) {
         task.set_ready();
         self.plan_scheduling();
+    }
+
+    pub fn get_resources(&self) -> &Resources {
+        &self.resources
     }
 
     pub fn add_task(&mut self,
@@ -151,7 +156,7 @@ impl StateRef {
     pub fn new(handle: Handle, work_dir: PathBuf, n_cpus: u32) -> Self {
         Self::wrap(State {
                        handle,
-                       n_cpus,
+                       resources: Resources {n_cpus},
                        upstream: None,
                        timer: tokio_timer::wheel()
                            .tick_duration(Duration::from_millis(100))
@@ -161,11 +166,6 @@ impl StateRef {
                        worker_id: empty_worker_id(),
                        graph: Graph::new(),
                    })
-    }
-
-    // Get number of cpus for assigned to this worker
-    pub fn get_n_cpus(&self) -> u32 {
-        self.get_mut().n_cpus
     }
 
     // This is called when an incomming connection arrives

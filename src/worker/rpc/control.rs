@@ -27,7 +27,7 @@ impl worker_control::Server for WorkerControlImpl {
               _params: worker_control::GetWorkerResourcesParams,
               mut results: worker_control::GetWorkerResourcesResults)
               -> Promise<(), ::capnp::Error> {
-        results.get().set_n_cpus(self.state.get_n_cpus());
+        results.get().set_n_cpus(self.state.get().get_resources().n_cpus);
         Promise::ok(())
     }
 }
