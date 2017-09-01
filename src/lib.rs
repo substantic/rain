@@ -34,11 +34,16 @@ pub use capnp_gen::*;
 pub mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain!{
+        types {
+            Error, ErrorKind, ResultExt;
+        }
         foreign_links {
             Io(::std::io::Error);
             Capnp(::capnp::Error);
         }
     }
+    // Explicit alias just to make the IDEs happier
+    pub type Result<T> = ::std::result::Result<T, Error>;
 }
 
 impl std::convert::From<errors::Error> for capnp::Error {
