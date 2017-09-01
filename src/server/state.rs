@@ -10,11 +10,13 @@ use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use errors::Result;
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId};
 use common::rpc::new_rpc_system;
-use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef, ClientRef};
+use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef,
+                    ClientRef, DataObjectState, DataObjectType};
 use server::rpc::ServerBootstrapImpl;
 use common::wrapped::WrappedRcRefCell;
-
+use common::keeppolicy::KeepPolicy;
 use common::resources::Resources;
+use common::Additional;
 
 pub struct State {
     // Contained objects
@@ -31,39 +33,57 @@ impl State {
     pub fn add_worker(&mut self,
                       address: SocketAddr,
                       control: Option<::worker_capnp::worker_control::Client>,
-                      resources: Resources) -> WorkerRef {
+                      resources: Resources) -> Result<WorkerRef> {
         WorkerRef::new(&mut self.graph, address, control, resources)
     }
 
-    pub fn remove_worker(&mut self, worker: &WorkerRef) {
+    pub fn remove_worker(&mut self, worker: &WorkerRef) -> Result<()> {
         unimplemented!()
     }
 
-    pub fn add_client(&mut self, address: SocketAddr) -> ClientRef {
+    pub fn add_client(&mut self, address: SocketAddr) -> Result<ClientRef> {
         ClientRef::new(&mut self.graph, address)
     }
 
-    pub fn remove_client(&mut self, client: &ClientRef) { unimplemented!() }
-
-    pub fn add_session(&mut self, client: &ClientRef) -> SessionRef {
-        SessionRef::new(&mut self.graph, client)
-    }
-
-    pub fn remove_session(&mut self, session: &SessionRef) { unimplemented!() }
-
-    pub fn add_object(&mut self, session: &SessionRef, id: DataObjectId /* TODO: more */) -> DataObjectRef {
+    pub fn remove_client(&mut self, client: &ClientRef)  -> Result<()> {
         unimplemented!()
     }
 
-    pub fn remove_object(&mut self, object: &DataObjectRef) { unimplemented!() }
+    pub fn add_session(&mut self, client: &ClientRef) -> Result<SessionRef> {
+        SessionRef::new(&mut self.graph, client)
+    }
 
-    pub fn unkeep_object(&mut self, object: &DataObjectRef) { unimplemented!() }
+    pub fn remove_session(&mut self, session: &SessionRef)  -> Result<()> {
+        unimplemented!()
+    }
+
+    pub fn add_object(&mut self,
+               session: &SessionRef,
+               id: DataObjectId,
+               object_type: DataObjectType,
+               keep: KeepPolicy,
+               label: String,
+               data: Option<Vec<u8>>,
+               additional: Additional) -> Result<DataObjectRef> {
+        DataObjectRef::new(&mut self.graph, session, id, object_type, keep,
+                           label, data, additional)
+    }
+
+    pub fn remove_object(&mut self, object: &DataObjectRef) -> Result<()> {
+        unimplemented!()
+    }
+
+    pub fn unkeep_object(&mut self, object: &DataObjectRef) -> Result<()> {
+        unimplemented!()
+    }
 
     pub fn add_task(&mut self, session: &SessionRef, id: TaskId /* TODO: more */) -> TaskRef {
         unimplemented!()
     }
 
-    pub fn remove_task(&mut self, task: &TaskRef) { unimplemented!() }
+    pub fn remove_task(&mut self, task: &TaskRef) -> Result<()> {
+        unimplemented!()
+    }
 
     pub fn worker_by_id(&self, id: WorkerId) -> Result<WorkerRef> {
         match self.graph.workers.get(&id) {
@@ -98,6 +118,22 @@ impl State {
             Some(t) => Ok(t.clone()),
             None => Err(format!("Task {:?} not found", id))?,
         }
+    }
+
+    pub fn verify_submit(&mut self, tasks: &[TaskRef], objects: &[DataObjectRef]) -> Result<()>{
+        for oref in objects.iter() {
+            let o = oref.get();
+            if o.producer.is_some() && o.data.is_some() {
+                bail!("Object {} submitted with both producer task {} and data of size {}",
+                    o.id, o.producer.as_ref().unwrap().get_id(),
+                    o.data.as_ref().unwrap().len());
+            }
+            if o.producer.is_none() && o.data.is_none() {
+                bail!("Object {} submitted without producer nor data.", o.id);
+            }
+        }
+        // TODO: add any more verifications
+        Ok(())
     }
 }
 

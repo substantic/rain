@@ -63,12 +63,12 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         }
 
         self.registered = true;
-        info!("Connection {} registered as client", self.address);
 
         let service = ::client_capnp::client_service::ToClient::new(
-            ClientServiceImpl::new(&self.state, &self.address),
+            pry!(ClientServiceImpl::new(&self.state, &self.address)),
         ).from_server::<::capnp_rpc::Server>();
 
+        info!("Connection {} registered as client", self.address);
         results.get().set_service(service);
         Promise::ok(())
     }
@@ -121,7 +121,8 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             // 1) add worker
             // 2) create upstream
             // reason: upstream drop tries to remove worker
-            let worker = state.get_mut().add_worker(worker_id, Some(control), resources);
+            let worker = pry!(state.get_mut().add_worker(worker_id, Some(control),
+                              resources));
             let upstream = ::worker_capnp::worker_upstream::ToClient::new(
                 WorkerUpstreamImpl::new(&state, &worker),
             ).from_server::<::capnp_rpc::Server>();

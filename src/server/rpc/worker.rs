@@ -22,7 +22,7 @@ impl Drop for WorkerUpstreamImpl {
     fn drop(&mut self) {
         error!("Connection to worker {} lost", self.worker.get_id());
         let mut s = self.state.get_mut();
-        s.remove_worker(&self.worker);
+        s.remove_worker(&self.worker).expect("dropping worker upstream");
     }
 }
 

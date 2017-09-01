@@ -31,31 +31,49 @@ impl Graph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::{ClientRef, SessionRef, Graph, TaskRef, WorkerRef, DataObjectRef};
+    use super::super::{ClientRef, SessionRef, Graph, TaskRef, WorkerRef,
+                       DataObjectRef, DataObjectType, TaskInput};
     use common::id::{SId, TaskId, SessionId, ClientId, DataObjectId, WorkerId};
     use common::resources::Resources;
+    use common::keeppolicy;
 
-    fn create_test_graph(workers: i32, clients: i32, sessions: i32, tasks: i32, objects: i32) ->
-                                                                                           Graph {
+    fn create_test_graph(workers: usize, clients: usize, sessions: usize,
+                         tasks: usize, objects: usize) -> Graph {
         let mut g = Graph::new();
         for wi in 0..workers {
             let w = WorkerRef::new(&mut g, format!("0.0.0.{}:67", wi + 1).parse().unwrap(), None,
-                                   Resources { n_cpus: 8, });
+                                   Resources { n_cpus: 8, }).unwrap();
         }
         for ci in 0..clients {
-            let c = ClientRef::new(&mut g, format!("0.0.0.{}:42", ci + 1).parse().unwrap());
+            let c = ClientRef::new(&mut g, format!("0.0.0.{}:42", ci + 1).parse().unwrap()).unwrap();
             for si in 0..sessions {
-                let s = SessionRef::new(&mut g, &c);
-                for ti in 0..tasks {
-                    let t = TaskRef::new(&mut g, &s, TaskId::new(s.get_id(), ti));
-                }
+                let s = SessionRef::new(&mut g, &c).unwrap();
+                let mut objs = Vec::new();
                 for oi in 0..objects {
-                    let o = DataObjectRef::new(&mut g, &s, DataObjectId::new(s.get_id(), oi +
-                        tasks));
+                    let o = DataObjectRef::new(&mut g, &s,
+                                               DataObjectId::new(s.get_id(), oi as i32),
+                                               DataObjectType::Blob, Default::default(),
+                                               "label".to_string(), None,
+                                               Default::default()).unwrap();
+                    objs.push(o);
+                }
+                for ti in 0..tasks {
+                    let mut inputs = Vec::new();
+                    if ti >= 2 {
+                        for i in 1..3 {
+                            inputs.push(TaskInput {
+                                object: objs[ti - i].clone(),
+                                label: Default::default(),
+                                path: Default::default(),
+                            });}}
+                    let outputs = vec![objs[ti].clone()];
+                    let t = TaskRef::new(&mut g, &s, TaskId::new(s.get_id(), (ti + objects) as i32),
+                                         inputs, outputs, "TType".to_string(),
+                                         Vec::new(), Default::default()).unwrap();
                 }
             }
         }
-        // TODO: add some links (objects, tasks, workers)
+        // TODO: add some worker links
         g
     }
 

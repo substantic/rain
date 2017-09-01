@@ -1,12 +1,15 @@
 use capnp::capability::Promise;
 use std::net::SocketAddr;
 
-use common::id::{DataObjectId, TaskId, SessionId};
+use common::id::{DataObjectId, TaskId, SessionId, SId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
 use server::state::StateRef;
 use super::datastore::DataStoreImpl;
 use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef};
+use errors::{Result, ResultExt};
+use common::keeppolicy;
+use common::Additional;
 
 pub struct ClientServiceImpl {
     state: StateRef,
@@ -14,11 +17,11 @@ pub struct ClientServiceImpl {
 }
 
 impl ClientServiceImpl {
-    pub fn new(state: &StateRef, address: &SocketAddr) -> Self {
-        Self {
+    pub fn new(state: &StateRef, address: &SocketAddr)  -> Result<Self> {
+        Ok(Self {
             state: state.clone(),
-            client: ClientRef::new(&mut state.get_mut().graph, address.clone()),
-        }
+            client: try!(ClientRef::new(&mut state.get_mut().graph, address.clone())),
+        })
     }
 }
 
@@ -52,7 +55,7 @@ impl client_service::Server for ClientServiceImpl {
     ) -> Promise<(), ::capnp::Error> {
         debug!("Client asked for a new session");
         let mut s = self.state.get_mut();
-        let session = s.add_session(&self.client);
+        let session = pry!(s.add_session(&self.client));
         results.get().set_session_id(session.get_id());
         Promise::ok(())
     }
@@ -65,12 +68,51 @@ impl client_service::Server for ClientServiceImpl {
         let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let tasks = pry!(params.get_tasks());
-        let dataobjs = pry!(params.get_objects());
-        info!("New task submission ({} tasks, {} data objects) from client",
-              tasks.len(), dataobjs.len());
+        let objects = pry!(params.get_objects());
+        info!("New task submission ({} tasks, {} data objects) from client {}",
+              tasks.len(), objects.len(), self.client.get_id());
+        let mut created_tasks = Vec::<TaskRef>::new();
+        let mut created_objects = Vec::<DataObjectRef>::new();
+        // catch any insertion error and clean up later
+        let res: Result<()> = (|| {
+            // first ceate the objects
+            for co in objects.iter() {
+                let id = DataObjectId::from_capnp(&co.get_id()?);
+                let session = s.session_by_id(id.get_session_id())?;
+                let data =
+                    if co.get_has_data() {
+                        Some(co.get_data()?.into())
+                    } else {
+                        None
+                    };
+                let keep = if co.get_keep() {
+                    keeppolicy::Client
+                } else {
+                    Default::default()
+                };
+                let additional = Additional {}; // TODOL decode additional
+                let o = DataObjectRef::new(&mut s.graph, &session, id,
+                                           co.get_type().map_err(|_| "reading TaskType")?,
+                                           keep, co.get_label()?.to_string(),
+                                           data, additional)?;
+                created_objects.push(o);
+            }
+            // second create the tasks
+            for ct in tasks.iter() {
 
-        //TODO: Do something useful with received tasks
-
+            }
+            // verify submit integrity
+            s.verify_submit(&created_tasks, &created_objects)
+        })();
+        if res.is_err() {
+            for t in created_tasks {
+                t.delete(&mut s.graph);
+            }
+            for o in created_objects {
+                o.delete(&mut s.graph);
+            }
+            pry!(res);
+        }
         Promise::ok(())
     }
 
@@ -130,13 +172,13 @@ impl client_service::Server for ClientServiceImpl {
         let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let object_ids = pry!(params.get_object_ids());
-        info!("New unkeep request ({} data objects) from client",
+        debug!("New unkeep request ({} data objects) from client",
               object_ids.len());
 
         for oid in object_ids.iter() {
             let id: DataObjectId = DataObjectId::from_capnp(&oid);
             let o: DataObjectRef = pry!(s.object_by_id(id));
-            s.unkeep_object(&o);
+            pry!(s.unkeep_object(&o));
         }
 
         Promise::ok(())

@@ -6,6 +6,7 @@ use common::{RcSet, Additional};
 use common::keeppolicy::KeepPolicy;
 use super::{TaskRef, WorkerRef, SessionRef, Graph};
 pub use common_capnp::{DataObjectState, DataObjectType};
+use errors::Result;
 
 pub struct DataObject {
     /// Unique ID within a `Session`
@@ -64,8 +65,11 @@ impl DataObjectRef {
                keep: KeepPolicy,
                label: String,
                data: Option<Vec<u8>>,
-               additional: Additional) -> Self {
+               additional: Additional) -> Result<Self> {
         assert_eq!(id.get_session_id(), session.get_id());
+        if graph.objects.contains_key(&id) {
+            bail!("Object {} was already in the graph", id);
+        }
         let s = DataObjectRef::wrap(DataObject {
             id: id,
             producer: Default::default(),
@@ -90,7 +94,7 @@ impl DataObjectRef {
         graph.objects.insert(s.get().id, s.clone());
         // add to session
         session.get_mut().objects.insert(s.clone());
-        s
+        Ok(s)
     }
 
     pub fn delete(self, graph: &mut Graph) {

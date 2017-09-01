@@ -5,6 +5,7 @@ use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
 use common::id::SessionId;
 use super::{ClientRef, DataObjectRef, TaskRef, Graph};
+use errors::Result;
 
 pub struct Session {
     /// Unique ID
@@ -28,7 +29,7 @@ pub struct Session {
 pub type SessionRef = WrappedRcRefCell<Session>;
 
 impl SessionRef {
-    pub fn new(graph: &mut Graph, client: &ClientRef) -> Self {
+    pub fn new(graph: &mut Graph, client: &ClientRef) -> Result<Self> {
         let s = SessionRef::wrap(Session {
             id: graph.new_session_id(),
             tasks: Default::default(),
@@ -38,10 +39,10 @@ impl SessionRef {
         });
         debug!("Creating session {} for client {}", s.get_id(), s.get().client.get_id());
         // add to graph
-        graph.sessions.insert(s.get().id, s.clone());
+        assert!(graph.sessions.insert(s.get().id, s.clone()).is_none());
         // add to client
         client.get_mut().sessions.insert(s.clone());
-        s
+        Ok(s)
     }
 
     pub fn delete(self, graph: &mut Graph) {

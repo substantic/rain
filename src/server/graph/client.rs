@@ -4,6 +4,7 @@ use super::{SessionRef, Graph};
 use common::wrapped::WrappedRcRefCell;
 use common::id::ClientId;
 use common::RcSet;
+use errors::Result;
 
 pub struct Client {
     id: ClientId,
@@ -14,7 +15,10 @@ pub type ClientRef = WrappedRcRefCell<Client>;
 
 impl ClientRef {
     pub fn new(graph: &mut Graph,
-               address: SocketAddr) -> Self {
+               address: SocketAddr) -> Result<Self> {
+        if graph.clients.contains_key(&address) {
+            bail!("Client {} was already in the graph", address);
+        }
         let c = ClientRef::wrap(Client {
             id: address.clone(),
             sessions: Default::default(),
@@ -22,7 +26,7 @@ impl ClientRef {
         debug!("Creating client {}", c.get_id());
         // add to graph
         graph.clients.insert(c.get().id, c.clone());
-        c
+        Ok(c)
     }
 
     pub fn delete(self, graph: &mut Graph) {

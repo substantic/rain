@@ -57,34 +57,59 @@ pub struct Task {
 pub type TaskRef = WrappedRcRefCell<Task>;
 
 impl TaskRef {
-    pub fn new(graph: &mut Graph,
-               session: &SessionRef,
-               id: TaskId,
-               inputs: Vec<TaskInput>,
-               outputs: Vec<DataObjectRef>,
-               task_type: String,
-               task_config: Vec<u8>,
-               additional: Additional) -> Result<Self> {
+    pub fn new(
+        graph: &mut Graph,
+        session: &SessionRef,
+        id: TaskId,
+        inputs: Vec<TaskInput>,
+        outputs: Vec<DataObjectRef>,
+        task_type: String,
+        task_config: Vec<u8>,
+        additional: Additional,
+    ) -> Result<Self> {
         assert_eq!(id.get_session_id(), session.get_id());
         let mut waiting = RcSet::new();
         for i in inputs.iter() {
             let o = i.object.get();
             match o.state {
-                DataObjectState::Removed =>
-                    Err(format!("Can't create Task {} with Finished input object {}", id, o.id))?,
+                DataObjectState::Removed => {
+                    bail!("Can't create Task {} with Finished input object {}",
+                        id, o.id);
+                }
                 DataObjectState::Finished => (),
-                _ => { waiting.insert(i.object.clone()); },
+                _ => { waiting.insert(i.object.clone()); }
             }
-            if o.object_type == DataObjectType::Stream && o.state != DataObjectState::NotAssigned {
-                Err(format!("Can't create Task {} with active input stream object {}", id, o.id))?
+            if o.object_type == DataObjectType::Stream &&
+                o.state != DataObjectState::NotAssigned {
+                bail!("Can't create Task {} with active input stream object {}",
+                    id, o.id);
+            }
+            if o.id.get_session_id() != id.get_session_id() {
+                bail!("Input object {} for task {} is from a different session",
+                    o.id, id);
             }
         }
-        let s = TaskRef::wrap(Task {
+        for out in outputs.iter() {
+            let o = out.get();
+            if let Some(ref prod) = o.producer {
+                bail!("Object {} already has producer (task {}) when creating task {}",
+                    o.id, prod.get().id, id);
+            }
+            if o.id.get_session_id() != id.get_session_id() {
+                bail!("Output object {} for task {} is from a different session",
+                    o.id, id);
+            }
+        }
+        if graph.tasks.contains_key(&id) {
+            bail!("Task {} already in the graph", id);
+        }
+        let sref = TaskRef::wrap(Task {
             id: id,
             state: TaskState::NotAssigned,
             inputs: inputs,
             outputs: outputs.into_iter().collect(),
-            waiting_for: waiting, /// TODO
+            waiting_for: waiting,
+             /// TODO
             assigned: Default::default(),
             session: session.clone(),
             task_type: task_type,
@@ -92,11 +117,23 @@ impl TaskRef {
             finish_hooks: Default::default(),
             additional: additional,
         });
-        // add to graph
-        graph.tasks.insert(s.get().id, s.clone());
-        // add to session
-        session.get_mut().tasks.insert(s.clone());
-        Ok(s)
+        { // to capture `s`
+            let s = sref.get_mut();
+            // add to graph
+            graph.tasks.insert(s.id, sref.clone());
+            // add to session
+            session.get_mut().tasks.insert(sref.clone());
+            // add to the DataObjects
+            for i in s.inputs.iter() {
+                let mut o = i.object.get_mut();
+                o.consumers.insert(sref.clone());
+            }
+            for out in s.outputs.iter() {
+                let mut o = out.get_mut();
+                o.producer = Some(sref.clone());
+            }
+        }
+        Ok(sref)
     }
 
     pub fn delete(self, graph: &mut Graph) {
@@ -124,5 +161,7 @@ impl TaskRef {
     }
 
     /// Return the object ID in graph.
-    pub fn get_id(&self) -> TaskId { self.get().id }
+    pub fn get_id(&self) -> TaskId {
+        self.get().id
+    }
 }

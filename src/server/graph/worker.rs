@@ -6,6 +6,7 @@ use common::RcSet;
 use common::id::WorkerId;
 use common::resources::Resources;
 use super::{TaskRef, DataObjectRef, Graph};
+use errors::Result;
 
 pub struct Worker {
     /// Unique ID, here the registration socket address.
@@ -34,7 +35,11 @@ impl WorkerRef {
     pub fn new(graph: &mut Graph,
                address: SocketAddr,
                control: Option<::worker_capnp::worker_control::Client>,
-               resources: Resources) -> Self {
+               resources: Resources) -> Result<Self> {
+        if graph.workers.contains_key(&address) {
+            bail!("Graph already contains worker {}", address);
+        }
+        debug!("Creating worker {}", address);
         let s = WorkerRef::wrap(Worker {
             id: address,
             tasks: Default::default(),
@@ -44,10 +49,9 @@ impl WorkerRef {
             resources: resources.clone(),
             free_resources: resources,
         });
-        debug!("Creating worker {}", s.get_id());
         // add to graph
         graph.workers.insert(s.get().id, s.clone());
-        s
+        Ok(s)
     }
 
     pub fn delete(self, graph: &mut Graph) {
