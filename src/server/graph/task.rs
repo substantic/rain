@@ -137,7 +137,7 @@ impl TaskRef {
     }
 
     pub fn delete(self, graph: &mut Graph) {
-        let mut inner = self.get_mut();
+        let inner = self.get_mut();
         // remove from outputs
         for o in inner.outputs.iter() {
             debug_assert!(o.get_mut().producer == Some(self.clone()));

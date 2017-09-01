@@ -30,7 +30,7 @@ impl Drop for ClientServiceImpl {
     {
         let mut s = self.state.get_mut();
         info!("Client {} disconnected", self.client.get_id());
-        s.remove_client(&self.client);
+        s.remove_client(&self.client).expect("client connection drop");
     }
 }
 

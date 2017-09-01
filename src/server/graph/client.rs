@@ -32,7 +32,7 @@ impl ClientRef {
     pub fn delete(self, graph: &mut Graph) {
         debug!("Deleting client {}", self.get_id());
         // delete sessions
-        let mut sessions = self.get_mut().sessions.iter().map(|x| x.clone()).collect::<Vec<_>>();
+        let sessions = self.get_mut().sessions.iter().map(|x| x.clone()).collect::<Vec<_>>();
         for s in sessions { s.delete(graph); }
         // remove from graph
         graph.clients.remove(&self.get().id).unwrap();

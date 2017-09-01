@@ -98,7 +98,7 @@ impl DataObjectRef {
     }
 
     pub fn delete(self, graph: &mut Graph) {
-        let mut inner = self.get_mut();
+        let inner = self.get_mut();
         assert!(inner.consumers.is_empty(), "Can only remove objects without consumers.");
         assert!(inner.producer.is_none(), "Can only remove objects without a producer.");
         // remove from workers

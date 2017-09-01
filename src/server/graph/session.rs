@@ -48,12 +48,12 @@ impl SessionRef {
     pub fn delete(self, graph: &mut Graph) {
         debug!("Deleting session {} for client {}", self.get_id(), self.get().client.get_id());
         // delete owned children
-        let mut tasks = self.get_mut().tasks.iter().map(|x| x.clone()).collect::<Vec<_>>();
+        let tasks = self.get_mut().tasks.iter().map(|x| x.clone()).collect::<Vec<_>>();
         for t in tasks { t.delete(graph); }
-        let mut objects = self.get_mut().objects.iter().map(|x| x.clone()).collect::<Vec<_>>();
+        let objects = self.get_mut().objects.iter().map(|x| x.clone()).collect::<Vec<_>>();
         for o in objects { o.delete(graph); }
         // remove from owner
-        let mut inner = self.get_mut();
+        let inner = self.get_mut();
         assert!(inner.client.get_mut().sessions.remove(&self));
         // remove from graph
         graph.sessions.remove(&inner.id).unwrap();
