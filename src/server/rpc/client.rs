@@ -1,12 +1,13 @@
 use capnp::capability::Promise;
 use std::net::SocketAddr;
+use std::iter::FromIterator;
 
 use common::id::{DataObjectId, TaskId, SessionId, SId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
 use server::state::StateRef;
 use super::datastore::DataStoreImpl;
-use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef};
+use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef, TaskInput};
 use errors::{Result, ResultExt};
 use common::keeppolicy;
 use common::Additional;
@@ -90,7 +91,7 @@ impl client_service::Server for ClientServiceImpl {
                 } else {
                     Default::default()
                 };
-                let additional = Additional {}; // TODOL decode additional
+                let additional = Additional {}; // TODO: decode additional
                 let o = DataObjectRef::new(&mut s.graph, &session, id,
                                            co.get_type().map_err(|_| "reading TaskType")?,
                                            keep, co.get_label()?.to_string(),
@@ -99,7 +100,26 @@ impl client_service::Server for ClientServiceImpl {
             }
             // second create the tasks
             for ct in tasks.iter() {
-
+                let id = TaskId::from_capnp(&ct.get_id()?);
+                let session = s.session_by_id(id.get_session_id())?;
+                let additional = Additional {}; // TODO: decode additional
+                let mut inputs = Vec::<TaskInput>::new();
+                for ci in ct.get_inputs()?.iter() {
+                    inputs.push(TaskInput {
+                        object: s.object_by_id(DataObjectId::from_capnp(&ci.get_id()?))?,
+                        label: ci.get_label()?.into(),
+                        path: ci.get_path()?.into(),
+                    });
+                }
+                let mut outputs = Vec::<DataObjectRef>::new();
+                for co in ct.get_outputs()?.iter() {
+                    outputs.push(s.object_by_id(DataObjectId::from_capnp(&co))?);
+                }
+                let t = TaskRef::new(&mut s.graph, &session, id,
+                                            inputs, outputs,
+                                            ct.get_task_type()?.to_string(),
+                                            ct.get_task_config()?.into(), additional)?;
+                created_tasks.push(t);
             }
             // verify submit integrity
             s.verify_submit(&created_tasks, &created_objects)
