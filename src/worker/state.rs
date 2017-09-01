@@ -261,7 +261,7 @@ impl StateRef {
 
     pub fn start(&self,
                  server_address: SocketAddr,
-                 listen_address: SocketAddr,
+                 mut listen_address: SocketAddr,
                  ready_file: Option<&str>) {
         let handle = self.get().handle.clone();
 
@@ -299,6 +299,7 @@ impl StateRef {
         // --- Start listening TCP/IP for worker2worker communications ----
         let listener = TcpListener::bind(&listen_address, &handle).unwrap();
         let port = listener.local_addr().unwrap().port();
+        listen_address.set_port(port); // Since listen port may be 0, we need to update the real port
         info!("Start listening on port={}", port);
 
         let state = self.clone();
