@@ -18,8 +18,14 @@ class DataObject:
     # Value of data object (value can be filled by client if it is constant, or by fetching from server)
     data = None
 
-    def __init__(self, session):
+    type = None
+    # Type of object, this should be set by subclass
+
+    def __init__(self, label, session=None):
+        if session is None:
+            session = get_active_session()
         self.session = session
+        self.label = label
         self.id = session.register_dataobj(self)
 
     def _free(self):
@@ -43,7 +49,11 @@ class DataObject:
     def to_capnp(self, out):
         out.id.id = self.id
         out.keep = self._keep
-        if self.data:
+        out.label = self.label
+        out.type = common.DataObjectType.blob
+
+        if self.data is not None:
+            out.hasData = True
             out.data = self.data
 
     def wait(self):
@@ -53,11 +63,55 @@ class DataObject:
         if self.state is not None and self._keep:
             self.session.free(self)
 
+    def is_blob(self):
+        return self.type == common.DataObjectType.blob
+
+    def is_directory(self):
+        return self.type == common.DataObjectType.directory
+
+
+class Blob(DataObject):
+
+    type = common.DataObjectType.directory
+
     def __repr__(self):
-        return "<DataObject {}/{}>".format(self.session.session_id, self.id)
+        return "<Blob {}/{}>".format(self.session.session_id, self.id)
 
 
-def blob(value):
+class Directory(DataObject):
+
+    type = common.DataObjectType.directory
+
+    def get_blob(self, path):
+        return DataObjectPart(self, path, common.DataObjectType.blob)
+
+    def get_directory(self, path):
+        return DataObjectPart(self, path, common.DataObjectType.directory)
+
+    def fetch_listing(self):
+        """Returns a list of nodes in directory"""
+        raise Exception("Not implemented")
+
+    def __repr__(self):
+        return "<Directory {}/{}>".format(self.session.session_id, self.id)
+
+
+class DataObjectPart:
+
+    def __init__(self, dataobject, path, type):
+        self.dataobject = dataobject
+        self.path = path
+        self.type = type
+
+    def make_dataobject(self):
+        """Return DataObject created from DataObject part"""
+        raise Exception("TODO")
+
+    def fetch(self):
+        raise Exception("TODO")
+
+
+def blob(value, label=""):
     """Create a constant data object"""
 
     if isinstance(value, str):
@@ -65,14 +119,16 @@ def blob(value):
     elif not isinstance(value, bytes):
         raise RainException("Invalid blob type (only str or bytes are allowed)")
 
-    dataobj = DataObject(get_active_session())
+    dataobj = DataObject(label)
     dataobj.data = value
     return dataobj
 
 
 def to_data(obj):
-    """Convert an object to DataObject"""
+    """Convert an object to DataObject/DataObjectPart"""
     if isinstance(obj, DataObject):
+        return obj
+    if isinstance(obj, DataObjectPart):
         return obj
     if isinstance(obj, Task):
         if len(obj.out) == 1:

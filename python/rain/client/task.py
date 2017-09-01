@@ -1,6 +1,6 @@
 
 from .session import get_active_session
-from .data import DataObject, to_data
+from .data import Blob, to_data
 from .common import RainException
 from .table import Table
 
@@ -16,7 +16,7 @@ class Task:
                  task_type,
                  task_config=None,
                  inputs=(),
-                 outputs=("output",),
+                 outputs=None,
                  session=None):
         if session is None:
             session = get_active_session()
@@ -26,7 +26,10 @@ class Task:
         self.task_type = task_type
         self.task_config = task_config
 
-        self.out = Table({name: DataObject(self.session) for name in outputs})
+        if outputs is None:
+            self.out = Table({"output": Blob("output", session)})
+        else:
+            self.out = Table({do.label: do for do in outputs})
 
         if isinstance(inputs, tuple):
             self.inputs = Table(tuple(to_data(obj) for obj in inputs))
@@ -51,9 +54,8 @@ class Task:
         out.init("outputs", len(self.out))
         i = 0
         for key, dataobj in self.out:
-            out.outputs[i].id.id = dataobj.id
-            out.outputs[i].id.sessionId = dataobj.session.session_id
-            out.outputs[i].label = key
+            out.outputs[i].id = dataobj.id
+            out.outputs[i].sessionId = dataobj.session.session_id
             i += 1
 
         out.taskType = self.task_type

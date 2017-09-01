@@ -18,6 +18,7 @@ pub type WorkerId = SocketAddr;
 /// Type identifying a client, in this case its address and port as seen by server.
 pub type ClientId = SocketAddr;
 
+/// Type identifying a subworker
 pub type SubworkerId = Id;
 
 impl<'a> FromCapnp<'a> for SocketAddr {
@@ -176,6 +177,7 @@ impl<'a> FromCapnp<'a> for DataObjectId {
         DataObjectId::new(read.get_session_id(), read.get_id())
     }
 }
+
 
 // TODO(gavento): Replace Sid by Task/DO ID
 pub type Sid = TaskId;

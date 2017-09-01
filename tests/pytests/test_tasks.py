@@ -1,6 +1,6 @@
 
 from rain.client.task import Task
-from rain.client.data import DataObject
+from rain.client.data import DataObject, Blob
 from rain import RainException
 
 import pytest
@@ -18,7 +18,11 @@ def test_task_construction(fake_session):
 
 def test_task_outputs(fake_session):
     with fake_session as session:
-        t1 = Task("dummy", outputs=("a", "long_name", "space inside", ""))
+        t1 = Task("dummy",
+                  outputs=(Blob("a"),
+                           Blob("long_name"),
+                           Blob("space inside"),
+                           Blob("")))
 
         assert t1.has_output("a")
         assert t1.has_output("space inside")
