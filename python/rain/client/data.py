@@ -48,6 +48,7 @@ class DataObject:
 
     def to_capnp(self, out):
         out.id.id = self.id
+        out.id.sessionId = self.session.session_id
         out.keep = self._keep
         out.label = self.label
         out.type = common.DataObjectType.blob
@@ -72,10 +73,10 @@ class DataObject:
 
 class Blob(DataObject):
 
-    type = common.DataObjectType.directory
+    type = common.DataObjectType.blob
 
     def __repr__(self):
-        return "<Blob {}/{}>".format(self.session.session_id, self.id)
+        return "<Blob {} {}/{}>".format(self.label, self.session.session_id, self.id)
 
 
 class Directory(DataObject):
@@ -119,8 +120,9 @@ def blob(value, label=""):
     elif not isinstance(value, bytes):
         raise RainException("Invalid blob type (only str or bytes are allowed)")
 
-    dataobj = DataObject(label)
+    dataobj = Blob(label)
     dataobj.data = value
+    dataobj.label = "const"
     return dataobj
 
 
