@@ -1,4 +1,5 @@
 use futures::unsync::oneshot::Sender;
+use std::fmt;
 
 use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
@@ -8,6 +9,7 @@ use super::{TaskRef, WorkerRef, SessionRef, Graph};
 pub use common_capnp::{DataObjectState, DataObjectType};
 use errors::Result;
 
+#[derive(Debug)]
 pub struct DataObject {
     /// Unique ID within a `Session`
     pub(in super::super) id: DataObjectId,
@@ -118,4 +120,34 @@ impl DataObjectRef {
 
     /// Return the object ID in graph.
     pub fn get_id(&self) -> DataObjectId { self.get().id }
+}
+
+impl ::std::fmt::Debug for DataObjectRef {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "DataObjectRef {}", self.get_id())
+    }
+}
+
+impl fmt::Debug for DataObjectState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match *self {
+            DataObjectState::NotAssigned => "NotAssigned",
+            DataObjectState::Assigned => "Assigned",
+            DataObjectState::Running => "Running",
+            DataObjectState::Finished => "Finished",
+            DataObjectState::Removed => "Removed",
+            _ => panic!("Unknown DataObjectState"),
+        })
+    }
+}
+
+impl fmt::Debug for DataObjectType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match *self {
+            DataObjectType::Blob => "Blob",
+            DataObjectType::Directory => "Directory",
+            DataObjectType::Stream => "Stream",
+            _ => panic!("Unknown DataObjectType"),
+        })
+    }
 }

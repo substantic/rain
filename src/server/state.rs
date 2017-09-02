@@ -120,7 +120,15 @@ impl State {
         }
     }
 
-    pub fn verify_submit(&mut self, tasks: &[TaskRef], objects: &[DataObjectRef]) -> Result<()>{
+    pub fn verify_submit(&mut self, tasks: &[TaskRef], objects: &[DataObjectRef]) -> Result<()> {
+        /*debug!("Submitted objects:");
+        for t in objects.iter() {
+            debug!("{:?}", t.get());
+        }
+        debug!("Submitted tasks:");
+        for t in tasks.iter() {
+            debug!("{:?}", t.get());
+        }*/
         for oref in objects.iter() {
             let o = oref.get();
             if o.producer.is_some() && o.data.is_some() {
@@ -129,7 +137,7 @@ impl State {
                     o.data.as_ref().unwrap().len());
             }
             if o.producer.is_none() && o.data.is_none() {
-                bail!("Object {} submitted without producer nor data.", o.id);
+                bail!("Object {} submitted with neither producer nor data.", o.id);
             }
         }
         // TODO: add any more verifications

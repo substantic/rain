@@ -6,6 +6,7 @@ use common::id::ClientId;
 use common::RcSet;
 use errors::Result;
 
+#[derive(Debug)]
 pub struct Client {
     id: ClientId,
     pub(super) sessions: RcSet<SessionRef>,
@@ -42,4 +43,10 @@ impl ClientRef {
 
     /// Return the object ID in graph.
     pub fn get_id(&self) -> ClientId { self.get().id }
+}
+
+impl ::std::fmt::Debug for ClientRef {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "ClientRef {}", self.get_id())
+    }
 }

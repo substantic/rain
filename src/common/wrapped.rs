@@ -56,6 +56,7 @@ impl<T> PartialEq for WrappedRcRefCell<T> {
 
 impl<T> Eq for WrappedRcRefCell<T> {}
 
+/*
 impl<T: Debug> Debug for WrappedRcRefCell<T> {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
         f.write_str("RcRefCell( ")?;
@@ -63,3 +64,4 @@ impl<T: Debug> Debug for WrappedRcRefCell<T> {
         f.write_str(" )")
     }
 }
+*/

@@ -1,4 +1,5 @@
 use futures::unsync::oneshot::Sender;
+use std::fmt;
 
 use common::wrapped::WrappedRcRefCell;
 use common::{RcSet, Additional};
@@ -7,6 +8,7 @@ use super::{DataObjectRef, WorkerRef, SessionRef, Graph, DataObjectState, DataOb
 pub use common_capnp::TaskState;
 use errors::Result;
 
+#[derive(Debug, Clone)]
 pub struct TaskInput {
     /// Input data object.
     pub object: DataObjectRef,
@@ -17,6 +19,7 @@ pub struct TaskInput {
     // TODO: add any input params or flags
 }
 
+#[derive(Debug)]
 pub struct Task {
     /// Unique ID within a `Session`
     pub(in super::super) id: TaskId,
@@ -165,3 +168,43 @@ impl TaskRef {
         self.get().id
     }
 }
+
+impl fmt::Debug for TaskRef {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "TaskRef {}", self.get_id())
+    }
+}
+
+/*
+impl fmt::Debug for Task {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Task")
+            .field("id", &self.id)
+            .field("session", &self.id)
+            .field("assigned", &self.id)
+            .field("state", &self.state)
+            .field("inputs", &self.inputs)
+            .field("outputs", &self.outputs)
+            .field("waiting_for", &self.waiting_for)
+            .field("task_type", &self.task_type)
+            .field("task_config", &self.task_config)
+            .field("finish_hooks", &format!("[{} Senders]", self.finish_hooks.len()))
+            .field("additional", &self.additional)
+            .finish()
+    }
+}
+*/
+
+impl fmt::Debug for TaskState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", match *self {
+            TaskState::NotAssigned => "NotAssigned",
+            TaskState::Assigned => "Assigned",
+            TaskState::Running => "Running",
+            TaskState::Finished => "Finished",
+            TaskState::Ready => "Ready",
+            _ => panic!("Unknown TaskState"),
+        })
+    }
+}
+

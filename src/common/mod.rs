@@ -10,5 +10,5 @@ use std::collections::HashSet;
 
 pub type RcSet<T> = HashSet<T>;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct Additional {}

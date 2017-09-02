@@ -1,5 +1,6 @@
 use futures::unsync::oneshot::Sender;
 use std::net::SocketAddr;
+use std::fmt;
 
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
@@ -73,7 +74,25 @@ impl WorkerRef {
         // assert that we hold the last reference, then drop it
         assert_eq!(self.get_num_refs(), 1);
     }
-
     /// Return the object ID in graph.
     pub fn get_id(&self) -> WorkerId { self.get().id }
+}
+
+impl fmt::Debug for WorkerRef {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "WorkerRef {}", self.get_id())
+    }
+}
+
+impl fmt::Debug for Worker {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Worker")
+            .field("id", &self.id)
+            .field("tasks", &self.tasks)
+            .field("located", &self.located)
+            .field("assigned", &self.assigned)
+            .field("resources", &self.resources)
+            .field("free_resources", &self.free_resources)
+            .finish()
+    }
 }

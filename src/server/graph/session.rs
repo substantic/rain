@@ -1,5 +1,5 @@
 use futures::unsync::oneshot::Sender;
-//use std::default::Default;
+use std::fmt;
 
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
@@ -7,6 +7,7 @@ use common::id::SessionId;
 use super::{ClientRef, DataObjectRef, TaskRef, Graph};
 use errors::Result;
 
+#[derive(Debug)]
 pub struct Session {
     /// Unique ID
     id: SessionId,
@@ -65,3 +66,22 @@ impl SessionRef {
     pub fn get_id(&self) -> SessionId { self.get().id }
 }
 
+impl fmt::Debug for SessionRef {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "SessionRef {}", self.get_id())
+    }
+}
+/*
+impl fmt::Debug for Session {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Session")
+            .field("id", &self.id)
+            .field("tasks", &self.tasks)
+            .field("objects", &self.objects)
+            .field("client", &self.client)
+            .field("finish_hooks", &format!("[{} Senders]", self.finish_hooks.len()))
+            .finish()
+    }
+}
+
+*/
