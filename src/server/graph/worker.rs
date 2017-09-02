@@ -14,13 +14,20 @@ pub struct Worker {
     id: WorkerId,
 
     /// Assigned tasks. The task state is stored in the `Task`.
-    pub(super) tasks: RcSet<TaskRef>,
+    pub(super) assigned_tasks: RcSet<TaskRef>,
+
+    /// Scheduled tasks. Superset of `assigned_tasks`.
+    pub(super) scheduled_tasks: RcSet<TaskRef>,
+
+    /// Scheduled tasks that are also ready but not yet assigned. Disjoint from
+    /// `assigned_tasks`, subset of `scheduled_tasks`.
+    pub(super) scheduled_ready_tasks: RcSet<TaskRef>,
 
     /// Obects fully located on the worker.
-    pub(super) located: RcSet<DataObjectRef>,
+    pub(super) located_objects: RcSet<DataObjectRef>,
 
     /// Objects located or assigned to appear on the worker. Superset of `located`.
-    pub(super) assigned: RcSet<DataObjectRef>,
+    pub(super) assigned_objects: RcSet<DataObjectRef>,
 
     /// Control interface. Optional for testing and modelling.
     control: Option<::worker_capnp::worker_control::Client>,
@@ -43,9 +50,11 @@ impl WorkerRef {
         debug!("Creating worker {}", address);
         let s = WorkerRef::wrap(Worker {
             id: address,
-            tasks: Default::default(),
-            located: Default::default(),
-            assigned: Default::default(),
+            assigned_tasks: Default::default(),
+            scheduled_tasks: Default::default(),
+            scheduled_ready_tasks: Default::default(),
+            located_objects: Default::default(),
+            assigned_objects: Default::default(),
             control: control,
             resources: resources.clone(),
             free_resources: resources,
@@ -58,16 +67,18 @@ impl WorkerRef {
     pub fn delete(self, graph: &mut Graph) {
         debug!("Deleting worker {}", self.get_id());
         // remove from objects
-        for o in self.get_mut().assigned.iter() {
+        for o in self.get_mut().assigned_objects.iter() {
             assert!(o.get_mut().assigned.remove(&self));
         }
-        for o in self.get_mut().located.iter() {
+        for o in self.get_mut().located_objects.iter() {
             assert!(o.get_mut().located.remove(&self));
         }
         // remove from tasks
-        for t in self.get_mut().tasks.iter() {
-            debug_assert!(t.get_mut().assigned == Some(self.clone()));
+        for t in self.get_mut().assigned_tasks.iter() {
             t.get_mut().assigned = None;
+        }
+        for t in self.get_mut().scheduled_tasks.iter() {
+            t.get_mut().scheduled = None;
         }
         // remove from graph
         graph.workers.remove(&self.get().id).unwrap();
@@ -88,9 +99,9 @@ impl fmt::Debug for Worker {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Worker")
             .field("id", &self.id)
-            .field("tasks", &self.tasks)
-            .field("located", &self.located)
-            .field("assigned", &self.assigned)
+            .field("tasks", &self.assigned_tasks)
+            .field("located", &self.located_objects)
+            .field("assigned", &self.assigned_objects)
             .field("resources", &self.resources)
             .field("free_resources", &self.free_resources)
             .finish()

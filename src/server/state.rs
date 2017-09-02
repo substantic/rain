@@ -121,14 +121,6 @@ impl State {
     }
 
     pub fn verify_submit(&mut self, tasks: &[TaskRef], objects: &[DataObjectRef]) -> Result<()> {
-        /*debug!("Submitted objects:");
-        for t in objects.iter() {
-            debug!("{:?}", t.get());
-        }
-        debug!("Submitted tasks:");
-        for t in tasks.iter() {
-            debug!("{:?}", t.get());
-        }*/
         for oref in objects.iter() {
             let o = oref.get();
             if o.producer.is_some() && o.data.is_some() {

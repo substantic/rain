@@ -105,10 +105,10 @@ impl DataObjectRef {
         assert!(inner.producer.is_none(), "Can only remove objects without a producer.");
         // remove from workers
         for w in inner.assigned.iter() {
-            assert!(w.get_mut().assigned.remove(&self));
+            assert!(w.get_mut().assigned_objects.remove(&self));
         }
         for w in inner.located.iter() {
-            assert!(w.get_mut().located.remove(&self));
+            assert!(w.get_mut().located_objects.remove(&self));
         }
         // remove from owner
         assert!(inner.session.get_mut().objects.remove(&self));
