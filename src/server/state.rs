@@ -132,7 +132,11 @@ impl State {
                 bail!("Object {} submitted with neither producer nor data.", o.id);
             }
         }
-        // TODO: add any more verifications
+        // TODO: add object verifications
+        for tref in tasks.iter() {
+            // TODO: add debug guard
+            tref.check_consistency()?;
+        }
         Ok(())
     }
 }

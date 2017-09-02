@@ -123,7 +123,7 @@ impl TaskRef {
         }
         let sref = TaskRef::wrap(Task {
             id: id,
-            state: TaskState::NotAssigned,
+            state: if waiting.is_empty() { TaskState::Ready } else { TaskState::NotAssigned },
             inputs: inputs,
             outputs: outputs.into_iter().collect(),
             waiting_for: waiting,
@@ -203,7 +203,7 @@ impl TaskRef {
         // state constraints
         if ! (match s.state {
             TaskState::NotAssigned =>
-                s.assigned.is_none() && !s.waiting_for.is_empty(),
+                s.assigned.is_none() && (!s.waiting_for.is_empty() || s.inputs.is_empty()),
             TaskState::Ready =>
                 s.assigned.is_none() && s.waiting_for.is_empty(),
             TaskState::Assigned =>
