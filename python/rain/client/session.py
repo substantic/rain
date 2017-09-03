@@ -125,7 +125,7 @@ class Session:
             if dataobj.state == rpc.common.DataObjectState.removed:
                 raise RainException("Object {} already removed".format(dataobj.id))
 
-        self.client._remove(dataobjects)
+        self.client._unkeep(dataobjects)
 
         for dataobj in dataobjects:
             dataobj._free()
