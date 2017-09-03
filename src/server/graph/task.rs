@@ -151,7 +151,18 @@ impl TaskRef {
                 o.producer = Some(sref.clone());
             }
         }
+        sref.check_consistency_opt()?;
         Ok(sref)
+    }
+
+    /// Optionally call `check_consistency` depending on global `DEBUG_CHECK_CONSISTENCY`.
+    #[inline]
+    pub fn check_consistency_opt(&self) -> Result<()> {
+        if ::DEBUG_CHECK_CONSISTENCY.load(::std::sync::atomic::Ordering::Relaxed) {
+            self.check_consistency()
+        } else {
+            Ok(())
+        }
     }
 
     /// Check for state and relationships consistency. Only explores adjacent objects but still
@@ -177,6 +188,9 @@ impl TaskRef {
                     bail!("scheduled_ready_task inconsistency in {:?} at {:?}", s, w);
                 }
             }
+        }
+        if !s.session.get().tasks.contains(self) {
+            bail!("session assymetry in {:?}", s);
         }
         // waiting_for and inputs consistency
         for i in s.inputs.iter() {
@@ -214,6 +228,9 @@ impl TaskRef {
                 s.assigned.is_none() && s.waiting_for.is_empty(),
         }) {
             bail!("state/assigned/waiting_for inconsistency in {:?}", s);
+        }
+        if s.state == TaskState::Finished && !s.finish_hooks.is_empty() {
+            bail!("nonempty finish_hooks in Finished {:?}", s);
         }
 
         if s.assigned.is_some() && s.scheduled.is_none() {

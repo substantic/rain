@@ -99,6 +99,48 @@ impl DataObjectRef {
         Ok(s)
     }
 
+    /// Optionally call `check_consistency` depending on global `DEBUG_CHECK_CONSISTENCY`.
+    #[inline]
+    pub fn check_consistency_opt(&self) -> Result<()> {
+        if ::DEBUG_CHECK_CONSISTENCY.load(::std::sync::atomic::Ordering::Relaxed) {
+            self.check_consistency()
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Check for state and relationships consistency. Only explores adjacent objects but still
+    /// may be slow.
+    pub fn check_consistency(&self) -> Result<()> {
+        let s = self.get();
+        // ID consistency
+        if s.id.get_session_id() != s.session.get_id() {
+            bail!("ID and Session ID mismatch in {:?}", s);
+        }
+        // reference symmetries
+        for wr in s.assigned.iter() {
+            if !wr.get().assigned_objects.contains(self) {
+                bail!("assigned asymmetry in {:?}", s);
+            }
+        }
+        for wr in s.located.iter() {
+            if !wr.get().located_objects.contains(self) {
+                bail!("located asymmetry in {:?}", s);
+            }
+        }
+        if !s.session.get().objects.contains(self) {
+            bail!("session assymetry in {:?}", s);
+        }
+        if let Some(ref tr) = s.producer {
+            if !tr.get().outputs.contains(self) {
+                bail!("object missing in producer {:?} outputs in {:?}", tr, s);
+            }
+        }
+        // TODO: many more
+        Ok(())
+    }
+
+
     pub fn delete(self, graph: &mut Graph) {
         let inner = self.get_mut();
         assert!(inner.consumers.is_empty(), "Can only remove objects without consumers.");

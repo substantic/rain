@@ -33,6 +33,7 @@ env_logger = "*"
 arrayref = "*"
 num_cpus = "*"
 nix = "*"
+lazy_static = "*"
 
 [build-dependencies]
 capnpc = "0.8"

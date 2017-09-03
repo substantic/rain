@@ -16,6 +16,9 @@ extern crate capnp_rpc;
 extern crate arrayref;
 #[macro_use]
 extern crate error_chain;
+#[macro_use]
+extern crate lazy_static;
+
 
 pub mod common;
 pub mod worker;
@@ -25,6 +28,14 @@ pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 pub const WORKER_PROTOCOL_VERSION: i32 = 0;
 pub const CLIENT_PROTOCOL_VERSION: i32 = 0;
 pub const SUBWORKER_PROTOCOL_VERSION: i32 = 0;
+
+
+use std::sync::atomic::AtomicBool;
+lazy_static! {
+    // Init debug mode TODO: depend on opts
+    pub static ref DEBUG_CHECK_CONSISTENCY: AtomicBool = AtomicBool::new(true);
+}
+
 
 
 // NOTE: Development solution to get type autocompletion and go-to-definition
