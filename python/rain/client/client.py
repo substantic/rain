@@ -96,8 +96,8 @@ class Client:
 
         req.send().wait()
 
-    def _remove(self, dataobjs):
-        req = self.service.remove_request()
+    def _unkeep(self, dataobjs):
+        req = self.service.unkeep_request()
 
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
