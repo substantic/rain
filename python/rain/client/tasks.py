@@ -15,7 +15,7 @@ def sleep(timeout, dataobj):
     time_ms = int(timeout * 1000)
     dataobj = to_data(dataobj)
     return Task("sleep",
-                struct.pack(">I", time_ms),
+                struct.pack("<I", time_ms),
                 inputs=(dataobj,),
                 outputs=(dataobj.__class__("output"),))
 

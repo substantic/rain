@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::sync::Arc;
 use std::cell::RefCell;
 use std::net::SocketAddr;
 use std::net::IpAddr;
@@ -8,9 +9,9 @@ use std::path::{Path, PathBuf};
 use std::io::Write;
 use std::time::Duration;
 use std::iter::FromIterator;
-use std::error::Error;
+use std::collections::HashMap;
 
-
+use common::asycinit::AsyncInitWrapper;
 use common::RcSet;
 use common::id::{SubworkerId, SessionId, WorkerId, empty_worker_id, Id, TaskId, DataObjectId};
 use common::convert::{ToCapnp, FromCapnp};
@@ -19,10 +20,12 @@ use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState,
-                    Graph, TaskRef, TaskInput, SubworkerRef, start_python_subworker};
+                    Graph, TaskRef, TaskInput, TaskState, SubworkerRef, start_python_subworker,
+                    DataBuilder, BlobBuilder, Data};
+use worker::tasks::TaskContext;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 
-use futures::Future;
+use futures::{Future, future};
 use futures::Stream;
 use tokio_core::reactor::Handle;
 use tokio_core::net::TcpListener;
@@ -32,17 +35,27 @@ use tokio_timer;
 use tokio_uds::{UnixListener, UnixStream};
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use capnp::capability::Promise;
+use errors::{Error, Result};
 
 use WORKER_PROTOCOL_VERSION;
 
 pub struct State {
     graph: Graph,
 
+    /// If true, next "turn" the scheduler is executed
+    need_scheduling: bool,
+
     /// Tokio core handle
     handle: Handle,
 
     /// Handle to WorkerUpstream (that resides in server)
     upstream: Option<::worker_capnp::worker_upstream::Client>,
+
+    /// Handle to DataStore (that resides in server)
+    datastores: HashMap<WorkerId, AsyncInitWrapper<::datastore_capnp::data_store::Client>>,
+
+    updated_objects: RcSet<DataObjectRef>,
+    updated_tasks: RcSet<TaskRef>,
 
     /// A worker assigned to this worker
     worker_id: WorkerId,
@@ -85,53 +98,131 @@ impl State {
     }
 
     #[inline]
-    pub fn handle(&self) -> Handle {
-        self.handle.clone()
+    pub fn handle(&self) -> &Handle {
+        &self.handle
     }
 
     #[inline]
-    pub fn spawn<F>(&self, f: F)
-        where F: Future<Item = (), Error = ()> + 'static
-    {
-        self.handle.spawn(f);
+    pub fn worker_id(&self) -> &WorkerId {
+        &self.worker_id
     }
 
+    #[inline]
+    pub fn timer(&self) -> &tokio_timer::Timer {
+        &self.timer
+    }
 
     pub fn plan_scheduling(&mut self) {
         unimplemented!();
-    }
-
-    pub fn set_task_as_ready(&mut self, task: &TaskRef) {
-        task.set_ready();
-        self.plan_scheduling();
     }
 
     pub fn get_resources(&self) -> &Resources {
         &self.resources
     }
 
+    /// Start scheduler in next loop
+    pub fn need_scheduling(&mut self) {
+        self.need_scheduling = true;
+    }
+
     pub fn add_task(&mut self,
                     id: TaskId,
                     inputs: Vec<TaskInput>,
+                    outputs: Vec<DataObjectRef>,
                     procedure_key: String,
                     procedure_config: Vec<u8>) -> TaskRef {
-        let wait_for: RcSet<_> = (&inputs)
-            .iter()
-            .map(|input| input.object.clone())
-            .filter(|obj| !obj.is_finished())
-            .collect();
-        let is_ready = wait_for.is_empty();
         let task = TaskRef::new(&mut self.graph,
                                 id,
                                 inputs,
-                                wait_for,
+                                outputs,
                                 procedure_key,
                                 procedure_config);
-
-        if is_ready {
-            self.set_task_as_ready(&task);
+        if task.get().is_ready() {
+            self.graph.ready_tasks.push(task.clone());
         }
         task
+    }
+
+    pub fn object_by_id(&self, id: DataObjectId) -> Result<DataObjectRef> {
+        match self.graph.objects.get(&id) {
+            Some(o) => Ok(o.clone()),
+            None => Err(format!("Object {:?} not found", id))?,
+        }
+    }
+
+    pub fn task_by_id(&self, id: TaskId) -> Result<TaskRef> {
+        match self.graph.tasks.get(&id) {
+            Some(t) => Ok(t.clone()),
+            None => Err(format!("Task {:?} not found", id))?,
+        }
+    }
+
+    pub fn object_is_finished(&mut self, dataobj: &DataObjectRef, data: Arc<Data>) {
+        let mut dataobject = dataobj.get_mut();
+        dataobject.set_data(data);
+        self.updated_objects.insert(dataobj.clone());
+
+        let mut new_ready = false;
+        for task in ::std::mem::replace(&mut dataobject.consumers, Default::default()) {
+            if task.get_mut().input_finished(dataobj) {
+                self.graph.ready_tasks.push(task);
+                new_ready = true;
+            }
+        }
+
+        if new_ready {
+            self.need_scheduling();
+        }
+
+        // TODO inform server
+    }
+
+    /// Send status of updated elements (updated_tasks/updated_objects) and then clear this sets
+    pub fn send_update(&mut self) {
+
+        let mut req = self.upstream.as_ref().unwrap().update_states_request();
+
+        {   // Data Objects
+            let req_update = req.get().get_update().unwrap();
+            let mut req_objs = req_update.init_objects(self.updated_objects.len() as u32);
+
+
+            for (i, object) in self.updated_objects.iter().enumerate() {
+                let mut co = req_objs.borrow().get(i as u32);
+                let object = object.get();
+
+                if object.is_finished() {
+                    co.set_state(::common_capnp::DataObjectState::Finished);
+                    co.set_size(object.data().size() as u64);
+                } else {
+                    // TODO: Handle failure state
+                    panic!("Updating non finished object");
+                }
+                object.id.to_capnp(&mut co.get_id().unwrap());
+            }
+
+            self.updated_objects.clear();
+        }
+
+        {   // Tasks
+            let req_update = req.get().get_update().unwrap();
+            let mut req_tasks = req_update.init_tasks(self.updated_tasks.len() as u32);
+
+            for (i, task) in self.updated_tasks.iter().enumerate() {
+                let mut ct = req_tasks.borrow().get(i as u32);
+                let task = task.get();
+                ct.set_state(match task.state {
+                    TaskState::Running => ::common_capnp::TaskState::Running,
+                    TaskState::Finished => ::common_capnp::TaskState::Finished,
+                    _ => panic!("Invalid state")
+                });
+                task.id.to_capnp(&mut ct.get_id().unwrap());
+            }
+
+            self.updated_tasks.clear();
+        }
+
+        self.spawn_panic_on_error(req.send().promise.map(|_| ()));
     }
 
     pub fn add_subworker(&mut self, subworker: SubworkerRef) {
@@ -141,6 +232,36 @@ impl State {
         // TODO: Someone probably started subworker and he wants to be notified
     }
 
+    /// You can call this ONLY when wait_for_datastore was success full
+    pub fn get_datastore(&self, worker_id: &WorkerId) ->  &::datastore_capnp::data_store::Client {
+        self.datastores.get(worker_id).unwrap().get()
+    }
+
+    pub fn fetch_dataobject(&self, dataobj: &DataObjectRef) -> Box<Future<Item=(), Error=Error>> {
+        /*let worker_id = dataobj.remote().unwrap();
+
+        let builder = Box::new(BlobBuilder::new());
+
+        if worker_id.ip().is_unspecified() {
+            // Fetch from server
+            self.fetch_from_datastore(dataobj,
+                                      &self.datastore.as_ref().unwrap(),
+                                      builder).and_then(|data| {
+
+            })
+        } else {
+            // TODO FETCH FROM WORKER
+            unimplemented!();
+        }*/
+        unimplemented!()
+    }
+
+    pub fn spawn_panic_on_error<F, E>(&self, f: F)
+        where F: Future<Item = (), Error = E> + 'static, E : ::std::fmt::Debug
+    {
+        self.handle.spawn(f.map_err(|e| panic!("Future failed {:?}", e)));
+    }
+
     pub fn add_dataobject(&mut self,
                           id: DataObjectId,
                           state: DataObjectState,
@@ -148,7 +269,41 @@ impl State {
                           keep: KeepPolicy,
                           size: Option<usize>,
                           label: String) -> DataObjectRef {
-        DataObjectRef::new(&mut self.graph, id, state, obj_type, keep, size, label)
+        let dataobj = DataObjectRef::new(&mut self.graph, id, state, obj_type, keep, size, label);
+        /*if dataobj.remote().is_some() {
+            self.fetch_dataobject(&dataobj)
+        }*/
+        dataobj
+    }
+
+    pub fn start_task(&mut self, task: TaskRef, state_ref: &StateRef) {
+        task.get_mut().state = TaskState::Running;
+        self.updated_tasks.insert(task.clone());
+
+        let future = TaskContext::new(task, state_ref.clone()).start(self).unwrap();
+
+        let state_ref = state_ref.clone();
+        self.handle.spawn(future.and_then(move |context| {
+            context.task.get_mut().state = TaskState::Finished;
+            state_ref.get_mut().updated_tasks.insert(context.task.clone());
+
+            for input in &context.task.get().inputs {
+                if (input.object.get().is_finished()) {
+                    bail!("Not all inputs produced");
+                }
+            }
+            Ok(())
+        }).map_err(|e| {
+            // TODO: Handle error properly
+            panic!("Task failed: {:?}", e);
+        }));
+    }
+
+    pub fn schedule(&mut self, state_ref: &StateRef) {
+        // TODO: Some serious scheduling
+        if let Some(task) = self.graph.ready_tasks.pop() {
+            self.start_task(task, state_ref);
+        }
     }
 }
 
@@ -158,6 +313,9 @@ impl StateRef {
                        handle,
                        resources: Resources {n_cpus},
                        upstream: None,
+                       datastores: HashMap::new(),
+                       updated_objects: Default::default(),
+                       updated_tasks: Default::default(),
                        timer: tokio_timer::wheel()
                            .tick_duration(Duration::from_millis(100))
                            .num_slots(256)
@@ -165,10 +323,11 @@ impl StateRef {
                        work_dir,
                        worker_id: empty_worker_id(),
                        graph: Graph::new(),
+                       need_scheduling: false,
                    })
     }
 
-    // This is called when an incomming connection arrives
+    // This is called when an incoming connection arrives
     fn on_connection(&self, stream: TcpStream, address: SocketAddr) {
         // Handle an incoming connection; spawn gate object for it
 
@@ -331,6 +490,45 @@ impl StateRef {
     }
 
     pub fn turn(&self) {
-        // Now do nothing
+        let mut state = self.get_mut();
+        if state.need_scheduling {
+            state.need_scheduling = false;
+            state.schedule(self);
+        }
+
+        // Important: Scheduler should be before update, since scheduler may produce another updates
+        if !state.updated_objects.is_empty() || !state.updated_tasks.is_empty() {
+            state.send_update()
+        }
     }
+
+    pub fn wait_for_datastore(&self, worker_id: &WorkerId) -> Box<Future<Item=(), Error=Error>> {
+        let mut inner = self.get_mut();
+            if let Some(ref mut wrapper) = inner.datastores.get_mut(worker_id) {
+                return wrapper.wait();
+            }
+
+        let mut wrapper = AsyncInitWrapper::new();
+        let wait = wrapper.wait();
+        inner.datastores.insert(worker_id.clone(), wrapper);
+
+        let state = self.clone();
+        let worker_id = worker_id.clone();
+
+        if worker_id.ip().is_unspecified() {
+            // Data are on server
+            let req = inner.upstream.as_ref().unwrap().get_data_store_request();
+            Box::new(req.send().promise.and_then(move |r| {
+                let datastore = r.get().unwrap().get_store().unwrap();
+                let mut inner = state.get_mut();
+                let mut wrapper = inner.datastores.get_mut(&worker_id).unwrap();
+                wrapper.set_value(datastore);
+                Ok(())
+            }).map_err(|e| e.into()))
+        } else {
+            // Data are on workers
+            unimplemented!();
+        }
+    }
+
 }

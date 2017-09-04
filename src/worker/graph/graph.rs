@@ -5,9 +5,11 @@ use std::collections::HashMap;
 
 
 pub struct Graph {
+    pub ready_tasks: Vec<TaskRef>,
     pub tasks: HashMap<TaskId, TaskRef>,
     pub objects: HashMap<DataObjectId, DataObjectRef>,
     pub subworkers: HashMap<SubworkerId, SubworkerRef>,
+
 
     /// Last assigned id
     id_counter: Id
@@ -16,6 +18,7 @@ pub struct Graph {
 impl Graph {
     pub fn new() -> Self {
         Self {
+            ready_tasks: Vec::new(),
             tasks: HashMap::new(),
             objects: HashMap::new(),
             subworkers: HashMap::new(),

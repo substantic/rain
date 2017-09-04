@@ -5,20 +5,23 @@ using import "common.capnp".DataObjectId;
 using import "common.capnp".DataObjectType;
 
 struct ReadReply {
+
+    enum Status {
+        # The data is non empty, and stream is not depleted.
+        ok @0;
+
+        # All the data until the end of the stream has been returned
+        # Calling "pull" again on Stream returns empty data and eof
+        eof @1;
+    }
+
     # Reply to Reader.read.
 
     data @0 :Data;
     # Returned data starting at the requested offset. The data may be shorter than
     # requested. The reply includes status of the remaining data.
 
-    union {
-        ok @1 :Void;
-        # The data is non empty, and stream is not depleted.
-
-        eof @2 :Void;
-        # All the data until the end of the stream has been returned
-        # Calling "pull" again on Stream returns empty data and eof
-    }
+    status @1 :Status;
 }
 
 interface Reader {
@@ -36,7 +39,7 @@ struct ReaderResponse {
     # Size of stream, -1 if unknown
 
     union {
-        ok @2 :UInt64;
+        ok @2 :Void;
         # Valid reader is returned
 
         redirect @3 :WorkerId;
@@ -58,7 +61,7 @@ struct ReaderResponse {
 }
 
 interface DataStore {
-    createStream @0 (id :DataObjectId, path: Text, offset :UInt64) -> ReaderResponse;
+    createReader @0 (id :DataObjectId, path: Text, offset :UInt64) -> ReaderResponse;
 
     # Create reader for data object (or its part)
     # If data object is blob than 'path' has to be empty.

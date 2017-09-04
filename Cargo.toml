@@ -34,6 +34,7 @@ arrayref = "*"
 num_cpus = "*"
 nix = "*"
 lazy_static = "*"
+bytes = "*"
 
 [build-dependencies]
 capnpc = "0.8"

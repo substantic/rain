@@ -1,5 +1,5 @@
 
-use common::id::{DataObjectId};
+use common::id::{DataObjectId, WorkerId};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
@@ -10,6 +10,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
+pub use common_capnp::{DataObjectType};
 
 pub enum DataObjectState {
     Assigned,
@@ -26,35 +27,62 @@ pub enum DataObjectState {
     Finished(Arc<Data>),
 }
 
-pub enum DataObjectType {
-    Blob,
-    Directory,
-    Stream
-}
 
 pub struct DataObject {
-    id: DataObjectId,
+    pub(in super::super) id: DataObjectId,
 
-    state: DataObjectState,
+    pub(in super::super) state: DataObjectState,
 
     /// Task that produces data object; it is None if task not computed in this worker
     // producer: Option<Task>,
 
     /// Consumer set, e.g. to notify of completion.
-    consumers: RcSet<TaskRef>,
+    pub(in super::super) consumers: RcSet<TaskRef>,
 
-    obj_type: DataObjectType,
+    pub(in super::super) obj_type: DataObjectType,
 
-    keep: KeepPolicy,
+    pub(in super::super) keep: KeepPolicy,
 
-    size: Option<usize>,
+    /// ??? Is this necessary for worker?
+    pub(in super::super) size: Option<usize>,
 
     /// Label may be the role that the output has in the `producer`, or it may be
     /// the name of the initial uploaded object.
-    label: String
+    pub(in super::super) label: String
 }
 
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
+
+impl DataObject {
+
+    pub fn set_data(&mut self, data: Arc<Data>) {
+        assert!(!self.is_finished());
+        self.state = DataObjectState::Finished(data)
+    }
+
+    #[inline]
+    pub fn is_finished(&self) -> bool {
+        match self.state {
+            DataObjectState::Finished(_) => true,
+            _ => false
+        }
+    }
+
+    pub fn data(&self) -> &Arc<Data> {
+        match self.state {
+            DataObjectState::Finished(ref data) => data,
+            _ => panic!("DataObject is not finished")
+        }
+    }
+
+    pub fn remote(&self) -> Option<WorkerId> {
+        match self.state {
+            DataObjectState::Remote(ref addr) => Some(*addr),
+            DataObjectState::Pulling(ref addr) => Some(*addr),
+            _ => None
+        }
+    }
+}
 
 
 impl DataObjectRef {
@@ -79,33 +107,4 @@ impl DataObjectRef {
         dataobj
     }
 
-    #[inline]
-    pub fn is_finished(&self) -> bool {
-        match self.get().state {
-            DataObjectState::Finished(_) => true,
-            _ => false
-        }
-    }
-
-    pub fn set_finished(&self, data: Arc<Data>) {
-        assert!(!self.is_finished());
-        self.get_mut().state = DataObjectState::Finished(data)
-    }
-
-    pub fn get_data(&self) -> Arc<Data> {
-        match self.get().state {
-            DataObjectState::Finished(ref data) => data.clone(),
-            _ => panic!("DataObject is not finished")
-        }
-    }
-
-    #[inline]
-    pub fn id(&self) -> DataObjectId {
-        self.get().id
-    }
-
-    #[inline]
-    pub fn size(&self) -> Option<usize> {
-        self.get().size
-    }
 }

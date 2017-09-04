@@ -9,11 +9,12 @@ use std::rc::Rc;
 use std::hash::{Hash, Hasher};
 use common::wrapped::WrappedRcRefCell;
 
+
 #[derive(PartialEq, Eq)]
-enum TaskState {
+pub enum TaskState {
     Assigned,
-    AssignedReady,
     Running,
+    Finished
 }
 
 pub struct TaskInput {
@@ -29,22 +30,39 @@ pub struct TaskInput {
 
 
 pub struct Task {
-    id: TaskId,
-
-    state: TaskState,
+    pub (in super::super) id: TaskId,
 
     /// Ordered inputs for the task. Note that one object can be present as multiple inputs!
-    inputs: Vec<TaskInput>,
+    pub (in super::super) inputs: Vec<TaskInput>,
 
     /// Ordered outputs for the task. Every object in the list must be distinct.
-    outputs: RcSet<DataObjectRef>,
+    pub (in super::super) outputs: Vec<DataObjectRef>,
 
     /// Unfinished objects that we wait for. These must be a subset of `inputs`,
     /// but multiplicities in `inputs` are here represented only once.
-    waiting_for: RcSet<DataObjectRef>,
+    pub (in super::super) waiting_for: RcSet<DataObjectRef>,
 
-    procedure_key: String,
-    procedure_config: Vec<u8>,
+    pub (in super::super) state: TaskState,
+
+    pub (in super::super) task_type: String,
+    pub (in super::super) task_config: Vec<u8>,
+}
+
+impl Task {
+
+    #[inline]
+    pub fn is_ready(&self) -> bool {
+        self.waiting_for.is_empty()
+    }
+
+    /// Remove data object from waiting_for list,
+    /// Returns true when task becomes ready
+    pub fn input_finished(&mut self, object: &DataObjectRef) -> bool {
+        let found = self.waiting_for.remove(object);
+        assert!(found);
+        self.waiting_for.is_empty()
+    }
+
 }
 
 pub type TaskRef = WrappedRcRefCell<Task>;
@@ -55,33 +73,29 @@ impl TaskRef {
         graph: &mut Graph,
         id: TaskId,
         inputs: Vec<TaskInput>,
-        waiting_for: RcSet<DataObjectRef>,
-        procedure_key: String,
-        procedure_config: Vec<u8>
+        outputs: Vec<DataObjectRef>,
+        task_type: String,
+        task_config: Vec<u8>
     ) -> Self {
+
+        let waiting_for: RcSet<_> = (&inputs)
+            .iter()
+            .map(|input| input.object.clone())
+            .filter(|obj| !obj.get().is_finished())
+            .collect();
+
         let task = Self::wrap(Task {
             id: id,
-            state: TaskState::Assigned,
             inputs,
+            outputs,
             waiting_for,
-            procedure_key,
-            procedure_config,
-            outputs: Default::default()
+            task_type,
+            task_config,
+            state: TaskState::Assigned,
         });
         graph.tasks.insert(id, task.clone());
+
         task
-    }
-
-    /// Change internal state of task to AssignedReady
-    pub fn set_ready(&self) {
-        let mut inner = self.get_mut();
-        assert!(inner.state == TaskState::Assigned);
-        inner.state = TaskState::AssignedReady;
-    }
-
-    #[inline]
-    fn id(&self) -> TaskId {
-        self.get().id
     }
 
 }

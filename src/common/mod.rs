@@ -6,6 +6,7 @@ pub mod wrapped;
 pub mod fs;
 pub mod resources;
 pub mod events;
+pub mod asycinit;
 
 use std::collections::HashSet;
 

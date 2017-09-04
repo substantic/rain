@@ -18,7 +18,7 @@ extern crate arrayref;
 extern crate error_chain;
 #[macro_use]
 extern crate lazy_static;
-
+extern crate bytes;
 
 pub mod common;
 pub mod worker;
@@ -51,6 +51,7 @@ pub mod errors {
         foreign_links {
             Io(::std::io::Error);
             Capnp(::capnp::Error);
+            Timer(::tokio_timer::TimerError);
         }
     }
     // Explicit alias just to make the IDEs happier

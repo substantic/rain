@@ -7,7 +7,7 @@ use std::os::unix::io::{FromRawFd, IntoRawFd};
 
 use common::id::SubworkerId;
 use common::wrapped::WrappedRcRefCell;
-use worker::StateRef;
+use worker::{StateRef};
 use subworker_capnp::subworker_upstream;
 use capnp::capability::Promise;
 use tokio_process::CommandExt;
@@ -58,7 +58,6 @@ pub fn start_python_subworker(state: &StateRef) -> SubworkerId
     let log_path_err_pipe = unsafe { Stdio::from_raw_fd(log_path_err_id) };
 
     // --- Start process ---
-    let handle = state.handle();
     let future = Command::new("python3")
         .arg("-m")
         .arg("rain.subworker")
@@ -66,14 +65,14 @@ pub fn start_python_subworker(state: &StateRef) -> SubworkerId
         .stderr(log_path_err_pipe)
         .env("RAIN_SUBWORKER_SOCKET", state.subworker_listen_path())
         .env("RAIN_SUBWORKER_ID", subworker_id.to_string())
-        .status_async(&handle)
+        .status_async(state.handle())
         .and_then(move |status| {
             error!("Subworker {} terminated with exit code: {}", subworker_id, status);
             panic!("Subworker terminated; TODO handle this situation");
             Ok(())
         })
         .map_err(|e| panic!("Spawning subworker failed: {:?}"));
-    handle.spawn(future);
+    state.handle().spawn(future);
 
     subworker_id
 }
