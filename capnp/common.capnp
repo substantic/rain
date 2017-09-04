@@ -38,18 +38,16 @@ using WorkerId = SocketAddress;
 
 enum TaskState {
         notAssigned @0;
-        assigned @1;
-        ready @2;
+        ready @1;
+        assigned @2;
         running @3;
         finished @4;
 }
 
 enum DataObjectState {
-    notAssigned @0;
-    assigned @1;
-    running @2;
-    finished @3;
-    removed @4;
+    unfinished @0;
+    finished @1;
+    removed @2;
 }
 
 enum DataObjectType {

@@ -73,8 +73,7 @@ impl State {
         unimplemented!()
     }
 
-    pub fn unkeep_object(&mut self, object: &DataObjectRef) -> Result<()> {
-        unimplemented!()
+    pub fn unkeep_object(&mut self, object: &DataObjectRef) -> Result<()> { unimplemented!()
     }
 
     pub fn add_task(&mut self, session: &SessionRef, id: TaskId /* TODO: more */) -> TaskRef {

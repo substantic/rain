@@ -76,7 +76,7 @@ class Session:
             task.state = rpc.common.TaskState.notAssigned
             self.submitted_tasks.append(weakref.ref(task))
         for dataobj in self.dataobjs:
-            dataobj.state = rpc.common.DataObjectState.notAssigned
+            dataobj.state = rpc.common.DataObjectState.unfinished
             self.submitted_dataobjs.append(weakref.ref(dataobj))
         self.tasks = []
         self.dataobjs = []

@@ -152,6 +152,6 @@ def test_dataobj_wait(test_env):
         o1 = t1.out.output
     assert t1.state is None
     s.submit()
-    assert o1.state == rpc.common.DataObjectState.notAssigned
+    assert o1.state == rpc.common.DataObjectState.unfinished
     o1.wait()
     assert o1.state == rpc.common.DataObjectState.finished

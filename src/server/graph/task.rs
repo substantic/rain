@@ -98,7 +98,7 @@ impl TaskRef {
                 _ => { waiting.insert(i.object.clone()); }
             }
             if o.object_type == DataObjectType::Stream &&
-                o.state != DataObjectState::NotAssigned {
+                o.state != DataObjectState::Unfinished {
                 bail!("Can't create Task {} with active input stream object {}",
                     id, o.id);
             }

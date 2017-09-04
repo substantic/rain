@@ -30,12 +30,15 @@ pub struct DataObject {
     /// Consumer set, e.g. to notify of completion.
     pub(in super::super) consumers: RcSet<TaskRef>,
 
-    /// Workers with full copy of this object.
-    pub(in super::super) located: RcSet<WorkerRef>,
+    /// Workers scheduled to have a full copy of this object.
+    pub(in super::super) scheduled: RcSet<WorkerRef>,
 
     /// Workers that have been instructed to pull this object or already have it.
     /// Superset of `located`.
     pub(in super::super) assigned: RcSet<WorkerRef>,
+
+    /// Workers with full copy of this object.
+    pub(in super::super) located: RcSet<WorkerRef>,
 
     /// Assigned session. Must match SessionId.
     pub(in super::super) session: SessionRef,
@@ -77,12 +80,13 @@ impl DataObjectRef {
             producer: Default::default(),
             label: label,
             state: if data.is_none() {
-                DataObjectState::NotAssigned
+                DataObjectState::Unfinished
             } else {
                 DataObjectState::Finished
             } ,
             object_type: object_type,
             consumers: Default::default(),
+            scheduled: Default::default(),
             located: Default::default(),
             assigned: Default::default(),
             session: session.clone(),
@@ -173,9 +177,7 @@ impl ::std::fmt::Debug for DataObjectRef {
 impl fmt::Debug for DataObjectState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match *self {
-            DataObjectState::NotAssigned => "NotAssigned",
-            DataObjectState::Assigned => "Assigned",
-            DataObjectState::Running => "Running",
+            DataObjectState::Unfinished => "Unfinished",
             DataObjectState::Finished => "Finished",
             DataObjectState::Removed => "Removed",
             _ => panic!("Unknown DataObjectState"),
