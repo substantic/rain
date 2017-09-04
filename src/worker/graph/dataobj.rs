@@ -3,11 +3,12 @@ use common::id::{DataObjectId};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
-use super::{TaskRef, Graph};
+use super::{TaskRef, Graph, Data};
 
 use std::net::SocketAddr;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 
 pub enum DataObjectState {
@@ -22,9 +23,7 @@ pub enum DataObjectState {
     /// Data transfer is in progress
     Pulling(SocketAddr),
 
-    FinishedInFile,
-    // FinishedMmaped(XXX),
-    FinishedInMem(Vec<u8>),
+    Finished(Arc<Data>),
 }
 
 pub enum DataObjectType {
@@ -83,9 +82,20 @@ impl DataObjectRef {
     #[inline]
     pub fn is_finished(&self) -> bool {
         match self.get().state {
-            DataObjectState::FinishedInFile => true,
-            DataObjectState::FinishedInMem(_) => true,
+            DataObjectState::Finished(_) => true,
             _ => false
+        }
+    }
+
+    pub fn set_finished(&self, data: Arc<Data>) {
+        assert!(!self.is_finished());
+        self.get_mut().state = DataObjectState::Finished(data)
+    }
+
+    pub fn get_data(&self) -> Arc<Data> {
+        match self.get().state {
+            DataObjectState::Finished(ref data) => data.clone(),
+            _ => panic!("DataObject is not finished")
         }
     }
 
