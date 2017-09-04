@@ -8,8 +8,8 @@ use errors::Result;
 
 #[derive(Debug)]
 pub struct Client {
-    id: ClientId,
-    pub(super) sessions: RcSet<SessionRef>,
+    pub (in super::super) id: ClientId,
+    pub (in super::super) sessions: RcSet<SessionRef>,
 }
 
 pub type ClientRef = WrappedRcRefCell<Client>;
@@ -29,6 +29,19 @@ impl ClientRef {
         graph.clients.insert(c.get().id, c.clone());
         Ok(c)
     }
+
+    /// Check for state and relationships consistency. Only explores adjacent objects but still
+    /// may be slow.
+    pub fn check_consistency(&self) -> Result<()> {
+        let s = self.get();
+        for sref in s.sessions.iter() {
+            if sref.get().client != *self {
+                bail!("session ref {:?} inconsistency in {:?}", sref, s)
+            }
+        }
+        Ok(())
+    }
+
 
     pub fn delete(self, graph: &mut Graph) {
         debug!("Deleting client {}", self.get_id());

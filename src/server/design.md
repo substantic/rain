@@ -31,7 +31,7 @@ Logical properties:
 
 ### Data object states
 
-|S0 |W0 |T.R|T.F|S1 |W1A|W1L|State     |O.planned|O.assigned|O.located|   |
+|S0 |W0 |T.R|T.F|S1 |W1A|W1L|State     |O.sched. |O.assigned|O.located|   |
 |---|---|---|---|---|---|---|----------|---------|----------|---------|---|
 |   |   |   |   |   |   |   |Unfinished|         |          |         |   |
 | x |   |   |   |   |   |   |Unfinished| W0      |          |         |   |

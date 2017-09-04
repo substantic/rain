@@ -131,13 +131,37 @@ impl State {
                 bail!("Object {} submitted with neither producer nor data.", o.id);
             }
         }
-        for tr in tasks.iter() {
-            tr.check_consistency_opt()?;
-        }
-        for or in objects.iter() {
-            or.check_consistency_opt()?;
+        self.check_consistency_opt()?;
+        Ok(())
+    }
+
+    /// Optionally call `check_consistency` depending on global `DEBUG_CHECK_CONSISTENCY`.
+    pub fn check_consistency_opt(&mut self) -> Result<()> {
+        if ::DEBUG_CHECK_CONSISTENCY.load(::std::sync::atomic::Ordering::Relaxed) {
+            self.check_consistency()?;
         }
         Ok(())
+    }
+
+    /// Check consistency of all tasks, objects, workers, clients and sessions.
+    pub fn check_consistency(&mut self)  -> Result<()> {
+        for tr in self.graph.tasks.values() {
+            tr.check_consistency()?;
+        }
+        for or in self.graph.objects.values() {
+            or.check_consistency()?;
+        }
+        for wr in self.graph.workers.values() {
+            wr.check_consistency()?;
+        }
+        for sr in self.graph.sessions.values() {
+            sr.check_consistency()?;
+        }
+        for cr in self.graph.clients.values() {
+            cr.check_consistency()?;
+        }
+        Ok(())
+
     }
 }
 

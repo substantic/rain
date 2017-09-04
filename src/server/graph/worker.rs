@@ -29,6 +29,10 @@ pub struct Worker {
     /// Objects located or assigned to appear on the worker. Superset of `located`.
     pub(super) assigned_objects: RcSet<DataObjectRef>,
 
+    /// Objects scheduled to appear here. Any objects in `located_objects` but not here
+    /// are to be removed from the worker.
+    pub(super) scheduled_objects: RcSet<DataObjectRef>,
+
     /// Control interface. Optional for testing and modelling.
     control: Option<::worker_capnp::worker_control::Client>,
 
@@ -55,6 +59,7 @@ impl WorkerRef {
             scheduled_ready_tasks: Default::default(),
             located_objects: Default::default(),
             assigned_objects: Default::default(),
+            scheduled_objects: Default::default(),
             control: control,
             resources: resources.clone(),
             free_resources: resources,
@@ -62,6 +67,44 @@ impl WorkerRef {
         // add to graph
         graph.workers.insert(s.get().id, s.clone());
         Ok(s)
+    }
+
+    /// Check for state and relationships consistency. Only explores adjacent objects but still
+    /// may be slow.
+    pub fn check_consistency(&self) -> Result<()> {
+        let s = self.get();
+        // refs
+        for oref in s.located_objects.iter() {
+            if !oref.get().located.contains(self) {
+                bail!("located_object ref {:?} inconsistency in {:?}", oref, s)
+            }
+        }
+        for oref in s.scheduled_objects.iter() {
+            if !oref.get().scheduled.contains(self) {
+                bail!("scheduled_object ref {:?} inconsistency in {:?}", oref, s)
+            }
+        }
+        for oref in s.assigned_objects.iter() {
+            if !oref.get().assigned.contains(self) {
+                bail!("assigned_object ref {:?} inconsistency in {:?}", oref, s)
+            }
+        }
+        for tref in s.assigned_tasks.iter() {
+            if tref.get().assigned != Some(self.clone()) {
+                bail!("assigned task ref {:?} inconsistency in {:?}", tref, s)
+            }
+        }
+        for tref in s.scheduled_tasks.iter() {
+            if tref.get().scheduled != Some(self.clone()) {
+                bail!("scheduled task ref {:?} inconsistency in {:?}", tref, s)
+            }
+        }
+        for tref in s.scheduled_ready_tasks.iter() {
+            if tref.get().scheduled != Some(self.clone()) {
+                bail!("scheduled_ready task ref {:?} inconsistency in {:?}", tref, s)
+            }
+        }
+        Ok(())
     }
 
     pub fn delete(self, graph: &mut Graph) {

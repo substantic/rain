@@ -5,7 +5,7 @@ use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
 use common::{RcSet, Additional};
 use common::keeppolicy::KeepPolicy;
-use super::{TaskRef, WorkerRef, SessionRef, Graph};
+use super::{TaskRef, WorkerRef, SessionRef, Graph, TaskState};
 pub use common_capnp::{DataObjectState, DataObjectType};
 use errors::Result;
 
@@ -103,16 +103,6 @@ impl DataObjectRef {
         Ok(s)
     }
 
-    /// Optionally call `check_consistency` depending on global `DEBUG_CHECK_CONSISTENCY`.
-    #[inline]
-    pub fn check_consistency_opt(&self) -> Result<()> {
-        if ::DEBUG_CHECK_CONSISTENCY.load(::std::sync::atomic::Ordering::Relaxed) {
-            self.check_consistency()
-        } else {
-            Ok(())
-        }
-    }
-
     /// Check for state and relationships consistency. Only explores adjacent objects but still
     /// may be slow.
     pub fn check_consistency(&self) -> Result<()> {
@@ -127,9 +117,17 @@ impl DataObjectRef {
                 bail!("assigned asymmetry in {:?}", s);
             }
         }
+        for wr in s.scheduled.iter() {
+            if !wr.get().scheduled_objects.contains(self) {
+                bail!("scheduled asymmetry in {:?}", s);
+            }
+        }
         for wr in s.located.iter() {
             if !wr.get().located_objects.contains(self) {
                 bail!("located asymmetry in {:?}", s);
+            }
+            if !s.assigned.contains(wr) {
+                bail!("located at not-assigned worker in {:?}", s);
             }
         }
         if !s.session.get().objects.contains(self) {
@@ -140,7 +138,55 @@ impl DataObjectRef {
                 bail!("object missing in producer {:?} outputs in {:?}", tr, s);
             }
         }
-        // TODO: many more
+        // producer consistency
+        if let Some(ref pr) = s.producer {
+            let p = pr.get();
+            if s.state == DataObjectState::Unfinished && p.state == TaskState::Finished {
+                bail!("producer finished state inconsistency in {:?}", s);
+            }
+            if s.state == DataObjectState::Finished && p.state != TaskState::Finished {
+                bail!("producer not finished state inconsistency in {:?}", s);
+            }
+            if let Some(ref swr) = p.scheduled {
+                if !s.scheduled.contains(swr) {
+                    bail!("not scheduled to producer worker in {:?}");
+                }
+            }
+            if let Some(ref swr) = p.assigned {
+                if !s.assigned.contains(swr) {
+                    bail!("not assigned to producer worker in {:?}");
+                }
+            }
+        } else {
+            if s.state == DataObjectState::Finished {
+                if s.data.is_none() {
+                    bail!("no data present for object without producer in {:?}", s);
+                }
+            }
+        }
+        // state consistency
+        if (!match s.state {
+            DataObjectState::Unfinished =>
+                s.scheduled.len() <= 1 && s.assigned.len() <= 1 && s.producer.is_some(),
+            DataObjectState::Finished =>
+                s.data.is_some() || (s.located.len() >= 1 && s.assigned.len() >= 1),
+            DataObjectState::Removed =>
+                s.located.is_empty() && s.scheduled.is_empty() && s.assigned.is_empty() &&
+                s.finish_hooks.is_empty() && s.size.is_some() && s.data.is_none(),
+        }) {
+            bail!("state inconsistency in {:?}", s);
+        }
+        // data consistency
+        if let Some(ref dr) = s.data {
+            if s.size.is_none() || dr.len() != s.size.unwrap() {
+                bail!("size and uploaded data mismatch in {:?}", s);
+            }
+        }
+        // finish hooks
+        if !s.finish_hooks.is_empty() && s.state != DataObjectState::Unfinished {
+            bail!("finish hooks for finished/removed object in {:?}", s);
+        }
+        // TODO: keepflags?
         Ok(())
     }
 

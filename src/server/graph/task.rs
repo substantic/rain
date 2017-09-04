@@ -151,18 +151,7 @@ impl TaskRef {
                 o.producer = Some(sref.clone());
             }
         }
-        sref.check_consistency_opt()?;
         Ok(sref)
-    }
-
-    /// Optionally call `check_consistency` depending on global `DEBUG_CHECK_CONSISTENCY`.
-    #[inline]
-    pub fn check_consistency_opt(&self) -> Result<()> {
-        if ::DEBUG_CHECK_CONSISTENCY.load(::std::sync::atomic::Ordering::Relaxed) {
-            self.check_consistency()
-        } else {
-            Ok(())
-        }
     }
 
     /// Check for state and relationships consistency. Only explores adjacent objects but still
