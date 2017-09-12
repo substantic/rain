@@ -2,6 +2,11 @@
 use errors::Error;
 use futures::{IntoFuture, unsync, Future};
 
+
+/// This code serves for "async" initialization Item may be in state "Initing"
+/// that stores oneshots that are fired when the item is in ready state. The
+/// object becomes ready when "set_value" is called
+
 enum State<T> {
     // Object is still in initialization, vector contains callbacks when
     // object is ready
@@ -36,6 +41,8 @@ impl<T> AsyncInitWrapper<T> {
         }
     }
 
+    /// Function that sets the value of the object when it is finally ready
+    /// It triggers all waiting oneshots
     pub fn set_value(&mut self, value: T) {
         match ::std::mem::replace(&mut self.state, State::Ready(value)) {
             State::Initing(senders) => {
@@ -47,6 +54,8 @@ impl<T> AsyncInitWrapper<T> {
         }
     }
 
+    /// Returns future that is finished when object is ready,
+    /// If object is already prepared than future is finished immediately
     pub fn wait(&mut self) -> Box<Future<Item=(), Error=Error>> {
         match self.state {
             State::Ready(ref value) => Box::new(Ok(()).into_future()),

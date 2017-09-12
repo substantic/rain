@@ -9,7 +9,7 @@ use errors::Result;
 use bytes::{Buf, LittleEndian};
 
 /// Task that merge all input blobs and merge them into one blob
-pub fn task_merge(context: TaskContext, state: &State) -> TaskResult
+pub fn task_concat(context: TaskContext, state: &State) -> TaskResult
 {
     let inputs = context.inputs();
 
