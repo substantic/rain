@@ -1,6 +1,7 @@
 use capnp::capability::Promise;
 use std::net::SocketAddr;
 use std::iter::FromIterator;
+use futures::{Future};
 
 use common::id::{DataObjectId, TaskId, SessionId, SId};
 use common::convert::{FromCapnp, ToCapnp};
@@ -132,7 +133,11 @@ impl client_service::Server for ClientServiceImpl {
                 o.delete(&mut s.graph);
             }
             pry!(res);
+        } else {
+            s.graph.new_tasks = created_tasks;
+            s.need_scheduling();
         }
+
         Promise::ok(())
     }
 
@@ -159,9 +164,19 @@ impl client_service::Server for ClientServiceImpl {
         info!("New wait request ({} tasks, {} data objects) from client",
               task_ids.len(), object_ids.len());
 
-        //TODO: Wait for tasks / dataobjs to finish
+        // TODO: Get rid of unwrap and do proper error handling
+        let futures: Vec<_> = task_ids.iter()
+            .map(|id| s.task_by_id(TaskId::from_capnp(&id)).unwrap())
+            .filter(|t| !t.get().is_finished())
+            .map(|t| t.get_mut().wait())
+            .collect();
 
-        Promise::ok(())
+        debug!("{} waiting futures", futures.len());
+
+        // TODO: Wait for data objects
+        Promise::from_future(::futures::future::join_all(futures)
+                             .map(|_| ())
+                             .map_err(|e| panic!("Wait failed")))
     }
 
     fn wait_some(

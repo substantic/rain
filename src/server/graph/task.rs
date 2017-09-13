@@ -1,6 +1,7 @@
-use futures::unsync::oneshot::Sender;
+use futures::unsync::oneshot;
 use std::fmt;
 
+use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::{RcSet, Additional};
 use common::id::{TaskId, SId};
@@ -24,7 +25,7 @@ pub struct Task {
     /// Unique ID within a `Session`
     pub(in super::super) id: TaskId,
 
-    /// Current state.
+    /// Current state. Do not modify directly but use "set_state"
     pub(in super::super) state: TaskState,
 
     /// Ordered inputs for the task. Note that one object can be present as multiple inputs!
@@ -66,13 +67,82 @@ pub struct Task {
     pub(in super::super) task_config: Vec<u8>,
 
     /// Hooks executed when the task is finished
-    pub(in super::super) finish_hooks: Vec<Sender<()>>,
+    pub(in super::super) finish_hooks: Vec<oneshot::Sender<()>>,
 
     /// Additional attributes
     pub(in super::super) additional: Additional,
 }
 
 pub type TaskRef = WrappedRcRefCell<Task>;
+
+impl Task {
+    // To capnp for worker message
+    pub fn to_worker_capnp(&self, builder: &mut ::worker_capnp::task::Builder) {
+        self.id.to_capnp(&mut builder.borrow().get_id().unwrap());
+        {
+            let mut cinputs = builder.borrow().init_inputs(self.inputs.len() as u32);
+            for (i, input) in self.inputs.iter().enumerate() {
+                let mut ci = cinputs.borrow().get(i as u32);
+                ci.set_label(&input.label);
+                ci.set_path(&input.path);
+                input.object.get().id.to_capnp(&mut ci.get_id().unwrap());
+            }
+        }
+
+        {
+            let mut coutputs = builder.borrow().init_outputs(self.outputs.len() as u32);
+            for (i, output) in self.outputs.iter().enumerate() {
+                let mut co = coutputs.borrow().get(i as u32);
+                output.get().id.to_capnp(&mut co);
+            }
+        }
+
+        builder.set_task_type(&self.task_type);
+        builder.set_task_config(&self.task_config);
+
+        // TODO: Resources
+        // TODO: Additionals
+    }
+
+    #[inline]
+    pub fn is_finished(&self) -> bool {
+        match self.state {
+            TaskState::Finished => true,
+            _ => false
+        }
+    }
+
+    /// Inform observers that task is finished
+    fn trigger_finish_hooks(&mut self) {
+        assert!(self.is_finished());
+        for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
+            match sender.send(()) {
+                Ok(()) => { /* Do nothing */}
+                Err(e) => { /* Just log error, it is non fatal */
+                               debug!("Failed to inform about finishing task");
+                }
+            }
+        }
+    }
+
+    pub fn set_state(&mut self, new_state: TaskState) {
+        self.state = new_state;
+        match new_state {
+            TaskState::Finished => self.trigger_finish_hooks(),
+            _ => { /* do nothing */ }
+        };
+    }
+
+    /// Create future that finishes until the task is finished
+    /// it asserts that task is not finished
+    pub fn wait(&mut self) -> oneshot::Receiver<()> {
+        assert!(!self.is_finished());
+        let (sender, receiver) = oneshot::channel();
+        self.finish_hooks.push(sender);
+        receiver
+    }
+
+}
 
 impl TaskRef {
     pub fn new(

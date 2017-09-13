@@ -1,6 +1,7 @@
 use futures::unsync::oneshot::Sender;
 use std::fmt;
 
+use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
 use common::{RcSet, Additional};
@@ -58,6 +59,23 @@ pub struct DataObject {
 
     /// Additional attributes (WIP)
     pub(in super::super) additional: Additional,
+}
+
+impl DataObject {
+
+    /// To capnp for worker message
+    /// It does not fill "placement", it has to be done, byt callie
+    pub fn to_worker_capnp(&self,
+                           builder: &mut ::worker_capnp::data_object::Builder) {
+        self.id.to_capnp(&mut builder.borrow().get_id().unwrap());
+        builder.set_type(self.object_type);
+        self.size.map(|s| builder.set_size(s as i64));
+        builder.set_label(&self.label);
+
+        // TODO: Additionals
+        // TODO: Object state (or remove it)
+    }
+
 }
 
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
@@ -209,14 +227,11 @@ impl DataObjectRef {
         // assert that we hold the last reference, , then drop it
         assert_eq!(self.get_num_refs(), 1);
     }
-
-    /// Return the object ID in graph.
-    pub fn get_id(&self) -> DataObjectId { self.get().id }
 }
 
 impl ::std::fmt::Debug for DataObjectRef {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "DataObjectRef {}", self.get_id())
+        write!(f, "DataObjectRef {}", self.get().id)
     }
 }
 

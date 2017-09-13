@@ -94,6 +94,8 @@ impl DataObjectRef {
                keep: KeepPolicy,
                size: Option<usize>,
                label: String) -> Self {
+
+        debug!("New object id={}", id);
         let dataobj = Self::wrap(DataObject {
             id,
             state,

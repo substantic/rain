@@ -34,7 +34,7 @@ pub struct Worker {
     pub(super) scheduled_objects: RcSet<DataObjectRef>,
 
     /// Control interface. Optional for testing and modelling.
-    control: Option<::worker_capnp::worker_control::Client>,
+    pub (in super::super) control: Option<::worker_capnp::worker_control::Client>,
 
     // Resources. TODO: Extract resources into separate struct
     resources: Resources,
@@ -42,6 +42,15 @@ pub struct Worker {
 }
 
 pub type WorkerRef = WrappedRcRefCell<Worker>;
+
+impl Worker {
+
+    #[inline]
+    pub fn id(&self) -> &WorkerId {
+        &self.id
+    }
+}
+
 
 impl WorkerRef {
     pub fn new(graph: &mut Graph,

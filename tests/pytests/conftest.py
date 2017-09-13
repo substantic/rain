@@ -68,6 +68,7 @@ class TestEnv(Env):
         Start infrastructure: server & n workers
         """
         env = os.environ.copy()
+        env["RUST_LOG"] = "debug"
         env["RUST_BACKTRACE"] = "1"
         env["PYTHONPATH"] = PYTHON_DIR
 
@@ -138,6 +139,12 @@ class TestEnv(Env):
 
     def close(self):
         self._client = None
+
+    def assert_duration(self, min_seconds, max_seconds, fn):
+        start = time.time()
+        fn()
+        diff = time.time() - start
+        assert min_seconds <= diff <= max_seconds
 
     def assert_min_duration(self, seconds, fn):
         start = time.time()

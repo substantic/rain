@@ -7,7 +7,7 @@ pub enum Readiness {
     /// Ready file is a file th
     /// at is created when a process is ready
     WaitingForReadyFile(PathBuf),
-    IsReady
+    IsReady,
 }
 
 
@@ -24,18 +24,24 @@ pub struct Process {
     /// Process handler
     child: Child,
 
-
     /// State of process readiness, it is changed in "check" function
-    ready: Readiness
+    ready: Readiness,
 }
 
 
 impl Process {
 
-    pub fn spawn(log_dir: &Path, name: &str, ready: Readiness, command: &mut Command) -> Result<Self> {
+    pub fn spawn(
+        log_dir: &Path,
+        name: &str,
+        ready: Readiness,
+        command: &mut Command,
+    ) -> Result<Self> {
 
-        let log_path_out_id = ::std::fs::File::create(log_dir.join(&format!("{}.out", name)))?.into_raw_fd();
-        let log_path_err_id = ::std::fs::File::create(log_dir.join(&format!("{}.err", name)))?.into_raw_fd();
+        let log_path_out_id = ::std::fs::File::create(log_dir.join(&format!("{}.out", name)))?
+            .into_raw_fd();
+        let log_path_err_id = ::std::fs::File::create(log_dir.join(&format!("{}.err", name)))?
+            .into_raw_fd();
 
         let log_path_out_pipe = unsafe { Stdio::from_raw_fd(log_path_out_id) };
         let log_path_err_pipe = unsafe { Stdio::from_raw_fd(log_path_err_id) };
@@ -46,7 +52,7 @@ impl Process {
         Ok(Self {
             name: name.to_string(),
             child: command.spawn()?,
-            ready: ready
+            ready: ready,
         })
     }
 
@@ -60,7 +66,7 @@ impl Process {
                 // This error is non fatal, so we just log an error and continue
                 match ::std::fs::remove_file(path) {
                     Ok(_) => debug!("Ready file of killed process removed"),
-                    Err(e) => error!("Cannot remove ready file for killed process")
+                    Err(e) => error!("Cannot remove ready file for killed process"),
                 }
             }
         }
@@ -71,8 +77,12 @@ impl Process {
 
     pub fn check_run(&mut self) -> Result<()> {
         if let Some(exit_code) = self.child.try_wait()? {
-            bail!("Process '{1}' terminated with exit code {0}; \
-                   process outputs can be found in {1}.{{out/err}}", exit_code, self.name);
+            bail!(
+                "Process '{1}' terminated with exit code {0}; \
+                   process outputs can be found in {1}.{{out/err}}",
+                exit_code,
+                self.name
+            );
         }
         Ok(())
     }
@@ -87,7 +97,7 @@ impl Process {
                 if path.exists() {
                     ::std::fs::remove_file(path)?;
                 } else {
-                    return Ok(false)
+                    return Ok(false);
                 }
             }
         };
