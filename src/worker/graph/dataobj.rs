@@ -57,6 +57,7 @@ impl DataObject {
 
     pub fn set_data(&mut self, data: Arc<Data>) {
         assert!(!self.is_finished());
+        self.size = Some(data.size());
         self.state = DataObjectState::Finished(data)
     }
 

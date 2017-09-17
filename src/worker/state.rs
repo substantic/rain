@@ -15,7 +15,6 @@ use common::asycinit::AsyncInitWrapper;
 use common::RcSet;
 use common::id::{SubworkerId, SessionId, WorkerId, empty_worker_id, Id, TaskId, DataObjectId};
 use common::convert::{ToCapnp, FromCapnp};
-use common::rpc::new_rpc_system;
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
@@ -372,25 +371,12 @@ impl StateRef {
 
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
-        let (reader, writer) = stream.split();
 
-        panic!("Not implemented yet");
-        /*
-        let bootstrap_obj = ::server_capnp::server_bootstrap::ToClient::new(
-            ServerBootstrapImpl::new(self, address),
+        let bootstrap = ::datastore_capnp::data_store::ToClient::new(
+            ::worker::rpc::datastore::DataStoreImpl::new(self)
         ).from_server::<::capnp_rpc::Server>();
-
-        let network = twoparty::VatNetwork::new(
-            reader,
-            writer,
-            rpc_twoparty_capnp::Side::Server,
-            Default::default(),
-        );
-
-        let rpc_system = RpcSystem::new(Box::new(network), Some(bootstrap_obj.client));
-        self.inner.borrow().handle.spawn(rpc_system.map_err(|e| {
-            panic!("RPC error: {:?}", e)
-        }));*/
+        let rpc_system = ::common::rpc::new_rpc_system(stream, Some(bootstrap.client));
+        self.get().spawn_panic_on_error(rpc_system);
     }
 
     // This is called when worker connection to server is established
@@ -449,7 +435,7 @@ impl StateRef {
         let upstream =
             ::subworker_capnp::subworker_upstream::ToClient::new(SubworkerUpstreamImpl::new(self))
                 .from_server::<::capnp_rpc::Server>();
-        let rpc_system = new_rpc_system(stream, Some(upstream.client));
+        let rpc_system = ::common::rpc::new_rpc_system(stream, Some(upstream.client));
         let inner = self.get();
         inner
             .handle

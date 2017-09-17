@@ -134,11 +134,12 @@ impl Task {
     }
 
     /// Create future that finishes until the task is finished
-    /// it asserts that task is not finished
     pub fn wait(&mut self) -> oneshot::Receiver<()> {
-        assert!(!self.is_finished());
         let (sender, receiver) = oneshot::channel();
-        self.finish_hooks.push(sender);
+        match self.state {
+            TaskState::Finished => sender.send(()).unwrap(),
+            _ => self.finish_hooks.push(sender)
+        };
         receiver
     }
 

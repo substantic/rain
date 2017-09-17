@@ -1,5 +1,7 @@
-use futures::unsync::oneshot::Sender;
+use futures::unsync::oneshot;
 use std::fmt;
+
+use errors::Error;
 
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
@@ -48,7 +50,7 @@ pub struct DataObject {
     pub(in super::super) keep: KeepPolicy,
 
     /// Hooks executed when the task is finished
-    pub(in super::super) finish_hooks: Vec<Sender<()>>,
+    pub(in super::super) finish_hooks: Vec<oneshot::Sender<()>>,
 
     /// Final size if known. Must match `data` size when `data` present.
     pub(in super::super) size: Option<usize>,
@@ -76,6 +78,42 @@ impl DataObject {
         // TODO: Object state (or remove it)
     }
 
+    /// Inform observers that task is finished
+    fn trigger_finish_hooks(&mut self) {
+        for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
+            match sender.send(()) {
+                Ok(()) => { /* Do nothing */}
+                Err(e) => { /* Just log error, it is non fatal */
+                               debug!("Failed to inform about finishing dataobject");
+                }
+            }
+        }
+    }
+
+    pub fn set_state(&mut self, worker: &WorkerRef, new_state: DataObjectState, size: Option<usize>) {
+        self.located.insert(worker.clone());
+        self.state = new_state;
+        self.size = size;
+        match new_state {
+            DataObjectState::Finished => self.trigger_finish_hooks(),
+            _ => { /* do nothing */ }
+        };
+    }
+
+    /// Wait until dataobject is finished
+    pub fn wait(&mut self) -> oneshot::Receiver<()> {
+        let (sender, receiver) = oneshot::channel();
+        match self.state {
+            DataObjectState::Finished => sender.send(()).unwrap(),
+            _ => self.finish_hooks.push(sender)
+        };
+        receiver
+    }
+
+    #[inline]
+    pub fn state(&self) -> DataObjectState {
+        self.state
+    }
 }
 
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;

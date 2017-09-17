@@ -239,6 +239,7 @@ impl State {
     }
 
     pub fn update_states(&mut self,
+                         worker: &WorkerRef,
                          obj_updates: &[(DataObjectRef, DataObjectState, usize)],
                          task_updates: &[(TaskRef, TaskState)]) {
         debug!("Update states objs: {}, tasks: {}", obj_updates.len(), task_updates.len());
@@ -246,7 +247,10 @@ impl State {
             task.get_mut().set_state(state);
         }
 
-        // TODO: Process obj_updates
+
+        for &(ref obj, state, size) in obj_updates {
+            obj.get_mut().set_state(worker, state, Some(size));
+        }
 
         self.need_scheduling();
     }
@@ -275,6 +279,10 @@ impl State {
             self.add_task_to_worker(&task);
         }
         self.graph.ready_tasks.clear();
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
     }
 }
 

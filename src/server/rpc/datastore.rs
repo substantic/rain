@@ -1,3 +1,5 @@
+use common::convert::ToCapnp;
+use futures::Future;
 use capnp::capability::Promise;
 use common::convert::FromCapnp;
 use common::id::DataObjectId;
@@ -6,18 +8,82 @@ use server::graph::{DataObjectRef};
 use datastore_capnp::{reader, data_store, read_reply};
 use server::state::StateRef;
 
-
-pub struct DataStoreImpl {
+/// Data store provided for clients
+pub struct ClientDataStoreImpl {
     state: StateRef,
 }
 
-impl DataStoreImpl {
+impl ClientDataStoreImpl {
     pub fn new(state: &StateRef) -> Self {
         Self { state: state.clone() }
     }
 }
 
-impl data_store::Server for DataStoreImpl {
+impl data_store::Server for ClientDataStoreImpl {
+
+    fn create_reader(
+        &mut self,
+        params: data_store::CreateReaderParams,
+        mut results: data_store::CreateReaderResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let id = DataObjectId::from_capnp(&pry!(params.get_id()));
+        let object = pry!(self.state.get().object_by_id(id));
+        let offset = params.get_offset();
+
+        let state = self.state.clone();
+        let object1 = object.clone();
+        let object2 = object.clone();
+        let object3 = object.clone();
+        let mut obj = object2.get_mut();
+        Promise::from_future(obj.wait()
+            .map_err(|_| "Cancelled".into())
+            .and_then(move |()| {
+                let obj = object.get();
+                //assert!(obj.is_finished());
+                if obj.data.is_some() {
+                    unimplemented!();
+                }
+                let worker = obj.located.iter().next().unwrap().clone();
+                let worker2 = worker.clone();
+                let handle = state.get().handle().clone();
+                let future = worker.get_mut().wait_for_datastore(&worker, &handle).map(move |()| worker2);
+                future
+            }).and_then(move |worker| {
+                let worker = worker.get();
+                let datastore = worker.get_datastore();
+                let mut req = datastore.create_reader_request();
+                {
+                    let mut params = req.get();
+                    params.set_offset(offset);
+                    id.to_capnp(&mut params.get_id().unwrap());
+                }
+                req.send().promise.map_err(|e| e.into())
+            }).and_then(move |response| {
+               // TODO: Here we simply resend response from worker to client
+               // and fully utilize capnp. For resilience, we will probably need
+               // Some more sophisticated solution to cover worker crashes
+               let response = pry!(response.get());
+               results.set(response);
+               Promise::ok(())
+            }).map_err(|e| panic!("Fetch failed: {:?}", e)))
+    }
+
+}
+
+// Datastore provided for workers
+pub struct WorkerDataStoreImpl {
+    state: StateRef,
+}
+
+impl WorkerDataStoreImpl {
+    pub fn new(state: &StateRef) -> Self {
+        Self { state: state.clone() }
+    }
+}
+
+
+impl data_store::Server for WorkerDataStoreImpl {
 
     fn create_reader(
         &mut self,
@@ -42,9 +108,10 @@ impl data_store::Server for DataStoreImpl {
 
 }
 
+
+
 /// The implementation of reader that reads object
 /// that is localy stored in server
-/// This is counter-part of RemoteReaderImpl
 pub struct LocalReaderImpl {
     object: DataObjectRef,
     offset: usize,
@@ -89,8 +156,4 @@ impl reader::Server for LocalReaderImpl {
        self.offset = end;
        Promise::ok(())
     }
-}
-
-pub struct RemoteReaderImpl {
-    // TODO
 }

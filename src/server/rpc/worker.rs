@@ -4,7 +4,7 @@ use server::state::StateRef;
 use server::graph::{WorkerRef, DataObjectState};
 use worker_capnp::worker_upstream;
 use capnp::capability::Promise;
-use server::rpc::DataStoreImpl;
+use server::rpc::WorkerDataStoreImpl;
 
 pub struct WorkerUpstreamImpl {
     state: StateRef,
@@ -35,7 +35,7 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
         mut results: worker_upstream::GetDataStoreResults,
     ) -> Promise<(), ::capnp::Error> {
         let datastore = ::datastore_capnp::data_store::ToClient::new(
-            DataStoreImpl::new(&self.state),
+            WorkerDataStoreImpl::new(&self.state),
         ).from_server::<::capnp_rpc::Server>();
         results.get().set_store(datastore);
         Promise::ok(())
@@ -69,7 +69,7 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
           task_updates.push((task, pry!(task_update.get_state())));
         }
 
-        state.update_states(&obj_updates, &task_updates);
+        state.update_states(&self.worker, &obj_updates, &task_updates);
         Promise::ok(())
     }
 

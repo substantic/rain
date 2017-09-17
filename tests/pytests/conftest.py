@@ -142,21 +142,24 @@ class TestEnv(Env):
 
     def assert_duration(self, min_seconds, max_seconds, fn):
         start = time.time()
-        fn()
+        result = fn()
         diff = time.time() - start
         assert min_seconds <= diff <= max_seconds
+        return result
 
     def assert_min_duration(self, seconds, fn):
         start = time.time()
-        fn()
+        result = fn()
         diff = time.time() - start
         assert diff >= seconds
+        return result
 
     def assert_max_duration(self, seconds, fn):
         start = time.time()
-        fn()
+        result = fn()
         diff = time.time() - start
         assert diff <= seconds
+        return result
 
 
 def prepare():

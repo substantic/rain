@@ -115,6 +115,9 @@ class Session:
             if dataobj:
                 dataobj().state = rpc.common.DataObjectState.finished
 
+    def fetch(self, dataobject):
+        return self.client._fetch(dataobject)
+
     def remove(self, dataobjects):
         """Remove data objects"""
         for dataobj in dataobjects:

@@ -7,11 +7,11 @@ use common::id::{DataObjectId, TaskId, SessionId, SId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
 use server::state::StateRef;
-use super::datastore::DataStoreImpl;
 use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef, TaskInput};
 use errors::{Result, ResultExt};
 use common::keeppolicy::KeepPolicy;
 use common::Additional;
+use server::rpc::ClientDataStoreImpl;
 
 pub struct ClientServiceImpl {
     state: StateRef,
@@ -147,7 +147,7 @@ impl client_service::Server for ClientServiceImpl {
         mut results: client_service::GetDataStoreResults,
     ) -> Promise<(), ::capnp::Error> {
         let datastore = ::datastore_capnp::data_store::ToClient::new(
-            DataStoreImpl::new(&self.state)).from_server::<::capnp_rpc::Server>();
+            ClientDataStoreImpl::new(&self.state)).from_server::<::capnp_rpc::Server>();
         results.get().set_store(datastore);
         Promise::ok(())
     }
