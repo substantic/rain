@@ -59,6 +59,7 @@ impl TaskContext {
     }
 
     /// Finish an output of object of task defined by index in output array
+    /// It takes mutable reference to state!
     pub fn object_finished(&self, index: usize, data: Arc<Data>) {
         let dataobject = { let task = self.task.get();
                            task.outputs.get(index).unwrap().clone() };

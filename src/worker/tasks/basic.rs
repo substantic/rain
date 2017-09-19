@@ -4,7 +4,7 @@ use std::sync::Arc;
 use super::{TaskContext, TaskResult};
 use worker::state::State;
 use worker::graph::{DataBuilder, BlobBuilder};
-use futures::{Future, IntoFuture};
+use futures::{Future, IntoFuture, future};
 use errors::Result;
 use bytes::{Buf, LittleEndian};
 
@@ -19,16 +19,17 @@ pub fn task_concat(context: TaskContext, state: &State) -> TaskResult
         }
     }
 
-    let result_size : usize = inputs.iter().map(|d| d.size()).sum();
-    let mut builder = BlobBuilder::new();
-    builder.set_size(result_size);
-    for input in inputs {
-        builder.write_blob(&input);
-    }
-    let result = builder.build();
-
-    context.object_finished(0, Arc::new(result));
-    Ok(Box::new(Ok(context).into_future()))
+    Ok(Box::new(future::lazy(move || {
+        let result_size: usize = inputs.iter().map(|d| d.size()).sum();
+        let mut builder = BlobBuilder::new();
+        builder.set_size(result_size);
+        for input in inputs {
+            builder.write_blob(&input);
+        }
+        let result = builder.build();
+        context.object_finished(0, Arc::new(result));
+        Ok(context)
+    })))
 }
 
 /// Task that returns the input argument after a given number of milliseconds
