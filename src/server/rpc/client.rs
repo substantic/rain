@@ -9,7 +9,7 @@ use server::state::StateRef;
 use super::datastore::DataStoreImpl;
 use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef, TaskInput};
 use errors::{Result, ResultExt};
-use common::keeppolicy;
+use common::keeppolicy::KeepPolicy;
 use common::Additional;
 
 pub struct ClientServiceImpl {
@@ -87,7 +87,7 @@ impl client_service::Server for ClientServiceImpl {
                         None
                     };
                 let keep = if co.get_keep() {
-                    keeppolicy::Client
+                    KeepPolicy::Client
                 } else {
                     Default::default()
                 };
