@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 use common::asycinit::AsyncInitWrapper;
 use common::RcSet;
-use common::id::{SubworkerId, SessionId, WorkerId, empty_worker_id, Id, TaskId, DataObjectId};
+use common::id::{SId, SubworkerId, SessionId, WorkerId, empty_worker_id, Id, TaskId, DataObjectId};
 use common::convert::{ToCapnp, FromCapnp};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
@@ -76,24 +76,26 @@ impl State {
     }
 
     #[inline]
-    pub fn path_in_work_dir(&self, path: &Path) -> PathBuf {
-        self.work_dir.join(path)
-    }
-
-    pub fn create_dir_in_work_dir(&self, path: &Path) -> ::std::io::Result<()> {
-        ::std::fs::create_dir(self.path_in_work_dir(path))
+    pub fn work_dir(&self) -> &PathBuf {
+        &self.work_dir
     }
 
     pub fn subworker_listen_path(&self) -> PathBuf {
-        self.path_in_work_dir(Path::new("subworkers/listen"))
+        self.work_dir.join(Path::new("subworkers/listen"))
     }
 
     pub fn subworker_log_paths(&self, id: Id) -> (PathBuf, PathBuf) {
-        let out = self.path_in_work_dir(Path::new(&format!("subworkers/logs/subworker-{}.out",
+        let out = self.work_dir.join(Path::new(&format!("subworkers/logs/subworker-{}.out",
                                                           id)));
-        let err = self.path_in_work_dir(Path::new(&format!("subworkers/logs/subworker-{}.err",
+        let err = self.work_dir.join(Path::new(&format!("subworkers/logs/subworker-{}.err",
                                                           id)));
         (out, err)
+    }
+
+    pub fn temp_dir_for_task(&self, task_id: TaskId) -> Result<::tempdir::TempDir> {
+        ::tempdir::TempDir::new_in(self.work_dir.join("tasks"),
+                                   &format!("{}-{}", task_id.get_id(), task_id.get_session_id()))
+            .map_err(|e| e.into())
     }
 
     #[inline]
@@ -452,14 +454,10 @@ impl StateRef {
         // --- Create workdir layout ---
         {
             let state = self.get();
-            state.create_dir_in_work_dir(Path::new("data")).unwrap();
-            state.create_dir_in_work_dir(Path::new("tasks")).unwrap();
-            state
-                .create_dir_in_work_dir(Path::new("subworkers"))
-                .unwrap();
-            state
-                .create_dir_in_work_dir(Path::new("subworkers/logs"))
-                .unwrap();
+            ::std::fs::create_dir(state.work_dir.join("data")).unwrap();
+            ::std::fs::create_dir(state.work_dir.join("tasks")).unwrap();
+            ::std::fs::create_dir(state.work_dir.join("subworkers")).unwrap();
+            ::std::fs::create_dir(state.work_dir.join("subworkers/logs")).unwrap();
         }
 
         // --- Start listening Unix socket for subworkers ----

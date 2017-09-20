@@ -30,6 +30,7 @@ impl TaskContext {
     /// Start the task -- returns a future that is finished when task is finished
     pub fn start(self, state: &State) -> TaskResult {
         let task_function = match self.task.get().task_type.as_ref() {
+            "run" => tasks::run::task_run,
             "concat" => tasks::basic::task_concat,
             "sleep" => tasks::basic::task_sleep,
             task_type => bail!("Unknown task type {}", task_type)

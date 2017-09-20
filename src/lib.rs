@@ -19,6 +19,7 @@ extern crate error_chain;
 #[macro_use]
 extern crate lazy_static;
 extern crate bytes;
+extern crate tempdir;
 
 pub mod common;
 pub mod worker;
