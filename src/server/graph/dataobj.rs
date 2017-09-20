@@ -4,7 +4,6 @@ use std::fmt;
 use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
 use common::{RcSet, Additional};
-use common::keeppolicy::KeepPolicy;
 use super::{TaskRef, WorkerRef, SessionRef, Graph, TaskState};
 pub use common_capnp::{DataObjectState, DataObjectType};
 use errors::Result;
@@ -43,8 +42,8 @@ pub struct DataObject {
     /// Assigned session. Must match SessionId.
     pub(in super::super) session: SessionRef,
 
-    /// Reasons to keep the object alive
-    pub(in super::super) keep: KeepPolicy,
+    /// The object is requested to be kept by the client.
+    pub(in super::super) client_keep: bool,
 
     /// Hooks executed when the task is finished
     pub(in super::super) finish_hooks: Vec<Sender<()>>,
@@ -67,7 +66,7 @@ impl DataObjectRef {
                session: &SessionRef,
                id: DataObjectId,
                object_type: DataObjectType,
-               keep: KeepPolicy,
+               client_keep: bool,
                label: String,
                data: Option<Vec<u8>>,
                additional: Additional) -> Result<Self> {
@@ -90,7 +89,7 @@ impl DataObjectRef {
             located: Default::default(),
             assigned: Default::default(),
             session: session.clone(),
-            keep: keep,
+            client_keep: client_keep,
             finish_hooks: Vec::new(),
             size: data.as_ref().map(|v| v.len()),
             data: data,
@@ -186,7 +185,22 @@ impl DataObjectRef {
         if !s.finish_hooks.is_empty() && s.state != DataObjectState::Unfinished {
             bail!("finish hooks for finished/removed object in {:?}", s);
         }
-        // TODO: keepflags?
+        // keepflag and empty assigned (via Removed state)
+        // NOTE: Finished state already requires nonemplty locations
+        if s.client_keep && s.state == DataObjectState::Removed {
+            bail!("client_keep flag on removed object {:?}", s);
+        }
+        // used or kept objects must be assigned when their producers are
+        if (s.client_keep || !s.consumers.is_empty()) && s.assigned.is_empty() &&
+                s.state == DataObjectState::Unfinished {
+            if let Some(ref prod) = s.producer {
+                let p = prod.get();
+                if p.state == TaskState::Assigned || p.state == TaskState::Running {
+                    bail!(
+                    "Unfinished object is not assigned when it's producer task is in {:?}", s);
+                }
+            }
+        }
         Ok(())
     }
 

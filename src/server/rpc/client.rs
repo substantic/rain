@@ -9,7 +9,6 @@ use server::state::StateRef;
 use super::datastore::DataStoreImpl;
 use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef, TaskInput};
 use errors::{Result, ResultExt};
-use common::keeppolicy::KeepPolicy;
 use common::Additional;
 
 pub struct ClientServiceImpl {
@@ -86,15 +85,10 @@ impl client_service::Server for ClientServiceImpl {
                     } else {
                         None
                     };
-                let keep = if co.get_keep() {
-                    KeepPolicy::Client
-                } else {
-                    Default::default()
-                };
                 let additional = Additional {}; // TODO: decode additional
                 let o = DataObjectRef::new(&mut s.graph, &session, id,
                                            co.get_type().map_err(|_| "reading TaskType")?,
-                                           keep, co.get_label()?.to_string(),
+                                           co.get_keep(), co.get_label()?.to_string(),
                                            data, additional)?;
                 created_objects.push(o);
             }

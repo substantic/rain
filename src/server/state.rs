@@ -14,7 +14,6 @@ use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef,
                     ClientRef, DataObjectState, DataObjectType};
 use server::rpc::ServerBootstrapImpl;
 use common::wrapped::WrappedRcRefCell;
-use common::keeppolicy::KeepPolicy;
 use common::resources::Resources;
 use common::Additional;
 
@@ -61,11 +60,11 @@ impl State {
                session: &SessionRef,
                id: DataObjectId,
                object_type: DataObjectType,
-               keep: KeepPolicy,
+               client_keep: bool,
                label: String,
                data: Option<Vec<u8>>,
                additional: Additional) -> Result<DataObjectRef> {
-        DataObjectRef::new(&mut self.graph, session, id, object_type, keep,
+        DataObjectRef::new(&mut self.graph, session, id, object_type, client_keep,
                            label, data, additional)
     }
 
