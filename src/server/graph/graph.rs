@@ -12,10 +12,6 @@ pub struct Graph {
     pub (in super::super) sessions: HashMap<SessionId, SessionRef>,
     pub (in super::super) clients: HashMap<ClientId, ClientRef>,
 
-    pub (in super::super) new_tasks: Vec<TaskRef>,
-    pub (in super::super) finished_objects: Vec<DataObjectRef>,
-    pub (in super::super) ready_tasks: Vec<TaskRef>,
-
     /// The last SessionId assigned.
     session_id_counter: SessionId,
 }

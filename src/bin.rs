@@ -61,7 +61,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     loop {
         tokio_core.turn(None);
-        state.turn();
+        if !state.turn() { break; }
     }
 }
 

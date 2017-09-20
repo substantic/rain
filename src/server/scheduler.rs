@@ -6,25 +6,32 @@ use common::RcSet;
 #[derive(Default, Clone, Debug)]
 pub struct UpdatedOut {
     /// Tasks with updatet state
-    tasks: RcSet<TaskRef>,
+    pub(in super::super) tasks: RcSet<TaskRef>,
     /// Worker-DataObject updated pairs, grouped by worker
-    objects: HashMap<WorkerRef, RcSet<DataObjectRef>>,
+    pub(in super::super) objects: HashMap<WorkerRef, RcSet<DataObjectRef>>,
 }
 
 #[derive(Default, Clone, Debug)]
 pub struct UpdatedIn {
     /// Newly submitted Tasks.
-    new_tasks: RcSet<TaskRef>,
+    pub(in super::super) new_tasks: RcSet<TaskRef>,
     /// Newly submitted DataObjects.
-    new_objects: RcSet<DataObjectRef>,
+    pub(in super::super) new_objects: RcSet<DataObjectRef>,
     /// Old Tasks with changed state. Includes changes originating from workers, clients
     /// and the server assigning Task to Worker. Scheduler-requested operations
     /// (unscheduled already Assigned or Running tasks) are not included.
-    tasks: RcSet<TaskRef>,
+    pub(in super::super) tasks: RcSet<TaskRef>,
     /// Old DataObjects with changed state. Includes changes originating from workers, clients
     /// and the server assigning Object to Worker. Scheduler-requested operations
     /// (unscheduled already Assigned or Finished object) are not included.
-    objects: HashMap<DataObjectRef, RcSet<WorkerRef>>,
+    pub(in super::super) objects: HashMap<DataObjectRef, RcSet<WorkerRef>>,
+}
+
+impl UpdatedIn {
+    pub fn is_empty(&self) -> bool {
+        self.tasks.is_empty() && self.objects.is_empty() && self.new_tasks.is_empty() &&
+            self.new_objects.is_empty()
+    }
 }
 
 /// Scheduler interface. The Extra types are the types of a scheduler-specific attribute

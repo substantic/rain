@@ -87,10 +87,8 @@ impl client_service::Server for ClientServiceImpl {
                         None
                     };
                 let additional = Additional {}; // TODO: decode additional
-                let o = DataObjectRef::new(&mut s.graph, &session, id,
-                                           co.get_type().map_err(|_| "reading TaskType")?,
-                                           co.get_keep(), co.get_label()?.to_string(),
-                                           data, additional)?;
+                let o = s.add_object(&session, id,co.get_type().map_err(|_| "reading TaskType")?,
+                                     co.get_keep(), co.get_label()?.to_string(),data, additional)?;
                 created_objects.push(o);
             }
             // second create the tasks
@@ -110,10 +108,9 @@ impl client_service::Server for ClientServiceImpl {
                 for co in ct.get_outputs()?.iter() {
                     outputs.push(s.object_by_id(DataObjectId::from_capnp(&co))?);
                 }
-                let t = TaskRef::new(&mut s.graph, &session, id,
-                                            inputs, outputs,
-                                            ct.get_task_type()?.to_string(),
-                                            ct.get_task_config()?.into(), additional)?;
+                let t = s.add_task(&session, id, inputs, outputs,
+                                   ct.get_task_type()?.to_string(), ct.get_task_config()?.into(),
+                                   additional)?;
                 created_tasks.push(t);
             }
             // verify submit integrity
@@ -127,11 +124,7 @@ impl client_service::Server for ClientServiceImpl {
                 o.delete(&mut s.graph);
             }
             pry!(res);
-        } else {
-            s.graph.new_tasks = created_tasks;
-            s.need_scheduling();
         }
-
         Promise::ok(())
     }
 

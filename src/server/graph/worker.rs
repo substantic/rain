@@ -26,7 +26,7 @@ pub struct Worker {
 
     /// Scheduled tasks that are also ready but not yet assigned. Disjoint from
     /// `assigned_tasks`, subset of `scheduled_tasks`.
-    pub(super) scheduled_ready_tasks: RcSet<TaskRef>,
+    pub(in super::super) scheduled_ready_tasks: RcSet<TaskRef>,
 
     /// Obects fully located on the worker.
     pub(super) located_objects: RcSet<DataObjectRef>,

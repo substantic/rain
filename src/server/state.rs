@@ -1,7 +1,6 @@
 use std::net::{SocketAddr};
 use std::collections::HashMap;
 
-
 use futures::{Future, Stream};
 use tokio_core::reactor::Handle;
 use tokio_core::net::{TcpListener, TcpStream};
@@ -12,14 +11,15 @@ use errors::Result;
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId};
 use common::rpc::new_rpc_system;
 use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef,
-                    ClientRef, DataObjectState, DataObjectType, TaskState};
+                    ClientRef, DataObjectState, DataObjectType, TaskState, TaskInput};
 use server::rpc::ServerBootstrapImpl;
+use server::scheduler::{Scheduler, RandomScheduler, UpdatedIn, UpdatedOut};
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
 use common::Additional;
 
-pub struct State {
+pub struct State<S: Scheduler> {
     // Contained objects
     pub(super) graph: Graph,
 
@@ -32,9 +32,14 @@ pub struct State {
     /// Tokio core handle.
     handle: Handle,
 
+    stop_server: bool,
+
+    updates: UpdatedIn,
+
+    scheduler: S,
 }
 
-impl State {
+impl<S: Scheduler> State<S> {
     pub fn add_worker(&mut self,
                       address: SocketAddr,
                       control: Option<::worker_capnp::worker_control::Client>,
@@ -51,7 +56,10 @@ impl State {
     }
 
     pub fn remove_client(&mut self, client: &ClientRef)  -> Result<()> {
-        unimplemented!()
+        // TODO: what to do on client removal?
+        // Now just stop the server
+        self.stop_server = true;
+        Ok(())
     }
 
     pub fn add_session(&mut self, client: &ClientRef) -> Result<SessionRef> {
@@ -70,8 +78,10 @@ impl State {
                label: String,
                data: Option<Vec<u8>>,
                additional: Additional) -> Result<DataObjectRef> {
-        DataObjectRef::new(&mut self.graph, session, id, object_type, client_keep,
-                           label, data, additional)
+        let o = DataObjectRef::new(&mut self.graph, session, id, object_type, client_keep,
+                           label, data, additional)?;
+        self.updates.new_objects.insert(o.clone());
+        Ok(o)
     }
 
     pub fn remove_object(&mut self, object: &DataObjectRef) -> Result<()> {
@@ -81,8 +91,18 @@ impl State {
     pub fn unkeep_object(&mut self, object: &DataObjectRef) -> Result<()> { unimplemented!()
     }
 
-    pub fn add_task(&mut self, session: &SessionRef, id: TaskId /* TODO: more */) -> TaskRef {
-        unimplemented!()
+    pub fn add_task(&mut self,
+        session: &SessionRef,
+        id: TaskId,
+        inputs: Vec<TaskInput>,
+        outputs: Vec<DataObjectRef>,
+        task_type: String,
+        task_config: Vec<u8>,
+        additional: Additional,) -> Result<TaskRef> {
+        let t = TaskRef::new(&mut self.graph, session, id, inputs, outputs, task_type, task_config,
+            additional)?;
+        self.updates.new_tasks.insert(t.clone());
+        Ok(t)
     }
 
     pub fn remove_task(&mut self, task: &TaskRef) -> Result<()> {
@@ -169,7 +189,7 @@ impl State {
 
     }
 
-    pub fn add_task_to_worker(&self, task: &TaskRef) {
+    pub fn send_task_to_worker(&self, task: &TaskRef) {
         let mut t = task.get_mut();
         assert!(t.scheduled.is_some());
         assert!(t.assigned.is_none());
@@ -241,43 +261,60 @@ impl State {
                          worker: &WorkerRef,
                          obj_updates: &[(DataObjectRef, DataObjectState, usize)],
                          task_updates: &[(TaskRef, TaskState)]) {
-        debug!("Update states objs: {}, tasks: {}", obj_updates.len(), task_updates.len());
+        debug!("Update states for {:?}, objs: {}, tasks: {}", worker,
+               obj_updates.len(), task_updates.len());
         for &(ref task, state) in task_updates {
+            self.updates.tasks.insert(task.clone());
             task.get_mut().set_state(state);
         }
 
-
         for &(ref obj, state, size) in obj_updates {
+            self.updates.objects.entry(obj.clone()).or_insert(Default::default())
+                .insert(worker.clone());
             obj.get_mut().set_state(worker, state, Some(size));
         }
 
-        self.need_scheduling();
-    }
-
-    #[inline]
-    pub fn need_scheduling(&mut self) {
-        self.need_scheduling = true;
+        // TODO: actually update dependent task states, unkeep input objects, etc.
     }
 
     pub fn run_scheduler(&mut self) {
         debug!("Running scheduler");
 
         // Scheduler
-        let workers: Vec<_> = self.graph.workers.values().collect();
-        for (task, w) in self.graph.new_tasks.iter().zip(workers) {
-            let mut t = task.get_mut();
-            t.scheduled = Some(w.clone());
-            if t.inputs.iter().all(|i| i.object.get().data.is_some()) {
-                self.graph.ready_tasks.push(task.clone());
-            }
-        }
-        self.graph.new_tasks.clear();
+        let changed = self.scheduler.schedule(&mut self.graph, &self.updates);
+        self.updates = Default::default();
 
-        // Reactor
-        for task in &self.graph.ready_tasks {
-            self.add_task_to_worker(&task);
+        for (w, os) in changed.objects.iter() {
+            // TODO: actually issue keep / unkeep requests
         }
-        self.graph.ready_tasks.clear();
+
+        let mut hacky_tasks_to_send = Vec::new();
+
+        for tref in changed.tasks.iter() {
+            let mut t = tref.get_mut();
+            if t.assigned.is_some() {
+                if t.assigned != t.scheduled {
+                    panic!("Unscheduling tasks unsupported! {:?}", t);
+                }
+            } else {
+                if let Some(ref wref) = t.scheduled {
+                    if t.state == TaskState::Ready {
+                        // TODO: actually let the reactor push the tasks to workers, as in
+                        // wref.get_mut().scheduled_ready_tasks.insert(tref.clone());
+                        hacky_tasks_to_send.push(tref.clone());
+                    }
+                } else {
+                    warn!("Scheduler reported unmodified task {:?}", t);
+                }
+            }
+
+        }
+
+        // TODO: Hacky hacky hacky
+        for tref in hacky_tasks_to_send {
+            self.send_task_to_worker(&tref);
+        }
+
     }
 
     pub fn handle(&self) -> &Handle {
@@ -286,7 +323,7 @@ impl State {
 }
 
 /// Note: No `Drop` impl as a `State` is assumed to live forever.
-pub type StateRef = WrappedRcRefCell<State>;
+pub type StateRef = WrappedRcRefCell<State<RandomScheduler>>;
 
 impl StateRef {
     pub fn new(handle: Handle, listen_address: SocketAddr) -> Self {
@@ -295,6 +332,9 @@ impl StateRef {
             need_scheduling: false,
             listen_address: listen_address,
             handle: handle,
+            scheduler: Default::default(),
+            updates: Default::default(),
+            stop_server: false,
         })
     }
 
@@ -321,12 +361,14 @@ impl StateRef {
         info!("Start listening on address={}", listen_address);
     }
 
-    pub fn turn(&self) {
+    /// Main loop State entry. Returns `false` when the server should stop.
+    pub fn turn(&self) -> bool {
         let mut state = self.get_mut();
-        if state.need_scheduling {
-            state.need_scheduling = false;
+        // TODO: better conditional scheduling
+        if !state.updates.is_empty() {
             state.run_scheduler();
         }
+        !state.stop_server
     }
 
     fn on_connection(&self, stream: TcpStream, address: SocketAddr) {
