@@ -58,7 +58,7 @@ impl<S: Scheduler> State<S> {
     pub fn remove_client(&mut self, client: &ClientRef)  -> Result<()> {
         // TODO: what to do on client removal?
         // Now just stop the server
-        self.stop_server = true;
+        // self.stop_server = true;
         Ok(())
     }
 

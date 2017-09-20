@@ -59,6 +59,10 @@ impl Scheduler for RandomScheduler {
 
     fn schedule(&mut self, graph: &mut Graph, updated: &UpdatedIn) -> UpdatedOut {
         let mut up_out: UpdatedOut = Default::default();
+        if graph.workers.is_empty() {
+            warn!("Scheduler is running with empty workers -- not doing anything.");
+            return up_out;
+        }
 
         for tr in updated.new_tasks.iter() {
             let mut t = tr.get_mut();
