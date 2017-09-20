@@ -69,11 +69,13 @@ interface WorkerControl {
 
     addNodes @1 (newTasks :List(Task), newObjects :List(DataObject)) -> ();
 
-    removeNodes @2 (removeTasks :List(TaskId), removeObjects :List(DataObjectId)) -> ();
+    unassignObjects @2 (objects :List(DataObjectId)) -> ();
 
-    getWorkerState @3 () -> (status: Void);
+    stopTasks @3 (tasks :List(TaskId)) -> ();
 
-    getWorkerResources @4 () -> Resources;
+    getWorkerState @4 () -> (status: Void);
+
+    getWorkerResources @5 () -> Resources;
     # TODO: actual status: CPU, resources, counters, ...
 
     # TODO: Control worker (shutdown, pause) etc ...
@@ -120,7 +122,9 @@ struct DataObject {
     # Current object state. All input objects (external or local) should be `finished` or
     # `running` (when streaming), output objects `assigned`.
 
-    label @5 :Text;
+    assigned @5 :Bool;
 
-    additional @6: Additional;
+    label @6 :Text;
+
+    additional @7 :Additional;
 }
