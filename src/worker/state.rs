@@ -15,7 +15,6 @@ use common::asycinit::AsyncInitWrapper;
 use common::RcSet;
 use common::id::{SubworkerId, SessionId, WorkerId, empty_worker_id, Id, TaskId, DataObjectId};
 use common::convert::{ToCapnp, FromCapnp};
-use common::rpc::new_rpc_system;
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
@@ -159,6 +158,8 @@ impl State {
 
     pub fn object_is_finished(&mut self, dataobj: &DataObjectRef, data: Arc<Data>) {
         let mut dataobject = dataobj.get_mut();
+        debug!("Object id={} is finished", dataobject.id);
+
         dataobject.set_data(data);
         self.updated_objects.insert(dataobj.clone());
 
@@ -179,6 +180,9 @@ impl State {
 
     /// Send status of updated elements (updated_tasks/updated_objects) and then clear this sets
     pub fn send_update(&mut self) {
+
+        debug!("Sending update objs={}, tasks={}",
+               self.updated_objects.len(), self.updated_tasks.len());
 
         let mut req = self.upstream.as_ref().unwrap().update_states_request();
 
@@ -277,18 +281,26 @@ impl State {
     }
 
     pub fn start_task(&mut self, task: TaskRef, state_ref: &StateRef) {
-        task.get_mut().state = TaskState::Running;
+        {
+            let mut t = task.get_mut();
+            t.state = TaskState::Running;
+            debug!("Task id={} started", t.id);
+        }
+
         self.updated_tasks.insert(task.clone());
 
         let future = TaskContext::new(task, state_ref.clone()).start(self).unwrap();
 
         let state_ref = state_ref.clone();
         self.handle.spawn(future.and_then(move |context| {
-            context.task.get_mut().state = TaskState::Finished;
+            let mut task = context.task.get_mut();
+            task.state = TaskState::Finished;
+            debug!("Task id={} finished", task.id);
+
             state_ref.get_mut().updated_tasks.insert(context.task.clone());
 
-            for input in &context.task.get().inputs {
-                if (input.object.get().is_finished()) {
+            for input in &task.inputs {
+                if (!input.object.get().is_finished()) {
                     bail!("Not all inputs produced");
                 }
             }
@@ -303,6 +315,32 @@ impl State {
         // TODO: Some serious scheduling
         if let Some(task) = self.graph.ready_tasks.pop() {
             self.start_task(task, state_ref);
+        }
+    }
+
+    pub fn wait_for_datastore(&mut self, state: &StateRef, worker_id: &WorkerId) -> Box<Future<Item=(), Error=Error>> {
+        if let Some(ref mut wrapper) = self.datastores.get_mut(worker_id) {
+            return wrapper.wait();
+        }
+
+        let mut wrapper = AsyncInitWrapper::new();
+        self.datastores.insert(worker_id.clone(), wrapper);
+
+        let state = state.clone();
+        let worker_id = worker_id.clone();
+
+        if worker_id.ip().is_unspecified() {
+            // Data are on server
+            let req = self.upstream.as_ref().unwrap().get_data_store_request();
+            Box::new(req.send().promise.map(move |r| {
+                let datastore = r.get().unwrap().get_store().unwrap();
+                let mut inner = state.get_mut();
+                let mut wrapper = inner.datastores.get_mut(&worker_id).unwrap();
+                wrapper.set_value(datastore);
+            }).map_err(|e| e.into()))
+        } else {
+            // Data are on workers
+            unimplemented!();
         }
     }
 }
@@ -333,25 +371,12 @@ impl StateRef {
 
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
-        let (reader, writer) = stream.split();
 
-        panic!("Not implemented yet");
-        /*
-        let bootstrap_obj = ::server_capnp::server_bootstrap::ToClient::new(
-            ServerBootstrapImpl::new(self, address),
+        let bootstrap = ::datastore_capnp::data_store::ToClient::new(
+            ::worker::rpc::datastore::DataStoreImpl::new(self)
         ).from_server::<::capnp_rpc::Server>();
-
-        let network = twoparty::VatNetwork::new(
-            reader,
-            writer,
-            rpc_twoparty_capnp::Side::Server,
-            Default::default(),
-        );
-
-        let rpc_system = RpcSystem::new(Box::new(network), Some(bootstrap_obj.client));
-        self.inner.borrow().handle.spawn(rpc_system.map_err(|e| {
-            panic!("RPC error: {:?}", e)
-        }));*/
+        let rpc_system = ::common::rpc::new_rpc_system(stream, Some(bootstrap.client));
+        self.get().spawn_panic_on_error(rpc_system);
     }
 
     // This is called when worker connection to server is established
@@ -410,7 +435,7 @@ impl StateRef {
         let upstream =
             ::subworker_capnp::subworker_upstream::ToClient::new(SubworkerUpstreamImpl::new(self))
                 .from_server::<::capnp_rpc::Server>();
-        let rpc_system = new_rpc_system(stream, Some(upstream.client));
+        let rpc_system = ::common::rpc::new_rpc_system(stream, Some(upstream.client));
         let inner = self.get();
         inner
             .handle
@@ -501,34 +526,4 @@ impl StateRef {
             state.send_update()
         }
     }
-
-    pub fn wait_for_datastore(&self, worker_id: &WorkerId) -> Box<Future<Item=(), Error=Error>> {
-        let mut inner = self.get_mut();
-            if let Some(ref mut wrapper) = inner.datastores.get_mut(worker_id) {
-                return wrapper.wait();
-            }
-
-        let mut wrapper = AsyncInitWrapper::new();
-        let wait = wrapper.wait();
-        inner.datastores.insert(worker_id.clone(), wrapper);
-
-        let state = self.clone();
-        let worker_id = worker_id.clone();
-
-        if worker_id.ip().is_unspecified() {
-            // Data are on server
-            let req = inner.upstream.as_ref().unwrap().get_data_store_request();
-            Box::new(req.send().promise.and_then(move |r| {
-                let datastore = r.get().unwrap().get_store().unwrap();
-                let mut inner = state.get_mut();
-                let mut wrapper = inner.datastores.get_mut(&worker_id).unwrap();
-                wrapper.set_value(datastore);
-                Ok(())
-            }).map_err(|e| e.into()))
-        } else {
-            // Data are on workers
-            unimplemented!();
-        }
-    }
-
 }

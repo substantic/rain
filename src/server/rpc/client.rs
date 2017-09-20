@@ -1,15 +1,16 @@
 use capnp::capability::Promise;
 use std::net::SocketAddr;
 use std::iter::FromIterator;
+use futures::{Future};
 
 use common::id::{DataObjectId, TaskId, SessionId, SId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
 use server::state::StateRef;
-use super::datastore::DataStoreImpl;
 use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef, TaskInput};
 use errors::{Result, ResultExt};
 use common::Additional;
+use server::rpc::ClientDataStoreImpl;
 
 pub struct ClientServiceImpl {
     state: StateRef,
@@ -126,7 +127,11 @@ impl client_service::Server for ClientServiceImpl {
                 o.delete(&mut s.graph);
             }
             pry!(res);
+        } else {
+            s.graph.new_tasks = created_tasks;
+            s.need_scheduling();
         }
+
         Promise::ok(())
     }
 
@@ -136,7 +141,7 @@ impl client_service::Server for ClientServiceImpl {
         mut results: client_service::GetDataStoreResults,
     ) -> Promise<(), ::capnp::Error> {
         let datastore = ::datastore_capnp::data_store::ToClient::new(
-            DataStoreImpl::new(&self.state)).from_server::<::capnp_rpc::Server>();
+            ClientDataStoreImpl::new(&self.state)).from_server::<::capnp_rpc::Server>();
         results.get().set_store(datastore);
         Promise::ok(())
     }
@@ -153,9 +158,19 @@ impl client_service::Server for ClientServiceImpl {
         info!("New wait request ({} tasks, {} data objects) from client",
               task_ids.len(), object_ids.len());
 
-        //TODO: Wait for tasks / dataobjs to finish
+        // TODO: Get rid of unwrap and do proper error handling
+        let futures: Vec<_> = task_ids.iter()
+            .map(|id| s.task_by_id(TaskId::from_capnp(&id)).unwrap())
+            .filter(|t| !t.get().is_finished())
+            .map(|t| t.get_mut().wait())
+            .collect();
 
-        Promise::ok(())
+        debug!("{} waiting futures", futures.len());
+
+        // TODO: Wait for data objects
+        Promise::from_future(::futures::future::join_all(futures)
+                             .map(|_| ())
+                             .map_err(|e| panic!("Wait failed")))
     }
 
     fn wait_some(

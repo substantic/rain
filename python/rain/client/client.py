@@ -17,7 +17,7 @@ class Client:
         bootstrap = self.rpc_client.bootstrap().cast_as(rpc.server.ServerBootstrap)
         registration = bootstrap.registerAsClient(CLIENT_PROTOCOL_VERSION)
         self.service = registration.wait().service
-        self.datastore = self.service.getDataStore().wait()
+        self.datastore = self.service.getDataStore().wait().store
 
     def new_session(self):
         session_id = self.service.newSession().wait().sessionId
@@ -44,6 +44,22 @@ class Client:
             dataobjs[i].to_capnp(req.objects[i])
 
         req.send().wait()
+
+
+    def _fetch(self, dataobj):
+        req = self.datastore.createReader_request()
+        req.id.id = dataobj.id
+        req.id.sessionId = dataobj.session.session_id
+        req.offset = 0
+        reader = req.send().wait().reader
+        FETCH_SIZE = 2 << 20  # 2MB
+        eof = False
+        data = []
+        while not eof:
+            r = reader.read(FETCH_SIZE).wait()
+            data.append(r.data)
+            eof = r.status == "eof"
+        return b"".join(data)
 
     def _wait(self, tasks, dataobjs):
         req = self.service.wait_request()

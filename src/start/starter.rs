@@ -1,5 +1,5 @@
 
-use std::process::{Command};
+use std::process::Command;
 use std::path::{Path, PathBuf};
 use std::net::SocketAddr;
 use start::process::{Process, Readiness};
@@ -11,7 +11,6 @@ use nix::unistd::getpid;
 
 /// Starts server & workers
 pub struct Starter {
-
     /// Number of local worker that will be spawned
     n_local_workers: u32,
 
@@ -22,20 +21,17 @@ pub struct Starter {
     log_dir: PathBuf,
 
     /// Spawned and running processes
-    processes: Vec<Process>
+    processes: Vec<Process>,
 }
 
 
 impl Starter {
-
-    pub fn new(local_workers: u32,
-               server_listen_address: SocketAddr,
-               log_dir: PathBuf) -> Self {
+    pub fn new(local_workers: u32, server_listen_address: SocketAddr, log_dir: PathBuf) -> Self {
         Self {
             n_local_workers: local_workers,
             server_listen_address,
             log_dir,
-            processes: Vec::new()
+            processes: Vec::new(),
         }
     }
 
@@ -53,12 +49,18 @@ impl Starter {
         ::std::env::args().nth(0).unwrap()
     }
 
-    fn spawn_process(&mut self, name: &str, ready_file: &Path, command: &mut Command) -> Result<&Process> {
+    fn spawn_process(
+        &mut self,
+        name: &str,
+        ready_file: &Path,
+        command: &mut Command,
+    ) -> Result<&Process> {
         self.processes.push(Process::spawn(
             &self.log_dir,
             name,
             Readiness::WaitingForReadyFile(ready_file.to_path_buf()),
-            command)?);
+            command,
+        )?);
         Ok(&self.processes.last().unwrap())
     }
 
@@ -72,14 +74,16 @@ impl Starter {
         let rain = self.local_rain_program();
         let server_address = format!("{}", self.server_listen_address);
         info!("Starting local server ({})", server_address);
-        let process = self.spawn_process("server",
-                                         &ready_file,
-                                     Command::new(rain)
-                                         .arg("server")
-                                         .arg("--listen")
-                                         .arg(&server_address)
-                                         .arg("--ready_file")
-                                         .arg(&ready_file))?;
+        let process = self.spawn_process(
+            "server",
+            &ready_file,
+            Command::new(rain)
+                .arg("server")
+                .arg("--listen")
+                .arg(&server_address)
+                .arg("--ready_file")
+                .arg(&ready_file),
+        )?;
         info!("Server pid = {}", process.id());
         Ok(())
     }
@@ -87,16 +91,18 @@ impl Starter {
     fn start_local_workers(&mut self) -> Result<()> {
         info!("Starting {} local workers", self.n_local_workers);
         let rain = self.local_rain_program();
-        let server_address : String = format!("127.0.0.1:{}", self.server_listen_address.port());
+        let server_address: String = format!("127.0.0.1:{}", self.server_listen_address.port());
         for i in 0..self.n_local_workers {
             let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
-            let process = self.spawn_process(&format!("worker-{}", i),
-                                             &ready_file,
-                                             Command::new(&rain)
-                                                 .arg("worker")
-                                                 .arg(&server_address)
-                                                 .arg("--ready_file")
-                                                 .arg(&ready_file))?;
+            let process = self.spawn_process(
+                &format!("worker-{}", i),
+                &ready_file,
+                Command::new(&rain)
+                    .arg("worker")
+                    .arg(&server_address)
+                    .arg("--ready_file")
+                    .arg(&ready_file),
+            )?;
         }
         Ok(())
     }
@@ -104,7 +110,7 @@ impl Starter {
     /// Waits until all processes are ready
     pub fn busy_wait_for_ready(&mut self) -> Result<()> {
         let mut timeout_ms = 50; // Timeout, it it increased every cycle upto 1.5 seconds
-        while(0 != self.check_all_ready()?) {
+        while (0 != self.check_all_ready()?) {
             ::std::thread::sleep(::std::time::Duration::from_millis(timeout_ms));
             if timeout_ms < 1500 {
                 timeout_ms += 50;
@@ -132,8 +138,8 @@ impl Starter {
     pub fn kill_all(&mut self) {
         for mut process in ::std::mem::replace(&mut self.processes, Vec::new()) {
             match process.kill() {
-                Ok(()) => {},
-                Err(e) => debug!("Kill failed: {}", e.description())
+                Ok(()) => {}
+                Err(e) => debug!("Kill failed: {}", e.description()),
             };
         }
     }

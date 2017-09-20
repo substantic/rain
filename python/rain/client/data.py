@@ -60,6 +60,9 @@ class DataObject:
     def wait(self):
         self.session.wait((), (self,))
 
+    def fetch(self):
+        return self.session.fetch(self)
+
     def __del__(self):
         if self.state is not None and self._keep:
             self.session.free(self)

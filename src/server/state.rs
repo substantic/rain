@@ -1,6 +1,7 @@
 use std::net::{SocketAddr};
 use std::collections::HashMap;
 
+
 use futures::{Future, Stream};
 use tokio_core::reactor::Handle;
 use tokio_core::net::{TcpListener, TcpStream};
@@ -11,8 +12,9 @@ use errors::Result;
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId};
 use common::rpc::new_rpc_system;
 use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef,
-                    ClientRef, DataObjectState, DataObjectType};
+                    ClientRef, DataObjectState, DataObjectType, TaskState};
 use server::rpc::ServerBootstrapImpl;
+use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
 use common::Additional;
@@ -21,11 +23,15 @@ pub struct State {
     // Contained objects
     pub(super) graph: Graph,
 
+    /// If true, next "turn" the scheduler is executed
+    need_scheduling: bool,
+
     /// Listening port and address.
     listen_address: SocketAddr,
 
     /// Tokio core handle.
     handle: Handle,
+
 }
 
 impl State {
@@ -162,6 +168,121 @@ impl State {
         Ok(())
 
     }
+
+    pub fn add_task_to_worker(&self, task: &TaskRef) {
+        let mut t = task.get_mut();
+        assert!(t.scheduled.is_some());
+        assert!(t.assigned.is_none());
+
+        // Collect objects
+
+        // objects is vector of pairs (object, worker_id) where worker_id is placement
+        // of object data object
+        let mut objects: Vec<(DataObjectRef, WorkerId)> = Vec::new();
+        let worker_ref = t.scheduled.as_ref().unwrap().clone();
+        t.assigned = Some(worker_ref.clone());
+        let worker = worker_ref.get();
+        let worker_id = worker.id().clone();
+        let empty_worker_id = ::common::id::empty_worker_id();
+
+        for input in &t.inputs {
+            let mut o = input.object.get_mut();
+            if !o.assigned.contains(&worker_ref) {
+
+                // Just take first placement
+                let placement = o.located.iter().next()
+                    .map(|w| w.get().id().clone())
+                    .unwrap_or_else(|| {
+                        // If there is no placement, then server is the source of datobject
+                        assert!(o.data.is_some());
+                        empty_worker_id.clone()
+                    });
+                objects.push((input.object.clone(), placement));
+                o.assigned.insert(worker_ref.clone());
+            }
+        }
+        for output in &t.outputs {
+            objects.push((output.clone(), worker_id.clone()));
+            output.get_mut().assigned.insert(worker_ref.clone());
+        }
+
+        debug!("Assiging task id={} to worker={}", t.id, worker.id());
+
+        // Create request
+
+        let mut req = worker.control.as_ref().unwrap().add_nodes_request();
+
+        // Serialize objects
+        {
+            let mut new_objects = req.get().init_new_objects(objects.len() as u32);
+            for (i, &(ref object, placement)) in objects.iter().enumerate() {
+                let mut co = &mut new_objects.borrow().get(i as u32);
+                placement.to_capnp(&mut co.borrow().get_placement().unwrap());
+                let obj = object.get();
+                obj.to_worker_capnp(&mut co);
+                // TODO: Additionals
+                // TODO: Object state (or remove it)
+            }
+        }
+
+        // Serialize tasks
+        {
+            let mut new_tasks = req.get().init_new_tasks(1);
+            t.to_worker_capnp(&mut new_tasks.get(0));
+        }
+
+        self.handle.spawn(req
+            .send().promise
+            .map(|_| ())
+            .map_err(|e| panic!("Send failed {:?}", e)));
+    }
+
+    pub fn update_states(&mut self,
+                         worker: &WorkerRef,
+                         obj_updates: &[(DataObjectRef, DataObjectState, usize)],
+                         task_updates: &[(TaskRef, TaskState)]) {
+        debug!("Update states objs: {}, tasks: {}", obj_updates.len(), task_updates.len());
+        for &(ref task, state) in task_updates {
+            task.get_mut().set_state(state);
+        }
+
+
+        for &(ref obj, state, size) in obj_updates {
+            obj.get_mut().set_state(worker, state, Some(size));
+        }
+
+        self.need_scheduling();
+    }
+
+    #[inline]
+    pub fn need_scheduling(&mut self) {
+        self.need_scheduling = true;
+    }
+
+    pub fn run_scheduler(&mut self) {
+        debug!("Running scheduler");
+
+        // Scheduler
+        let workers: Vec<_> = self.graph.workers.values().collect();
+        for (task, w) in self.graph.new_tasks.iter().zip(workers) {
+            let mut t = task.get_mut();
+            t.scheduled = Some(w.clone());
+            if t.inputs.iter().all(|i| i.object.get().data.is_some()) {
+                self.graph.ready_tasks.push(task.clone());
+            }
+        }
+        self.graph.new_tasks.clear();
+
+        // Reactor
+        for task in &self.graph.ready_tasks {
+            self.add_task_to_worker(&task);
+        }
+        self.graph.ready_tasks.clear();
+    }
+
+    pub fn handle(&self) -> &Handle {
+        &self.handle
+    }
 }
 
 /// Note: No `Drop` impl as a `State` is assumed to live forever.
@@ -171,6 +292,7 @@ impl StateRef {
     pub fn new(handle: Handle, listen_address: SocketAddr) -> Self {
         Self::wrap(State {
             graph: Default::default(),
+            need_scheduling: false,
             listen_address: listen_address,
             handle: handle,
         })
@@ -200,7 +322,11 @@ impl StateRef {
     }
 
     pub fn turn(&self) {
-        // Now do nothing
+        let mut state = self.get_mut();
+        if state.need_scheduling {
+            state.need_scheduling = false;
+            state.run_scheduler();
+        }
     }
 
     fn on_connection(&self, stream: TcpStream, address: SocketAddr) {

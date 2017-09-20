@@ -104,26 +104,20 @@ impl worker_control::Server for WorkerControlImpl {
         for object in remote_objects {
             let worker_id = object.get().remote().unwrap();
 
-            self.state.wait_for_datastore(&worker_id).and_then(|()| {
-                Ok(())
-            });
-
             let state_ref1 = self.state.clone();
             let state_ref2 = self.state.clone();
             let object_ref = object.clone();
-            state.spawn_panic_on_error(
-                self.state.wait_for_datastore(&worker_id).and_then(move |()| {
+            let future = state.wait_for_datastore(&self.state, &worker_id).and_then(move |()| {
                     // Ask for data
                     let state = state_ref1.get();
                     let datastore = state.get_datastore(&worker_id);
                     fetch_from_datastore(&object, datastore)
-                }).and_then(move |data| {
+                }).map(move |data| {
                     // Data obtained
                     let mut state = state_ref2.get_mut();
                     state.object_is_finished(&object_ref, Arc::new(data));
-                    Ok(())
-                })
-            );
+                });
+            state.spawn_panic_on_error(future);
         }
 
 

@@ -52,6 +52,13 @@ impl Data {
         }
     }
 
+    pub fn as_slice(&self) -> Option<&[u8]> {
+        match self.storage {
+            Storage::Memory(ref mem) => Some(mem),
+            Storage::Path(_) => unimplemented!()
+        }
+    }
+
     /// Map data object on a given path
     /// Caller is responsible for deleteion of the path
     /// It creates a symlink to real data or new file if data only in memory

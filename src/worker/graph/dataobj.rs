@@ -57,6 +57,7 @@ impl DataObject {
 
     pub fn set_data(&mut self, data: Arc<Data>) {
         assert!(!self.is_finished());
+        self.size = Some(data.size());
         self.state = DataObjectState::Finished(data)
     }
 
@@ -94,6 +95,8 @@ impl DataObjectRef {
                keep: KeepPolicy,
                size: Option<usize>,
                label: String) -> Self {
+
+        debug!("New object id={}", id);
         let dataobj = Self::wrap(DataObject {
             id,
             state,

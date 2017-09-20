@@ -60,7 +60,11 @@ impl Task {
     pub fn input_finished(&mut self, object: &DataObjectRef) -> bool {
         let found = self.waiting_for.remove(object);
         assert!(found);
-        self.waiting_for.is_empty()
+        let is_ready = self.waiting_for.is_empty();
+        if is_ready {
+            debug!("Task id={} is ready", self.id);
+        }
+        is_ready
     }
 
 }
@@ -77,6 +81,7 @@ impl TaskRef {
         task_type: String,
         task_config: Vec<u8>
     ) -> Self {
+        debug!("New task id={} type={}", id, task_type);
 
         let waiting_for: RcSet<_> = (&inputs)
             .iter()
@@ -93,6 +98,11 @@ impl TaskRef {
             task_config,
             state: TaskState::Assigned,
         });
+
+        for obj in &task.get().waiting_for {
+            obj.get_mut().consumers.insert(task.clone());
+        }
+
         graph.tasks.insert(id, task.clone());
 
         task

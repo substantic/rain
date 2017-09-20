@@ -2,12 +2,17 @@ use futures::unsync::oneshot::Sender;
 use std::net::SocketAddr;
 use std::fmt;
 
+use futures::Future;
+
+use errors::Error;
+use common::asycinit::AsyncInitWrapper;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
 use common::id::WorkerId;
 use common::resources::Resources;
 use super::{TaskRef, DataObjectRef, Graph};
 use errors::Result;
+
 
 pub struct Worker {
     /// Unique ID, here the registration socket address.
@@ -34,7 +39,9 @@ pub struct Worker {
     pub(super) scheduled_objects: RcSet<DataObjectRef>,
 
     /// Control interface. Optional for testing and modelling.
-    control: Option<::worker_capnp::worker_control::Client>,
+    pub (in super::super) control: Option<::worker_capnp::worker_control::Client>,
+
+    datastore: Option<AsyncInitWrapper<::datastore_capnp::data_store::Client>>,
 
     // Resources. TODO: Extract resources into separate struct
     resources: Resources,
@@ -42,6 +49,46 @@ pub struct Worker {
 }
 
 pub type WorkerRef = WrappedRcRefCell<Worker>;
+
+impl Worker {
+
+    #[inline]
+    pub fn id(&self) -> &WorkerId {
+        &self.id
+    }
+
+    /// Get datastore of worker,
+    /// First you have to call wait_for_datastore to make sure that
+    /// datastore exists
+    pub fn get_datastore(&self) ->  &::datastore_capnp::data_store::Client {
+        self.datastore.as_ref().unwrap().get()
+    }
+
+    /// Create a future that completes when datastore is available
+    pub fn wait_for_datastore(&mut self, worker_ref: &WorkerRef, handle: &::tokio_core::reactor::Handle) -> Box<Future<Item=(), Error=Error>> {
+        if let Some(ref mut store) = self.datastore {
+            return store.wait();
+        }
+
+        self.datastore = Some(AsyncInitWrapper::new());
+
+        let worker_ref = worker_ref.clone();
+        let handle = handle.clone();
+
+        Box::new(::tokio_core::net::TcpStream::connect(&self.id, &handle)
+            .map(move |stream| {
+                let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
+                let bootstrap: ::datastore_capnp::data_store::Client =
+                    rpc_system.bootstrap(::capnp_rpc::rpc_twoparty_capnp::Side::Server);
+                handle.spawn(rpc_system.map_err(|e| {
+                    panic!("Rpc system error: {:?}", e)
+                }));
+                worker_ref.get_mut().datastore.as_mut().unwrap().set_value(bootstrap);
+            }).map_err(|e| e.into()))
+    }
+
+}
+
 
 impl WorkerRef {
     pub fn new(graph: &mut Graph,
@@ -63,6 +110,7 @@ impl WorkerRef {
             control: control,
             resources: resources.clone(),
             free_resources: resources,
+            datastore: None,
         });
         // add to graph
         graph.workers.insert(s.get().id, s.clone());
