@@ -37,19 +37,8 @@ pub struct Task {
     /// but multiplicities in `inputs` are here represented only once.
     pub(in super::super) waiting_for: RcSet<DataObjectRef>,
 
-
-    // Worker o task: vi / nevi      W
-    // Task je ready: ano / ne       R
-    // Task je naplanovan: ano / ne  S
-    // ()-NotAss
-    // (S)-NotAss - sched
-    // (R)-Ready -
-    // (SR)-Ready -
-    // (WRS)-Assign/Run
-    // () - assigned
-
     /// The task was already sent to the following Worker as Ready.
-    /// The state of the Task should be Ready or NotAssigned
+    /// The state of the Task should be Ready or NotAssigned.
     pub(in super::super) assigned: Option<WorkerRef>,
 
     /// The Worker scheduled to receive the task.
@@ -172,10 +161,9 @@ impl TaskRef {
             let w = wr.get();
             if !w.scheduled_tasks.contains(self) {
                 bail!("scheduled asymmetry in {:?}", s);
-                if w.scheduled_ready_tasks.contains(self) !=
-                    (s.state == TaskState::Ready) {
-                    bail!("scheduled_ready_task inconsistency in {:?} at {:?}", s, w);
-                }
+            }
+            if w.scheduled_ready_tasks.contains(self) != (s.state == TaskState::Ready) {
+                bail!("scheduled_ready_task inconsistency in {:?} at {:?}", s, w);
             }
         }
         if !s.session.get().tasks.contains(self) {
@@ -270,26 +258,6 @@ impl fmt::Debug for TaskRef {
     }
 }
 
-/*
-impl fmt::Debug for Task {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Task")
-            .field("id", &self.id)
-            .field("session", &self.id)
-            .field("assigned", &self.id)
-            .field("state", &self.state)
-            .field("inputs", &self.inputs)
-            .field("outputs", &self.outputs)
-            .field("waiting_for", &self.waiting_for)
-            .field("task_type", &self.task_type)
-            .field("task_config", &self.task_config)
-            .field("finish_hooks", &format!("[{} Senders]", self.finish_hooks.len()))
-            .field("additional", &self.additional)
-            .finish()
-    }
-}
-*/
-
 impl fmt::Debug for TaskState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", match *self {
@@ -298,7 +266,6 @@ impl fmt::Debug for TaskState {
             TaskState::Ready => "Ready",
             TaskState::Running => "Running",
             TaskState::Finished => "Finished",
-            _ => panic!("Unknown TaskState"),
         })
     }
 }

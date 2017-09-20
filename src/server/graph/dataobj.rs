@@ -164,7 +164,7 @@ impl DataObjectRef {
             }
         }
         // state consistency
-        if (!match s.state {
+        if !match s.state {
             DataObjectState::Unfinished =>
                 s.scheduled.len() <= 1 && s.assigned.len() <= 1 && s.producer.is_some(),
             DataObjectState::Finished =>
@@ -172,7 +172,7 @@ impl DataObjectRef {
             DataObjectState::Removed =>
                 s.located.is_empty() && s.scheduled.is_empty() && s.assigned.is_empty() &&
                 s.finish_hooks.is_empty() && s.size.is_some() && s.data.is_none(),
-        }) {
+        } {
             bail!("state inconsistency in {:?}", s);
         }
         // data consistency
@@ -240,7 +240,6 @@ impl fmt::Debug for DataObjectState {
             DataObjectState::Unfinished => "Unfinished",
             DataObjectState::Finished => "Finished",
             DataObjectState::Removed => "Removed",
-            _ => panic!("Unknown DataObjectState"),
         })
     }
 }
@@ -251,7 +250,6 @@ impl fmt::Debug for DataObjectType {
             DataObjectType::Blob => "Blob",
             DataObjectType::Directory => "Directory",
             DataObjectType::Stream => "Stream",
-            _ => panic!("Unknown DataObjectType"),
         })
     }
 }
