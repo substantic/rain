@@ -40,6 +40,32 @@ impl worker_control::Server for WorkerControlImpl {
         Promise::ok(())
     }
 
+    fn unassign_objects(&mut self,
+                 params: worker_control::UnassignObjectsParams,
+                 mut _results: worker_control::UnassignObjectsResults)
+                 -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let objects = pry!(params.get_objects());
+
+        let mut state = self.state.get_mut();
+        for cid in objects.iter() {
+            let id = DataObjectId::from_capnp(&cid);
+            debug!("Unassigning object id={}", id);
+
+            let dataobject = pry!(state.object_by_id(id));
+            let mut obj = dataobject.get_mut();
+            if !obj.assigned {
+                return Promise::err(::capnp::Error::failed("Object exists in worker but is not assigned".into()));
+            }
+            obj.assigned = false;
+            if obj.consumers.is_empty() {
+                let found = state.graph.objects.remove(&id);
+                assert!(found.is_some());
+            }
+        }
+        Promise::ok(())
+    }
+
     fn add_nodes(&mut self,
                  params: worker_control::AddNodesParams,
                  mut _results: worker_control::AddNodesResults)
@@ -70,10 +96,9 @@ impl worker_control::Server for WorkerControlImpl {
 
             let label = pry!(co.get_label()).to_string();
 
-            // TODO: Correct value of keep
-            let keep = Default::default();
+            let assigned = co.get_assigned();
 
-            let dataobject = state.add_dataobject(id, object_state, object_type, keep, size, label);
+            let dataobject = state.add_dataobject(id, object_state, object_type, assigned, size, label);
 
             if is_remote {
                 remote_objects.push(dataobject);

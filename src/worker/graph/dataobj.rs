@@ -41,7 +41,7 @@ pub struct DataObject {
 
     pub(in super::super) obj_type: DataObjectType,
 
-    pub(in super::super) keep: KeepPolicy,
+    pub(in super::super) assigned: bool,
 
     /// ??? Is this necessary for worker?
     pub(in super::super) size: Option<usize>,
@@ -92,7 +92,7 @@ impl DataObjectRef {
                id: DataObjectId,
                state: DataObjectState,
                obj_type: DataObjectType,
-               keep: KeepPolicy,
+               assigned: bool,
                size: Option<usize>,
                label: String) -> Self {
 
@@ -104,7 +104,7 @@ impl DataObjectRef {
                     id,
                     state,
                     size,
-                    keep,
+                    assigned,
                     obj_type,
                     consumers: Default::default(),
                     label

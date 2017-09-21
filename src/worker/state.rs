@@ -39,7 +39,7 @@ use errors::{Error, Result};
 use WORKER_PROTOCOL_VERSION;
 
 pub struct State {
-    graph: Graph,
+    pub(super) graph: Graph,
 
     /// If true, next "turn" the scheduler is executed
     need_scheduling: bool,
@@ -272,10 +272,10 @@ impl State {
                           id: DataObjectId,
                           state: DataObjectState,
                           obj_type: DataObjectType,
-                          keep: KeepPolicy,
+                          assigned: bool,
                           size: Option<usize>,
                           label: String) -> DataObjectRef {
-        let dataobj = DataObjectRef::new(&mut self.graph, id, state, obj_type, keep, size, label);
+        let dataobj = DataObjectRef::new(&mut self.graph, id, state, obj_type, assigned, size, label);
         /*if dataobj.remote().is_some() {
             self.fetch_dataobject(&dataobj)
         }*/
@@ -299,11 +299,19 @@ impl State {
             task.state = TaskState::Finished;
             debug!("Task id={} finished", task.id);
 
-            state_ref.get_mut().updated_tasks.insert(context.task.clone());
+            let mut state = state_ref.get_mut();
+            state.updated_tasks.insert(context.task.clone());
 
             for input in &task.inputs {
-                if !input.object.get().is_finished() {
+                let mut obj = input.object.get_mut();
+                if !obj.is_finished() {
                     bail!("Not all inputs produced");
+                }
+                let found = obj.consumers.remove(&context.task);
+                // We test "found" because of possible multiple occurence of object in inputs
+                if found && !obj.assigned && obj.consumers.is_empty() {
+                    let removed = state.graph.objects.remove(&obj.id);
+                    assert!(removed.is_some());
                 }
             }
             Ok(())
