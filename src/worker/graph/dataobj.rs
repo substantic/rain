@@ -97,17 +97,33 @@ impl DataObjectRef {
                label: String) -> Self {
 
         debug!("New object id={}", id);
-        let dataobj = Self::wrap(DataObject {
-            id,
-            state,
-            size,
-            keep,
-            obj_type,
-            consumers: Default::default(),
-            label
-        });
-        graph.objects.insert(dataobj.get().id, dataobj.clone());
-        dataobj
+
+        match graph.objects.entry(id.clone()) {
+            ::std::collections::hash_map::Entry::Vacant(e) => {
+                let dataobj = Self::wrap(DataObject {
+                    id,
+                    state,
+                    size,
+                    keep,
+                    obj_type,
+                    consumers: Default::default(),
+                    label
+                });
+                e.insert(dataobj.clone());
+                dataobj
+            }
+          ::std::collections::hash_map::Entry::Occupied(e) => {
+              let dataobj = e.get().clone();
+              {
+                  let obj = dataobj.get();
+                  // TODO: If object is remote and not finished and new remote obtained,
+                  // then update remote
+                  assert!(obj.id == id);
+                  assert!(obj.obj_type == obj_type);
+              }
+              dataobj
+          }
+        }
     }
 
 }

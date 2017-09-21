@@ -302,7 +302,7 @@ impl State {
             state_ref.get_mut().updated_tasks.insert(context.task.clone());
 
             for input in &task.inputs {
-                if (!input.object.get().is_finished()) {
+                if !input.object.get().is_finished() {
                     bail!("Not all inputs produced");
                 }
             }
