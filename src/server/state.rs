@@ -22,6 +22,10 @@ use common::resources::Resources;
 use common::{Additionals, ConsistencyCheck};
 use common::events::Event;
 
+use hyper::server::Http;
+use server::http::RequestHandler;
+
+
 pub struct State {
     // Contained objects
     pub(super) graph: Graph,
@@ -913,6 +917,23 @@ impl StateRef {
             });
         handle.spawn(future);
         info!("Start listening on address={}", listen_address);
+
+        // ---- Start HTTP server ----
+        let http_address = "0.0.0.0:8080".parse().unwrap();
+        let listener = TcpListener::bind(&http_address, &handle).unwrap();
+        let http = Http::new();
+        let handle1 = self.get().handle.clone();
+        let http_server = listener
+            .incoming()
+            .for_each(move |(sock, http_address)| {
+                http.bind_connection(&handle1, sock, http_address, RequestHandler);
+                Ok(())
+            })
+            .map_err(|e| {
+                panic!("HTTP server failed {:?}", e);
+            });
+        handle.spawn(http_server);
+        info!("HTTP server running on address={}", http_address);
     }
 
     /// Main loop State entry. Returns `false` when the server should stop.

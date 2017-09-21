@@ -39,6 +39,7 @@ tempdir = "*"
 memmap = "*"
 sysconf = "*"
 sys-info = "*"
+hyper = "*"
 
 
 [build-dependencies]

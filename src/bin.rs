@@ -28,6 +28,8 @@ const DEFAULT_WORKER_PORT: u16 = 0;
 const CLIENT_PROTOCOL_VERSION: i32 = 0;
 const WORKER_PROTOCOL_VERSION: i32 = 0;
 
+const DEFAULT_HTTP_PORT: u16 = 8080;
+
 
 fn parse_listen_arg(args: &ArgMatches, default_port: u16) -> SocketAddr {
     if !args.is_present("LISTEN_ADDRESS") {
