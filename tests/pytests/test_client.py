@@ -48,7 +48,7 @@ def test_new_session_id(test_env):
 
 
 def test_submit(test_env):
-    test_env.start(0)
+    test_env.start(1)
     client = test_env.client
     s = client.new_session()
     with s:
@@ -63,20 +63,8 @@ def test_submit(test_env):
     assert t2.state == rpc.common.TaskState.notAssigned
 
 
-def test_wait(test_env):
-    test_env.start(0)
-    client = test_env.client
-    s = client.new_session()
-    with s:
-        t1 = tasks.concat("a", "b")
-    s.submit()
-    assert t1.state == rpc.common.TaskState.notAssigned
-    s.wait((t1,), ())
-    assert t1.state == rpc.common.TaskState.finished
-
-
 def test_wait_some(test_env):
-    test_env.start(0)
+    test_env.start(1)
     client = test_env.client
     s = client.new_session()
     with s:
@@ -93,7 +81,7 @@ def test_wait_some(test_env):
 
 
 def test_wait_all(test_env):
-    test_env.start(0)
+    test_env.start(1)
     client = test_env.client
     s = client.new_session()
     with s:
@@ -104,7 +92,7 @@ def test_wait_all(test_env):
 
 
 def test_remove(test_env):
-    test_env.start(0)
+    test_env.start(1)
     client = test_env.client
     s = client.new_session()
     with s:
@@ -121,7 +109,7 @@ def test_remove(test_env):
 
 
 def test_get_state(test_env):
-    test_env.start(0)
+    test_env.start(1)
     client = test_env.client
     s = client.new_session()
     with s:
@@ -131,7 +119,7 @@ def test_get_state(test_env):
 
 
 def test_task_wait(test_env):
-    test_env.start(0)
+    test_env.start(1)
     client = test_env.client
     s = client.new_session()
     with s:
@@ -144,7 +132,7 @@ def test_task_wait(test_env):
 
 
 def test_dataobj_wait(test_env):
-    test_env.start(0)
+    test_env.start(1)
     client = test_env.client
     s = client.new_session()
     with s:
