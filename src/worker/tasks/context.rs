@@ -2,10 +2,10 @@
 use std::sync::Arc;
 use futures::Future;
 
-use worker::graph::{TaskRef};
+use worker::graph::{TaskRef, DataObjectRef};
 use errors::{Result, Error};
 use worker::state::{StateRef, State};
-use worker::graph::Data;
+use worker::data::Data;
 use worker::tasks;
 
 pub type TaskFuture = Future<Item=TaskContext, Error=Error>;
@@ -61,9 +61,8 @@ impl TaskContext {
 
     /// Finish an output of object of task defined by index in output array
     /// It takes mutable reference to state!
-    pub fn object_finished(&self, index: usize, data: Arc<Data>) {
-        let dataobject = { let task = self.task.get();
-                           task.outputs.get(index).unwrap().clone() };
-        self.state.get_mut().object_is_finished(&dataobject, data);
+    pub fn output(&self, index: usize) -> DataObjectRef {
+        let task = self.task.get();
+        task.outputs.get(index).unwrap().clone()
     }
 }

@@ -20,6 +20,7 @@ extern crate error_chain;
 extern crate lazy_static;
 extern crate bytes;
 extern crate tempdir;
+extern crate memmap;
 
 pub mod common;
 pub mod worker;

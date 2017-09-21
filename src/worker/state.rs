@@ -19,10 +19,11 @@ use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState,
-                    Graph, TaskRef, TaskInput, TaskState, SubworkerRef, start_python_subworker,
-                    DataBuilder, BlobBuilder, Data};
+                    Graph, TaskRef, TaskInput, TaskState, SubworkerRef, start_python_subworker};
+use worker::data::{DataBuilder, Data, BlobBuilder};
 use worker::tasks::TaskContext;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
+use worker::fs::workdir::WorkDir;
 
 use futures::{Future, future};
 use futures::Stream;
@@ -35,7 +36,6 @@ use tokio_uds::{UnixListener, UnixStream};
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use capnp::capability::Promise;
 use errors::{Error, Result};
-use super::workdir::WorkDir;
 
 use WORKER_PROTOCOL_VERSION;
 
@@ -141,11 +141,9 @@ impl State {
         }
     }
 
-    pub fn object_is_finished(&mut self, dataobj: &DataObjectRef, data: Arc<Data>) {
+    pub fn object_is_finished(&mut self, dataobj: &DataObjectRef) {
         let mut dataobject = dataobj.get_mut();
         debug!("Object id={} is finished", dataobject.id);
-
-        dataobject.set_data(data);
         self.updated_objects.insert(dataobj.clone());
 
         let mut new_ready = false;
@@ -159,8 +157,6 @@ impl State {
         if new_ready {
             self.need_scheduling();
         }
-
-        // TODO inform server
     }
 
     /// Send status of updated elements (updated_tasks/updated_objects) and then clear this sets
@@ -287,9 +283,6 @@ impl State {
 
             for input in &task.inputs {
                 let mut obj = input.object.get_mut();
-                if !obj.is_finished() {
-                    bail!("Not all inputs produced");
-                }
                 let found = obj.consumers.remove(&context.task);
                 // We test "found" because of possible multiple occurence of object in inputs
                 if found && !obj.assigned && obj.consumers.is_empty() {
@@ -297,6 +290,18 @@ impl State {
                     assert!(removed.is_some());
                 }
             }
+
+            for output in &task.outputs {
+                let obj = output.get();
+                if !obj.is_finished() {
+                    bail!("Not all outputs produced");
+                }
+            }
+
+            for output in &task.outputs {
+                state.object_is_finished(output);
+            }
+
             Ok(())
         }).map_err(|e| {
             // TODO: Handle error properly

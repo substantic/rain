@@ -140,7 +140,8 @@ impl worker_control::Server for WorkerControlImpl {
                 }).map(move |data| {
                     // Data obtained
                     let mut state = state_ref2.get_mut();
-                    state.object_is_finished(&object_ref, Arc::new(data));
+                    object_ref.get_mut().set_data(Arc::new(data));
+                    state.object_is_finished(&object_ref);
                 });
             state.spawn_panic_on_error(future);
         }

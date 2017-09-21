@@ -12,3 +12,13 @@ def test_program_sleep_1(test_env):
         t1 = program()
         s.submit()
         test_env.assert_duration(0.99, 1.1, lambda: t1.wait())
+
+
+def test_program_stdout(test_env):
+    """Capturing stdout"""
+    test_env.start(1)
+    program = tasks.Program("ls /", stdout="output")
+    with test_env.client.new_session() as s:
+        t1 = program()
+        s.submit()
+        assert b"etc\n" in t1.out.output.fetch()

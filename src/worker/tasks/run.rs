@@ -7,6 +7,7 @@ use std::os::unix::io::{FromRawFd, IntoRawFd};
 
 use super::{TaskContext, TaskResult};
 use worker::state::State;
+use worker::data::{Data, DataType};
 use errors::{Result, Error};
 
 
@@ -26,6 +27,7 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult
 
         let rargs: ::std::result::Result<Vec<_>, ::capnp::Error> = run_config.get_args()?.iter().collect();
         let args = rargs?;
+
         let name = args.get(0).ok_or_else(|| "Arguments are empty")?;
 
         let task = context.task.get();
@@ -59,7 +61,28 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult
                     None => bail!("Program terminated by signal")
                 }
             }
-            let dir = dir;
+            {
+                let state = context.state.get();
+                let config = &context.task.get().task_config;
+                let task = context.task.get();
+
+                let mut cursor = ::std::io::Cursor::new(&config);
+                let reader = ::capnp::serialize_packed::read_message(
+                    &mut cursor,
+                    ::capnp::message::ReaderOptions::new())?;
+                let run_config = reader.get_root::<::tasks_capnp::run_task::Reader>()?;
+
+                for (path, dataobj) in run_config.get_output_paths()?.iter().zip(&task.outputs) {
+                    let path = dir.path().join(path?);
+                    if !path.is_file() {
+                        bail!("Output '{}' not found");
+                    }
+                    let mut obj = dataobj.get_mut();
+                    let target_path = state.work_dir().path_for_dataobject(&obj.id);
+                    let data = Data::new_by_fs_move(&path, target_path)?;
+                    obj.set_data(Arc::new(data));
+                }
+            }
             Ok(context)
         })))
 }

@@ -3,12 +3,15 @@ use common::id::{DataObjectId, WorkerId};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
-use super::{TaskRef, Graph, Data};
+use super::{TaskRef, Graph};
+use worker::data::{Data, DataType};
+use worker::fs::workdir::WorkDir;
 
 use std::net::SocketAddr;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::path::Path;
 
 pub use common_capnp::{DataObjectType};
 
@@ -58,7 +61,7 @@ impl DataObject {
     pub fn set_data(&mut self, data: Arc<Data>) {
         assert!(!self.is_finished());
         self.size = Some(data.size());
-        self.state = DataObjectState::Finished(data)
+        self.state = DataObjectState::Finished(data);
     }
 
     #[inline]

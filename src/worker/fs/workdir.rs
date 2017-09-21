@@ -1,8 +1,10 @@
 
 use std::path::{Path, PathBuf};
 
-use common::id::{SubworkerId, TaskId, SId};
+use common::id::{SubworkerId, TaskId, SId, DataObjectId};
 use errors::Result;
+
+
 
 pub struct WorkDir {
     path: PathBuf
@@ -37,8 +39,12 @@ impl WorkDir {
     /// Create temporary directory for task
     pub fn make_task_temp_dir(&self, task_id: TaskId) -> Result<::tempdir::TempDir> {
         ::tempdir::TempDir::new_in(self.path.join("tasks"),
-                                   &format!("{}-{}", task_id.get_id(), task_id.get_session_id()))
+                                   &format!("{}-{}", task_id.get_session_id(), task_id.get_id()))
             .map_err(|e| e.into())
+    }
+
+    pub fn path_for_dataobject(&self, id: &DataObjectId) -> PathBuf {
+        self.path.join(Path::new(&format!("data/{}-{}", id.get_session_id(), id.get_id())))
     }
 
 }

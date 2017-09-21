@@ -4,7 +4,7 @@
 struct RunTask {
 
     args @0 :List(Text);
-    mapInputs @1 :List(Text);
-    mapOutputs @2 :List(Text);
+    inputPaths @1 :List(Text);
+    outputPaths @2 :List(Text);
 
 }

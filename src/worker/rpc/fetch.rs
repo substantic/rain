@@ -2,7 +2,8 @@
 use futures::{Future, future};
 
 use common::convert::ToCapnp;
-use worker::graph::{DataBuilder, DataObjectRef, Data, BlobBuilder};
+use worker::graph::{DataObjectRef};
+use worker::data::{DataBuilder, Data, BlobBuilder};
 use errors::Error;
 
 
