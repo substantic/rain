@@ -1,3 +1,55 @@
+**Q:** Are client-keeps of objects managed by Scheduler or just the Reactor?
+
+## Reactor
+
+A common loop turn elements:
+
+### Fetch worker updates
+
+Receive: states of tasks, objects and workers, updating graph states. Moreover:
+
+* Finished tasks vacate worker resources. New tasks are not assigned at this point.
+
+* Running tasks are just updated.
+
+* Finished objects are removed from their consumer tasks requirements. These tasks may 
+become ready and possibly placed into scheduled_ready on their worker. 
+
+* Located tasks (copies) are just updated.
+
+* Worker errors are not handled in any way, just panic.
+
+All updates are piled up for the scheduler.
+
+### Fetch client updates
+
+Receive: Submits, unkeeps, waits, fetches.
+
+Submits are added to graph, added to sceduler events, verified for consistency. 
+
+Unkeeps are applied directly to graph. If a Finished data object has no schedules, 
+unassign it and remove it.
+
+**TODO:** specify waits and fetches of unfinished data.
+
+### Run scheduler
+
+Scheduler is ran only with certain periodicity and depending on pending updates (new 
+submit?) and last scheduler run-time (do not spend too much time in scheduling).  
+
+**Idea:** Run scheduler only if the last run was more than *threshold* ago. The threshold
+values are given for new submits present (e.g. 10ms, but not zero), for updates present
+(e.g. 100ms) and no updates (e.g. 1s). The threshold may be increased in case the last
+scheduling took very long (in order to spend e.g. <50% time scheduling).  
+
+**TODO:** Specify timing conditions.
+
+### Assign tasks and objects to workers
+
+For every worker, assign or un-assign any objects directly.
+
+For every worker, run through scheduled ready workers and overbook the worker by 
+assigning the tasks and objects. (Sending info on all objects not assigned to worker.)
 
 ## Scheduler interaction
 
