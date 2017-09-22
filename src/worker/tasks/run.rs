@@ -29,7 +29,7 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult
         let name = args.get(0).ok_or_else(|| "Arguments are empty")?;
 
         let task = context.task.get();
-        let dir = state.temp_dir_for_task(task.id)?;
+        let dir = state.work_dir().make_task_temp_dir(task.id)?;
 
         let out_id = File::create(dir.path().join("+out"))
             .expect("File for stdout cannot be opened").into_raw_fd();

@@ -35,6 +35,7 @@ use tokio_uds::{UnixListener, UnixStream};
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use capnp::capability::Promise;
 use errors::{Error, Result};
+use super::workdir::WorkDir;
 
 use WORKER_PROTOCOL_VERSION;
 
@@ -62,7 +63,7 @@ pub struct State {
     timer: tokio_timer::Timer,
 
     /// Path to working directory
-    work_dir: PathBuf,
+    work_dir: WorkDir,
 
     resources: Resources,
 }
@@ -76,26 +77,8 @@ impl State {
     }
 
     #[inline]
-    pub fn work_dir(&self) -> &PathBuf {
+    pub fn work_dir(&self) -> &WorkDir {
         &self.work_dir
-    }
-
-    pub fn subworker_listen_path(&self) -> PathBuf {
-        self.work_dir.join(Path::new("subworkers/listen"))
-    }
-
-    pub fn subworker_log_paths(&self, id: Id) -> (PathBuf, PathBuf) {
-        let out = self.work_dir.join(Path::new(&format!("subworkers/logs/subworker-{}.out",
-                                                          id)));
-        let err = self.work_dir.join(Path::new(&format!("subworkers/logs/subworker-{}.err",
-                                                          id)));
-        (out, err)
-    }
-
-    pub fn temp_dir_for_task(&self, task_id: TaskId) -> Result<::tempdir::TempDir> {
-        ::tempdir::TempDir::new_in(self.work_dir.join("tasks"),
-                                   &format!("{}-{}", task_id.get_id(), task_id.get_session_id()))
-            .map_err(|e| e.into())
     }
 
     #[inline]
@@ -368,7 +351,7 @@ impl StateRef {
                            .tick_duration(Duration::from_millis(100))
                            .num_slots(256)
                            .build(),
-                       work_dir,
+                       work_dir: WorkDir::new(work_dir),
                        worker_id: empty_worker_id(),
                        graph: Graph::new(),
                        need_scheduling: false,
@@ -462,14 +445,10 @@ impl StateRef {
         // --- Create workdir layout ---
         {
             let state = self.get();
-            ::std::fs::create_dir(state.work_dir.join("data")).unwrap();
-            ::std::fs::create_dir(state.work_dir.join("tasks")).unwrap();
-            ::std::fs::create_dir(state.work_dir.join("subworkers")).unwrap();
-            ::std::fs::create_dir(state.work_dir.join("subworkers/logs")).unwrap();
         }
 
         // --- Start listening Unix socket for subworkers ----
-        let listener = UnixListener::bind(self.get().subworker_listen_path(), &handle)
+        let listener = UnixListener::bind(self.get().work_dir().subworker_listen_path(), &handle)
             .expect("Cannot initialize unix socket for subworkers");
         let state = self.clone();
         let future = listener

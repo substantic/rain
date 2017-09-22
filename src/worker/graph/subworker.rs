@@ -42,7 +42,7 @@ pub fn start_python_subworker(state: &StateRef) -> SubworkerId
 {
     let mut state = state.get_mut();
     let subworker_id = state.make_subworker_id();
-    let (log_path_out, log_path_err) = state.subworker_log_paths(subworker_id);
+    let (log_path_out, log_path_err) = state.work_dir().subworker_log_paths(subworker_id);
 
     info!("Staring new subworker {}", subworker_id);
     info!("Subworker stdout log: {:?}", log_path_out);
@@ -63,7 +63,7 @@ pub fn start_python_subworker(state: &StateRef) -> SubworkerId
         .arg("rain.subworker")
         .stdout(log_path_out_pipe)
         .stderr(log_path_err_pipe)
-        .env("RAIN_SUBWORKER_SOCKET", state.subworker_listen_path())
+        .env("RAIN_SUBWORKER_SOCKET", state.work_dir().subworker_listen_path())
         .env("RAIN_SUBWORKER_ID", subworker_id.to_string())
         .status_async(state.handle())
         .and_then(move |status| {
