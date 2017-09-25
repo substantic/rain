@@ -4,22 +4,33 @@ from .data import Blob
 from .task import Task
 from . import rpc
 
+
 class Program:
 
-    def __init__(self, args, inputs=(), outputs=(), stdout=None):
+    def __init__(self, args, stdout=None):
         if isinstance(args, str):
             args = tuple(shlex.shlex(args))
         self.args = args
 
-        self.output_paths = tuple(o[0] for o in outputs)
-        self.output_labels = tuple(o[1] for o in outputs)
+        self.output_paths = []
+        self.output_labels = []
 
-        self.input_paths = tuple(o[0] for o in inputs)
-        self.input_labels = tuple(o[1] for o in inputs)
+        self.input_paths = []
+        self.input_labels = []
 
         if stdout is not None:
-            self.output_paths += ("+out",)
-            self.output_labels += (stdout,)
+            # +out is a name of where stdout is redirected
+            self.output("+out", stdout)
+
+    def input(self, path, label):
+        """Create new input"""
+        self.input_paths.append(path)
+        self.input_labels.append(label)
+
+    def output(self, path, label):
+        """Create new output"""
+        self.output_paths.append(path)
+        self.output_labels.append(label)
 
     def __repr__(self):
         return "<Program {}>".format(self.args)
