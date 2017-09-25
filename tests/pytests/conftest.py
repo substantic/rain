@@ -133,7 +133,7 @@ class TestEnv(Env):
         if self._client is not None:
             return self._client
         import rain  # noqa
-        client = rain.Client("127.0.0.1", self.running_port)
+        client = rain.client.Client("127.0.0.1", self.running_port)
         self._client = client
         return client
 

@@ -1,5 +1,5 @@
-from rain.client import rpc, session, tasks
-from rain import RainException
+from rain.client import tasks
+from rain.client import RainException
 
 import pytest
 

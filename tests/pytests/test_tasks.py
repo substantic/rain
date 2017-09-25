@@ -1,7 +1,7 @@
 
-from rain.client.task import Task
+from rain.client import Task
 from rain.client.data import DataObject, Blob
-from rain import RainException
+
 
 import pytest
 
