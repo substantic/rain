@@ -106,7 +106,7 @@ impl Drop for Data {
 
     fn drop(&mut self) {
         match self.storage {
-            Storage::Path(_) => unimplemented!(),
+            Storage::Path(ref data) => ::std::fs::remove_file(&data.path).unwrap(),
             Storage::Memory(_) => { /* Do nothing */ }
         }
     }
