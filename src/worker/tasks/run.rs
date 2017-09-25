@@ -25,14 +25,22 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult
 
         let run_config = reader.get_root::<::tasks_capnp::run_task::Reader>()?;
 
+        // Parse arguments
         let rargs: ::std::result::Result<Vec<_>, ::capnp::Error> = run_config.get_args()?.iter().collect();
         let args = rargs?;
-
         let name = args.get(0).ok_or_else(|| "Arguments are empty")?;
-
         let task = context.task.get();
+
         let dir = state.work_dir().make_task_temp_dir(task.id)?;
 
+        // Map inputs
+        for (path, input) in run_config.get_input_paths()?.iter().zip(&task.inputs) {
+            let obj = input.object.get();
+            obj.data().map_to_path(&dir.path().join(path?))?;
+        }
+
+
+        // Create files for stdout/stderr
         let out_id = File::create(dir.path().join("+out"))
             .expect("File for stdout cannot be opened").into_raw_fd();
         let err_id = File::create(dir.path().join("+err"))

@@ -2,6 +2,8 @@ use std::io::Read;
 use std::path::{PathBuf, Path};
 use std::os::unix::fs::PermissionsExt;
 
+use errors::Result;
+
 pub struct DataOnFs {
     pub path: PathBuf,
     /// If data is directory than size is sum of sizes of all blobs in directory
@@ -74,8 +76,20 @@ impl Data {
     /// Map data object on a given path
     /// Caller is responsible for deletion of the path
     /// It creates a symlink to real data or new file if data only in memory
-    pub fn map_to_path(&self, path: &Path) {
-        unimplemented!()
+    pub fn map_to_path(&self, path: &Path) -> Result<()> {
+        use std::io::Write;
+        use std::os::unix::fs::symlink;
+
+        match self.storage {
+            Storage::Memory(ref data) => {
+                let mut file = ::std::fs::File::create(path)?;
+                file.write_all(data)?;
+            }
+            Storage::Path(ref data) => {
+                symlink(&data.path, path)?;
+            }
+        };
+        Ok(())
     }
 
     #[inline]

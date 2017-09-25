@@ -33,3 +33,14 @@ def test_program_create_file(test_env):
         t1 = program()
         s.submit()
         assert t1.out.my_output.fetch() == b"ABC\n"
+
+
+def test_program_input_file(test_env):
+    """Capturing file"""
+    test_env.start(1)
+    args = ("/bin/grep", "ab", "input.txt")
+    program = tasks.Program(args, inputs=(("input.txt", "in1"),), stdout="output")
+    with test_env.client.new_session() as s:
+        t1 = program(in1="abc\nNOTHING\nabab")
+        s.submit()
+        assert t1.out.output.fetch() == b"abc\nabab\n"
