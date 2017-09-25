@@ -11,7 +11,7 @@ use bytes::{Buf, LittleEndian};
 /// Task that merge all input blobs and merge them into one blob
 pub fn task_concat(context: TaskContext, state: &State) -> TaskResult
 {
-    let inputs = context.inputs();
+    let inputs = context.task.get().inputs();
 
     for (i, input) in inputs.iter().enumerate() {
         if !input.is_blob() {
@@ -27,7 +27,7 @@ pub fn task_concat(context: TaskContext, state: &State) -> TaskResult
             builder.write_blob(&input);
         }
         let result = builder.build();
-        let output = context.output(0);
+        let output = context.task.get().output(0);
         output.get_mut().set_data(Arc::new(result));
         Ok(context)
     })))
@@ -36,7 +36,7 @@ pub fn task_concat(context: TaskContext, state: &State) -> TaskResult
 /// Task that returns the input argument after a given number of milliseconds
 pub fn task_sleep(context: TaskContext, state: &State) -> TaskResult
 {
-    context.check_number_of_args(1)?;
+    context.task.get().check_number_of_args(1)?;
     let sleep_ms = {
         let task = context.task.get();
         ::std::io::Cursor::new(&task.task_config[..]).get_i32::<LittleEndian>()
@@ -46,8 +46,11 @@ pub fn task_sleep(context: TaskContext, state: &State) -> TaskResult
     Ok(Box::new(state.timer().sleep(duration)
                 .map_err(|e| e.into())
                 .map(move |()| {
-                    let output = context.output(0);
-                    output.get_mut().set_data(context.input(0));
+                    {
+                        let task = context.task.get();
+                        let output = task.output(0);
+                        output.get_mut().set_data(task.input(0));
+                    }
                     context
                 })))
 }

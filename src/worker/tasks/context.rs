@@ -37,32 +37,4 @@ impl TaskContext {
         };
         task_function(self, state)
     }
-
-    /// Get input data of the task at given index
-    pub fn input(&self, index: usize) -> Arc<Data> {
-        let task = self.task.get();
-        let object = task.inputs.get(index).unwrap().object.get();
-        object.data().clone()
-    }
-
-    /// Get all input data as vector
-    pub fn inputs(&self) -> Vec<Arc<Data>> {
-        let task = self.task.get();
-        task.inputs.iter().map(|input| input.object.get().data().clone()).collect()
-    }
-
-    /// Returns an error if task has different number of arguments
-    pub fn check_number_of_args(&self, n_args: usize) -> Result<()> {
-        if self.task.get().inputs.len() != n_args {
-            bail!("Invalid number of arguments, expected: {}", n_args);
-        }
-        Ok(())
-    }
-
-    /// Finish an output of object of task defined by index in output array
-    /// It takes mutable reference to state!
-    pub fn output(&self, index: usize) -> DataObjectRef {
-        let task = self.task.get();
-        task.outputs.get(index).unwrap().clone()
-    }
 }

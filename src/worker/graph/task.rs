@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use common::id::{TaskId};
 use super::{DataObjectRef, Graph};
 use common::RcSet;
@@ -7,8 +8,10 @@ use std::io::Bytes;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::hash::{Hash, Hasher};
+use worker::data::Data;
 use common::wrapped::WrappedRcRefCell;
 
+use errors::Result;
 
 #[derive(PartialEq, Eq)]
 pub enum TaskState {
@@ -65,6 +68,30 @@ impl Task {
             debug!("Task id={} is ready", self.id);
         }
         is_ready
+    }
+
+    /// Get input data of the task at given index
+    pub fn input(&self, index: usize) -> Arc<Data> {
+        let object = self.inputs.get(index).unwrap().object.get();
+        object.data().clone()
+    }
+
+    /// Get all input data as vector
+    pub fn inputs(&self) -> Vec<Arc<Data>> {
+        self.inputs.iter().map(|input| input.object.get().data().clone()).collect()
+    }
+
+    /// Returns an error if task has different number of arguments
+    pub fn check_number_of_args(&self, n_args: usize) -> Result<()> {
+        if self.inputs.len() != n_args {
+            bail!("Invalid number of arguments, expected: {}", n_args);
+        }
+        Ok(())
+    }
+
+
+    pub fn output(&self, index: usize) -> DataObjectRef {
+        self.outputs.get(index).unwrap().clone()
     }
 
 }
