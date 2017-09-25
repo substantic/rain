@@ -45,3 +45,14 @@ def test_program_input_file(test_env):
         t1 = program(in1="abc\nNOTHING\nabab")
         s.submit()
         assert t1.out.output.fetch() == b"abc\nabab\n"
+
+
+def test_program_stdin(test_env):
+    """Setting input file for program"""
+    test_env.start(1)
+    args = ("/bin/grep", "ab")
+    program = Program(args, stdin="inp", stdout="output")
+    with test_env.client.new_session() as s:
+        t1 = program(inp="abc\nNOTHING\nabab")
+        s.submit()
+        assert t1.out.output.fetch() == b"abc\nabab\n"

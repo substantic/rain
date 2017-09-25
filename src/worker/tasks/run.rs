@@ -34,11 +34,17 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult
         let dir = state.work_dir().make_task_temp_dir(task.id)?;
 
         // Map inputs
-        for (path, input) in run_config.get_input_paths()?.iter().zip(&task.inputs) {
-            let obj = input.object.get();
-            obj.data().map_to_path(&dir.path().join(path?))?;
-        }
+        let mut in_io = Stdio::null();
 
+        for (path, input) in run_config.get_input_paths()?.iter().zip(&task.inputs) {
+            let path = path?;
+            let obj = input.object.get();
+            obj.data().map_to_path(&dir.path().join(path))?;
+            if path == "+in" {
+                let in_id = File::open(dir.path().join("+in"))?.into_raw_fd();
+                in_io = unsafe { Stdio::from_raw_fd(in_id) };
+            }
+        }
 
         // Create files for stdout/stderr
         let out_id = File::create(dir.path().join("+out"))
@@ -46,15 +52,16 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult
         let err_id = File::create(dir.path().join("+err"))
             .expect("File for stderr cannot be opened").into_raw_fd();
 
-        let out_pipe = unsafe { Stdio::from_raw_fd(out_id) };
-        let err_pipe = unsafe { Stdio::from_raw_fd(err_id) };
+        let out_io = unsafe { Stdio::from_raw_fd(out_id) };
+        let err_io = unsafe { Stdio::from_raw_fd(err_id) };
 
         debug!("Starting command: {}", name);
 
         let future = Command::new(&name)
             .args(&args[1..])
-            .stdout(out_pipe)
-            .stderr(err_pipe)
+            .stdin(in_io)
+            .stdout(out_io)
+            .stderr(err_io)
             .current_dir(dir.path())
             .status_async2(state.handle())?;
 

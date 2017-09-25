@@ -7,7 +7,7 @@ from . import rpc
 
 class Program:
 
-    def __init__(self, args, stdout=None):
+    def __init__(self, args, stdout=None, stdin=None):
         if isinstance(args, str):
             args = tuple(shlex.shlex(args))
         self.args = args
@@ -21,6 +21,11 @@ class Program:
         if stdout is not None:
             # +out is a name of where stdout is redirected
             self.output("+out", stdout)
+
+        if stdin is not None:
+            # +in is a name of where stdout is redirected
+            self.input("+in", stdin)
+
 
     def input(self, path, label):
         """Create new input"""
