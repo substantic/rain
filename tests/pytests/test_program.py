@@ -22,3 +22,14 @@ def test_program_stdout(test_env):
         t1 = program()
         s.submit()
         assert b"etc\n" in t1.out.output.fetch()
+
+
+def test_program_create_file(test_env):
+    """Capturing file"""
+    test_env.start(1)
+    args = ("/bin/bash", "-c", "echo ABC > output.txt")
+    program = tasks.Program(args, outputs=(("output.txt", "my_output"),))
+    with test_env.client.new_session() as s:
+        t1 = program()
+        s.submit()
+        assert t1.out.my_output.fetch() == b"ABC\n"
