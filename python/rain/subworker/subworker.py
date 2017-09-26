@@ -1,4 +1,5 @@
 import os
+import sys
 import capnp
 import socket
 
@@ -6,6 +7,7 @@ from .rpc import subworker as rpc_subworker
 from .control import ControlImpl
 
 SUBWORKER_PROTOCOL_VERSION = 0
+
 
 class Subworker:
 
@@ -17,10 +19,11 @@ class Subworker:
         upstream = self.rpc_client.bootstrap().cast_as(rpc_subworker.SubworkerUpstream)
         self.upstream = upstream
 
-        control = ControlImpl()
+        control = ControlImpl(self)
         register = upstream.register_request()
         register.version = SUBWORKER_PROTOCOL_VERSION
         register.subworkerId = subworker_id
+        register.subworkerType = "py"
         register.control = control
         register.send().wait()
 
@@ -43,8 +46,8 @@ def main():
     subworker_id = get_environ_int("RAIN_SUBWORKER_ID")
 
     print("Initalizing subworker {} ...".format(subworker_id))
+    sys.stdout.flush()
     subworker = Subworker(get_environ("RAIN_SUBWORKER_SOCKET"), subworker_id)
     print("Subworker initialized")
-
-    while True:
-        pass
+    sys.stdout.flush()
+    capnp.wait_forever()

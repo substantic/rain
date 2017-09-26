@@ -53,6 +53,7 @@ pub mod errors {
         foreign_links {
             Io(::std::io::Error);
             Capnp(::capnp::Error);
+            CapnpNotInSchema(::capnp::NotInSchema);
             Timer(::tokio_timer::TimerError);
         }
     }

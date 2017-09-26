@@ -1,10 +1,12 @@
 use worker::StateRef;
 use worker::graph::SubworkerRef;
+use worker::data::{Data, DataType, Storage};
 use subworker_capnp::subworker_upstream;
 use futures::Future;
 use capnp;
 use capnp::capability::Promise;
 
+use errors::Result;
 
 use SUBWORKER_PROTOCOL_VERSION;
 
@@ -38,9 +40,27 @@ impl subworker_upstream::Server for SubworkerUpstreamImpl {
                         SUBWORKER_PROTOCOL_VERSION)));
         }
 
+        let subworker_type = pry!(params.get_subworker_type());
         let control = pry!(params.get_control());
-        let subworker = SubworkerRef::new(params.get_subworker_id(), control);
-        self.state.get_mut().add_subworker(subworker);
+
+        let subworker = SubworkerRef::new(params.get_subworker_id(),
+                                          subworker_type.to_string(),
+                                          control);
+
+        pry!(self.state.get_mut()
+            .add_subworker(subworker)
+            .map_err(|e| ::capnp::Error::failed(e.description().into())));
         Promise::ok(())
+    }
+}
+
+pub fn data_from_capnp(reader: &::capnp_gen::subworker_capnp::local_data::Reader) -> Result<Data>
+{
+    let data_type = reader.get_type()?;
+    assert!(data_type == ::capnp_gen::common_capnp::DataObjectType::Blob);
+    match reader.get_storage().which()? {
+        ::capnp_gen::subworker_capnp::local_data::storage::Memory(data) =>
+            Ok(Data::new(DataType::Blob, Storage::Memory(data?.into()))),
+        _ => unimplemented!()
     }
 }

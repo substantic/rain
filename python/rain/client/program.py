@@ -56,7 +56,7 @@ class Program:
         # TODO: A proper error if there are too few or too many inputs
 
         outputs = [Blob(label) for label in self.output_labels]
-        return Task("run",
+        return Task("!run",
                     config.to_bytes_packed(),
                     inputs=inputs,
                     outputs=outputs)

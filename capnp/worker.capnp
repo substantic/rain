@@ -90,6 +90,7 @@ struct Task {
     outputs @2 :List(DataObjectId);
 
     taskType @3 :Text;
+
     taskConfig @4 :Data;
 
     additional @5: Additional;
