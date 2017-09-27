@@ -21,6 +21,9 @@ extern crate lazy_static;
 extern crate bytes;
 extern crate tempdir;
 extern crate memmap;
+extern crate sysconf;
+extern crate sys_info;
+
 
 pub mod common;
 pub mod worker;

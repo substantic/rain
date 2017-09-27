@@ -37,6 +37,9 @@ lazy_static = "*"
 bytes = "*"
 tempdir = "*"
 memmap = "*"
+sysconf = "*"
+sys-info = "*"
+
 
 [build-dependencies]
 capnpc = "0.8"

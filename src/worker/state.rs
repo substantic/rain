@@ -18,6 +18,8 @@ use common::convert::{ToCapnp, FromCapnp};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
+use common::monitoring::{Monitor, Frame};
+
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState,
                     Graph, TaskRef, TaskInput, TaskState, SubworkerRef, subworker_command};
 use worker::data::{DataBuilder, Data, BlobBuilder};
@@ -68,6 +70,8 @@ pub struct State {
 
     resources: Resources,
 
+    monitor: Monitor,
+
     /// Listing of subworkers that were started as process, but not registered
     /// The second member of triplet is subworker_type
     /// Third member (oneshot) is fired when registration is completed
@@ -78,6 +82,7 @@ pub struct State {
     // Map from name of subworkers to its arguments
     // e.g. "py" => ["python", "-m", "rain.subworker"]
     subworker_args: HashMap<String, Vec<String>>,
+
 }
 
 pub type StateRef = WrappedRcRefCell<State>;
@@ -413,6 +418,10 @@ impl State {
             unimplemented!();
         }
     }
+
+    pub fn monitor_mut(&mut self) -> &mut Monitor {
+        &mut self.monitor
+    }
 }
 
 impl StateRef {
@@ -432,6 +441,7 @@ impl StateRef {
                        worker_id: empty_worker_id(),
                        graph: Graph::new(),
                        need_scheduling: false,
+                       monitor: Monitor::new(),
                        initializing_subworkers: Vec::new(),
                        subworker_args: subworkers,
                    })
@@ -561,6 +571,22 @@ impl StateRef {
                          panic!("Listening failed {:?}", e);
                      });
         handle.spawn(future);
+
+        // --- Start monitoring ---
+        let MONITORING_INTERVAL = 10; // Monitoring interval in seconds
+        let state = self.clone();
+        let timer = state.get().timer.clone();
+        let interval = timer.interval(Duration::from_secs(MONITORING_INTERVAL));
+
+        let monitoring = interval
+            .for_each(move |()| {
+                state.get_mut().monitor.collect_samples();
+                Ok(())
+            })
+            .map_err(|e| {
+                error!("Monitoring error {}", e)
+            });
+        handle.spawn(monitoring);
 
         // --- Start connection to server ----
         let core1 = self.clone();
