@@ -27,6 +27,11 @@ class Subworker:
         register.control = control
         register.send().wait()
 
+    def run_task(self, config, inputs):
+        fn = inputs[0].load(cache=True)
+        result = fn(*inputs[1:])
+        return result
+
 
 def get_environ(name):
     try:

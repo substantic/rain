@@ -15,7 +15,7 @@ pub enum Storage {
     Path(DataOnFs)
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum DataType {
     Blob,
     Directory,
@@ -100,6 +100,17 @@ impl Data {
         }
     }
 
+    pub fn to_subworker_capnp(&self, builder: &mut ::capnp_gen::subworker_capnp::local_data::Builder)
+    {
+        if self.data_type != DataType::Blob {
+            unimplemented!();
+        }
+        builder.set_type(::capnp_gen::common_capnp::DataObjectType::Blob);
+        match self.storage {
+            Storage::Memory(ref data) => builder.borrow().get_storage().set_memory(&data),
+            _ => unimplemented!()
+        };
+    }
 }
 
 impl Drop for Data {

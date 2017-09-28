@@ -1,17 +1,16 @@
 @0xf25243ae04134c6a;
 
-using import "worker.capnp".Task;
 using import "common.capnp".DataObjectId;
+using import "common.capnp".TaskId;
 using import "common.capnp".DataObjectType;
-using import "datastore.capnp".Reader;
 
 interface SubworkerControl {
     # This object serves also as bootstrap
 
-    runTask @0 (task :Task) -> (objects: List(LocalData));
+    runTask @0 (task :Task) -> (data: List(LocalData));
     # Run the task, returns when task is finished
 
-    removeLocalObjects @1 (objectIds :List(DataObjectId)) -> ();
+    removeObjects @1 (objectIds :List(DataObjectId)) -> ();
     # Remove object from Subworker
     # If object is "file" than the file is NOT removed, it is
     # a responsibility of the worker
@@ -19,14 +18,7 @@ interface SubworkerControl {
 
 interface SubworkerUpstream {
 
-    getDataObjectPath @0 () -> (path: Text);
-    # Path for storing local data objects
-    # This information is needed when subworker creates new objects
-
-    pullLocalObjects @1 (objectIds :List(DataObjectId)) -> (objects: List(LocalData));
-    # Get local objects from worker to subworker
-
-    register @2 (version :Int32,
+    register @0 (version :Int32,
                  subworkerId: Int32,
                  subworkerType: Text,
                  control :SubworkerControl) -> ();
@@ -36,16 +28,42 @@ interface SubworkerUpstream {
     # and they already contains subworker_id in the name
 }
 
+struct Task {
+    id @0 :TaskId;
+
+    inputs @1 :List(InDataObject);
+    outputs @2 :List(OutDataObject);
+
+    taskConfig @3 :Data;
+
+    struct InDataObject {
+        id @0 :DataObjectId;
+        data @1 :LocalData;
+        label @2 :Text;
+    }
+
+    struct OutDataObject {
+        id @0 :DataObjectId;
+        type @1 :DataObjectType;
+        label @2 :Text;
+    }
+}
+
 struct LocalData {
+
     type @0 :DataObjectType;
 
     storage :union {
-        filesystem @1 :Text;
-        # The object is in file, the argument is the size in bytes
+        cache @1 :Void;
+        # Data is cached in subworker
 
         memory @2 :Data;
         # Actual content of the data object
 
-        stream @3 :Reader;
+        path @3 :Text;
+        # The object is in file, the argument is the size in bytes
+
+        stream @4 :Void;
+        # TODO
     }
 }
