@@ -93,21 +93,26 @@ impl TaskContext {
                     }
                 }
                 req.send().promise
-            };
+            }.map_err::<_, Error>(|e| e.into());
 
-            // Task if finished
+            // Task is finished
             future.and_then(|response| {
                 {
                     let task = self.task.get();
-                    debug!("Task id={} finished in subworker", task.id);
                     let response = response.get()?;
-                    for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
-                        let data = data_from_capnp(&co)?;
-                        output.get_mut().set_data(Arc::new(data));
+                    if response.get_ok() {
+                        debug!("Task id={} finished in subworker", task.id);
+                        for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
+                            let data = data_from_capnp(&co)?;
+                            output.get_mut().set_data(Arc::new(data));
+                        }
+                    } else {
+                        debug!("Task id={} failed in subworker", task.id);
+                        bail!(response.get_error_message()?);
                     }
                 }
                 Ok(self)
-            }).map_err(|e| e.into())
+            })
         })))
     }
 }

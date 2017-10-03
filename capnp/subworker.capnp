@@ -7,8 +7,13 @@ using import "common.capnp".DataObjectType;
 interface SubworkerControl {
     # This object serves also as bootstrap
 
-    runTask @0 (task :Task) -> (data: List(LocalData));
+    runTask @0 (task :Task) -> (
+        data: List(LocalData),
+        ok :Bool,
+        errorMessage: Text);
     # Run the task, returns when task is finished
+    # Flag "ok" indicates that task was finished without error
+    # If "ok" if False then errorMessage is filled
 
     removeObjects @1 (objectIds :List(DataObjectId)) -> ();
     # Remove object from Subworker
