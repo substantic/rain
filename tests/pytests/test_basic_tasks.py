@@ -11,7 +11,7 @@ def test_sleep1(test_env):
         t1 = tasks.sleep(0.3, "abc123456")
         s.submit()
         test_env.assert_duration(0.28, 0.4, lambda: t1.wait())
-        result = test_env.assert_max_duration(0.05,
+        result = test_env.assert_max_duration(0.1,
                                               lambda: t1.out.output.fetch())
         assert result == b"abc123456"
 

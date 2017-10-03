@@ -12,8 +12,13 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
         params = _context.params
         inputs = [data_from_capnp(reader.data)
                   for reader in params.task.inputs]
-        result = self.subworker.run_task(params.task.taskConfig, inputs)
+        outputs = [reader.label
+                   for reader in params.task.outputs]
 
-        results = _context.results.init("data", 1)
-        results[0].type = rpc_common.DataObjectType.blob
-        results[0].storage.memory = result
+        result = self.subworker.run_task(
+            params.task.taskConfig, inputs, outputs)
+
+        results = _context.results.init("data", len(result))
+        for i, data in enumerate(result):
+            results[i].type = rpc_common.DataObjectType.blob
+            results[i].storage.memory = data

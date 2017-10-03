@@ -29,7 +29,14 @@ class Task:
         if outputs is None:
             self.out = Table({"output": Blob("output", session)})
         else:
-            self.out = Table({do.label: do for do in outputs})
+            out = {}
+            for obj in outputs:
+                if isinstance(obj, str):
+                    do = Blob(obj, session)
+                else:
+                    do = obj
+                out[do.label] = do
+            self.out = Table(out)
 
         if isinstance(inputs, tuple):
             self.inputs = Table(tuple(to_data(obj) for obj in inputs))

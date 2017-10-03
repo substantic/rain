@@ -15,7 +15,7 @@ def py_obj(obj, label=""):
     return blob(cloudpickle.dumps(obj), label)
 
 
-def remote():
+def remote(outputs=None):
     def make_remote(fn):
         def make_task(*args):
             """TODO enable when server is fixed
@@ -28,6 +28,6 @@ def remote():
             """
             fn_blob = blob(cloudpickle.dumps(fn), fn.__name__)  # Just heck until bug in server is not fixed
             inputs = (fn_blob,) + args
-            return Task("py", None, inputs)
+            return Task("py", None, inputs, outputs)
         return make_task
     return make_remote

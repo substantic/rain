@@ -27,11 +27,17 @@ class Subworker:
         register.control = control
         register.send().wait()
 
-    def run_task(self, config, inputs):
+    def run_task(self, config, inputs, outputs):
         fn = inputs[0].load(cache=True)
         result = fn(*inputs[1:])
-        return result
+        return self._decode_results(result, outputs)
 
+    def _decode_results(self, result, outputs):
+        if isinstance(result, bytes) and len(outputs) == 1:
+            return [result]
+        if isinstance(result, dict):
+            return [result[label] for label in outputs]
+        raise Exception("Invalid returned object:")
 
 def get_environ(name):
     try:
