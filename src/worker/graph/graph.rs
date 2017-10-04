@@ -9,6 +9,7 @@ pub struct Graph {
     pub tasks: HashMap<TaskId, TaskRef>,
     pub objects: HashMap<DataObjectId, DataObjectRef>,
     pub subworkers: HashMap<SubworkerId, SubworkerRef>,
+    pub idle_subworkers: Vec<SubworkerRef>,
 
 
     /// Last assigned id
@@ -22,6 +23,7 @@ impl Graph {
             tasks: HashMap::new(),
             objects: HashMap::new(),
             subworkers: HashMap::new(),
+            idle_subworkers: Vec::new(),
             id_counter: 0
         }
     }

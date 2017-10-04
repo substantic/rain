@@ -1,6 +1,6 @@
 import capnp
 from rain.client import rpc
-
+from .data import blob
 
 from .session import Session
 
@@ -19,6 +19,12 @@ class Client:
         self.service = registration.wait().service
         self.datastore = self.service.getDataStore().wait().store
 
+        # Static session serves for storing long living objects
+        # like a serialized Python objects. It is not directly available
+        # to user; it is a structure for internal client purposes
+        self.static_session = self.new_session()
+        self.static_session_data = {}
+
     def new_session(self):
         session_id = self.service.newSession().wait().sessionId
         return Session(self, session_id)
@@ -29,6 +35,17 @@ class Client:
         return {
             "n_workers": info.nWorkers
         }
+
+    def get_static_data(self, key):
+        return self.static_session_data.get(key)
+
+    def set_static_blob(self, key, data, label):
+        with self.static_session:
+            dataobject = blob(data, label)
+            dataobject.keep()
+        self.static_session.submit()
+        assert key not in self.static_session_data
+        self.static_session_data[key] = dataobject
 
     def _submit(self, tasks, dataobjs):
         req = self.service.submit_request()
@@ -44,7 +61,6 @@ class Client:
             dataobjs[i].to_capnp(req.objects[i])
 
         req.send().wait()
-
 
     def _fetch(self, dataobj):
         req = self.datastore.createReader_request()

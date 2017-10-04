@@ -5,3 +5,5 @@ pub mod datastore_capnp;
 pub mod server_capnp;
 pub mod worker_capnp;
 pub mod subworker_capnp;
+pub mod tasks_capnp;
+pub mod monitor_capnp;

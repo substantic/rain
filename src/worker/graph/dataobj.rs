@@ -3,12 +3,15 @@ use common::id::{DataObjectId, WorkerId};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::RcSet;
-use super::{TaskRef, Graph, Data};
+use super::{TaskRef, Graph};
+use worker::data::{Data, DataType};
+use worker::fs::workdir::WorkDir;
 
 use std::net::SocketAddr;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::path::Path;
 
 pub use common_capnp::{DataObjectType};
 
@@ -41,7 +44,7 @@ pub struct DataObject {
 
     pub(in super::super) obj_type: DataObjectType,
 
-    pub(in super::super) keep: KeepPolicy,
+    pub(in super::super) assigned: bool,
 
     /// ??? Is this necessary for worker?
     pub(in super::super) size: Option<usize>,
@@ -58,7 +61,7 @@ impl DataObject {
     pub fn set_data(&mut self, data: Arc<Data>) {
         assert!(!self.is_finished());
         self.size = Some(data.size());
-        self.state = DataObjectState::Finished(data)
+        self.state = DataObjectState::Finished(data);
     }
 
     #[inline]
@@ -92,22 +95,38 @@ impl DataObjectRef {
                id: DataObjectId,
                state: DataObjectState,
                obj_type: DataObjectType,
-               keep: KeepPolicy,
+               assigned: bool,
                size: Option<usize>,
                label: String) -> Self {
 
         debug!("New object id={}", id);
-        let dataobj = Self::wrap(DataObject {
-            id,
-            state,
-            size,
-            keep,
-            obj_type,
-            consumers: Default::default(),
-            label
-        });
-        graph.objects.insert(dataobj.get().id, dataobj.clone());
-        dataobj
+
+        match graph.objects.entry(id.clone()) {
+            ::std::collections::hash_map::Entry::Vacant(e) => {
+                let dataobj = Self::wrap(DataObject {
+                    id,
+                    state,
+                    size,
+                    assigned,
+                    obj_type,
+                    consumers: Default::default(),
+                    label
+                });
+                e.insert(dataobj.clone());
+                dataobj
+            }
+          ::std::collections::hash_map::Entry::Occupied(e) => {
+              let dataobj = e.get().clone();
+              {
+                  let obj = dataobj.get();
+                  // TODO: If object is remote and not finished and new remote obtained,
+                  // then update remote
+                  assert!(obj.id == id);
+                  assert!(obj.obj_type == obj_type);
+              }
+              dataobj
+          }
+        }
     }
 
 }

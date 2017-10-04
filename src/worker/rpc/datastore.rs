@@ -4,11 +4,13 @@ use futures::Future;
 use capnp::capability::Promise;
 use common::convert::FromCapnp;
 use common::id::DataObjectId;
+use worker::data::{PackStream, new_pack_stream};
 
-use worker::graph::{Data};
+use worker::data::{Data};
 use datastore_capnp::{reader, data_store, read_reply};
 use worker::state::StateRef;
 
+use errors::Result;
 
 pub struct DataStoreImpl {
     state: StateRef,
@@ -34,8 +36,12 @@ impl data_store::Server for DataStoreImpl {
         let size = object.get().size.map(|s| s as i64).unwrap_or(-1i64);
 
         let offset = params.get_offset();
+
+        assert!(offset == 0); // TODO: implement for different offset
+
+        let pack_stream = new_pack_stream(object.get().data().clone()).unwrap();
         let reader = reader::ToClient::new(
-            ReaderImpl::new(object.get().data().clone(), offset as usize)).from_server::<::capnp_rpc::Server>();
+            ReaderImpl::new(pack_stream)).from_server::<::capnp_rpc::Server>();
 
         let mut results = results.get();
         results.set_reader(reader);
@@ -48,15 +54,13 @@ impl data_store::Server for DataStoreImpl {
 
 
 pub struct ReaderImpl {
-    data: Arc<Data>,
-    offset: usize,
+    pack_stream: Box<PackStream>,
 }
 
 impl ReaderImpl {
-    pub fn new(data: Arc<Data>, offset: usize) -> Self {
+    pub fn new(pack_stream: Box<PackStream>) -> Self {
         Self {
-            data,
-            offset,
+            pack_stream,
         }
     }
 }
@@ -70,23 +74,15 @@ impl reader::Server for ReaderImpl {
         mut results: reader::ReadResults,
     ) -> Promise<(), ::capnp::Error> {
        let param_size = pry!(params.get()).get_size() as usize;
+       let (slice, eof) = self.pack_stream.read(param_size);
        let mut results = results.get();
-       let start = self.offset;
-       let data_size = self.data.size();
-       let (end, size, status) = if start + param_size < data_size {
-           (start + param_size, param_size, read_reply::Status::Ok)
-       } else {
-           (data_size, data_size - start, read_reply::Status::Eof)
-       };
-
-       results.set_data(&self.data.as_slice().unwrap()[start..end]);
-       results.set_status(if end < data_size {
-           read_reply::Status::Ok
-       } else {
+       results.set_data(slice);
+       results.set_status(if eof {
            read_reply::Status::Eof
+       } else {
+           read_reply::Status::Ok
        });
 
-       self.offset = end;
        Promise::ok(())
     }
 }

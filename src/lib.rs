@@ -19,6 +19,11 @@ extern crate error_chain;
 #[macro_use]
 extern crate lazy_static;
 extern crate bytes;
+extern crate tempdir;
+extern crate memmap;
+extern crate sysconf;
+extern crate sys_info;
+
 
 pub mod common;
 pub mod worker;
@@ -51,6 +56,7 @@ pub mod errors {
         foreign_links {
             Io(::std::io::Error);
             Capnp(::capnp::Error);
+            CapnpNotInSchema(::capnp::NotInSchema);
             Timer(::tokio_timer::TimerError);
         }
     }

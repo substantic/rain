@@ -11,6 +11,7 @@ using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
 using import "common.capnp".DataObjectType;
 using import "common.capnp".Resources;
+using import "monitor.capnp".MonitoringFrames;
 
 interface WorkerBootstrap {
     # Interface for entities connecting directly to the worker.
@@ -69,11 +70,14 @@ interface WorkerControl {
 
     addNodes @1 (newTasks :List(Task), newObjects :List(DataObject)) -> ();
 
-    removeNodes @2 (removeTasks :List(TaskId), removeObjects :List(DataObjectId)) -> ();
+    unassignObjects @2 (objects :List(DataObjectId)) -> ();
 
-    getWorkerState @3 () -> (status: Void);
+    stopTasks @3 (tasks :List(TaskId)) -> ();
 
     getWorkerResources @4 () -> Resources;
+
+    getMonitoringFrames @5 () -> MonitoringFrames;
+
     # TODO: actual status: CPU, resources, counters, ...
 
     # TODO: Control worker (shutdown, pause) etc ...
@@ -88,6 +92,7 @@ struct Task {
     outputs @2 :List(DataObjectId);
 
     taskType @3 :Text;
+
     taskConfig @4 :Data;
 
     additional @5: Additional;
@@ -120,7 +125,9 @@ struct DataObject {
     # Current object state. All input objects (external or local) should be `finished` or
     # `running` (when streaming), output objects `assigned`.
 
-    label @5 :Text;
+    assigned @5 :Bool;
 
-    additional @6: Additional;
+    label @6 :Text;
+
+    additional @7 :Additional;
 }

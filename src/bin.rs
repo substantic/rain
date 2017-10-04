@@ -16,6 +16,7 @@ use std::process::exit;
 use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::io::Write;
+use std::collections::HashMap;
 
 use librain::{server, worker, VERSION};
 use clap::ArgMatches;
@@ -107,7 +108,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     } else {
         debug!("Detecting number of cpus");
         let cpus = num_cpus::get();
-        if (cpus < 1) {
+        if cpus < 1 {
             error!("Autodetection of CPUs failed. Use --cpus argument.");
             exit(1);
         }
@@ -127,7 +128,16 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
 
-    let state = worker::state::StateRef::new(tokio_core.handle(), work_dir, cpus);
+    let mut subworkers = HashMap::new();
+    subworkers.insert("py".to_string(), vec!["python3".to_string(), "-m".to_string(), "rain.subworker".to_string()]);
+
+    let state = worker::state::StateRef::new(
+        tokio_core.handle(),
+        work_dir,
+        cpus,
+        // Python subworker
+        subworkers);
+
     state.start(server_address, listen_address, ready_file);
 
     loop {

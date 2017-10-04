@@ -40,6 +40,32 @@ impl worker_control::Server for WorkerControlImpl {
         Promise::ok(())
     }
 
+    fn unassign_objects(&mut self,
+                 params: worker_control::UnassignObjectsParams,
+                 mut _results: worker_control::UnassignObjectsResults)
+                 -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let objects = pry!(params.get_objects());
+
+        let mut state = self.state.get_mut();
+        for cid in objects.iter() {
+            let id = DataObjectId::from_capnp(&cid);
+            debug!("Unassigning object id={}", id);
+
+            let dataobject = pry!(state.object_by_id(id));
+            let mut obj = dataobject.get_mut();
+            if !obj.assigned {
+                return Promise::err(::capnp::Error::failed("Object exists in worker but is not assigned".into()));
+            }
+            obj.assigned = false;
+            if obj.consumers.is_empty() {
+                let found = state.graph.objects.remove(&id);
+                assert!(found.is_some());
+            }
+        }
+        Promise::ok(())
+    }
+
     fn add_nodes(&mut self,
                  params: worker_control::AddNodesParams,
                  mut _results: worker_control::AddNodesResults)
@@ -70,10 +96,9 @@ impl worker_control::Server for WorkerControlImpl {
 
             let label = pry!(co.get_label()).to_string();
 
-            // TODO: Correct value of keep
-            let keep = Default::default();
+            let assigned = co.get_assigned();
 
-            let dataobject = state.add_dataobject(id, object_state, object_type, keep, size, label);
+            let dataobject = state.add_dataobject(id, object_state, object_type, assigned, size, label);
 
             if is_remote {
                 remote_objects.push(dataobject);
@@ -115,14 +140,35 @@ impl worker_control::Server for WorkerControlImpl {
                 }).map(move |data| {
                     // Data obtained
                     let mut state = state_ref2.get_mut();
-                    state.object_is_finished(&object_ref, Arc::new(data));
+                    object_ref.get_mut().set_data(Arc::new(data));
+                    state.object_is_finished(&object_ref);
                 });
             state.spawn_panic_on_error(future);
         }
-
-
         state.need_scheduling();
+        Promise::ok(())
+    }
 
+    fn get_monitoring_frames(&mut self,
+              _params: worker_control::GetMonitoringFramesParams,
+              mut results: worker_control::GetMonitoringFramesResults)
+              -> Promise<(), ::capnp::Error> {
+        let mut state = self.state.get_mut();
+        let monitor = state.monitor_mut();
+        let frames = monitor.collect_frames();
+        let mut capnp_frames = results.get().init_frames(frames.len() as u32);
+
+        for (i, f) in frames.iter().enumerate() {
+            let worker_frame = frames.get(i);
+            let mut capnp_frame = capnp_frames.borrow().get(0);
+            capnp_frame.set_timestamp(f.timestamp.elapsed().unwrap().as_secs());
+            capnp_frame.set_mem_usage(f.mem_usage as u8);
+
+            let mut capnp_usage = capnp_frame.init_cpu_usage(f.cpu_usage.len() as u32);
+            for (j, u) in f.cpu_usage.iter().enumerate() {
+                capnp_usage.set(j as u32, u.clone());
+            }
+        }
         Promise::ok(())
     }
 }

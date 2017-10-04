@@ -1,4 +1,4 @@
-from rain import blob, RainException
+from rain.client import blob, RainException
 import pytest
 
 
