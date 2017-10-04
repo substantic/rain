@@ -1,39 +1,46 @@
 
 use super::id::{WorkerId, ClientId, DataObjectId, TaskId};
 
-struct NewWorkerEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NewWorkerEvent {
     worker: WorkerId
     // TODO: Resources
 }
 
-struct RemovedWorkerEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RemovedWorkerEvent {
     worker: WorkerId,
     error_msg: String
 }
 
-struct NewClientEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NewClientEvent {
     client: ClientId
 }
 
-struct RemovedClientEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RemovedClientEvent {
     client: ClientId,
     // If client is disconnected because of error, otherwise empty
     error_msg: String
 }
 
-struct Input {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Input {
     task: TaskId,
     label: String,
     path: String
 }
 
-struct Task {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Task {
     id: TaskId,
     inputs: Vec<Input>,
     task_type: String,
 }
 
-struct DataObject {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DataObject {
     id: DataObjectId,
     label: String,
     produced: TaskId,
@@ -41,42 +48,50 @@ struct DataObject {
     // TODO: DataType ...
 }
 
-struct ClientSubmitEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClientSubmitEvent {
     tasks: Vec<Task>,
     objects: Vec<DataObject>
 }
 
-struct ClientUnkeepEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClientUnkeepEvent {
     dataobjs: Vec<DataObjectId>
 }
 
-struct TaskStartedEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TaskStartedEvent {
     task: TaskId,
     worker: WorkerId
 }
 
-struct TaskFinishedEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TaskFinishedEvent {
     task: TaskId
 }
 
-struct DataObjectFinishedEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DataObjectFinishedEvent {
     dataobject: DataObjectId,
     worker: WorkerId,
     size: usize
 }
 
-struct DataObjectRemovedEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DataObjectRemovedEvent {
     dataobject: DataObjectId,
     worker: WorkerId,
 }
 
-struct WorkerMonitoringEvent {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkerMonitoringEvent {
     worker: WorkerId
     // TODO cpu load, etc...
 }
 
 
-enum Event {
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum Event {
 
     WorkerNew(NewWorkerEvent),
     RemovedWorkerEvent(RemovedWorkerEvent),
@@ -91,7 +106,7 @@ enum Event {
     TaskFinished(TaskFinishedEvent),
 
     DataObjectFinished(DataObjectFinishedEvent),
-    DataObejctRemoved(DataObjectRemovedEvent),
+    DataObjectRemoved(DataObjectRemovedEvent),
 
     WorkerMonitoring(WorkerMonitoringEvent)
 }
