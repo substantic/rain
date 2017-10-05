@@ -7,6 +7,9 @@ use start::process::{Process, Readiness};
 use librain::errors::{Error, Result};
 
 use nix::unistd::getpid;
+use std::io::BufReader;
+use std::io::BufRead;
+use std::fs::File;
 
 
 /// Starts server & workers
@@ -24,6 +27,20 @@ pub struct Starter {
     processes: Vec<Process>,
 }
 
+fn read_host_file(path: &Path) -> Result<Vec<String>> {
+    let file = BufReader::new(File::open(path)
+        .map_err(|e| format!("Cannot open worker host file: {}",
+                               ::std::error::Error::description(&e)))?);
+    let mut result = Vec::new();
+    for line in file.lines() {
+        let line = line?;
+        let trimmed_line = line.trim();
+        if (!trimmed_line.is_empty() && !trimmed_line.starts_with("#")) {
+            result.push(trimmed_line.to_string());
+        }
+    }
+    Ok(result)
+}
 
 impl Starter {
     pub fn new(local_workers: u32, server_listen_address: SocketAddr, log_dir: PathBuf) -> Self {
@@ -36,7 +53,13 @@ impl Starter {
     }
 
     /// Main method of starter that launch everything
-    pub fn start(&mut self) -> Result<()> {
+    pub fn start(&mut self, worker_host_file: Option<&Path>) -> Result<()> {
+
+        if let Some(ref path) = worker_host_file {
+            let worker_hosts = read_host_file(path)?;
+            unimplemented!();
+        }
+
         self.start_server()?;
         self.busy_wait_for_ready()?;
         self.start_local_workers()?;
@@ -110,7 +133,7 @@ impl Starter {
     /// Waits until all processes are ready
     pub fn busy_wait_for_ready(&mut self) -> Result<()> {
         let mut timeout_ms = 50; // Timeout, it it increased every cycle upto 1.5 seconds
-        while (0 != self.check_all_ready()?) {
+        while 0 != self.check_all_ready()? {
             ::std::thread::sleep(::std::time::Duration::from_millis(timeout_ms));
             if timeout_ms < 1500 {
                 timeout_ms += 50;

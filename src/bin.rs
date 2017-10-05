@@ -20,6 +20,7 @@ use std::collections::HashMap;
 
 use librain::{server, worker, VERSION};
 use clap::ArgMatches;
+
 use std::net::{SocketAddr, IpAddr, Ipv4Addr};
 
 const DEFAULT_SERVER_PORT: u16 = 7210;
@@ -34,7 +35,7 @@ fn parse_listen_arg(args: &ArgMatches, default_port: u16) -> SocketAddr {
     }
 
     value_t!(args, "LISTEN_ADDRESS", SocketAddr)
-        .unwrap_or_else(|_| match (value_t!(args, "LISTEN_ADDRESS", IpAddr)) {
+        .unwrap_or_else(|_| match value_t!(args, "LISTEN_ADDRESS", IpAddr) {
                             Ok(ip) => SocketAddr::new(ip, default_port),
                             _ => {
                                 SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
@@ -146,12 +147,14 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 }
 
+
 fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let local_workers = if cmd_args.is_present("LOCAL_WORKERS") {
         value_t_or_exit!(cmd_args, "LOCAL_WORKERS", u32)
     } else {
         0u32
     };
+    let worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(|s| Path::new(s));
 
     let listen_address = parse_listen_arg(cmd_args, DEFAULT_SERVER_PORT);
     let log_dir = ::std::env::current_dir().unwrap();
@@ -165,7 +168,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let mut starter = start::starter::Starter::new(local_workers, listen_address, log_dir);
 
-    match starter.start() {
+    match starter.start(worker_host_file) {
         Ok(()) => info!("Rain is started."),
         Err(e) => {
             error!("Error occurs: {}", e.description());
@@ -207,6 +210,7 @@ fn main() {
         (@subcommand run =>
             (about: "Start server and workers")
             (@arg LOCAL_WORKERS: --local_workers +takes_value "Number of local workers (default = 0)")
+            (@arg WORKER_HOST_FILE: --worker_host_file +takes_value "Path to file that contains contains name of computers where workers are executed")
             (@arg LISTEN_ADDRESS: --listen +takes_value "Server listening address (same as --listen in 'server' command)")
             )
         ).get_matches();
