@@ -191,6 +191,9 @@ def test_env():
     finally:
         env.close()
         env.kill_all()
+        # Final sleep to let server port be freed, on some slow computers
+        # a new test is starter before the old server is properly cleaned
+        time.sleep(0.02)
 
 
 id_counter = 0

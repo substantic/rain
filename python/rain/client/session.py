@@ -11,13 +11,14 @@ or function
 
 get_active_session()
 """
-_global_sessions = []
 
 import weakref
 
 from rain.client import rpc
-
 from .common import RainException
+
+_global_sessions = []
+
 
 class Session:
 
@@ -34,6 +35,11 @@ class Session:
         # It is cleared on submit
         # TODO: It is not now implemented
         self.const_cache = {}
+
+        # Static data serves for internal usage of client.
+        # It is not directly available to user
+        # It is used to store e.g. for serialized Python objects
+        self.static_data = {}
 
     @property
     def task_count(self):
@@ -64,7 +70,7 @@ class Session:
 
     def register_dataobj(self, dataobj):
         """Register data object into session; returns assigned id"""
-        assert dataobj.session == self  and dataobj.id is None
+        assert dataobj.session == self and dataobj.id is None
         self.dataobjs.append(dataobj)
         self.id_counter += 1
         return self.id_counter
