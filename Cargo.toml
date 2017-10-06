@@ -40,8 +40,11 @@ memmap = "*"
 sysconf = "*"
 sys-info = "*"
 hyper = "*"
-
+chrono = { version = "*", features = ["serde"] }
+rusqlite = {git="https://github.com/vojtechcima/rusqlite", version = "*", features = ["chrono", "serde_json"] }
+serde_derive = "*"
+serde = "*"
+serde_json = "*"
 
 [build-dependencies]
 capnpc = "0.8"
-

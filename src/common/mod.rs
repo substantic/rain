@@ -16,7 +16,8 @@ pub type RcSet<T> = HashSet<T>;
 pub use self::additional::Additionals;
 pub use self::resources::Resources;
 
-pub mod monitoring;
+pub mod monitor;
+pub mod logger;
 
 pub type FinishHook = oneshot::Sender<()>;
 
@@ -32,5 +33,4 @@ pub trait ConsistencyCheck {
             Ok(())
         }
     }
-
 }

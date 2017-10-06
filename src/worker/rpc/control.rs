@@ -190,7 +190,7 @@ impl worker_control::Server for WorkerControlImpl {
         for (i, f) in frames.iter().enumerate() {
             let worker_frame = frames.get(i);
             let mut capnp_frame = capnp_frames.borrow().get(0);
-            capnp_frame.set_timestamp(f.timestamp.elapsed().unwrap().as_secs());
+            capnp_frame.set_timestamp(f.timestamp.timestamp() as u64);
             capnp_frame.set_mem_usage(f.mem_usage as u8);
 
             let mut capnp_usage = capnp_frame.init_cpu_usage(f.cpu_usage.len() as u32);

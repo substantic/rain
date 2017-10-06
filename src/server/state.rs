@@ -20,11 +20,12 @@ use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
 use common::{Additionals, ConsistencyCheck};
-use common::events::Event;
 
 use hyper::server::Http;
 use server::http::RequestHandler;
 
+use common::logger::logger::Logger;
+use common::logger::sqlite_logger::SQLiteLogger;
 
 pub struct State {
     // Contained objects
@@ -49,6 +50,8 @@ pub struct State {
     scheduler: RandomScheduler,
 
     self_ref: Option<StateRef>,
+
+    logger: Box<Logger>,
 }
 
 impl State {
@@ -65,6 +68,7 @@ impl State {
         let w = WorkerRef::new(address, control, resources);
         self.graph.workers.insert(w.get_id(), w.clone());
         self.underload_workers.insert(w.clone());
+        self.logger.add_new_worker_event(w.get_id());
         Ok(w)
     }
 
@@ -895,6 +899,7 @@ impl StateRef {
             updates: Default::default(),
             stop_server: false,
             self_ref: None,
+            logger: Box::new(SQLiteLogger::new()),
         });
         s.get_mut().self_ref = Some(s.clone());
         s

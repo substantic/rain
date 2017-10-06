@@ -25,6 +25,12 @@ extern crate sysconf;
 extern crate sys_info;
 extern crate ssh2;
 extern crate hyper;
+extern crate rusqlite;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
+extern crate chrono;
 
 
 pub mod common;
@@ -35,6 +41,7 @@ pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 pub const WORKER_PROTOCOL_VERSION: i32 = 0;
 pub const CLIENT_PROTOCOL_VERSION: i32 = 0;
 pub const SUBWORKER_PROTOCOL_VERSION: i32 = 0;
+
 
 
 use std::sync::atomic::AtomicBool;

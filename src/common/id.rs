@@ -67,7 +67,7 @@ pub trait SId: for <'a> ToCapnp<'a> + for <'a> FromCapnp<'a> + WriteCapnp + Read
 }
 
 /// ID type for task objects.
-#[derive(Copy, Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Hash)]
+#[derive(Copy, Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct TaskId {
     session_id: SessionId,
     id: Id,
@@ -129,7 +129,7 @@ impl<'a> FromCapnp<'a> for TaskId {
 }
 
 /// ID type for task objects.
-#[derive(Copy, Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Hash)]
+#[derive(Copy, Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct DataObjectId {
     session_id: SessionId,
     id: Id,

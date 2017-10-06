@@ -18,7 +18,7 @@ use common::convert::{ToCapnp, FromCapnp};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
-use common::monitoring::{Monitor, Frame};
+use common::monitor::{Monitor, Frame};
 
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject,
                     Graph, TaskRef, TaskInput, TaskState, SubworkerRef, subworker_command};
