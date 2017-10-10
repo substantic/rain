@@ -56,3 +56,14 @@ def test_program_stdin(test_env):
         t1 = program(inp="abc\nNOTHING\nabab")
         s.submit()
         assert t1.out.output.fetch() == b"abc\nabab\n"
+
+
+def test_program_vars(test_env):
+    program = Program(("/bin/grep", "${pattern}", "input.txt"),
+                      vars=("pattern",), stdout="output")
+    program.input("input.txt", "input")
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = program(input="abc\nNOTHING\nabab", pattern="abab")
+        s.submit()
+        assert t1.out.output.fetch() == b"abab\n"

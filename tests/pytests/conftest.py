@@ -133,6 +133,8 @@ class TestEnv(Env):
         if self._client is not None:
             return self._client
         import rain  # noqa
+        if self.running_port is None:
+            raise Exception("Server was not started in test environment")
         client = rain.client.Client("127.0.0.1", self.running_port)
         self._client = client
         return client
