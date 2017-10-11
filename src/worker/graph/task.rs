@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use common::id::{TaskId};
 use super::{DataObjectRef, Graph};
-use common::RcSet;
+use common::{Additional, RcSet};
 use std::iter::FromIterator;
 
 use std::io::Bytes;
@@ -13,11 +13,12 @@ use common::wrapped::WrappedRcRefCell;
 
 use errors::Result;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum TaskState {
     Assigned,
     Running,
-    Finished
+    Finished,
+    Failed
 }
 
 pub struct TaskInput {
@@ -49,6 +50,8 @@ pub struct Task {
 
     pub (in super::super) task_type: String,
     pub (in super::super) task_config: Vec<u8>,
+
+    pub (in super::super) new_additionals: Additional
 }
 
 impl Task {
@@ -94,6 +97,12 @@ impl Task {
         self.outputs.get(index).unwrap().clone()
     }
 
+    pub fn set_failed(&mut self, error_message: String) {
+        warn!("Task {} failed: {}", self.id, error_message);
+        assert_ne!(self.state, TaskState::Failed);
+        self.state == TaskState::Failed;
+        self.new_additionals.set_str("error", error_message);
+    }
 }
 
 pub type TaskRef = WrappedRcRefCell<Task>;
@@ -106,7 +115,7 @@ impl TaskRef {
         inputs: Vec<TaskInput>,
         outputs: Vec<DataObjectRef>,
         task_type: String,
-        task_config: Vec<u8>
+        task_config: Vec<u8>,
     ) -> Self {
         debug!("New task id={} type={}", id, task_type);
 
@@ -124,6 +133,7 @@ impl TaskRef {
             task_type,
             task_config,
             state: TaskState::Assigned,
+            new_additionals: Additional::new(),
         });
 
         for obj in &task.get().waiting_for {

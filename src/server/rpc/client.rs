@@ -86,7 +86,7 @@ impl client_service::Server for ClientServiceImpl {
                     } else {
                         None
                     };
-                let additional = Additional {}; // TODO: decode additional
+                let additional = Additional::new(); // TODO: decode additional
                 let o = s.add_object(&session, id,co.get_type().map_err(|_| "reading TaskType")?,
                                      co.get_keep(), co.get_label()?.to_string(),data, additional)?;
                 created_objects.push(o);
@@ -95,7 +95,7 @@ impl client_service::Server for ClientServiceImpl {
             for ct in tasks.iter() {
                 let id = TaskId::from_capnp(&ct.get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
-                let additional = Additional {}; // TODO: decode additional
+                let additional = Additional::new(); // TODO: decode additional
                 let mut inputs = Vec::<TaskInput>::new();
                 for ci in ct.get_inputs()?.iter() {
                     inputs.push(TaskInput {

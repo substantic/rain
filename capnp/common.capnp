@@ -42,6 +42,7 @@ enum TaskState {
         assigned @2;
         running @3;
         finished @4;
+        failed @5;
 }
 
 enum DataObjectState {

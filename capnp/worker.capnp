@@ -33,6 +33,7 @@ struct WorkerStateUpdate {
     struct TaskUpdate {
         id @0 :TaskId;
         state @1 :TaskState;
+        additional @2 :Additional;
     }
 
     struct DataObjectUpdate {
