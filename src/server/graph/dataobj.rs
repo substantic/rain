@@ -6,7 +6,7 @@ use errors::Error;
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
-use common::{RcSet, Additional};
+use common::{RcSet, Additional, FinishHook, ConsistencyCheck};
 use super::{TaskRef, WorkerRef, SessionRef, Graph, TaskState};
 pub use common_capnp::{DataObjectState, DataObjectType};
 use errors::Result;
@@ -30,6 +30,7 @@ pub struct DataObject {
     pub(in super::super) object_type: DataObjectType,
 
     /// Consumer set, e.g. to notify of completion.
+    /// TODO: Add set `needed_by` to faster track if object is still needed.
     pub(in super::super) consumers: RcSet<TaskRef>,
 
     /// Workers scheduled to have a full copy of this object.
@@ -49,7 +50,7 @@ pub struct DataObject {
     pub(in super::super) client_keep: bool,
 
     /// Hooks executed when the task is finished
-    pub(in super::super) finish_hooks: Vec<oneshot::Sender<()>>,
+    pub(in super::super) finish_hooks: Vec<FinishHook>,
 
     /// Final size if known. Must match `data` size when `data` present.
     pub(in super::super) size: Option<usize>,
@@ -65,20 +66,19 @@ pub struct DataObject {
 impl DataObject {
 
     /// To capnp for worker message
-    /// It does not fill "placement", it has to be done, byt callie
+    /// It does not fill `placement` and `assigned`, that must be done by caller
     pub fn to_worker_capnp(&self,
                            builder: &mut ::worker_capnp::data_object::Builder) {
         self.id.to_capnp(&mut builder.borrow().get_id().unwrap());
         builder.set_type(self.object_type);
         self.size.map(|s| builder.set_size(s as i64));
         builder.set_label(&self.label);
-
+        builder.set_state(self.state);
         // TODO: Additionals
-        // TODO: Object state (or remove it)
     }
 
     /// Inform observers that task is finished
-    fn trigger_finish_hooks(&mut self) {
+    pub fn trigger_finish_hooks(&mut self) {
         for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
             match sender.send(()) {
                 Ok(()) => { /* Do nothing */}
@@ -87,16 +87,6 @@ impl DataObject {
                 }
             }
         }
-    }
-
-    pub fn set_state(&mut self, worker: &WorkerRef, new_state: DataObjectState, size: Option<usize>) {
-        self.located.insert(worker.clone());
-        self.state = new_state;
-        self.size = size;
-        match new_state {
-            DataObjectState::Finished => self.trigger_finish_hooks(),
-            _ => { /* do nothing */ }
-        };
     }
 
     /// Wait until dataobject is finished
@@ -118,18 +108,15 @@ impl DataObject {
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
 impl DataObjectRef {
-    pub fn new(graph: &mut Graph,
-               session: &SessionRef,
+    /// Create new data object and link it to the owning session.
+    pub fn new(session: &SessionRef,
                id: DataObjectId,
                object_type: DataObjectType,
                client_keep: bool,
                label: String,
                data: Option<Vec<u8>>,
-               additional: Additional) -> Result<Self> {
+               additional: Additional) -> Self {
         assert_eq!(id.get_session_id(), session.get_id());
-        if graph.objects.contains_key(&id) {
-            bail!("Object {} was already in the graph", id);
-        }
         let s = DataObjectRef::wrap(DataObject {
             id: id,
             producer: Default::default(),
@@ -151,16 +138,42 @@ impl DataObjectRef {
             data: data,
             additional: additional,
         });
-        // add to graph
-        graph.objects.insert(s.get().id, s.clone());
         // add to session
         session.get_mut().objects.insert(s.clone());
-        Ok(s)
+        s
     }
 
+    /// Is the Finished object data still needed by client (keep flag) or future tasks?
+    /// Scheduling is not accounted here.
+    /// Asserts the object is finished.
+    pub fn is_needed(&self) -> bool {
+        let inner = self.get();
+        assert!(inner.state == DataObjectState::Finished);
+        // TODO: Update the check to (faster) remaining_consumers
+        inner.client_keep || inner.consumers.iter().any(|c| c.get().state != TaskState::Finished)
+    }
+
+    /// Return the object ID in graph.
+    pub fn get_id(&self) -> DataObjectId {
+        self.get().id
+    }
+
+    /// Check that no compulsory links exist and remove from owner
+    pub fn unlink(&self) {
+        let inner = self.get_mut();
+        assert!(inner.assigned.is_empty(), "Can only remove non-assigned objects.");
+        assert!(inner.located.is_empty(), "Can only remove non-located objects.");
+        assert!(inner.consumers.is_empty(), "Can only remove objects without consumers.");
+        assert!(inner.producer.is_none(), "Can only remove objects without a producer.");
+        // remove from owner
+        assert!(inner.session.get_mut().objects.remove(&self));
+    }
+}
+
+impl ConsistencyCheck for DataObjectRef {
     /// Check for state and relationships consistency. Only explores adjacent objects but still
     /// may be slow.
-    pub fn check_consistency(&self) -> Result<()> {
+    fn check_consistency(&self) -> Result<()> {
         let s = self.get();
         // ID consistency
         if s.id.get_session_id() != s.session.get_id() {
@@ -258,26 +271,6 @@ impl DataObjectRef {
             }
         }
         Ok(())
-    }
-
-
-    pub fn delete(self, graph: &mut Graph) {
-        let inner = self.get_mut();
-        assert!(inner.consumers.is_empty(), "Can only remove objects without consumers.");
-        assert!(inner.producer.is_none(), "Can only remove objects without a producer.");
-        // remove from workers
-        for w in inner.assigned.iter() {
-            assert!(w.get_mut().assigned_objects.remove(&self));
-        }
-        for w in inner.located.iter() {
-            assert!(w.get_mut().located_objects.remove(&self));
-        }
-        // remove from owner
-        assert!(inner.session.get_mut().objects.remove(&self));
-        // remove from graph
-        graph.objects.remove(&inner.id).unwrap();
-        // assert that we hold the last reference, , then drop it
-        assert_eq!(self.get_num_refs(), 1);
     }
 }
 

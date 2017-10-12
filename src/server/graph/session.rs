@@ -2,15 +2,19 @@ use futures::unsync::oneshot::Sender;
 use std::fmt;
 
 use common::wrapped::WrappedRcRefCell;
-use common::RcSet;
+use common::{RcSet, FinishHook, ConsistencyCheck};
 use common::id::SessionId;
+use common::events::Event;
 use super::{ClientRef, DataObjectRef, TaskRef, Graph, TaskState, DataObjectState};
-use errors::Result;
+use errors::{Result, Error};
 
 #[derive(Debug)]
 pub struct Session {
     /// Unique ID
     pub (in super::super) id: SessionId,
+
+    /// State of the Session and an optional cause of the error.
+    pub (in super::super) error: Option<Event>,
 
     /// Contained tasks.
     /// NB: These are owned by the Session and are cleaned up by it.
@@ -24,31 +28,43 @@ pub struct Session {
     pub (in super::super) client: ClientRef,
 
     /// Hooks executed when all tasks are finished.
-    pub (in super::super) finish_hooks: Vec<Sender<()>>,
+    pub (in super::super) finish_hooks: Vec<FinishHook>,
 }
 
 pub type SessionRef = WrappedRcRefCell<Session>;
 
 impl SessionRef {
-    pub fn new(graph: &mut Graph, client: &ClientRef) -> Result<Self> {
+
+    /// Create new session object and link it to the owning client.
+    pub fn new(id: SessionId, client: &ClientRef) -> Self {
         let s = SessionRef::wrap(Session {
-            id: graph.new_session_id(),
+            id: id,
             tasks: Default::default(),
             objects: Default::default(),
             client: client.clone(),
             finish_hooks: Default::default(),
+            error: None,
         });
-        debug!("Creating session {} for client {}", s.get_id(), s.get().client.get_id());
-        // add to graph
-        assert!(graph.sessions.insert(s.get().id, s.clone()).is_none());
         // add to client
         client.get_mut().sessions.insert(s.clone());
-        Ok(s)
+        s
     }
 
+    /// Return the state of the session with optional error
+    pub fn get_error(&self) -> Option<Event> {
+        self.get().error.clone()
+    }
+
+    /// Return the object ID in graph.
+    pub fn get_id(&self) -> SessionId {
+        self.get().id
+    }
+}
+
+impl ConsistencyCheck for SessionRef {
     /// Check for state and relationships consistency. Only explores adjacent objects but still
     /// may be slow.
-    pub fn check_consistency(&self) -> Result<()> {
+    fn check_consistency(&self) -> Result<()> {
         let s = self.get();
         // refs
         for oref in s.objects.iter() {
@@ -68,29 +84,15 @@ impl SessionRef {
         if !s.finish_hooks.is_empty() &&
             s.tasks.iter().all(|tr| tr.get().state == TaskState::Finished) &&
             s.objects.iter().all(|or| or.get().state != DataObjectState::Unfinished) {
-            bail!("finish_hooks on all-finished session");
+            bail!("finish_hooks on all-finished session {:?}", s);
+        }
+        // in case of error, the session should be cleared
+        if s.error.is_some() &&
+            !(s.finish_hooks.is_empty() && s.tasks.is_empty() && s.objects.is_empty()) {
+            bail!("Session with error is not cleared: {:?}", s);
         }
         Ok(())
     }
-
-    pub fn delete(self, graph: &mut Graph) {
-        debug!("Deleting session {} for client {}", self.get_id(), self.get().client.get_id());
-        // delete owned children
-        let tasks = self.get_mut().tasks.iter().map(|x| x.clone()).collect::<Vec<_>>();
-        for t in tasks { t.delete(graph); }
-        let objects = self.get_mut().objects.iter().map(|x| x.clone()).collect::<Vec<_>>();
-        for o in objects { o.delete(graph); }
-        // remove from owner
-        let inner = self.get_mut();
-        assert!(inner.client.get_mut().sessions.remove(&self));
-        // remove from graph
-        graph.sessions.remove(&inner.id).unwrap();
-        // assert that we hold the last reference, then drop it
-        assert_eq!(self.get_num_refs(), 1);
-    }
-
-    /// Return the object ID in graph.
-    pub fn get_id(&self) -> SessionId { self.get().id }
 }
 
 impl fmt::Debug for SessionRef {

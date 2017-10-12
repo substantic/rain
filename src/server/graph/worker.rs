@@ -7,7 +7,7 @@ use futures::Future;
 use errors::Error;
 use common::asycinit::AsyncInitWrapper;
 use common::wrapped::WrappedRcRefCell;
-use common::RcSet;
+use common::{RcSet, ConsistencyCheck};
 use common::id::WorkerId;
 use common::resources::Resources;
 use super::{TaskRef, DataObjectRef, Graph};
@@ -19,24 +19,27 @@ pub struct Worker {
     id: WorkerId,
 
     /// Assigned tasks. The task state is stored in the `Task`.
-    pub(super) assigned_tasks: RcSet<TaskRef>,
+    pub(in super::super) assigned_tasks: RcSet<TaskRef>,
 
     /// Scheduled tasks. Superset of `assigned_tasks`.
-    pub(super) scheduled_tasks: RcSet<TaskRef>,
+    pub(in super::super) scheduled_tasks: RcSet<TaskRef>,
+
+    /// State of the worker with optional error message (informative only).
+    pub(in super::super) error: Option<String>,
 
     /// Scheduled tasks that are also ready but not yet assigned. Disjoint from
     /// `assigned_tasks`, subset of `scheduled_tasks`.
     pub(in super::super) scheduled_ready_tasks: RcSet<TaskRef>,
 
     /// Obects fully located on the worker.
-    pub(super) located_objects: RcSet<DataObjectRef>,
+    pub(in super::super) located_objects: RcSet<DataObjectRef>,
 
     /// Objects located or assigned to appear on the worker. Superset of `located`.
-    pub(super) assigned_objects: RcSet<DataObjectRef>,
+    pub(in super::super) assigned_objects: RcSet<DataObjectRef>,
 
     /// Objects scheduled to appear here. Any objects in `located_objects` but not here
     /// are to be removed from the worker.
-    pub(super) scheduled_objects: RcSet<DataObjectRef>,
+    pub(in super::super) scheduled_objects: RcSet<DataObjectRef>,
 
     /// Control interface. Optional for testing and modelling.
     pub (in super::super) control: Option<::worker_capnp::worker_control::Client>,
@@ -65,7 +68,8 @@ impl Worker {
     }
 
     /// Create a future that completes when datastore is available
-    pub fn wait_for_datastore(&mut self, worker_ref: &WorkerRef, handle: &::tokio_core::reactor::Handle) -> Box<Future<Item=(), Error=Error>> {
+    pub fn wait_for_datastore(&mut self, worker_ref: &WorkerRef,
+              handle: &::tokio_core::reactor::Handle) -> Box<Future<Item=(), Error=Error>> {
         if let Some(ref mut store) = self.datastore {
             return store.wait();
         }
@@ -91,18 +95,14 @@ impl Worker {
 
 
 impl WorkerRef {
-    pub fn new(graph: &mut Graph,
-               address: SocketAddr,
+    pub fn new(address: SocketAddr,
                control: Option<::worker_capnp::worker_control::Client>,
-               resources: Resources) -> Result<Self> {
-        if graph.workers.contains_key(&address) {
-            bail!("Graph already contains worker {}", address);
-        }
-        debug!("Creating worker {}", address);
-        let s = WorkerRef::wrap(Worker {
+               resources: Resources) -> Self {
+        WorkerRef::wrap(Worker {
             id: address,
             assigned_tasks: Default::default(),
             scheduled_tasks: Default::default(),
+            error: None,
             scheduled_ready_tasks: Default::default(),
             located_objects: Default::default(),
             assigned_objects: Default::default(),
@@ -111,15 +111,17 @@ impl WorkerRef {
             resources: resources.clone(),
             free_resources: resources,
             datastore: None,
-        });
-        // add to graph
-        graph.workers.insert(s.get().id, s.clone());
-        Ok(s)
+        })
     }
 
+    /// Return the object ID in graph.
+    pub fn get_id(&self) -> WorkerId { self.get().id }
+}
+
+impl ConsistencyCheck for WorkerRef {
     /// Check for state and relationships consistency. Only explores adjacent objects but still
     /// may be slow.
-    pub fn check_consistency(&self) -> Result<()> {
+    fn check_consistency(&self) -> Result<()> {
         let s = self.get();
         // refs
         for oref in s.located_objects.iter() {
@@ -154,30 +156,6 @@ impl WorkerRef {
         }
         Ok(())
     }
-
-    pub fn delete(self, graph: &mut Graph) {
-        debug!("Deleting worker {}", self.get_id());
-        // remove from objects
-        for o in self.get_mut().assigned_objects.iter() {
-            assert!(o.get_mut().assigned.remove(&self));
-        }
-        for o in self.get_mut().located_objects.iter() {
-            assert!(o.get_mut().located.remove(&self));
-        }
-        // remove from tasks
-        for t in self.get_mut().assigned_tasks.iter() {
-            t.get_mut().assigned = None;
-        }
-        for t in self.get_mut().scheduled_tasks.iter() {
-            t.get_mut().scheduled = None;
-        }
-        // remove from graph
-        graph.workers.remove(&self.get().id).unwrap();
-        // assert that we hold the last reference, then drop it
-        assert_eq!(self.get_num_refs(), 1);
-    }
-    /// Return the object ID in graph.
-    pub fn get_id(&self) -> WorkerId { self.get().id }
 }
 
 impl fmt::Debug for WorkerRef {

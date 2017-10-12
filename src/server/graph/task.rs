@@ -3,11 +3,11 @@ use std::fmt;
 
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
-use common::{RcSet, Additional};
+use common::{RcSet, Additional, FinishHook, ConsistencyCheck};
 use common::id::{TaskId, SId};
 use super::{DataObjectRef, WorkerRef, SessionRef, Graph, DataObjectState, DataObjectType};
 pub use common_capnp::TaskState;
-use errors::Result;
+use errors::{Result, Error};
 
 #[derive(Debug, Clone)]
 pub struct TaskInput {
@@ -56,7 +56,7 @@ pub struct Task {
     pub(in super::super) task_config: Vec<u8>,
 
     /// Hooks executed when the task is finished
-    pub(in super::super) finish_hooks: Vec<oneshot::Sender<()>>,
+    pub(in super::super) finish_hooks: Vec<FinishHook>,
 
     /// Additional attributes
     pub(in super::super) additional: Additional,
@@ -102,7 +102,7 @@ impl Task {
     }
 
     /// Inform observers that task is finished
-    fn trigger_finish_hooks(&mut self) {
+    pub fn trigger_finish_hooks(&mut self) {
         assert!(self.is_finished());
         for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
             match sender.send(()) {
@@ -114,14 +114,14 @@ impl Task {
         }
     }
 
-    pub fn set_state(&mut self, new_state: TaskState) {
+/*    pub fn set_state(&mut self, new_state: TaskState) {
         self.state = new_state;
         match new_state {
             TaskState::Finished => self.trigger_finish_hooks(),
             _ => { /* do nothing */ }
         };
     }
-
+*/
     /// Create future that finishes until the task is finished
     pub fn wait(&mut self) -> oneshot::Receiver<()> {
         let (sender, receiver) = oneshot::channel();
@@ -135,8 +135,9 @@ impl Task {
 }
 
 impl TaskRef {
+    /// Create new Task with given inputs and outputs, connecting them together.
+    /// Checks the input and output object states and sessions.
     pub fn new(
-        graph: &mut Graph,
         session: &SessionRef,
         id: TaskId,
         inputs: Vec<TaskInput>,
@@ -148,23 +149,39 @@ impl TaskRef {
         assert_eq!(id.get_session_id(), session.get_id());
         let mut waiting = RcSet::new();
         for i in inputs.iter() {
-            let o = i.object.get();
-            match o.state {
+            let inobj = i.object.get();
+            match inobj.state {
                 DataObjectState::Removed => {
                     bail!("Can't create Task {} with Finished input object {}",
-                        id, o.id);
+                        id, inobj.id);
                 }
-                DataObjectState::Finished => (),
-                _ => { waiting.insert(i.object.clone()); }
+                DataObjectState::Finished => {
+                    if inobj.object_type == DataObjectType::Stream {
+                        bail!("Can't create Task {} with done input stream {}", id, inobj.id);
+                    }
+                    // Finished objects are assigned and located somewhere
+                },
+                DataObjectState::Unfinished => {
+                    if inobj.object_type == DataObjectType::Stream {
+                        if let Some(ref prod) = inobj.producer {
+                            if prod.get().state != TaskState::NotAssigned &&
+                                prod.get().state != TaskState::Ready {
+                                bail!("Can't create Task {} with running input stream {}",
+                                id, inobj.id);
+                            }
+                        }
+                    }
+                    waiting.insert(i.object.clone());
+                }
             }
-            if o.object_type == DataObjectType::Stream &&
-                o.state != DataObjectState::Unfinished {
+            if inobj.object_type == DataObjectType::Stream &&
+                inobj.state != DataObjectState::Unfinished {
                 bail!("Can't create Task {} with active input stream object {}",
-                    id, o.id);
+                    id, inobj.id);
             }
-            if o.id.get_session_id() != id.get_session_id() {
+            if inobj.id.get_session_id() != id.get_session_id() {
                 bail!("Input object {} for task {} is from a different session",
-                    o.id, id);
+                    inobj.id, id);
             }
         }
         for out in outputs.iter() {
@@ -177,9 +194,6 @@ impl TaskRef {
                 bail!("Output object {} for task {} is from a different session",
                     o.id, id);
             }
-        }
-        if graph.tasks.contains_key(&id) {
-            bail!("Task {} already in the graph", id);
         }
         let sref = TaskRef::wrap(Task {
             id: id,
@@ -195,12 +209,10 @@ impl TaskRef {
             finish_hooks: Default::default(),
             additional: additional,
         });
-        { // to capture `s`
+        // add to session
+        session.get_mut().tasks.insert(sref.clone());
+        {
             let s = sref.get_mut();
-            // add to graph
-            graph.tasks.insert(s.id, sref.clone());
-            // add to session
-            session.get_mut().tasks.insert(sref.clone());
             // add to the DataObjects
             for i in s.inputs.iter() {
                 let mut o = i.object.get_mut();
@@ -214,9 +226,39 @@ impl TaskRef {
         Ok(sref)
     }
 
+    pub fn unlink(&self) {
+        let inner = self.get_mut();
+        // remove from outputs
+        for o in inner.outputs.iter() {
+            debug_assert!(o.get_mut().producer == Some(self.clone()));
+            o.get_mut().producer = None;
+        }
+        // remove from inputs
+        for i in inner.inputs.iter() {
+            // Note that self may have been removed by another input
+            i.object.get_mut().consumers.remove(&self);
+        }
+        // remove from scheduled workers
+        if let Some(ref w) = inner.scheduled {
+            assert!(w.get_mut().scheduled_tasks.remove(&self));
+            if inner.state == TaskState::Ready {
+                assert!(w.get_mut().scheduled_ready_tasks.remove(&self));
+            }
+        }
+        // remove from owner
+        assert!(inner.session.get_mut().tasks.remove(&self));
+    }
+
+    /// Return the object ID in graph.
+    pub fn get_id(&self) -> TaskId {
+        self.get().id
+    }
+}
+
+impl ConsistencyCheck for TaskRef {
     /// Check for state and relationships consistency. Only explores adjacent objects but still
     /// may be slow.
-    pub fn check_consistency(&self) -> Result<()> {
+    fn check_consistency(&self) -> Result<()> {
         let s = self.get();
         // ID consistency
         if s.id.get_session_id() != s.session.get_id() {
@@ -285,41 +327,6 @@ impl TaskRef {
             bail!("assigned/scheduled inconsistency in {:?}", s);
         }
         Ok(())
-    }
-
-    pub fn delete(self, graph: &mut Graph) {
-        let inner = self.get_mut();
-        // remove from outputs
-        for o in inner.outputs.iter() {
-            debug_assert!(o.get_mut().producer == Some(self.clone()));
-            o.get_mut().producer = None;
-        }
-        // remove from inputs
-        for i in inner.inputs.iter() {
-            // Note that self may have been removed by another input
-            i.object.get_mut().consumers.remove(&self);
-        }
-        // remove from workers
-        if let Some(ref w) = inner.assigned {
-            assert!(w.get_mut().assigned_tasks.remove(&self));
-        }
-        if let Some(ref w) = inner.scheduled {
-            assert!(w.get_mut().scheduled_tasks.remove(&self));
-            if inner.state == TaskState::Ready {
-                assert!(w.get_mut().scheduled_ready_tasks.remove(&self));
-            }
-        }
-        // remove from owner
-        assert!(inner.session.get_mut().tasks.remove(&self));
-        // remove from graph
-        graph.tasks.remove(&inner.id).unwrap();
-        // assert that we hold the last reference, then drop it
-        assert_eq!(self.get_num_refs(), 1);
-    }
-
-    /// Return the object ID in graph.
-    pub fn get_id(&self) -> TaskId {
-        self.get().id
     }
 }
 

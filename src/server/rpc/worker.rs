@@ -1,7 +1,7 @@
 use common::convert::FromCapnp;
 use common::id::{DataObjectId, TaskId};
 use server::state::StateRef;
-use server::graph::{WorkerRef, DataObjectState};
+use server::graph::{WorkerRef, Worker, DataObjectState};
 use worker_capnp::worker_upstream;
 use capnp::capability::Promise;
 use server::rpc::WorkerDataStoreImpl;
@@ -53,23 +53,25 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
         // For some reason collect over iterator do not work here !?
         let mut obj_updates = Vec::new();
         for obj_update in pry!(update.get_objects()).iter() {
-          let id = DataObjectId::from_capnp(&pry!(obj_update.get_id()));
-          debug!("Update for object id={}", id);
-          let object = pry!(state.object_by_id(id));
-          let size = obj_update.get_size() as usize;
-          obj_updates.push((object, pry!(obj_update.get_state()), size));
+            let id = DataObjectId::from_capnp(&pry!(obj_update.get_id()));
+            debug!("Update for object id={}", id);
+            let object = pry!(state.object_by_id(id));
+            let size = obj_update.get_size() as usize;
+            let additional = Default::default(); // TODO: Additionals
+            obj_updates.push((object, pry!(obj_update.get_state()), size, additional));
         }
 
         // For some reason collect over iterator do not work here !?
         let mut task_updates = Vec::new();
         for task_update in pry!(update.get_tasks()).iter() {
-          let id = TaskId::from_capnp(&pry!(task_update.get_id()));
-          debug!("Update for task id={}", id);
-          let task = pry!(state.task_by_id(id));
-          task_updates.push((task, pry!(task_update.get_state())));
+            let id = TaskId::from_capnp(&pry!(task_update.get_id()));
+            debug!("Update for task id={}", id);
+            let task = pry!(state.task_by_id(id));
+            let additional = Default::default(); // TODO: Additionals
+          task_updates.push((task, pry!(task_update.get_state()), additional));
         }
 
-        state.update_states(&self.worker, &obj_updates, &task_updates);
+        state.updates_from_worker(&self.worker, &obj_updates, &task_updates);
         Promise::ok(())
     }
 
@@ -82,4 +84,8 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
             "get_client_session: method not implemented".to_string(), // TODO
         ))
     }
+}
+
+impl Worker {
+
 }

@@ -21,7 +21,7 @@ impl ClientServiceImpl {
     pub fn new(state: &StateRef, address: &SocketAddr)  -> Result<Self> {
         Ok(Self {
             state: state.clone(),
-            client: try!(ClientRef::new(&mut state.get_mut().graph, address.clone())),
+            client: state.get_mut().add_client(address.clone())?,
         })
     }
 }
@@ -118,10 +118,10 @@ impl client_service::Server for ClientServiceImpl {
         })();
         if res.is_err() {
             for t in created_tasks {
-                t.delete(&mut s.graph);
+                s.remove_task(&t);
             }
             for o in created_objects {
-                o.delete(&mut s.graph);
+                s.remove_object(&o);
             }
             pry!(res);
         }
@@ -200,7 +200,7 @@ impl client_service::Server for ClientServiceImpl {
         for oid in object_ids.iter() {
             let id: DataObjectId = DataObjectId::from_capnp(&oid);
             let o: DataObjectRef = pry!(s.object_by_id(id));
-            pry!(s.unkeep_object(&o));
+            s.unkeep_object(&o);
         }
 
         Promise::ok(())

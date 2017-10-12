@@ -47,6 +47,7 @@ lazy_static! {
 pub mod capnp_gen;
 pub use capnp_gen::*;
 
+#[allow(unused_doc_comment)]
 pub mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain!{
