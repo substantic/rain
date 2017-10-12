@@ -1,4 +1,6 @@
 
+import capnp
+
 from .session import get_active_session
 from .common import RainException
 from .rpc import common
@@ -65,7 +67,12 @@ class DataObject:
 
     def __del__(self):
         if self.state is not None and self._keep:
-            self.session.free(self)
+            try:
+                self.session.client._unkeep((self,))
+            except capnp.lib.capnp.KjException:
+                # Ignore capnp exception, since this constructor may be
+                # called when connection is closed
+                pass
 
     def is_blob(self):
         return self.type == common.DataObjectType.blob

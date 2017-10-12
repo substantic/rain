@@ -7,14 +7,14 @@ pub mod fs;
 pub mod resources;
 pub mod events;
 pub mod asycinit;
+pub mod additional;
 
 use std::collections::HashSet;
 use futures::unsync::oneshot;
 
 pub type RcSet<T> = HashSet<T>;
+pub use self::additional::Additional;
 
-#[derive(Clone, Default, Debug)]
-pub struct Additional {}
 pub mod monitoring;
 
 pub type FinishHook = oneshot::Sender<()>;

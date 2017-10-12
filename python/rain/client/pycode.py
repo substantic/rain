@@ -3,6 +3,7 @@ from .task import Task
 from .data import blob, DataObject, DataObjectPart
 from .session import get_active_session
 
+
 def py_call(fn, inputs):
     return Task("py", inputs)
 
@@ -18,15 +19,12 @@ def py_obj(obj, label=""):
 def remote(outputs=None):
     def make_remote(fn):
         def make_task(*args):
-            """TODO enable when server is fixed
-            client = get_active_session().client
-            fn_blob = client.get_static_data(fn)
+            session = get_active_session()
+            fn_blob = session.static_data.get(fn)
             if fn_blob is None:
-                client.set_static_blob(
-                    fn, cloudpickle.dumps(fn), "Fn:" + fn.__name__)
-                fn_blob = client.get_static_data(fn)
-            """
-            fn_blob = blob(cloudpickle.dumps(fn), fn.__name__)  # Just heck until bug in server is not fixed
+                fn_blob = blob(cloudpickle.dumps(fn), fn.__name__)
+                fn_blob.keep()
+                session.static_data[fn] = fn_blob
             inputs = (fn_blob,) + args
             return Task("py", None, inputs, outputs)
         return make_task

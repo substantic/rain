@@ -316,6 +316,8 @@ impl ConsistencyCheck for TaskRef {
                 s.assigned.is_some() && s.waiting_for.is_empty(),
             TaskState::Finished =>
                 s.assigned.is_none() && s.waiting_for.is_empty(),
+            TaskState::Failed =>
+                unimplemented!() // What to do here?
         }) {
             bail!("state/assigned/waiting_for inconsistency in {:?}", s);
         }
@@ -344,6 +346,7 @@ impl fmt::Debug for TaskState {
             TaskState::Ready => "Ready",
             TaskState::Running => "Running",
             TaskState::Finished => "Finished",
+            TaskState::Failed => "Failed"
         })
     }
 }

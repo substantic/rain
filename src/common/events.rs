@@ -89,6 +89,24 @@ pub struct WorkerMonitoringEvent {
     // TODO cpu load, etc...
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TaskFailedEvent {
+    task: DataObjectId,
+    worker: WorkerId,
+    error_msg: String
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkerFailedEvent {
+    worker: WorkerId,
+    error_msg: String
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ClientInvalidRequestEvent {
+    client: ClientId,
+    error_msg: String
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Event {
@@ -108,5 +126,9 @@ pub enum Event {
     DataObjectFinished(DataObjectFinishedEvent),
     DataObjectRemoved(DataObjectRemovedEvent),
 
-    WorkerMonitoring(WorkerMonitoringEvent)
+    WorkerMonitoring(WorkerMonitoringEvent),
+
+    TaskFailed(TaskFailedEvent),
+    WorkerFailed(WorkerFailedEvent),
+    ClientInvalidRequest(ClientInvalidRequestEvent)
 }

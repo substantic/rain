@@ -208,12 +208,18 @@ impl State {
 
             for (i, task) in self.updated_tasks.iter().enumerate() {
                 let mut ct = req_tasks.borrow().get(i as u32);
-                let task = task.get();
+                let mut task = task.get_mut();
                 ct.set_state(match task.state {
                     TaskState::Running => ::common_capnp::TaskState::Running,
                     TaskState::Finished => ::common_capnp::TaskState::Finished,
+                    TaskState::Failed => ::common_capnp::TaskState::Failed,
                     _ => panic!("Invalid state")
                 });
+
+                if !task.new_additionals.is_empty() {
+                    task.new_additionals.to_capnp(&mut ct.borrow().get_additional().unwrap());
+                    task.new_additionals.clear();
+                }
                 task.id.to_capnp(&mut ct.get_id().unwrap());
             }
 
@@ -340,10 +346,19 @@ impl State {
 
         self.updated_tasks.insert(task.clone());
 
-        let future = TaskContext::new(task, state_ref.clone()).start(self).unwrap();
 
         let state_ref = state_ref.clone();
-        self.handle.spawn(future.and_then(move |mut context| {
+        let state_ref2 = state_ref.clone();
+        let task2 = task.clone();
+
+        let future = TaskContext::new(task, state_ref.clone()).start(self);
+
+        if let Err(e) = future {
+            task2.get_mut().set_failed(e.description().to_string());
+            return;
+        }
+
+        self.handle.spawn(future.unwrap().and_then(move |mut context| {
 
 
             let mut task = context.task.get_mut();
@@ -380,9 +395,9 @@ impl State {
             }
 
             Ok(())
-        }).map_err(|e| {
-            // TODO: Handle error properly
-            panic!("Task failed: {:?}", e);
+        }).map_err(move |e| {
+                task2.get_mut().set_failed(e.description().to_string());
+                state_ref2.get_mut().updated_tasks.insert(task2);
         }));
     }
 

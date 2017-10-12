@@ -7,7 +7,7 @@ from . import rpc
 
 class Program:
 
-    def __init__(self, args, stdout=None, stdin=None):
+    def __init__(self, args, stdout=None, stdin=None, vars=()):
         if isinstance(args, str):
             args = tuple(shlex.shlex(args))
         self.args = args
@@ -26,6 +26,7 @@ class Program:
             # +in is a name of where stdout is redirected
             self.input("+in", stdin)
 
+        self.vars = vars
 
     def input(self, path, label):
         """Create new input"""
@@ -41,9 +42,16 @@ class Program:
         return "<Program {}>".format(self.args)
 
     def __call__(self, **args):
+
+        call_args = self.args
+        for var in self.vars:
+            var_string = "${{{}}}".format(var)
+            call_args = [a.replace(var_string, args[var]) for a in call_args]
+        print(call_args)
+
         config = rpc.tasks.RunTask.new_message()
-        config.init("args", len(self.args))
-        for i, arg in enumerate(self.args):
+        config.init("args", len(call_args))
+        for i, arg in enumerate(call_args):
             config.args[i] = arg
         config.init("inputPaths", len(self.input_paths))
         for i, path in enumerate(self.input_paths):
