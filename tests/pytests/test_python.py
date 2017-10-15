@@ -11,6 +11,7 @@ def test_remote_bytes_inout(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = hello("Rain")
+        t1.out.output.keep()
         s.submit()
         assert b"Rain rocks!" == t1.out.output.fetch()
 
@@ -25,6 +26,8 @@ def test_remote_more_bytes_outputs(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = test()
+        t1.out.x1.keep()
+        t1.out.x2.keep()
         s.submit()
         assert b"One" == t1.out.x1.fetch()
         assert b"Two" == t1.out.x2.fetch()

@@ -79,7 +79,7 @@ def test_wait_some(test_env):
     assert len(finished[1]) == 0
     assert finished[0][0].id == t1.id
 
-
+@pytest.mark.xfail(reason="server wait does not support the sepcial 'all' ID")
 def test_wait_all(test_env):
     test_env.start(1)
     client = test_env.client

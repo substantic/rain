@@ -68,7 +68,7 @@ class TestEnv(Env):
         Start infrastructure: server & n workers
         """
         env = os.environ.copy()
-        env["RUST_LOG"] = "debug"
+        env["RUST_LOG"] = "trace"
         env["RUST_BACKTRACE"] = "1"
         env["PYTHONPATH"] = PYTHON_DIR
 
