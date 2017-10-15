@@ -100,6 +100,8 @@ impl worker_control::Server for WorkerControlImpl {
 
             let dataobject = state.add_dataobject(id, object_state, object_type, assigned, size, label);
 
+            debug!("Received DataObject {:?}, is_remote: {}", dataobject.get(), is_remote);
+
             if is_remote {
                 remote_objects.push(dataobject);
             }
@@ -121,7 +123,10 @@ impl worker_control::Server for WorkerControlImpl {
             let outputs: Vec<_> = ct.get_outputs().unwrap().iter().map(|co| {
                 state.object_by_id(DataObjectId::from_capnp(&co)).unwrap()
             }).collect();
-            state.add_task(id, inputs, outputs, task_type.into(), task_config.into());
+            let task = state.add_task(id, inputs, outputs, task_type.into(), task_config.into());
+
+            debug!("Received Task {:?}", task.get());
+
         }
 
         // Start fetching remote objects

@@ -12,9 +12,11 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::path::Path;
+use std::fmt;
 
 pub use common_capnp::{DataObjectType};
 
+#[derive(Debug)]
 pub enum DataObjectState {
     Assigned,
     Remote(SocketAddr),
@@ -30,7 +32,7 @@ pub enum DataObjectState {
     Finished(Arc<Data>),
 }
 
-
+#[derive(Debug)]
 pub struct DataObject {
     pub(in super::super) id: DataObjectId,
 
@@ -129,4 +131,10 @@ impl DataObjectRef {
         }
     }
 
+}
+
+impl fmt::Debug for DataObjectRef {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "DataObjectRef {}", self.get().id)
+    }
 }

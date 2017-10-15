@@ -10,6 +10,7 @@ use std::rc::Rc;
 use std::hash::{Hash, Hasher};
 use worker::data::Data;
 use common::wrapped::WrappedRcRefCell;
+use std::fmt;
 
 use errors::Result;
 
@@ -21,6 +22,7 @@ pub enum TaskState {
     Failed
 }
 
+#[derive(Debug)]
 pub struct TaskInput {
     /// Input data object.
     pub object: DataObjectRef,
@@ -33,6 +35,7 @@ pub struct TaskInput {
 }
 
 
+#[derive(Debug)]
 pub struct Task {
     pub (in super::super) id: TaskId,
 
@@ -145,4 +148,10 @@ impl TaskRef {
         task
     }
 
+}
+
+impl fmt::Debug for TaskRef {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "TaskRef {}", self.get().id)
+    }
 }

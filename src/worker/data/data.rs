@@ -4,24 +4,27 @@ use std::os::unix::fs::PermissionsExt;
 
 use errors::Result;
 
+#[derive(Debug)]
 pub struct DataOnFs {
     pub path: PathBuf,
     /// If data is directory than size is sum of sizes of all blobs in directory
     pub size: usize
 }
 
+#[derive(Debug)]
 pub enum Storage {
     Memory(Vec<u8>),
     Path(DataOnFs)
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum DataType {
     Blob,
     Directory,
     Stream
 }
 
+#[derive(Debug)]
 pub struct Data {
     data_type: DataType,
     storage: Storage,
