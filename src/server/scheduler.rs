@@ -1,5 +1,6 @@
 use std::collections::hash_map::HashMap;
-use super::graph::{DataObjectRef, TaskRef, WorkerRef, Graph};
+use std::clone::Clone;
+use super::graph::{DataObjectRef, TaskRef, WorkerRef, Graph, TaskState};
 use common::id::SId;
 use common::RcSet;
 
@@ -64,17 +65,21 @@ impl Scheduler for RandomScheduler {
             return up_out;
         }
 
-        for tr in updated.new_tasks.iter() {
-            let mut t = tr.get_mut();
+        for tref in updated.new_tasks.iter() {
+            let mut t = tref.get_mut();
             if t.scheduled.is_none() {
                 let w = random_worker(graph, t.id.get_id() as usize);
+                w.get_mut().scheduled_tasks.insert(tref.clone());
+                if t.state == TaskState::Ready {
+                    w.get_mut().scheduled_ready_tasks.insert(tref.clone());
+                }
                 t.scheduled = Some(w);
-                up_out.tasks.insert(tr.clone());
+                up_out.tasks.insert(tref.clone());
             }
         }
 
-        for or in updated.new_objects.iter() {
-            let mut o = or.get_mut();
+        for oref in updated.new_objects.iter() {
+            let mut o = oref.get_mut();
             let needed = (!o.consumers.is_empty()) || o.client_keep;
             if o.scheduled.is_empty() && (needed || o.id.get_id() % 3 == 1) {
                 let w = if let Some(ref prod) = o.producer {
@@ -82,8 +87,9 @@ impl Scheduler for RandomScheduler {
                 } else {
                     random_worker(graph, o.id.get_id() as usize)
                 };
+                w.get_mut().scheduled_objects.insert(oref.clone());
                 o.scheduled.insert(w.clone());
-                up_out.objects.entry(w).or_insert(Default::default()).insert(or.clone());
+                up_out.objects.entry(w).or_insert(Default::default()).insert(oref.clone());
             }
         }
 

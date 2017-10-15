@@ -54,10 +54,10 @@ impl client_service::Server for ClientServiceImpl {
         _: client_service::NewSessionParams,
         mut results: client_service::NewSessionResults,
     ) -> Promise<(), ::capnp::Error> {
-        debug!("Client asked for a new session");
         let mut s = self.state.get_mut();
         let session = pry!(s.add_session(&self.client));
         results.get().set_session_id(session.get_id());
+        debug!("Client asked for a new session, got {:?}", session.get_id());
         Promise::ok(())
     }
 
@@ -72,11 +72,12 @@ impl client_service::Server for ClientServiceImpl {
         let objects = pry!(params.get_objects());
         info!("New task submission ({} tasks, {} data objects) from client {}",
               tasks.len(), objects.len(), self.client.get_id());
+        debug!("Sessions: {:?}", s.graph.sessions);
         let mut created_tasks = Vec::<TaskRef>::new();
         let mut created_objects = Vec::<DataObjectRef>::new();
         // catch any insertion error and clean up later
         let res: Result<()> = (|| {
-            // first ceate the objects
+            // first create the objects
             for co in objects.iter() {
                 let id = DataObjectId::from_capnp(&co.get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
@@ -113,10 +114,13 @@ impl client_service::Server for ClientServiceImpl {
                                    additional)?;
                 created_tasks.push(t);
             }
+            debug!("New tasks: {:?}", created_tasks);
+            debug!("New objects: {:?}", created_objects);
             // verify submit integrity
             s.verify_submit(&created_tasks, &created_objects)
         })();
         if res.is_err() {
+            debug!("Error: {:?}", res);
             for t in created_tasks {
                 s.remove_task(&t);
             }
@@ -133,6 +137,7 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::GetDataStoreParams,
         mut results: client_service::GetDataStoreResults,
     ) -> Promise<(), ::capnp::Error> {
+        debug!("server data store requested from client");
         let datastore = ::datastore_capnp::data_store::ToClient::new(
             ClientDataStoreImpl::new(&self.state)).from_server::<::capnp_rpc::Server>();
         results.get().set_store(datastore);

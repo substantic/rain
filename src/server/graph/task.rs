@@ -259,6 +259,7 @@ impl ConsistencyCheck for TaskRef {
     /// Check for state and relationships consistency. Only explores adjacent objects but still
     /// may be slow.
     fn check_consistency(&self) -> Result<()> {
+        debug!("Checking Task {:?} consistency", self);
         let s = self.get();
         // ID consistency
         if s.id.get_session_id() != s.session.get_id() {
@@ -273,7 +274,7 @@ impl ConsistencyCheck for TaskRef {
         if let Some(ref wr) = s.scheduled {
             let w = wr.get();
             if !w.scheduled_tasks.contains(self) {
-                bail!("scheduled asymmetry in {:?}", s);
+                bail!("scheduled asymmetry with {:?} in {:?}", wr, s);
             }
             if w.scheduled_ready_tasks.contains(self) != (s.state == TaskState::Ready) {
                 bail!("scheduled_ready_task inconsistency in {:?} at {:?}", s, w);

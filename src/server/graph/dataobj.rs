@@ -79,14 +79,17 @@ impl DataObject {
 
     /// Inform observers that task is finished
     pub fn trigger_finish_hooks(&mut self) {
+        debug!("trigger_finish_hooks for {:?}", self);
         for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
+//        for sender in self.finish_hooks, Vec::new()) {
             match sender.send(()) {
                 Ok(()) => { /* Do nothing */}
                 Err(e) => { /* Just log error, it is non fatal */
-                               debug!("Failed to inform about finishing dataobject");
+                               debug!("Failed to inform about finishing dataobject: {:?}", e);
                 }
             }
         }
+        assert!(self.finish_hooks.is_empty());
     }
 
     /// Wait until dataobject is finished
@@ -215,12 +218,13 @@ impl ConsistencyCheck for DataObjectRef {
             if s.state == DataObjectState::Finished && p.state != TaskState::Finished {
                 bail!("producer not finished state inconsistency in {:?}", s);
             }
-            if let Some(ref swr) = p.scheduled {
+            // Not relevant anyomre:
+/*            if let Some(ref swr) = p.scheduled {
                 if !s.scheduled.contains(swr) {
                     bail!("not scheduled to producer worker in {:?}");
                 }
             }
-            if let Some(ref swr) = p.assigned {
+  */          if let Some(ref swr) = p.assigned {
                 if !s.assigned.contains(swr) {
                     bail!("not assigned to producer worker in {:?}");
                 }
@@ -235,7 +239,8 @@ impl ConsistencyCheck for DataObjectRef {
         // state consistency
         if !match s.state {
             DataObjectState::Unfinished =>
-                s.scheduled.len() <= 1 && s.assigned.len() <= 1 && s.producer.is_some(),
+                s.scheduled.len() <= 1 && s.assigned.len() <= 1,
+                // NOTE: Can't check s.producer.is_some() in case the session is being destroyed,
             DataObjectState::Finished =>
                 s.data.is_some() || (s.located.len() >= 1 && s.assigned.len() >= 1),
             DataObjectState::Removed =>

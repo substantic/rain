@@ -120,7 +120,9 @@ impl State {
 
     /// Create a new session fr a client, register it in the graph.
     pub fn add_session(&mut self, client: &ClientRef) -> Result<SessionRef> {
-        Ok(SessionRef::new(self.graph.new_session_id(), client))
+        let s = SessionRef::new(self.graph.new_session_id(), client);
+        self.graph.sessions.insert(s.get_id(), s.clone());
+        Ok(s)
     }
 
     /// Helper for .remove_session() and .fail_session(). Remove all session tasks,
@@ -353,13 +355,27 @@ impl State {
             object.get_id().to_capnp(co);
         }
 
-        self.handle.spawn(req
-            .send().promise
-            .map(|_| ())
-            .map_err(|e| panic!("Send failed {:?}", e)));
+        {
+            let o2 = object.clone();
+            let w2 = wref.clone();
+            self.handle.spawn(req
+                .send().promise
+                .map(|_| ())
+                .map_err(move |e| panic!("Sending unassign_object {:?} to {:?} failed {:?}",
+                                    o2, w2, e)));
+        }
 
         object.get_mut().assigned.remove(wref);
         wref.get_mut().assigned_objects.remove(object);
+        object.get_mut().located.remove(wref); // may not be present
+        wref.get_mut().located_objects.remove(object); // may not be present
+        if object.get().assigned.is_empty() {
+            if object.get().state == DataObjectState::Finished {
+                object.get_mut().state = DataObjectState::Removed;
+                assert!(object.get().scheduled.is_empty());
+                assert!(!object.get().client_keep);
+            }
+        }
 
         object.check_consistency_opt().unwrap(); // non-recoverable
         wref.check_consistency_opt().unwrap(); // non-recoverable
@@ -371,88 +387,88 @@ impl State {
     pub fn assign_task(&mut self, task: &TaskRef) {
         task.check_consistency_opt().unwrap(); // non-recoverable
 
-        let mut t = task.get_mut();
-        assert!(t.scheduled.is_some());
-        assert!(t.assigned.is_none());
+        {
+            // lexical scoping for `t`
+            let mut t = task.get_mut();
+            assert!(t.scheduled.is_some());
+            assert!(t.assigned.is_none());
 
-        // Collect input objects: pairs (object, worker_id) where worker_id is placement of object
-        let mut objects: Vec<(DataObjectRef, WorkerId)> = Vec::new();
+            // Collect input objects: pairs (object, worker_id) where worker_id is placement of object
+            let mut objects: Vec<(DataObjectRef, WorkerId)> = Vec::new();
 
-        let wref = t.scheduled.as_ref().unwrap().clone();
-        t.assigned = Some(wref.clone());
-        let worker_id = wref.get_id();
-        let empty_worker_id = ::common::id::empty_worker_id();
-        debug!("Assiging task id={} to worker={}", t.id, worker_id);
+            let wref = t.scheduled.as_ref().unwrap().clone();
+            t.assigned = Some(wref.clone());
+            let worker_id = wref.get_id();
+            let empty_worker_id = ::common::id::empty_worker_id();
+            debug!("Assiging task id={} to worker={}", t.id, worker_id);
 
-        for input in t.inputs.iter() {
-            let mut o = input.object.get_mut();
-            if !o.assigned.contains(&wref) {
+            for input in t.inputs.iter() {
+                let mut o = input.object.get_mut();
+                if !o.assigned.contains(&wref) {
+                    // Just take first placement
+                    let placement = o.located.iter().next()
+                        .map(|w| w.get().id().clone())
+                        .unwrap_or_else(|| {
+                            // If there is no placement, then server is the source of datobject
+                            assert!(o.data.is_some());
+                            empty_worker_id.clone()
+                        });
+                    objects.push((input.object.clone(), placement));
+                }
+            }
 
-                // Just take first placement
-                let placement = o.located.iter().next()
-                    .map(|w| w.get().id().clone())
-                    .unwrap_or_else(|| {
-                        // If there is no placement, then server is the source of datobject
-                        assert!(o.data.is_some());
-                        empty_worker_id.clone()
-                    });
-                objects.push((input.object.clone(), placement));
+            for output in t.outputs.iter() {
+                objects.push((output.clone(), worker_id.clone()));
+                output.get_mut().assigned.insert(wref.clone());
+                wref.get_mut().assigned_objects.insert(output.clone());
+            }
+
+            // Create request
+            let mut req = wref.get().control.as_ref().unwrap().add_nodes_request();
+
+            // Serialize objects
+            {
+                let mut new_objects = req.get()
+                    .init_new_objects(objects.len() as u32);
+                for (i, &(ref object, placement)) in objects.iter().enumerate() {
+                    let mut co = &mut new_objects.borrow().get(i as u32);
+                    placement.to_capnp(&mut co.borrow().get_placement().unwrap());
+                    let obj = object.get();
+                    obj.to_worker_capnp(&mut co);
+                    // only assign output tasks
+                    co.set_assigned(i >= t.inputs.len());
+                }
+            }
+
+            // Serialize tasks
+            {
+                let mut new_tasks = req.get().init_new_tasks(1);
+                t.to_worker_capnp(&mut new_tasks.get(0));
+            }
+
+            self.handle.spawn(req
+                .send().promise
+                .map(|_| ())
+                .map_err(|e| panic!("Send failed {:?}", e)));
+
+            wref.get_mut().assigned_tasks.insert(task.clone());
+            wref.get_mut().scheduled_ready_tasks.remove(task);
+            t.assigned = Some(wref.clone());
+            t.state = TaskState::Assigned;
+
+            for oref in t.outputs.iter() {
+                oref.get_mut().assigned.insert(wref.clone());
+                wref.get_mut().assigned_objects.insert(oref.clone());
             }
         }
-
-        for output in t.outputs.iter() {
-            objects.push((output.clone(), worker_id.clone()));
-            output.get_mut().assigned.insert(wref.clone());
-            wref.get_mut().assigned_objects.insert(output.clone());
-        }
-
-        // Create request
-        let mut req = wref.get().control.as_ref().unwrap().add_nodes_request();
-
-        // Serialize objects
-        {
-            let mut new_objects = req.get()
-                .init_new_objects(objects.len() as u32);
-            for (i, &(ref object, placement)) in objects.iter().enumerate() {
-                let mut co = &mut new_objects.borrow().get(i as u32);
-                placement.to_capnp(&mut co.borrow().get_placement().unwrap());
-                let obj = object.get();
-                obj.to_worker_capnp(&mut co);
-                // only assign output tasks
-                co.set_assigned(i >= t.inputs.len());
-            }
-        }
-
-        // Serialize tasks
-        {
-            let mut new_tasks = req.get().init_new_tasks(1);
-            t.to_worker_capnp(&mut new_tasks.get(0));
-        }
-
-        self.handle.spawn(req
-            .send().promise
-            .map(|_| ())
-            .map_err(|e| panic!("Send failed {:?}", e)));
-
-        wref.get_mut().assigned_tasks.insert(task.clone());
-        wref.get_mut().scheduled_ready_tasks.remove(task);
-        t.assigned = Some(wref);
-        t.state = TaskState::Assigned;
-
-        for oref in t.outputs.iter() {
-            oref.get_mut().assigned.insert(wref);
-            wref.get_mut().assigned_objects.insert(oref.clone());
-        }
-
         task.check_consistency_opt().unwrap(); // non-recoverable
-        wref.check_consistency_opt().unwrap(); // non-recoverable
     }
 
     /// Unassign task from the worker it is assigned to and send the unassign call.
     /// Panics when the task is not assigned to the given worker or scheduled there.
     pub fn unassign_task(&mut self, task: &TaskRef) {
-        let wref = task.get().assigned.unwrap(); // non-recoverable
-        assert!(task.get().scheduled != Some(wref));
+        let wref = task.get().assigned.as_ref().unwrap().clone(); // non-recoverable
+        assert!(task.get().scheduled != Some(wref.clone()));
         task.check_consistency_opt().unwrap(); // non-recoverable
         wref.check_consistency_opt().unwrap(); // non-recoverable
 
@@ -473,6 +489,10 @@ impl State {
         task.get_mut().state = TaskState::Ready;
         wref.get_mut().assigned_tasks.remove(task);
         self.update_task_assignment(task);
+
+        for oref in task.get().outputs.iter().map(|x| x.clone()).collect::<Vec<_>>() {
+            self.unassign_object(&oref, &wref);
+        }
 
         task.check_consistency_opt().unwrap(); // non-recoverable
         wref.check_consistency_opt().unwrap(); // non-recoverable
@@ -498,7 +518,7 @@ impl State {
         assert!(tref.get().state != TaskState::Failed);
 
         if tref.get().state == TaskState::NotAssigned && tref.get().waiting_for.is_empty() {
-            tref.get().state = TaskState::Ready;
+            tref.get_mut().state = TaskState::Ready;
             self.updates.tasks.insert(tref.clone());
         }
 
@@ -545,7 +565,8 @@ impl State {
     /// list is pruned to only match the scheduled list (possibly plus one remaining worker if no
     /// scheduled workers have it located).
     pub fn update_object_assignments(&mut self, oref: &DataObjectRef, worker: Option<&WorkerRef>) {
-        match oref.get().state {
+        let ostate = oref.get().state;
+        match ostate {
             DataObjectState::Unfinished => (),
             DataObjectState::Removed => (),
             DataObjectState::Finished => {
@@ -563,7 +584,9 @@ impl State {
                         }
                     }
                 }
-                if oref.get().scheduled.is_empty() {
+                // Note that the object may be already Removed here
+                if oref.get().scheduled.is_empty()
+                    && oref.get().state == DataObjectState::Finished {
                     if !oref.is_needed() {
                         for wa in oref.get().assigned.clone() {
                             self.unassign_object(oref, &wa);
@@ -588,20 +611,29 @@ impl State {
     /// Process state updates from one Worker.
     pub fn updates_from_worker(&mut self,
                               worker: &WorkerRef,
-                              obj_updates: &[(DataObjectRef, DataObjectState, usize, Additional)],
-                              task_updates: &[(TaskRef, TaskState, Additional)]) {
+                              obj_updates: Vec<(DataObjectRef, DataObjectState, usize, Additional)>,
+                              task_updates: Vec<(TaskRef, TaskState, Additional)>) {
         debug!("Update states for {:?}, objs: {}, tasks: {}", worker,
                obj_updates.len(), task_updates.len());
-        for &(ref tref, state, additional) in task_updates {
+        worker.check_consistency_opt().unwrap(); // non-recoverable
+
+        for (tref, state, additional) in task_updates {
             // inform the scheduler
             self.updates.tasks.insert(tref.clone());
             // set the state and possibly propagate
             match state {
                 TaskState::Finished => {
-                    tref.get_mut().state = state;
-                    tref.get_mut().additional = additional;
-                    self.update_task_assignment(tref);
+                    {
+                        let mut t = tref.get_mut();
+                        t.state = state;
+                        t.additional = additional;
+                        t.scheduled = None;
+                        worker.get_mut().scheduled_tasks.remove(&tref);
+                        t.assigned = None;
+                        worker.get_mut().assigned_tasks.remove(&tref);
+                    }
                     tref.get_mut().trigger_finish_hooks();
+                    self.update_task_assignment(&tref);
                 },
                 TaskState::Running => {
                     assert!(tref.get().state == TaskState::Assigned);
@@ -621,7 +653,7 @@ impl State {
             }
         }
 
-        for &(ref oref, state, size, additional) in obj_updates {
+        for (oref, state, size, additional) in obj_updates {
             // Inform the scheduler
             self.updates.objects.entry(oref.clone()).or_insert(Default::default())
                 .insert(worker.clone());
@@ -629,24 +661,27 @@ impl State {
                 DataObjectState::Finished => {
                     oref.get_mut().located.insert(worker.clone());
                     worker.get_mut().located_objects.insert(oref.clone());
-                    match oref.get().state {
+                    let cur_state = oref.get().state; // To satisfy the borrow checker
+                    match cur_state {
                         DataObjectState::Unfinished => {
-                            let mut o = oref.get_mut();
-                            // first completion
-                            o.state = state;
-                            o.size = Some(size);
-                            o.additional = additional;
-                            o.trigger_finish_hooks();
-                            for cref in o.consumers.iter() {
-                                assert_eq!(cref.get().state, TaskState::NotAssigned);
-                                cref.get_mut().waiting_for.remove(oref);
-                                self.update_task_assignment(cref);
+                            { // capture `o`
+                                let mut o = oref.get_mut();
+                                // first completion
+                                o.state = state;
+                                o.size = Some(size);
+                                o.additional = additional;
+                                o.trigger_finish_hooks();
+                                for cref in o.consumers.iter() {
+                                    assert_eq!(cref.get().state, TaskState::NotAssigned);
+                                    cref.get_mut().waiting_for.remove(&oref);
+                                    self.update_task_assignment(cref);
+                                }
                             }
-                            self.update_object_assignments(oref, Some(worker));
+                            self.update_object_assignments(&oref, Some(worker));
                         },
                         DataObjectState::Finished => {
                             // cloning to some other worker done
-                            self.update_object_assignments(oref, Some(worker));
+                            self.update_object_assignments(&oref, Some(worker));
                         },
                         _ => {
                             panic!("worker {:?} set object {:?} state to {:?}", worker,
@@ -660,18 +695,21 @@ impl State {
                 }
             }
         }
+        worker.check_consistency_opt().unwrap(); // non-recoverable
     }
 
     /// For all workers, if the worker is not overbooked and has ready messages, distribute
     /// more scheduled ready tasks to workers.
     pub fn distribute_tasks(&mut self) {
-        for wref in self.graph.workers.values() {
-            let mut w = wref.get_mut();
+        debug!("Distributing tasks");
+        let ws = self.graph.workers.values().map(|x| x.clone()).collect::<Vec<_>>();
+        for wref in ws {
+            //let mut w = wref.get_mut();
             // TODO: Customize the overbook limit
-            while w.assigned_tasks.len() < 128 && !w.scheduled_ready_tasks.is_empty() {
+            while wref.get().assigned_tasks.len() < 128 &&
+                  !wref.get().scheduled_ready_tasks.is_empty() {
                 // TODO: Prioritize older members of w.scheduled_ready_tasks (order-preserving set)
-                let tref = w.scheduled_ready_tasks.iter().next().unwrap().clone();
-                w.scheduled_ready_tasks.remove(&tref);
+                let tref = wref.get().scheduled_ready_tasks.iter().next().unwrap().clone();
                 assert!(tref.get().scheduled == Some(wref.clone()));
                 self.assign_task(&tref);
             }
@@ -706,6 +744,7 @@ impl State {
 impl ConsistencyCheck for State {
     /// Check consistency of all tasks, objects, workers, clients and sessions. Quite slow.
     fn check_consistency(&self) -> Result<()> {
+        debug!("Checking State consistency");
         for tr in self.graph.tasks.values() {
             tr.check_consistency()?;
         }
@@ -770,17 +809,19 @@ impl StateRef {
 
     /// Main loop State entry. Returns `false` when the server should stop.
     pub fn turn(&self) -> bool {
-        let mut state = self.get_mut();
+        self.get().check_consistency_opt().unwrap(); // unrecoverable
 
         // TODO: better conditional scheduling
-        if !state.updates.is_empty() {
-            state.run_scheduler();
+        if !self.get().updates.is_empty() {
+            self.get_mut().run_scheduler();
+            self.get().check_consistency_opt().unwrap(); // unrecoverable
         }
 
         // Assign ready tasks to workers (up to overbook limit)
-        state.distribute_tasks();
+        self.get_mut().distribute_tasks();
+        self.get().check_consistency_opt().unwrap(); // unrecoverable
 
-        !state.stop_server
+        !self.get().stop_server
     }
 
     fn on_connection(&self, stream: TcpStream, address: SocketAddr) {
