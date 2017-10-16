@@ -14,7 +14,7 @@ pub struct Session {
     pub (in super::super) id: SessionId,
 
     /// State of the Session and an optional cause of the error.
-    pub (in super::super) error: Option<Event>,
+    pub (in super::super) error: Option<String>,
 
     /// Contained tasks.
     /// NB: These are owned by the Session and are cleaned up by it.
@@ -51,7 +51,7 @@ impl SessionRef {
     }
 
     /// Return the state of the session with optional error
-    pub fn get_error(&self) -> Option<Event> {
+    pub fn get_error(&self) -> Option<String> {
         self.get().error.clone()
     }
 

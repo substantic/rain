@@ -153,7 +153,7 @@ impl State {
 
     /// Put the session into a failed state, removing all tasks and objects,
     /// cancelling all finish_hooks.
-    pub fn fail_session(&mut self, session: &SessionRef, cause: Event) -> Result<()> {
+    pub fn fail_session(&mut self, session: &SessionRef, cause: String) -> Result<()> {
         debug!("Failing session {} of client {} with cause {:?}", session.get_id(),
                session.get().client.get_id(), cause);
         assert!(session.get_mut().error.is_none());
@@ -644,10 +644,13 @@ impl State {
                 TaskState::Failed => {
                     debug!("Task {:?} failed on {:?} with additional {:?}", *tref.get(), worker,
                            additional);
+                    let error_message = additional.get_string("error").unwrap_or_else(|| {
+                        warn!("Task failed with no error message");
+                        "Task failed with no error message".to_string()
+                    });
                     tref.get_mut().state = state;
                     tref.get_mut().additional = additional;
-                    // TODO: Meaningful message to user
-                    self.fail_session(&tref.get().session, unimplemented!()).unwrap();
+                    self.fail_session(&tref.get().session, error_message).unwrap();
                 }
                 _  => panic!("Invalid worker {:?} task {:?} state update to {:?}", worker,
                              *tref.get(), state)
