@@ -1,10 +1,10 @@
 use common::convert::ToCapnp;
-use futures::Future;
+use futures::{Future, future, IntoFuture};
 use capnp::capability::Promise;
 use common::convert::FromCapnp;
 use common::id::DataObjectId;
 
-use server::graph::{DataObjectRef};
+use server::graph::{DataObjectRef, DataObjectState};
 use datastore_capnp::{reader, data_store, read_reply};
 use server::state::StateRef;
 
@@ -30,17 +30,31 @@ impl data_store::Server for ClientDataStoreImpl {
         let id = DataObjectId::from_capnp(&pry!(params.get_id()));
         let object = pry!(self.state.get().object_by_id(id));
         let offset = params.get_offset();
+        if object.get().state == DataObjectState::Removed {
+            return Promise::err(::capnp::Error::failed(
+                format!("create_reader on removed object {:?}", object.get())));
+        }
 
         let state = self.state.clone();
         let object1 = object.clone();
         let object2 = object.clone();
         let object3 = object.clone();
+        let object4 = object.clone();
         let mut obj = object2.get_mut();
         Promise::from_future(obj.wait()
             .map_err(|_| "Cancelled".into())
             .and_then(move |()| {
+                let obj = object4.get();
+                trace!("create_reader at server on {:?}", obj);
+                if obj.state == DataObjectState::Removed {
+                    bail!("create_reader on removed object {:?}", obj);
+                }
+                Ok(())
+            })
+            .and_then(move |()| {
                 let obj = object.get();
-                //assert!(obj.is_finished());
+                assert_eq!(obj.state, DataObjectState::Finished,
+                           "triggered finish hook on unfinished object");
                 if obj.data.is_some() {
                     unimplemented!();
                 }

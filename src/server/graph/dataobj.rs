@@ -92,11 +92,12 @@ impl DataObject {
         assert!(self.finish_hooks.is_empty());
     }
 
-    /// Wait until dataobject is finished
+    /// Wait until the given dataobject is finished
     pub fn wait(&mut self) -> oneshot::Receiver<()> {
         let (sender, receiver) = oneshot::channel();
         match self.state {
             DataObjectState::Finished => sender.send(()).unwrap(),
+            DataObjectState::Removed => panic!("waiting on Removed object"),
             _ => self.finish_hooks.push(sender)
         };
         receiver

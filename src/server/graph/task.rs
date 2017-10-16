@@ -32,7 +32,7 @@ pub struct Task {
     pub(in super::super) inputs: Vec<TaskInput>,
 
     /// Ordered outputs for the task. Every object in the list must be distinct.
-    pub(in super::super) outputs: RcSet<DataObjectRef>,
+    pub(in super::super) outputs: Vec<DataObjectRef>,
 
     /// Unfinished objects that we wait for. These must be a subset of `inputs`,
     /// but multiplicities in `inputs` are here represented only once.

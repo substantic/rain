@@ -156,6 +156,8 @@ impl client_service::Server for ClientServiceImpl {
         info!("New wait request ({} tasks, {} data objects) from client",
               task_ids.len(), object_ids.len());
 
+        // TODO: Wait for data objects
+        // TODO: Implement waiting for session (for special "all" IDs)
         // TODO: Get rid of unwrap and do proper error handling
         let futures: Vec<_> = task_ids.iter()
             .map(|id| s.task_by_id(TaskId::from_capnp(&id)).unwrap())
@@ -165,7 +167,7 @@ impl client_service::Server for ClientServiceImpl {
 
         debug!("{} waiting futures", futures.len());
 
-        // TODO: Wait for data objects
+
         Promise::from_future(::futures::future::join_all(futures)
                              .map(|_| ())
                              .map_err(|e| panic!("Wait failed")))

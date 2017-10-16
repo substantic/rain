@@ -343,6 +343,7 @@ impl State {
     /// Unassign an object from a worker and send the unassign call.
     /// Panics if the object is not assigned on the worker.
     pub fn unassign_object(&mut self, object: &DataObjectRef, wref: &WorkerRef) {
+        debug!("unassign_object {:?} at {:?}", object, wref);
         assert!(object.get().assigned.contains(wref));
         object.check_consistency_opt().unwrap(); // non-recoverable
         wref.check_consistency_opt().unwrap(); // non-recoverable
@@ -435,8 +436,8 @@ impl State {
                     placement.to_capnp(&mut co.borrow().get_placement().unwrap());
                     let obj = object.get();
                     obj.to_worker_capnp(&mut co);
-                    // only assign output tasks
-                    co.set_assigned(i >= t.inputs.len());
+                    // only assign output tasks - they are all assigned
+                    co.set_assigned(obj.assigned.contains(&wref));
                 }
             }
 
@@ -671,11 +672,11 @@ impl State {
                                 o.size = Some(size);
                                 o.additional = additional;
                                 o.trigger_finish_hooks();
-                                for cref in o.consumers.iter() {
-                                    assert_eq!(cref.get().state, TaskState::NotAssigned);
-                                    cref.get_mut().waiting_for.remove(&oref);
-                                    self.update_task_assignment(cref);
-                                }
+                            }
+                            for cref in oref.get().consumers.clone() {
+                                assert_eq!(cref.get().state, TaskState::NotAssigned);
+                                cref.get_mut().waiting_for.remove(&oref);
+                                self.update_task_assignment(&cref);
                             }
                             self.update_object_assignments(&oref, Some(worker));
                         },
