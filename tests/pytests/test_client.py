@@ -131,6 +131,15 @@ def test_task_wait(test_env):
     assert t1.state == rpc.common.TaskState.finished
 
 
+def test_fetch_removed_object_fails(test_env):
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = tasks.sleep(0.01, "abc123456")
+        s.submit()
+        with pytest.raises(RainException):
+            t1.out.output.fetch()
+
+
 def test_dataobj_wait(test_env):
     test_env.start(1)
     client = test_env.client

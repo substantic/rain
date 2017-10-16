@@ -1,5 +1,6 @@
 import capnp
 from rain.client import rpc
+from rain.client.common import RainException
 
 from .session import Session
 
@@ -45,6 +46,8 @@ class Client:
         req.send().wait()
 
     def _fetch(self, dataobj):
+        if not dataobj._keep:
+            raise RainException("Can't fetch object without keep flag.", dataobj)
         req = self.datastore.createReader_request()
         req.id.id = dataobj.id
         req.id.sessionId = dataobj.session.session_id
