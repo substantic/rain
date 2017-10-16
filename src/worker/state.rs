@@ -209,6 +209,7 @@ impl State {
             for (i, task) in self.updated_tasks.iter().enumerate() {
                 let mut ct = req_tasks.borrow().get(i as u32);
                 let mut task = task.get_mut();
+
                 ct.set_state(match task.state {
                     TaskState::Running => ::common_capnp::TaskState::Running,
                     TaskState::Finished => ::common_capnp::TaskState::Finished,

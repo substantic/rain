@@ -636,9 +636,10 @@ impl State {
                     self.update_task_assignment(&tref);
                 },
                 TaskState::Running => {
-                    assert!(tref.get().state == TaskState::Assigned);
-                    tref.get_mut().state = state;
-                    tref.get_mut().additional = additional;
+                    let mut t = tref.get_mut();
+                    assert_eq!(t.state, TaskState::Assigned);
+                    t.state = state;
+                    t.additional = additional;
                 },
                 TaskState::Failed => {
                     debug!("Task {:?} failed on {:?} with additional {:?}", *tref.get(), worker,
