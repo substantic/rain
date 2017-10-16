@@ -162,15 +162,18 @@ impl DataObjectRef {
         self.get().id
     }
 
-    /// Check that no compulsory links exist and remove from owner
+    /// Check that no compulsory links exist and remove from owner.
+    /// Clears (and fails) any finish_hooks. Leaves the unlinked object in in consistent state.
     pub fn unlink(&self) {
-        let inner = self.get_mut();
+        let mut inner = self.get_mut();
         assert!(inner.assigned.is_empty(), "Can only remove non-assigned objects.");
         assert!(inner.located.is_empty(), "Can only remove non-located objects.");
         assert!(inner.consumers.is_empty(), "Can only remove objects without consumers.");
         assert!(inner.producer.is_none(), "Can only remove objects without a producer.");
         // remove from owner
         assert!(inner.session.get_mut().objects.remove(&self));
+        // clear finish_hooks
+        inner.finish_hooks.clear();
     }
 }
 

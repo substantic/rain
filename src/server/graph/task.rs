@@ -226,8 +226,11 @@ impl TaskRef {
         Ok(sref)
     }
 
+    /// Remove the task from outputs, inputs, from workers if scheduled, and the owner.
+    /// Clears (and fails) any finish_hooks. Leaves the unlinked Task in in consistent state.
     pub fn unlink(&self) {
-        let inner = self.get_mut();
+        let mut inner = self.get_mut();
+        assert!(inner.assigned.is_none(), "Can only unlink non-assigned tasks.");
         // remove from outputs
         for o in inner.outputs.iter() {
             debug_assert!(o.get_mut().producer == Some(self.clone()));
@@ -247,6 +250,8 @@ impl TaskRef {
         }
         // remove from owner
         assert!(inner.session.get_mut().tasks.remove(&self));
+        // clear and fail finish_hooks
+        inner.finish_hooks.clear();
     }
 
     /// Return the object ID in graph.

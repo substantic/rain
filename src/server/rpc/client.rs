@@ -122,10 +122,10 @@ impl client_service::Server for ClientServiceImpl {
         if res.is_err() {
             debug!("Error: {:?}", res);
             for t in created_tasks {
-                s.remove_task(&t);
+                pry!(s.remove_task(&t));
             }
             for o in created_objects {
-                s.remove_object(&o);
+                pry!(s.remove_object(&o));
             }
             pry!(res);
         }
@@ -149,7 +149,7 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::WaitParams,
         _: client_service::WaitResults,
     ) -> Promise<(), ::capnp::Error> {
-        let mut s = self.state.get_mut();
+        let s = self.state.get_mut();
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
@@ -178,7 +178,7 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::WaitSomeParams,
         mut results: client_service::WaitSomeResults,
     ) -> Promise<(), ::capnp::Error> {
-        let mut s = self.state.get_mut();
+        let s = self.state.get_mut();
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());

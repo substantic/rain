@@ -78,7 +78,7 @@ impl data_store::Server for ClientDataStoreImpl {
                // and fully utilize capnp. For resilience, we will probably need
                // Some more sophisticated solution to cover worker crashes
                let response = pry!(response.get());
-               results.set(response);
+               pry!(results.set(response));
                Promise::ok(())
             }).map_err(|e| panic!("Fetch failed: {:?}", e)))
     }

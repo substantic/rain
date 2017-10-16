@@ -59,6 +59,19 @@ impl SessionRef {
     pub fn get_id(&self) -> SessionId {
         self.get().id
     }
+
+    /// Check that no objects or tasks exist and remove from owner.
+    /// Clears (and fails) any finish_hooks. Leaves the unlinked object in in consistent state.
+    pub fn unlink(&self) {
+        let mut inner = self.get_mut();
+        assert!(inner.objects.is_empty(), "Can only unlink empty session.");
+        assert!(inner.tasks.is_empty(), "Can only unlink empty session.");
+        // remove from owner
+        assert!(inner.client.get_mut().sessions.remove(&self));
+        // clear finish_hooks
+        inner.finish_hooks.clear();
+    }
+
 }
 
 impl ConsistencyCheck for SessionRef {

@@ -128,9 +128,9 @@ impl State {
     /// Helper for .remove_session() and .fail_session(). Remove all session tasks,
     /// objects and cancel all finish hooks.
     fn clear_session(&mut self, s: &SessionRef) -> Result<()> {
-        let tasks = s.get_mut().tasks.iter().map(|x| x.clone()).collect::<Vec<_>>();
+        let tasks = s.get_mut().tasks.clone();
         for t in tasks { self.remove_task(&t)?; }
-        let objects = s.get_mut().objects.iter().map(|x| x.clone()).collect::<Vec<_>>();
+        let objects = s.get_mut().objects.clone();
         for o in objects { self.remove_object(&o)?; }
         // Remove all finish hooks
         s.get_mut().finish_hooks.clear();
@@ -146,9 +146,8 @@ impl State {
         self.clear_session(session)?;
         // remove from graph
         self.graph.sessions.remove(&session.get_id()).unwrap();
-        // remove from owner
-        let s = session.get_mut();
-        assert!(s.client.get_mut().sessions.remove(&session));
+        // unlink
+        session.unlink();
         Ok(())
     }
 
@@ -190,7 +189,7 @@ impl State {
     pub fn remove_object(&mut self, oref: &DataObjectRef) -> Result<()> {
         oref.check_consistency_opt().unwrap(); // non-recoverable
         // unassign the object
-        let mut ws = oref.get().assigned.clone();
+        let ws = oref.get().assigned.clone();
         for w in ws {
             self.unassign_object(oref, &w);
         }
@@ -352,7 +351,7 @@ impl State {
         let mut req = wref.get().control.as_ref().unwrap().unassign_objects_request();
         {
             let mut objects = req.get().init_objects(1);
-            let mut co = &mut objects.borrow().get(0);
+            let co = &mut objects.borrow().get(0);
             object.get_id().to_capnp(co);
         }
 
@@ -404,7 +403,7 @@ impl State {
             debug!("Assiging task id={} to worker={}", t.id, worker_id);
 
             for input in t.inputs.iter() {
-                let mut o = input.object.get_mut();
+                let o = input.object.get_mut();
                 if !o.assigned.contains(&wref) {
                     // Just take first placement
                     let placement = o.located.iter().next()
@@ -441,9 +440,9 @@ impl State {
                 }
             }
 
-            // Serialize tasks
+            // Serialize the task
             {
-                let mut new_tasks = req.get().init_new_tasks(1);
+                let new_tasks = req.get().init_new_tasks(1);
                 t.to_worker_capnp(&mut new_tasks.get(0));
             }
 
@@ -477,7 +476,7 @@ impl State {
         let mut req = wref.get().control.as_ref().unwrap().stop_tasks_request();
         {
             let mut tasks = req.get().init_tasks(1);
-            let mut ct = &mut tasks.borrow().get(0);
+            let ct = &mut tasks.borrow().get(0);
             task.get_id().to_capnp(ct);
         }
 
@@ -647,7 +646,7 @@ impl State {
                     tref.get_mut().state = state;
                     tref.get_mut().additional = additional;
                     // TODO: Meaningful message to user
-                    self.fail_session(&tref.get().session, unimplemented!());
+                    self.fail_session(&tref.get().session, unimplemented!()).unwrap();
                 }
                 _  => panic!("Invalid worker {:?} task {:?} state update to {:?}", worker,
                              *tref.get(), state)
@@ -771,7 +770,7 @@ pub type StateRef = WrappedRcRefCell<State>;
 impl StateRef {
 
     pub fn new(handle: Handle, listen_address: SocketAddr) -> Self {
-        let mut s = Self::wrap(State {
+        let s = Self::wrap(State {
             graph: Default::default(),
             need_scheduling: false,
             listen_address: listen_address,
