@@ -784,10 +784,6 @@ impl StateRef {
         s
     }
 
-
-    // TODO: Functional cleanup of code below after structures specification
-
-
     pub fn start(&self) {
         let listen_address = self.get().listen_address;
         let handle = self.get().handle.clone();

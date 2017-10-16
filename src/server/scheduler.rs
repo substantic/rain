@@ -37,7 +37,7 @@ impl UpdatedIn {
 
 /// Scheduler interface. The Extra types are the types of a scheduler-specific attribute
 /// `s` in each node for any use by the scheduler.
-// TODO: Add the extras to the graph objects. Add Scheduler as Graph type parameter.
+// TODO: Possibly add as template parameter and add the extras to the graph objects.
 pub trait Scheduler {
     type TaskExtra;
     type DataObjectExtra;
