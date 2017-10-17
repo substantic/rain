@@ -162,9 +162,18 @@ impl DataObjectRef {
         self.get().id
     }
 
+    pub fn unschedule(&self) {
+        let mut inner = self.get_mut();
+        for w in &inner.scheduled {
+            w.get_mut().scheduled_objects.remove(&self);
+        }
+        inner.scheduled.clear();
+    }
+
     /// Check that no compulsory links exist and remove from owner.
     /// Clears (and fails) any finish_hooks. Leaves the unlinked object in in consistent state.
     pub fn unlink(&self) {
+        self.unschedule();
         let mut inner = self.get_mut();
         assert!(inner.assigned.is_empty(), "Can only remove non-assigned objects.");
         assert!(inner.located.is_empty(), "Can only remove non-located objects.");
@@ -249,7 +258,7 @@ impl ConsistencyCheck for DataObjectRef {
                 s.data.is_some() || (s.located.len() >= 1 && s.assigned.len() >= 1),
             DataObjectState::Removed =>
                 s.located.is_empty() && s.scheduled.is_empty() && s.assigned.is_empty() &&
-                s.finish_hooks.is_empty() && s.size.is_some() && s.data.is_none(),
+                s.finish_hooks.is_empty() /* &&  Why this?? s.size.is_some()*/ /* This is not true when session failed && s.data.is_none()*/,
         } {
             bail!("state inconsistency in {:?}", s);
         }

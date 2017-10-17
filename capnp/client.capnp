@@ -8,6 +8,7 @@ using import "common.capnp".SessionId;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
 using import "common.capnp".DataObjectType;
+using import "common.capnp".UnitResult;
 using import "datastore.capnp".DataStore;
 
 struct ServerInfo {
@@ -35,7 +36,7 @@ interface ClientService {
     # It is an error if called for non-keep object 
     # allDataObjectsId is allowed
 
-    wait @5 (taskIds :List(TaskId), objectIds: List(DataObjectId)) -> ();
+    wait @5 (taskIds :List(TaskId), objectIds: List(DataObjectId)) -> UnitResult;
     # Wait until all given data objects are not produced
     # and all given task finished.
     # allTaskId / allDataObjectsId is allowed

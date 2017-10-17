@@ -85,3 +85,10 @@ struct Additional {
 struct Resources {
     nCpus @0 : UInt32;
 }
+
+struct UnitResult {
+        state :union {
+            ok @0 :Void;
+            error @1 :Text;
+        }
+}

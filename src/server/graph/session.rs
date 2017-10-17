@@ -33,6 +33,18 @@ pub struct Session {
 
 pub type SessionRef = WrappedRcRefCell<Session>;
 
+impl Session {
+    /// Return the state of the session with optional error
+    pub fn get_error(&self) -> Option<&String> {
+        self.error.as_ref()
+    }
+
+    #[inline]
+    pub fn is_failed(&self) -> bool {
+        self.error.is_some()
+    }
+}
+
 impl SessionRef {
 
     /// Create new session object and link it to the owning client.
@@ -50,12 +62,7 @@ impl SessionRef {
         s
     }
 
-    /// Return the state of the session with optional error
-    pub fn get_error(&self) -> Option<String> {
-        self.get().error.clone()
-    }
-
-    /// Return the object ID in graph.
+        /// Return the object ID in graph.
     pub fn get_id(&self) -> SessionId {
         self.get().id
     }

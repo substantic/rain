@@ -75,7 +75,13 @@ class Client:
             req.objectIds[i].id = dataobjs[i].id
             req.objectIds[i].sessionId = dataobjs[i].session.session_id
 
-        req.send().wait()
+        result = req.send().wait()
+        state = result.state.which()
+        if state == "ok":
+            return None
+        else:
+            assert state == "error"
+            raise RainException(result.state.error)
 
     def _wait_some(self, tasks, dataobjs):
         req = self.service.waitSome_request()

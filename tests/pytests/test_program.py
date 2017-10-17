@@ -72,3 +72,16 @@ def test_program_vars(test_env):
         t1.out.output.keep()
         s.submit()
         assert t1.out.output.fetch() == b"abab\n"
+
+
+def test_program_invalid_filename(test_env):
+    """Setting input file for program"""
+    test_env.start(1)
+    args = ("/bin/non-existing-program",)
+    program = Program(args, stdout="output")
+    with test_env.client.new_session() as s:
+        t1 = program()
+        t1.out.output.keep()
+        s.submit()
+        assert t1.out.output.fetch()
+

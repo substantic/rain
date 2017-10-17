@@ -226,9 +226,21 @@ impl TaskRef {
         Ok(sref)
     }
 
+    pub fn unschedule(&self) {
+        let mut inner = self.get_mut();
+        if let Some(ref w) = inner.scheduled {
+            assert!(w.get_mut().scheduled_tasks.remove(&self));
+            if inner.state == TaskState::Ready {
+                assert!(w.get_mut().scheduled_ready_tasks.remove(&self));
+            }
+        }
+        inner.scheduled = None;
+    }
+
     /// Remove the task from outputs, inputs, from workers if scheduled, and the owner.
     /// Clears (and fails) any finish_hooks. Leaves the unlinked Task in in consistent state.
     pub fn unlink(&self) {
+        self.unschedule();
         let mut inner = self.get_mut();
         assert!(inner.assigned.is_none(), "Can only unlink non-assigned tasks.");
         // remove from outputs
@@ -241,13 +253,7 @@ impl TaskRef {
             // Note that self may have been removed by another input
             i.object.get_mut().consumers.remove(&self);
         }
-        // remove from scheduled workers
-        if let Some(ref w) = inner.scheduled {
-            assert!(w.get_mut().scheduled_tasks.remove(&self));
-            if inner.state == TaskState::Ready {
-                assert!(w.get_mut().scheduled_ready_tasks.remove(&self));
-            }
-        }
+
         // remove from owner
         assert!(inner.session.get_mut().tasks.remove(&self));
         // clear and fail finish_hooks
@@ -323,7 +329,7 @@ impl ConsistencyCheck for TaskRef {
             TaskState::Finished =>
                 s.assigned.is_none() && s.waiting_for.is_empty(),
             TaskState::Failed =>
-                unimplemented!() // What to do here?
+                /* ??? s.assigned.is_none() && */ s.waiting_for.is_empty(),
         }) {
             bail!("state/assigned/waiting_for inconsistency in {:?}", s);
         }
@@ -331,7 +337,7 @@ impl ConsistencyCheck for TaskRef {
             bail!("nonempty finish_hooks in Finished {:?}", s);
         }
 
-        if s.assigned.is_some() && s.scheduled.is_none() {
+        if s.assigned.is_some() && s.scheduled.is_none() && s.state != TaskState::Failed {
             bail!("assigned/scheduled inconsistency in {:?}", s);
         }
         Ok(())

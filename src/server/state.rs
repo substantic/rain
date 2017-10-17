@@ -129,9 +129,16 @@ impl State {
     /// objects and cancel all finish hooks.
     fn clear_session(&mut self, s: &SessionRef) -> Result<()> {
         let tasks = s.get_mut().tasks.clone();
-        for t in tasks { self.remove_task(&t)?; }
+        for t in tasks {
+            t.unschedule();
+            self.remove_task(&t)?;
+        }
         let objects = s.get_mut().objects.clone();
-        for o in objects { self.remove_object(&o)?; }
+        for o in objects {
+            o.get_mut().client_keep = false;
+            o.unschedule();
+            self.remove_object(&o)?;
+        }
         // Remove all finish hooks
         s.get_mut().finish_hooks.clear();
         Ok(())
@@ -227,6 +234,7 @@ impl State {
     /// the tasks and objects in bulk.
     pub fn remove_task(&mut self, tref: &TaskRef) -> Result<()> {
         tref.check_consistency_opt().unwrap(); // non-recoverable
+
         // unassign from worker
         if tref.get().assigned.is_some() {
             self.unassign_task(tref);
@@ -238,7 +246,7 @@ impl State {
         Ok(())
     }
 
-    pub fn worker_by_id(&self, id: WorkerId) -> Result<WorkerRef> {
+    pub fn worker_by_id(&self, id: WorkerId) -> Result  <WorkerRef> {
         match self.graph.workers.get(&id) {
             Some(w) => Ok(w.clone()),
             None => Err(format!("Worker {:?} not found", id))?,
@@ -331,7 +339,7 @@ impl State {
         self.handle.spawn(req
             .send().promise
             .map(|_| ())
-            .map_err(|e| panic!("Send failed {:?}", e)));
+            .map_err(|e| panic!("[assign_object] Send failed {:?}", e)));
 
         object.get_mut().assigned.insert(wref.clone());
         wref.get_mut().assigned_objects.insert(object.clone());
@@ -449,7 +457,7 @@ impl State {
             self.handle.spawn(req
                 .send().promise
                 .map(|_| ())
-                .map_err(|e| panic!("Send failed {:?}", e)));
+                .map_err(|e| panic!("[assign_task] Send failed {:?}", e)));
 
             wref.get_mut().assigned_tasks.insert(task.clone());
             wref.get_mut().scheduled_ready_tasks.remove(task);
@@ -468,7 +476,9 @@ impl State {
     /// Panics when the task is not assigned to the given worker or scheduled there.
     pub fn unassign_task(&mut self, task: &TaskRef) {
         let wref = task.get().assigned.as_ref().unwrap().clone(); // non-recoverable
+
         assert!(task.get().scheduled != Some(wref.clone()));
+
         task.check_consistency_opt().unwrap(); // non-recoverable
         wref.check_consistency_opt().unwrap(); // non-recoverable
 
@@ -483,7 +493,7 @@ impl State {
         self.handle.spawn(req
             .send().promise
             .map(|_| ())
-            .map_err(|e| panic!("Send failed {:?}", e)));
+            .map_err(|e| panic!("[unassign_task] Send failed {:?}", e)));
 
         task.get_mut().assigned = None;
         task.get_mut().state = TaskState::Ready;
@@ -650,7 +660,9 @@ impl State {
                     });
                     tref.get_mut().state = state;
                     tref.get_mut().additional = additional;
-                    self.fail_session(&tref.get().session, error_message).unwrap();
+                    let session = tref.get().session.clone();
+                    let error_message = format!("Task {} failed: {}", tref.get().id, error_message);
+                    self.fail_session(&session, error_message).unwrap();
                 }
                 _  => panic!("Invalid worker {:?} task {:?} state update to {:?}", worker,
                              *tref.get(), state)

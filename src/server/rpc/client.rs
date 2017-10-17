@@ -1,6 +1,7 @@
 use capnp::capability::Promise;
 use std::net::SocketAddr;
 use std::iter::FromIterator;
+use std::collections::HashSet;
 use futures::{Future};
 
 use common::id::{DataObjectId, TaskId, SessionId, SId};
@@ -147,8 +148,17 @@ impl client_service::Server for ClientServiceImpl {
     fn wait(
         &mut self,
         params: client_service::WaitParams,
-        _: client_service::WaitResults,
+        mut result: client_service::WaitResults,
     ) -> Promise<(), ::capnp::Error> {
+
+        // Set error from session to result
+        fn set_error(session: &SessionRef, result: &mut client_service::WaitResults,) {
+            let s = session.get();
+            let error = s.get_error().unwrap();
+            result.get().get_state().set_error(&error);
+        }
+
+        let state = self.state.clone();
         let s = self.state.get_mut();
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
@@ -156,21 +166,36 @@ impl client_service::Server for ClientServiceImpl {
         info!("New wait request ({} tasks, {} data objects) from client",
               task_ids.len(), object_ids.len());
 
+        let task_ids : Vec<TaskId> = task_ids.iter().map(|id| TaskId::from_capnp(&id)).collect();
+        let sessions : HashSet<_> = task_ids.iter().map(|id| s.session_by_id(id.get_session_id()).unwrap()).collect();
+        if let Some(session) = sessions.iter().find(|s| s.get().is_failed()) {
+            set_error(session, &mut result);
+            return Promise::ok(());
+        }
+
         // TODO: Wait for data objects
         // TODO: Implement waiting for session (for special "all" IDs)
         // TODO: Get rid of unwrap and do proper error handling
         let futures: Vec<_> = task_ids.iter()
-            .map(|id| s.task_by_id(TaskId::from_capnp(&id)).unwrap())
+            .map(|id| s.task_by_id(*id).unwrap())
             .filter(|t| !t.get().is_finished())
             .map(|t| t.get_mut().wait())
             .collect();
 
         debug!("{} waiting futures", futures.len());
 
-
         Promise::from_future(::futures::future::join_all(futures)
-                             .map(|_| ())
-                             .map_err(|e| panic!("Wait failed")))
+                             .then(move |r| {
+                                 match r {
+                                     Ok(_) => result.get().get_state().set_ok(()),
+                                     Err(_) => {
+                                        let session = sessions.iter().find(|s| s.get().is_failed()).unwrap();
+                                        set_error(session, &mut result);
+                                     }
+                                 };
+                                 Ok(())}
+                             ))
+
     }
 
     fn wait_some(

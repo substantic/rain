@@ -1,5 +1,5 @@
-from rain.client import Task, remote
-
+from rain.client import Task, remote, RainException
+import pytest
 
 def test_remote_bytes_inout(test_env):
     """Pytask taking and returning bytes"""
@@ -35,15 +35,27 @@ def test_remote_more_bytes_outputs(test_env):
 
 def test_remote_exception(test_env):
 
+    # TODO: Check error message
+    # but "match" in pytest.raises somehow do not work??
+
     @remote()
     def test():
         raise Exception("Hello world!")
 
     test_env.start(1)
-    with test_env.client.new_session() as s:
-       t1 = test()
-       s.submit()
-       t1.wait()
+
+    for i in range(10):
+        with test_env.client.new_session() as s:
+            t1 = test()
+            t1.out.output.keep()
+            s.submit()
+
+            with pytest.raises(RainException):
+                t1.wait()
+            with pytest.raises(RainException):
+                t1.wait()
+            with pytest.raises(RainException):
+                t1.out.output.fetch()
 
 
 def test_remote_exception_sleep(test_env):
@@ -56,6 +68,26 @@ def test_remote_exception_sleep(test_env):
 
     test_env.start(1)
     with test_env.client.new_session() as s:
-       t1 = test()
-       s.submit()
-       t1.wait()
+        t1 = test()
+        t1.out.output.keep()
+        s.submit()
+        t1.wait()
+        t1.wait()
+
+
+def test_remote_exception_fetch(test_env):
+
+    @remote()
+    def test():
+        import time
+        time.sleep(0.2)
+        raise Exception("Hello world!")
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = test()
+        t1.out.output.keep()
+        s.submit()
+        t1.out.output.fetch()
+        t1.out.output.fetch()
+        t1.wait()

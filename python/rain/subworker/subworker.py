@@ -39,6 +39,7 @@ class Subworker:
             return [result[label] for label in outputs]
         raise Exception("Invalid returned object:")
 
+
 def get_environ(name):
     try:
         return os.environ[name]

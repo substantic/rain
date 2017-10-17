@@ -78,4 +78,3 @@ class Task:
 
     def __repr__(self):
         return "<Task id={}/{} type={}>".format(self.session.session_id, self.id, self.task_type)
-
