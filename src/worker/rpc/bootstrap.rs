@@ -19,7 +19,7 @@ impl worker_bootstrap::Server for WorkerBootstrapImpl {
     fn get_data_store(
         &mut self,
         _arg: worker_bootstrap::GetDataStoreParams,
-        mut res: worker_bootstrap::GetDataStoreResults,
+        res: worker_bootstrap::GetDataStoreResults,
     ) -> Promise<(), capnp::Error> {
         ::capnp::capability::Promise::err(::capnp::Error::unimplemented(
             "method not implemented".to_string(),

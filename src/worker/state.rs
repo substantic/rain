@@ -414,7 +414,7 @@ impl State {
             return wrapper.wait();
         }
 
-        let mut wrapper = AsyncInitWrapper::new();
+        let wrapper = AsyncInitWrapper::new();
         self.datastores.insert(worker_id.clone(), wrapper);
 
         let state = state.clone();
@@ -426,7 +426,7 @@ impl State {
             Box::new(req.send().promise.map(move |r| {
                 let datastore = r.get().unwrap().get_store().unwrap();
                 let mut inner = state.get_mut();
-                let mut wrapper = inner.datastores.get_mut(&worker_id).unwrap();
+                let wrapper = inner.datastores.get_mut(&worker_id).unwrap();
                 wrapper.set_value(datastore);
             }).map_err(|e| e.into()))
         } else {
