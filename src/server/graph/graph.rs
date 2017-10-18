@@ -41,20 +41,20 @@ mod tests {
                          tasks: usize, objects: usize) -> Graph {
         let mut g = Graph::new();
         for wi in 0..workers {
-            let w = WorkerRef::new(&mut g, format!("0.0.0.{}:67", wi + 1).parse().unwrap(), None,
-                                   Resources { n_cpus: 8, }).unwrap();
+            let w = WorkerRef::new(format!("0.0.0.{}:67", wi + 1).parse().unwrap(), None,
+                                   Resources { n_cpus: 8, });
         }
         for ci in 0..clients {
-            let c = ClientRef::new(&mut g, format!("0.0.0.{}:42", ci + 1).parse().unwrap()).unwrap();
+            let c = ClientRef::new(format!("0.0.0.{}:42", ci + 1).parse().unwrap());
             for si in 0..sessions {
-                let s = SessionRef::new(&mut g, &c).unwrap();
+                let s = SessionRef::new(si, &c);
                 let mut objs = Vec::new();
                 for oi in 0..objects {
-                    let o = DataObjectRef::new(&mut g, &s,
+                    let o = DataObjectRef::new(&s,
                                                DataObjectId::new(s.get_id(), oi as i32),
                                                DataObjectType::Blob, Default::default(),
                                                "label".to_string(), None,
-                                               Default::default()).unwrap();
+                                               Default::default());
                     objs.push(o);
                 }
                 for ti in 0..tasks {
@@ -67,7 +67,7 @@ mod tests {
                                 path: Default::default(),
                             });}}
                     let outputs = vec![objs[ti].clone()];
-                    let t = TaskRef::new(&mut g, &s, TaskId::new(s.get_id(), (ti + objects) as i32),
+                    let t = TaskRef::new(&s, TaskId::new(s.get_id(), (ti + objects) as i32),
                                          inputs, outputs, "TType".to_string(),
                                          Vec::new(), Default::default()).unwrap();
                 }
