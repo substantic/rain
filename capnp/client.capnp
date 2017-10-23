@@ -11,9 +11,14 @@ using import "common.capnp".DataObjectType;
 using import "common.capnp".UnitResult;
 using import "datastore.capnp".DataStore;
 
+struct WorkerInfo {
+    workerId @0: WorkerId;
+    nTasks @1 :UInt32;
+    nObjects @2 :UInt32;
+}
+
 struct ServerInfo {
-  nWorkers @0 :Int32;
-  # Number of active workers
+  workers @0 :List(WorkerInfo);
 }
 
 interface ClientService {

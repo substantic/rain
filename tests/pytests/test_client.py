@@ -9,7 +9,11 @@ def test_get_info(test_env):
     client = test_env.client
 
     info = client.get_server_info()
-    assert info["n_workers"] == 2
+    workers = info["workers"]
+    assert len(workers) == 2
+    for w in workers:
+        assert w["n_tasks"] == 0
+        assert w["n_objects"] == 0
 
 
 def test_active_session(test_env):

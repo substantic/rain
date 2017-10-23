@@ -176,4 +176,16 @@ impl worker_control::Server for WorkerControlImpl {
         }
         Promise::ok(())
     }
+
+    fn get_info(&mut self,
+                _params: worker_control::GetInfoParams,
+                mut results: worker_control::GetInfoResults)
+                -> Promise<(), ::capnp::Error>
+    {
+        let mut result = results.get();
+        let state = self.state.get();
+        result.set_n_tasks(state.graph.tasks.len() as u32);
+        result.set_n_objects(state.graph.objects.len() as u32);
+        Promise::ok(())
+    }
 }

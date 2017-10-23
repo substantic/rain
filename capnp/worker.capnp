@@ -44,6 +44,11 @@ struct WorkerStateUpdate {
     }
 }
 
+struct WorkerInfo {
+    nTasks @0 :UInt32;
+    nObjects @1 :UInt32;
+}
+
 interface WorkerUpstream {
     # Every worker has one connection to the server. This is the interface that server
     # provides for messages from the worker.
@@ -78,6 +83,8 @@ interface WorkerControl {
     getWorkerResources @4 () -> Resources;
 
     getMonitoringFrames @5 () -> MonitoringFrames;
+
+    getInfo @6 () -> WorkerInfo;
 
     # TODO: actual status: CPU, resources, counters, ...
 

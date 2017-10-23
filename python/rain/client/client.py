@@ -27,7 +27,8 @@ class Client:
         """ Returns basic server info """
         info = self.service.getServerInfo().wait()
         return {
-            "n_workers": info.nWorkers
+            "workers": [{"n_tasks": w.nTasks, "n_objects" : w.nObjects}
+                        for w in info.workers]
         }
 
     def _submit(self, tasks, dataobjs):
