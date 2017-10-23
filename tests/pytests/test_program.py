@@ -1,4 +1,5 @@
 from rain.client import Program
+from rain.client import RainException
 
 import pytest
 
@@ -83,5 +84,5 @@ def test_program_invalid_filename(test_env):
         t1 = program()
         t1.out.output.keep()
         s.submit()
-        assert t1.out.output.fetch()
+        pytest.raises(RainException, lambda: t1.wait())
 

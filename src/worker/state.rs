@@ -338,6 +338,13 @@ impl State {
         dataobj
     }
 
+    pub fn task_failed(&mut self, task: TaskRef, error: Error) {
+        task.get_mut().set_failed(error.description().to_string());
+        let removed = self.graph.tasks.remove(&task.get().id);
+        assert!(removed.is_some());
+        self.updated_tasks.insert(task);
+    }
+
     pub fn start_task(&mut self, task: TaskRef, state_ref: &StateRef) {
         {
             let mut t = task.get_mut();
@@ -355,12 +362,11 @@ impl State {
         let future = TaskContext::new(task, state_ref.clone()).start(self);
 
         if let Err(e) = future {
-            task2.get_mut().set_failed(e.description().to_string());
+            self.task_failed(task2, e);
             return;
         }
 
         self.handle.spawn(future.unwrap().and_then(move |mut context| {
-
 
             let mut task = context.task.get_mut();
             task.state = TaskState::Finished;
@@ -394,11 +400,16 @@ impl State {
             for output in &task.outputs {
                 state.object_is_finished(output);
             }
-
+            let removed = state.graph.tasks.remove(&task.id);
+            assert!(removed.is_some());
             Ok(())
         }).map_err(move |e| {
-                task2.get_mut().set_failed(e.description().to_string());
-                state_ref2.get_mut().updated_tasks.insert(task2);
+            /*task2.get_mut().set_failed(e.description().to_string());
+            let mut state = state_ref2.get_mut();
+            let removed = state.graph.tasks.remove(&task2.get().id);
+            assert!(removed.is_some());
+            state.updated_tasks.insert(task2);*/
+            state_ref2.get_mut().task_failed(task2, e);
         }));
     }
 

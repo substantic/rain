@@ -62,11 +62,17 @@ class TestEnv(Env):
 
         self.server = None
         self.workers = []
+        self.do_final_check = True
+
+    def no_final_check(self):
+        self.do_final_check = False
 
     def start(self, n_workers=1, n_cpus=1, listen_addr=None, listen_port=None):
         """
         Start infrastructure: server & n workers
         """
+        assert self.n_workers is None
+        self.n_workers = n_workers
         env = os.environ.copy()
         env["RUST_LOG"] = "trace"
         env["RUST_BACKTRACE"] = "1"
@@ -139,6 +145,18 @@ class TestEnv(Env):
         self._client = client
         return client
 
+    def final_check(self):
+        if not self.do_final_check:
+            return
+        if self._client:
+            time.sleep(0.1)
+            info = self._client.get_server_info()
+            workers = info["workers"]
+            assert len(workers) == self.n_workers
+            for w in workers:
+                assert w["n_tasks"] == 0
+                assert w["n_objects"] == 0
+
     def close(self):
         self._client = None
 
@@ -189,6 +207,7 @@ def test_env():
     yield env
     time.sleep(0.2)
     try:
+        env.final_check()
         env.check_running_processes()
     finally:
         env.close()

@@ -78,6 +78,18 @@ impl client_service::Server for ClientServiceImpl {
         Promise::ok(())
     }
 
+    fn close_session(
+        &mut self,
+        params: client_service::CloseSessionParams,
+        _: client_service::CloseSessionResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let mut s = self.state.get_mut();
+        let session = pry!(s.session_by_id(params.get_session_id()));
+        s.remove_session(&session).unwrap();
+        Promise::ok(())
+    }
+
     fn submit(
         &mut self,
         params: client_service::SubmitParams,
@@ -183,11 +195,19 @@ impl client_service::Server for ClientServiceImpl {
               task_ids.len(), object_ids.len());
 
         let task_ids : Vec<TaskId> = task_ids.iter().map(|id| TaskId::from_capnp(&id)).collect();
+        let obj_ids : Vec<DataObjectId> = object_ids.iter().map(|id| DataObjectId::from_capnp(&id)).collect();
+
+        if !obj_ids.is_empty() {
+            return Promise::err(::capnp::Error::failed("Waiting on object is not implemented yet".to_string()));
+        }
+
         let sessions : HashSet<_> = task_ids.iter().map(|id| s.session_by_id(id.get_session_id()).unwrap()).collect();
+
         if let Some(session) = sessions.iter().find(|s| s.get().is_failed()) {
             set_error(session, &mut result);
             return Promise::ok(());
         }
+
 
         // TODO: Wait for data objects
         // TODO: Implement waiting for session (for special "all" IDs)
@@ -225,13 +245,7 @@ impl client_service::Server for ClientServiceImpl {
         let object_ids = pry!(params.get_object_ids());
         info!("New wait_some request ({} tasks, {} data objects) from client",
               task_ids.len(), object_ids.len());
-
-        //TODO: Wait for some tasks / dataobjs to finish.
-        // Current implementation returns received task/object ids.
-
-        pry!(results.get().set_finished_tasks(task_ids));
-        pry!(results.get().set_finished_objects(object_ids));
-        Promise::ok(())
+        Promise::err(::capnp::Error::failed("wait_sone is not implemented yet".to_string()))
     }
 
     fn unkeep(
@@ -245,12 +259,13 @@ impl client_service::Server for ClientServiceImpl {
         debug!("New unkeep request ({} data objects) from client",
               object_ids.len());
 
+        // TODO: Check that session is ok
+
         for oid in object_ids.iter() {
             let id: DataObjectId = DataObjectId::from_capnp(&oid);
             let o: DataObjectRef = pry!(s.object_by_id(id));
             s.unkeep_object(&o);
         }
-
         Promise::ok(())
     }
 

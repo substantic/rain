@@ -19,10 +19,39 @@ from .common import RainException
 
 _global_sessions = []
 
+# TODO: Check attribute "active" before making remote calls
+
+
+def global_session_push(session):
+    global _global_sessions
+    if not session.active:
+        raise RainException("Session is closed")
+    _global_sessions.append(session)
+
+
+def global_session_pop():
+    global _global_sessions
+    return _global_sessions.pop()
+
+
+class SessionBinder:
+    """This class is returned when session.bind_only() is used"""
+
+    def __init__(self, session):
+        self.session = session
+
+    def __enter__(self):
+        global_session_push(self.session)
+        return self.session
+
+    def __exit__(self, type, value, traceback):
+        s = global_session_pop()
+        assert self.session is s
 
 class Session:
 
     def __init__(self, client, session_id):
+        self.active = True
         self.client = client
         self.session_id = session_id
         self.tasks = []
@@ -50,16 +79,35 @@ class Session:
         return len(self.dataobjs)
 
     def __enter__(self):
-        global _global_sessions
-        _global_sessions.append(self)
+        global_session_push(self)
         return self
 
     def __exit__(self, type, value, traceback):
-        s = _global_sessions.pop()
-        assert s == self
+        s = global_session_pop()
+        assert s is self
+        self.close()
 
     def __repr__(self):
         return "<Session session_id={}>".format(self.session_id)
+
+    def close(self):
+        if self.active and self.client:
+            self.client._close_session(self)
+        self.active = False
+
+    def bind_only(self):
+        """
+        This method serves to bind session without autoclose functionality
+
+        >>> with session.bind_only() as s:
+        ...     doSometing()
+
+        binds the session, but do not close it at the end. Except closing it the same as
+
+        >>> with session as s:
+        ...     doSometing()
+        """
+        return SessionBinder(self)
 
     def register_task(self, task):
         """Register task into session; returns assigned id"""
@@ -124,15 +172,13 @@ class Session:
     def fetch(self, dataobject):
         return self.client._fetch(dataobject)
 
-    def remove(self, dataobjects):
+    def unkeep(self, dataobjects):
         """Remove data objects"""
         for dataobj in dataobjects:
             if not dataobj.is_kept():
                 raise RainException("Object {} is not kept".format(dataobj.id))
             if dataobj.state is None:
                 raise RainException("Object {} not submitted".format(dataobj.id))
-            if dataobj.state == rpc.common.DataObjectState.removed:
-                raise RainException("Object {} already removed".format(dataobj.id))
 
         self.client._unkeep(dataobjects)
 

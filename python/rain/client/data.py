@@ -34,9 +34,9 @@ class DataObject:
         """Set flag that object is not available on the server """
         self._keep = False
 
-    def remove(self):
+    def unkeep(self):
         """Remove data object from the server"""
-        self.session.remove((self,))
+        self.session.unkeep((self,))
 
     def keep(self):
         """Set flag that is object should be kept on the server"""

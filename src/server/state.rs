@@ -8,6 +8,7 @@ use tokio_io::AsyncRead;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
 use errors::Result;
+use common::RcSet;
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
 use common::rpc::new_rpc_system;
 use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef,
@@ -233,7 +234,7 @@ impl State {
     /// WARNING: May leave objects without producers. You should check for them after removing all
     /// the tasks and objects in bulk.
     pub fn remove_task(&mut self, tref: &TaskRef) -> Result<()> {
-        tref.check_consistency_opt().unwrap(); // non-recoverable
+        //tref.check_consistency_opt().unwrap(); // non-recoverable
 
         // unassign from worker
         if tref.get().assigned.is_some() {
@@ -345,6 +346,15 @@ impl State {
         wref.get_mut().assigned_objects.insert(object.clone());
         object.check_consistency_opt().unwrap(); // non-recoverable
         wref.check_consistency_opt().unwrap(); // non-recoverable
+    }
+
+    // Remove object from workers (not server)
+    pub fn purge_object(&mut self, object: &DataObjectRef) {
+        object.unschedule();
+        let assigned = object.get().assigned.clone();
+        for worker in assigned {
+            self.unassign_object(object, &worker);
+        }
     }
 
     /// Unassign an object from a worker and send the unassign call.
@@ -479,8 +489,8 @@ impl State {
 
         assert!(task.get().scheduled != Some(wref.clone()));
 
-        task.check_consistency_opt().unwrap(); // non-recoverable
-        wref.check_consistency_opt().unwrap(); // non-recoverable
+        //task.check_consistency_opt().unwrap(); // non-recoverable
+        //wref.check_consistency_opt().unwrap(); // non-recoverable
 
         // Create request
         let mut req = wref.get().control.as_ref().unwrap().stop_tasks_request();
@@ -512,6 +522,10 @@ impl State {
     pub fn unkeep_object(&mut self, object: &DataObjectRef) {
         object.check_consistency_opt().unwrap(); // non-recoverable
         object.get_mut().client_keep = false;
+        let needed = object.get().is_needed();
+        if (!needed) {
+            object.unschedule();
+        }
         self.update_object_assignments(object, None);
         object.check_consistency_opt().unwrap(); // non-recoverable
     }
@@ -588,7 +602,7 @@ impl State {
                         }
                     } else {
                         if wref.get().assigned_objects.contains(oref) &&
-                            (!oref.is_needed() || oref.get().located.len() > 2 ||
+                            (!oref.get().is_needed() || oref.get().located.len() > 2 ||
                                 !oref.get().located.contains(wref)) {
                             self.unassign_object(oref, wref);
                         }
@@ -597,8 +611,9 @@ impl State {
                 // Note that the object may be already Removed here
                 if oref.get().scheduled.is_empty()
                     && oref.get().state == DataObjectState::Finished {
-                    if !oref.is_needed() {
-                        for wa in oref.get().assigned.clone() {
+                    if !oref.get().is_needed() {
+                        let assigned = oref.get().assigned.clone();
+                        for wa in assigned {
                             self.unassign_object(oref, &wa);
                         }
                         oref.get_mut().state = DataObjectState::Removed;
@@ -644,6 +659,18 @@ impl State {
                     }
                     tref.get_mut().trigger_finish_hooks();
                     self.update_task_assignment(&tref);
+
+                    for input in &tref.get().inputs {
+                            // We check that need_by was really decreased to protect against
+                            // task that uses objects as more inputs
+                            let not_needed = {
+                                let mut o = input.object.get_mut();
+                                o.need_by.remove(&tref) && !o.is_needed()
+                            };
+                            if not_needed {
+                                self.purge_object(&input.object);
+                            }
+                    }
                 },
                 TaskState::Running => {
                     let mut t = tref.get_mut();

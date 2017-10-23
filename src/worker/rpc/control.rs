@@ -66,6 +66,14 @@ impl worker_control::Server for WorkerControlImpl {
         Promise::ok(())
     }
 
+    fn stop_tasks(&mut self,
+                 params: worker_control::StopTasksParams,
+                 mut _results: worker_control::StopTasksResults)
+                 -> Promise<(), ::capnp::Error> {
+        // TODO: Implement real task stop
+        Promise::ok(())
+    }
+
     fn add_nodes(&mut self,
                  params: worker_control::AddNodesParams,
                  mut _results: worker_control::AddNodesResults)
@@ -148,7 +156,13 @@ impl worker_control::Server for WorkerControlImpl {
                     object_ref.get_mut().set_data(Arc::new(data));
                     state.object_is_finished(&object_ref);
                 });
-            state.spawn_panic_on_error(future);
+            state.handle().spawn(future.map_err(|e| {
+                // This can be an error or maybe just race condition
+                // when session is closed and object was not found,
+                // we are not just logging do nothing, but TODO: we should be informing server
+                warn!("Fetching dataobject failed {:?}", e);
+                ()
+            }));
         }
         state.need_scheduling();
         Promise::ok(())

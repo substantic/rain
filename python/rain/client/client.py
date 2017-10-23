@@ -84,6 +84,9 @@ class Client:
             assert state == "error"
             raise RainException(result.state.error)
 
+    def _close_session(self, session):
+        self.service.closeSession(session.session_id).wait()
+
     def _wait_some(self, tasks, dataobjs):
         req = self.service.waitSome_request()
 

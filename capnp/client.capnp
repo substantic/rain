@@ -28,7 +28,7 @@ interface ClientService {
     newSession @1 () -> (sessionId: SessionId);
     # Ask for a new session
 
-    removeSession @2 (sessionId :SessionId) -> ();
+    closeSession @2 (sessionId :SessionId) -> ();
     # Remove session from worker, all running tasks are stopped,
     # all existing data objects are removed
 

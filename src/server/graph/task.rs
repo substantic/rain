@@ -217,6 +217,7 @@ impl TaskRef {
             for i in s.inputs.iter() {
                 let mut o = i.object.get_mut();
                 o.consumers.insert(sref.clone());
+                o.need_by.insert(sref.clone());
             }
             for out in s.outputs.iter() {
                 let mut o = out.get_mut();
@@ -300,7 +301,7 @@ impl ConsistencyCheck for TaskRef {
             if o.state == DataObjectState::Removed && s.state != TaskState::Finished {
                 bail!("waiting for removed object {:?} in {:?}", o, s);
             }
-            if (o.state == DataObjectState::Finished) ==
+            if (o.state == DataObjectState::Finished || o.state == DataObjectState::Removed) ==
                 (s.waiting_for.contains(&i.object)) {
                 bail!("waiting_for all unfinished inputs invalid woth {:?} in {:?}", o, s);
             }

@@ -106,7 +106,12 @@ impl data_store::Server for WorkerDataStoreImpl {
     ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let id = DataObjectId::from_capnp(&pry!(params.get_id()));
-        let object = pry!(self.state.get().object_by_id(id));
+        let object = if let Ok(o) = self.state.get().object_by_id(id) {
+            o
+        } else {
+            results.get().set_removed(());
+            return Promise::ok(());
+        };
         let size = object.get().size.map(|s| s as i64).unwrap_or(-1i64);
 
         let offset = params.get_offset();

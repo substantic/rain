@@ -61,6 +61,7 @@ def test_concat3(test_env):
         s.submit()
         assert t1.out.output.fetch() == a + c + b + c + a
 
+
 def test_chain_concat(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:

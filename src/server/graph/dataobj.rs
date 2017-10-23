@@ -30,8 +30,10 @@ pub struct DataObject {
     pub(in super::super) object_type: DataObjectType,
 
     /// Consumer set, e.g. to notify of completion.
-    /// TODO: Add set `needed_by` to faster track if object is still needed.
     pub(in super::super) consumers: RcSet<TaskRef>,
+
+    /// Consumer set, e.g. to notify of completion.
+    pub(in super::super) need_by: RcSet<TaskRef>,
 
     /// Workers scheduled to have a full copy of this object.
     pub(in super::super) scheduled: RcSet<WorkerRef>,
@@ -107,6 +109,14 @@ impl DataObject {
     pub fn state(&self) -> DataObjectState {
         self.state
     }
+
+    /// Is the Finished object data still needed by client (keep flag) or future tasks?
+    /// Scheduling is not accounted here.
+    /// Asserts the object is finished.
+    #[inline]
+    pub fn is_needed(&self) -> bool {
+        self.client_keep || !self.need_by.is_empty()
+    }
 }
 
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
@@ -132,6 +142,7 @@ impl DataObjectRef {
             } ,
             object_type: object_type,
             consumers: Default::default(),
+            need_by: Default::default(),
             scheduled: Default::default(),
             located: Default::default(),
             assigned: Default::default(),
@@ -145,16 +156,6 @@ impl DataObjectRef {
         // add to session
         session.get_mut().objects.insert(s.clone());
         s
-    }
-
-    /// Is the Finished object data still needed by client (keep flag) or future tasks?
-    /// Scheduling is not accounted here.
-    /// Asserts the object is finished.
-    pub fn is_needed(&self) -> bool {
-        let inner = self.get();
-        assert!(inner.state == DataObjectState::Finished);
-        // TODO: Update the check to (faster) remaining_consumers
-        inner.client_keep || inner.consumers.iter().any(|c| c.get().state != TaskState::Finished)
     }
 
     /// Return the object ID in graph.
@@ -243,11 +244,12 @@ impl ConsistencyCheck for DataObjectRef {
                 }
             }
         } else {
+            /* When session is cleared, the following invariant is not true
             if s.state == DataObjectState::Finished {
                 if s.data.is_none() {
                     bail!("no data present for object without producer in {:?}", s);
                 }
-            }
+            }*/
         }
         // state consistency
         if !match s.state {
@@ -277,6 +279,7 @@ impl ConsistencyCheck for DataObjectRef {
         if s.client_keep && s.state == DataObjectState::Removed {
             bail!("client_keep flag on removed object {:?}", s);
         }
+
         // used or kept objects must be assigned when their producers are
         if (s.client_keep || !s.consumers.is_empty()) && s.assigned.is_empty() &&
                 s.state == DataObjectState::Unfinished {
