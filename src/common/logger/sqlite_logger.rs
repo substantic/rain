@@ -54,14 +54,14 @@ impl SQLiteLogger {
         }
         Ok(())
     }
+}
 
+impl Logger for SQLiteLogger {
     fn flush_events(&mut self) {
         self.save_events();
         self.events.clear();
     }
-}
 
-impl Logger for SQLiteLogger {
     fn add_event(&mut self, event: Event) {
         self.events.push(event);
     }

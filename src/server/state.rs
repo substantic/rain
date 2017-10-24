@@ -1,10 +1,12 @@
 use std::net::{SocketAddr};
 use std::collections::HashMap;
+use std::time::Duration;
 
 use futures::{Future, Stream};
 use tokio_core::reactor::Handle;
 use tokio_core::net::{TcpListener, TcpStream};
 use tokio_io::AsyncRead;
+use tokio_timer;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 
 use errors::Result;
@@ -52,6 +54,8 @@ pub struct State {
     self_ref: Option<StateRef>,
 
     logger: Box<Logger>,
+
+    timer: tokio_timer::Timer
 }
 
 impl State {
@@ -900,6 +904,10 @@ impl StateRef {
             stop_server: false,
             self_ref: None,
             logger: Box::new(SQLiteLogger::new()),
+            timer: tokio_timer::wheel()
+                .tick_duration(Duration::from_millis(100))
+                .num_slots(256)
+                .build()
         });
         s.get_mut().self_ref = Some(s.clone());
         s
@@ -939,6 +947,22 @@ impl StateRef {
             });
         handle.spawn(http_server);
         info!("HTTP server running on address={}", http_address);
+
+        // ---- Start logging ----
+        let LOGGING_INTERVAL = 1; // Logging interval in seconds
+        let state = self.clone();
+        let timer = state.get().timer.clone();
+        let interval = timer.interval(Duration::from_secs(LOGGING_INTERVAL));
+
+        let logging = interval
+            .for_each(move |()| {
+                state.get_mut().logger.flush_events();
+                Ok(())
+            })
+            .map_err(|e| {
+                error!("Logging error {}", e)
+            });
+        handle.spawn(logging);
     }
 
     /// Main loop State entry. Returns `false` when the server should stop.

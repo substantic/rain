@@ -5,6 +5,8 @@ use common::monitor::Frame;
 pub trait Logger {
     fn add_event(&mut self, event: Event);
 
+    fn flush_events(&mut self);
+
     fn add_new_worker_event(&mut self, worker: WorkerId);
 
     fn add_worker_removed_event(&mut self, worker: WorkerId, error_msg: String);
