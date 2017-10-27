@@ -8,9 +8,10 @@ use common::id::{DataObjectId, TaskId, SessionId, SId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
 use server::state::StateRef;
-use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef, TaskInput};
-use errors::{Result, ResultExt};
+use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef, TaskInput, SessionError};
+use errors::{Result, ResultExt, ErrorKind, Error};
 use common::Additional;
+use common::RcSet;
 use server::rpc::ClientDataStoreImpl;
 
 pub struct ClientServiceImpl {
@@ -180,10 +181,8 @@ impl client_service::Server for ClientServiceImpl {
     ) -> Promise<(), ::capnp::Error> {
 
         // Set error from session to result
-        fn set_error(session: &SessionRef, result: &mut client_service::WaitResults,) {
-            let s = session.get();
-            let error = s.get_error().unwrap();
-            result.get().get_state().set_error(&error);
+        fn set_error(mut result: &mut ::common_capnp::unit_result::Builder, error: &SessionError) {
+            error.to_capnp(&mut result.borrow().get_state().init_error());
         }
 
         let state = self.state.clone();
@@ -194,44 +193,50 @@ impl client_service::Server for ClientServiceImpl {
         info!("New wait request ({} tasks, {} data objects) from client",
               task_ids.len(), object_ids.len());
 
-        let task_ids : Vec<TaskId> = task_ids.iter().map(|id| TaskId::from_capnp(&id)).collect();
-        let obj_ids : Vec<DataObjectId> = object_ids.iter().map(|id| DataObjectId::from_capnp(&id)).collect();
-
-        if !obj_ids.is_empty() {
-            return Promise::err(::capnp::Error::failed("Waiting on object is not implemented yet".to_string()));
-        }
-
-        let sessions : HashSet<_> = task_ids.iter().map(|id| s.session_by_id(id.get_session_id()).unwrap()).collect();
-
-        if let Some(session) = sessions.iter().find(|s| s.get().is_failed()) {
-            set_error(session, &mut result);
-            return Promise::ok(());
-        }
-
+        let mut sessions = RcSet::new();
 
         // TODO: Wait for data objects
         // TODO: Implement waiting for session (for special "all" IDs)
         // TODO: Get rid of unwrap and do proper error handling
-        let futures: Vec<_> = task_ids.iter()
-            .map(|id| s.task_by_id(*id).unwrap())
-            .filter(|t| !t.get().is_finished())
-            .map(|t| t.get_mut().wait())
-            .collect();
 
-        debug!("{} waiting futures", futures.len());
+        let mut task_futures = Vec::new();
 
-        Promise::from_future(::futures::future::join_all(futures)
+        for id in task_ids.iter() {
+            match s.task_by_id_check_session(TaskId::from_capnp(&id)) {
+                Ok(t) => {
+                    let mut task = t.get_mut();
+                    sessions.insert(task.session.clone());
+                    if task.is_finished() {
+                        continue;
+                    }
+                    task_futures.push(task.wait());
+                }
+                Err(Error(ErrorKind::SessionErr(ref e), _)) => {
+                    set_error(&mut result.get(), e);
+                    return Promise::ok(())
+                },
+                Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+            };
+        }
+
+        debug!("{} waiting futures", task_futures.len());
+
+        if task_futures.is_empty() {
+           result.get().get_state().set_ok(());
+           return Promise::ok(());
+        }
+
+        Promise::from_future(::futures::future::join_all(task_futures)
                              .then(move |r| {
                                  match r {
                                      Ok(_) => result.get().get_state().set_ok(()),
                                      Err(_) => {
                                         let session = sessions.iter().find(|s| s.get().is_failed()).unwrap();
-                                        set_error(session, &mut result);
+                                        set_error(&mut result.get(), session.get().get_error().as_ref().unwrap());
                                      }
                                  };
                                  Ok(())}
                              ))
-
     }
 
     fn wait_some(

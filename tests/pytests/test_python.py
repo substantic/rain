@@ -55,10 +55,8 @@ def test_remote_exception(test_env):
                 t1.wait()
             with pytest.raises(RainException):
                 t1.wait()
-            """ TODO
             with pytest.raises(RainException):
                 t1.out.output.fetch()
-            """
 
 
 def test_remote_exception_sleep(test_env):
@@ -78,15 +76,13 @@ def test_remote_exception_sleep(test_env):
             t1.wait()
         with pytest.raises(RainException):
             t1.wait()
-        """ TODO
-            with pytest.raises(RainException):
+        with pytest.raises(RainException):
                 t1.out.output.fetch()
-        """
 
 
-@pytest.mark.xfail(reason="fetch error not implemented")
-def test_remote_exception_fetch(test_env):
+def test_remote_exception_fetch_after_delay(test_env):
     import time
+
     @remote()
     def test():
         raise Exception("Hello world!")
@@ -96,14 +92,16 @@ def test_remote_exception_fetch(test_env):
         t1 = test()
         t1.out.output.keep()
         s.submit()
-        time.sleep(0.2)
-        t1.out.output.fetch()
-        t1.out.output.fetch()
-        t1.wait()
+        time.sleep(0.6)
+        with pytest.raises(RainException):
+            t1.out.output.fetch()
+        with pytest.raises(RainException):
+            t1.out.output.fetch()
+        with pytest.raises(RainException):
+            t1.wait()
 
 
-@pytest.mark.xfail(reason="fetch error not implemented")
-def test_remote_exception_fetch_slow(test_env):
+def test_remote_exception_fetch_immediate(test_env):
 
     @remote()
     def test():
@@ -116,6 +114,9 @@ def test_remote_exception_fetch_slow(test_env):
         t1 = test()
         t1.out.output.keep()
         s.submit()
-        t1.out.output.fetch()
-        t1.out.output.fetch()
-        t1.wait()
+        with pytest.raises(RainException):
+            t1.out.output.fetch()
+        with pytest.raises(RainException):
+            t1.out.output.fetch()
+        with pytest.raises(RainException):
+            t1.wait()

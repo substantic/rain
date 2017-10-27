@@ -14,7 +14,7 @@ pub struct Session {
     pub (in super::super) id: SessionId,
 
     /// State of the Session and an optional cause of the error.
-    pub (in super::super) error: Option<String>,
+    pub (in super::super) error: Option<SessionError>,
 
     /// Contained tasks.
     /// NB: These are owned by the Session and are cleaned up by it.
@@ -35,8 +35,8 @@ pub type SessionRef = WrappedRcRefCell<Session>;
 
 impl Session {
     /// Return the state of the session with optional error
-    pub fn get_error(&self) -> Option<&String> {
-        self.error.as_ref()
+    pub fn get_error(&self) -> &Option<SessionError> {
+        &self.error
     }
 
     #[inline]
@@ -120,6 +120,40 @@ impl fmt::Debug for SessionRef {
         write!(f, "SessionRef {}", self.get_id())
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct SessionError {
+    message: String
+}
+
+impl SessionError {
+    pub fn new(message: String) -> Self {
+        SessionError { message }
+    }
+
+    pub fn to_capnp(&self, builder: &mut ::capnp_gen::common_capnp::error::Builder)
+    {
+        builder.borrow().set_message(&self.message);
+    }
+}
+
+impl ::std::error::Error for SessionError {
+
+    fn description(&self) -> &str {
+        &self.message
+    }
+
+    fn cause(&self) -> Option<&::std::error::Error> {
+        None
+    }
+}
+
+impl fmt::Display for SessionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "SessionError({:?})", self.message)
+    }
+}
+
 /*
 impl fmt::Debug for Session {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

@@ -83,12 +83,16 @@ struct Additional {
 }
 
 struct Resources {
-    nCpus @0 : UInt32;
+    nCpus @0 :UInt32;
+}
+
+struct Error {
+    message @0 :Text;
 }
 
 struct UnitResult {
         state :union {
             ok @0 :Void;
-            error @1 :Text;
+            error @1 :Error;
         }
 }

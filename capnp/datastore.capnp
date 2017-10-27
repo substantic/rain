@@ -3,6 +3,8 @@
 using import "common.capnp".WorkerId;
 using import "common.capnp".DataObjectId;
 using import "common.capnp".DataObjectType;
+using import "common.capnp".Error;
+
 
 struct ReadReply {
 
@@ -56,6 +58,8 @@ struct ReaderResponse {
         # operation). Server may send this to worker (and then it is usually a bug) or
         # server may send it to client (and then client has likely asked for non-kept
         # object)
+
+        error @6 :Error;
     }
 
 }

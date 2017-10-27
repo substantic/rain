@@ -59,6 +59,7 @@ pub mod errors {
             Capnp(::capnp::Error);
             CapnpNotInSchema(::capnp::NotInSchema);
             Timer(::tokio_timer::TimerError);
+            SessionErr(::server::graph::SessionError);
         }
     }
     // Explicit alias just to make the IDEs happier

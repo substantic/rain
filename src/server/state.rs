@@ -12,7 +12,8 @@ use common::RcSet;
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
 use common::rpc::new_rpc_system;
 use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef,
-                    ClientRef, DataObjectState, DataObjectType, TaskState, TaskInput};
+                    ClientRef, DataObjectState, DataObjectType, TaskState, TaskInput,
+                    SessionError};
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{Scheduler, RandomScheduler, UpdatedIn, UpdatedOut};
 use common::convert::ToCapnp;
@@ -165,7 +166,7 @@ impl State {
         debug!("Failing session {} of client {} with cause {:?}", session.get_id(),
                session.get().client.get_id(), cause);
         assert!(session.get_mut().error.is_none());
-        session.get_mut().error = Some(cause);
+        session.get_mut().error = Some(SessionError::new(cause));
         // Remove all tasks + objects (with their finish hooks)
         self.clear_session(session)
     }
@@ -275,12 +276,59 @@ impl State {
         }
     }
 
+    // same as object_by_id but also check if session not failed
+    // if object not found it tries to at least find session by session_id and
+    // check if it does not failed
+    pub fn object_by_id_check_session(&self, id: DataObjectId) -> Result<DataObjectRef> {
+        match self.graph.objects.get(&id) {
+            Some(o) => {
+                let obj = o.get();
+                if obj.session.get().is_failed() {
+                    return Err(obj.session.get().get_error().clone().unwrap().into());
+                }
+                Ok(o.clone())
+            },
+            None => {
+                let session = self.session_by_id(id.get_session_id())?;
+                if session.get().is_failed() {
+                    return Err(session.get().get_error().clone().unwrap().into());
+                } else {
+                    return Err(format!("Object {:?} not found", id).into());
+                }
+            }
+        }
+    }
+
     pub fn task_by_id(&self, id: TaskId) -> Result<TaskRef> {
         match self.graph.tasks.get(&id) {
             Some(t) => Ok(t.clone()),
             None => Err(format!("Task {:?} not found", id))?,
         }
     }
+
+    // same as task_by_id but also check if session not failed
+    // if task not found it tries to at least find session by session_id and
+    // check if it does not failed
+    pub fn task_by_id_check_session(&self, id: TaskId) -> Result<TaskRef> {
+        match self.graph.tasks.get(&id) {
+            Some(t) => {
+                let task = t.get();
+                if task.session.get().is_failed() {
+                    return Err(task.session.get().get_error().clone().unwrap().into());
+                }
+                Ok(t.clone())
+            },
+            None => {
+                let session = self.session_by_id(id.get_session_id())?;
+                if session.get().is_failed() {
+                    return Err(session.get().get_error().clone().unwrap().into());
+                } else {
+                    return Err(format!("Task {:?} not found", id).into());
+                }
+            }
+        }
+    }
+
 
     /// Verify submit integrity: all objects have either data or producers, acyclicity.
     pub fn verify_submit(&mut self, tasks: &[TaskRef], objects: &[DataObjectRef]) -> Result<()> {

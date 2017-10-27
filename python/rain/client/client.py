@@ -53,7 +53,12 @@ class Client:
         req.id.id = dataobj.id
         req.id.sessionId = dataobj.session.session_id
         req.offset = 0
-        reader = req.send().wait().reader
+        result = req.send().wait()
+
+        if result.which() == "error":
+            raise RainException(result.error.message)
+
+        reader = result.reader
         FETCH_SIZE = 2 << 20  # 2MB
         eof = False
         data = []
@@ -82,7 +87,7 @@ class Client:
             return None
         else:
             assert state == "error"
-            raise RainException(result.state.error)
+            raise RainException(result.state.error.message)
 
     def _close_session(self, session):
         self.service.closeSession(session.session_id).wait()
