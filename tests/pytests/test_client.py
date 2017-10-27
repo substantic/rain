@@ -177,6 +177,28 @@ def test_unkeep_unfinished(test_env):
         t2.wait()
 
 
+@pytest.mark.xfail(reason="unkeep_failed not implemented")
+def test_unkeep_failed(test_env):
+    test_env.start(1)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        args = ("/bin/non-existing-program",)
+        program = Program(args, stdout="output")
+        t1 = program()
+        t1_output = t1.out.output
+        t1_output.keep()
+        s.submit()
+
+        import time
+        time.sleep(0.6)
+
+        with pytest.raises(RainException):
+            t1_output.unkeep()
+        with pytest.raises(RainException):
+            t1_output.unkeep()
+
+
 def test_get_state(test_env):
     test_env.start(1)
     client = test_env.client

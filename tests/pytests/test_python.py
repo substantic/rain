@@ -84,13 +84,31 @@ def test_remote_exception_sleep(test_env):
         """
 
 
-@pytest.mark.xfail(reason="wait_some not implemented")
+@pytest.mark.xfail(reason="fetch error not implemented")
 def test_remote_exception_fetch(test_env):
+    import time
+    @remote()
+    def test():
+        raise Exception("Hello world!")
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = test()
+        t1.out.output.keep()
+        s.submit()
+        time.sleep(0.2)
+        t1.out.output.fetch()
+        t1.out.output.fetch()
+        t1.wait()
+
+
+@pytest.mark.xfail(reason="fetch error not implemented")
+def test_remote_exception_fetch_slow(test_env):
 
     @remote()
     def test():
         import time
-        time.sleep(0.2)
+        time.sleep(0.3)
         raise Exception("Hello world!")
 
     test_env.start(1)
