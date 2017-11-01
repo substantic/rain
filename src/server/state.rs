@@ -792,8 +792,11 @@ impl State {
     /// For all workers, if the worker is not overbooked and has ready messages, distribute
     /// more scheduled ready tasks to workers.
     pub fn distribute_tasks(&mut self) {
-        debug!("Distributing tasks");
         let ws = self.graph.workers.values().map(|x| x.clone()).collect::<Vec<_>>();
+        if ws.is_empty() {
+            return;
+        }
+        debug!("Distributing tasks");
         for wref in ws {
             //let mut w = wref.get_mut();
             // TODO: Customize the overbook limit
