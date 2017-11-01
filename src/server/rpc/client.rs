@@ -295,27 +295,47 @@ impl client_service::Server for ClientServiceImpl {
         info!("New get_state request ({} tasks, {} data objects) from client",
               task_ids.len(), object_ids.len());
 
-        {
-            let mut task_updates = results.get().init_tasks(task_ids.len());
-            for i in 0..task_ids.len() {
-                let mut update = task_updates.borrow().get(i);
-                pry!(update.set_id(task_ids.get(i)));
+        let s = self.state.get();
+        let tasks : Vec<_> = match task_ids.iter().map(|id| s.task_by_id_check_session(TaskId::from_capnp(&id))).collect() {
+            Ok(tasks) => tasks,
+            Err(Error(ErrorKind::SessionErr(ref e), _)) => {
+                e.to_capnp(&mut results.get().get_state().unwrap().init_error());
+                return Promise::ok(())
+            },
+            Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+        };
 
-                //TODO: set current task state
-                //update.set_state(...)
+        let objects : Vec<_> = match object_ids.iter().map(|id| s.object_by_id_check_session(DataObjectId::from_capnp(&id))).collect() {
+            Ok(tasks) => tasks,
+            Err(Error(ErrorKind::SessionErr(ref e), _)) => {
+                e.to_capnp(&mut results.get().get_state().unwrap().init_error());
+                return Promise::ok(())
+            },
+            Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+        };
+
+        let mut results = results.get();
+
+        {
+            let mut task_updates = results.borrow().init_tasks(tasks.len() as u32);
+            for (i, task) in tasks.iter().enumerate() {
+                let mut update = task_updates.borrow().get(i as u32);
+                let t = task.get();
+                t.id.to_capnp(&mut update.borrow().get_id().unwrap());
+                t.additionals.to_capnp(&mut update.get_additionals().unwrap());
             }
         }
 
         {
-            let mut object_updates = results.get().init_objects(object_ids.len());
-            for i in 0..object_ids.len() {
-                let mut update = object_updates.borrow().get(i);
-                pry!(update.set_id(object_ids.get(i)));
-
-                //TODO: set current data object state
-                //update.set_state(...)
+            let mut obj_updates = results.borrow().init_objects(objects.len() as u32);
+            for (i, obj) in objects.iter().enumerate() {
+                let mut update = obj_updates.borrow().get(i as u32);
+                let o = obj.get();
+                o.id.to_capnp(&mut update.get_id().unwrap());
             }
         }
+
+        results.get_state().unwrap().set_ok(());
         Promise::ok(())
     }
 }

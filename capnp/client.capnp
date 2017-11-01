@@ -72,16 +72,19 @@ interface ClientService {
 struct Update {
     tasks @0 :List(TaskUpdate);
     objects @1 :List(DataObjectUpdate);
+    state @2 :UnitResult;
 
     struct TaskUpdate {
         id @0 :TaskId;
         state @1 :TaskState;
+        additionals @2 :Additionals;
     }
 
     struct DataObjectUpdate {
         id @0 :DataObjectId;
         state @1 :DataObjectState;
         size @2 :UInt64;
+        additionals @3 :Additionals;
         # Only valid when the state is `finished` and `removed`, otherwise should be 0.
     }
 }

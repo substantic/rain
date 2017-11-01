@@ -700,6 +700,7 @@ impl State {
                         let mut t = tref.get_mut();
                         t.state = state;
                         t.additionals = additionals;
+                        t.additionals.set_str("worker", format!("{}", worker.get().id()));
                         t.scheduled = None;
                         worker.get_mut().scheduled_tasks.remove(&tref);
                         t.assigned = None;

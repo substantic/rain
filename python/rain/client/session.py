@@ -185,8 +185,8 @@ class Session:
         for dataobj in dataobjects:
             dataobj._free()
 
-    def get_state(self, tasks, dataobjects):
-        self.client._get_state(tasks, dataobjects)
+    def update(self, items):
+        self.client.update(items)
 
 
 def get_active_session():

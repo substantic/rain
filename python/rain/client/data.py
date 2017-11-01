@@ -65,6 +65,9 @@ class DataObject:
     def fetch(self):
         return self.session.fetch(self)
 
+    def update(self):
+        self.session.update((self,))
+
     def __del__(self):
         if self.state is not None and self._keep:
             try:

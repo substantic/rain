@@ -1,6 +1,9 @@
 import capnp
 from rain.client import rpc
 from rain.client.common import RainException
+from rain.client.task import Task
+from rain.client.data import DataObject
+from . import additionals
 
 from .session import Session
 
@@ -8,9 +11,12 @@ CLIENT_PROTOCOL_VERSION = 0
 
 
 def check_result(result):
-    if result.which() == "error":
+    if result.which() == "ok":
+        return # Do nothing
+    elif result.which() == "error":
         raise RainException(result.error.message)
-
+    else:
+        raise Exception("Invalid result")
 
 class Client:
 
@@ -137,14 +143,15 @@ class Client:
         result = req.send().wait()
         check_result(result)
 
+    def update(self, items):
+        tasks, dataobjects = split_items(items)
+        self._get_state(tasks, dataobjects)
 
     def _get_state(self, tasks, dataobjs):
         req = self.service.getState_request()
 
-        tasks_dict = {}
         req.init("taskIds", len(tasks))
         for i in range(len(tasks)):
-            tasks_dict[tasks[i].id] = tasks[i]
             req.taskIds[i].id = tasks[i].id
             req.taskIds[i].sessionId = tasks[i].session.session_id
 
@@ -156,12 +163,32 @@ class Client:
             req.objectIds[i].sessionId = dataobjs[i].session.session_id
 
         results = req.send().wait()
+        check_result(results.state)
 
-        for task_update in results.tasks:
-            task = tasks_dict[task_update.id.id]
+        for task_update, task in zip(results.tasks, tasks):
             task.state = task_update.state
+            new_additionals = additionals.additionals_from_capnp(task_update.additionals)
+            if task.additionals is None:
+                task.additionals = new_additionals
+            else:
+                task.additionals.update(new_additionals)
 
         for object_update in results.objects:
             dataobj = dataobjs_dict[object_update.id.id]
             dataobj.state = object_update.state
             dataobj.size = object_update.size
+
+
+def split_items(items):
+    """Split items into 'tasks' and 'dataobjects'
+    Throws an error if an item is not task nor object"""
+    tasks = []
+    dataobjects = []
+    for item in items:
+        if isinstance(item, Task):
+            tasks.append(item)
+        elif isinstance(item, DataObject):
+            dataobjects.append(item)
+        else:
+            raise RainException("'{}' is not tasks nor dataobject".format(item))
+    return tasks, dataobjects

@@ -3,6 +3,7 @@ from rain.client import RainException
 from rain.client import Program
 
 import pytest
+import time
 
 
 def test_get_info(test_env):
@@ -189,7 +190,6 @@ def test_unkeep_failed(test_env):
         t1_output.keep()
         s.submit()
 
-        import time
         time.sleep(0.6)
 
         with pytest.raises(RainException):
@@ -198,16 +198,16 @@ def test_unkeep_failed(test_env):
             t1_output.unkeep()
 
 
-def test_get_state(test_env):
+def test_update(test_env):
     test_env.start(1)
     client = test_env.client
     s = client.new_session()
     with s:
         t1 = tasks.concat("a", "b")
         s.submit()
-        s.get_state((t1,), ())
+        s.update((t1,))
         t1.wait()
-        s.get_state((t1,), ())
+        s.update((t1,))
 
 
 def test_task_wait(test_env):
@@ -233,8 +233,7 @@ def test_fetch_removed_object_fails(test_env):
         t1.wait()
 
 
-@pytest.mark.xfail(reason="Fetching from failed session not implemented yet")
-def test_fetch_from_failed_session(test_env):
+def test_fetch_from_failed_session_immediate(test_env):
     """Setting input file for program"""
     test_env.start(1)
     args = ("/bin/non-existing-program",)
@@ -245,6 +244,25 @@ def test_fetch_from_failed_session(test_env):
         s.submit()
         with pytest.raises(RainException):
             t1.out.output.fetch()
+        with pytest.raises(RainException):
+            t1.out.output.fetch()
+
+
+
+def test_update_from_failed_session(test_env):
+    """Setting input file for program"""
+    test_env.start(1)
+    args = ("/bin/non-existing-program",)
+    program = Program(args, stdout="output")
+    with test_env.client.new_session() as s:
+        t1 = program()
+        t1.out.output.keep()
+        s.submit()
+        time.sleep(0.6)
+        with pytest.raises(RainException):
+            t1.update()
+        with pytest.raises(RainException):
+            t1.out.output.update()
 
 
 @pytest.mark.xfail(reason="Server now do not support waiting on objects")
@@ -260,3 +278,5 @@ def test_dataobj_wait(test_env):
         assert o1.state == rpc.common.DataObjectState.unfinished
         o1.wait()
         assert o1.state == rpc.common.DataObjectState.finished
+
+

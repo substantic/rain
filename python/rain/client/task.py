@@ -25,6 +25,7 @@ class Task:
 
         self.task_type = task_type
         self.task_config = task_config
+        self.additionals = None
 
         if outputs is None:
             self.out = Table({"output": Blob("output", session)})
@@ -42,6 +43,14 @@ class Task:
             self.inputs = Table(tuple(to_data(obj) for obj in inputs))
         else:
             self.inputs = Table({name: to_data(obj) for name, obj in inputs.items()})
+
+    def get(self, name):
+        try:
+            if self.additionals:
+                return self.additionals[name]
+        except KeyError:
+            pass
+        raise RainException("Additional '{}' not found".format(name))
 
     def has_output(self, name):
         return name in self.out
@@ -75,6 +84,9 @@ class Task:
 
     def wait(self):
         self.session.wait((self,), ())
+
+    def update(self):
+        self.session.update((self,))
 
     def __repr__(self):
         return "<Task id={}/{} type={}>".format(self.session.session_id, self.id, self.task_type)

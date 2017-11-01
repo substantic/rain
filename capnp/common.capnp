@@ -76,8 +76,9 @@ struct Additionals {
         value :union {
             int @1 :Int64;
             float @2 :Float64;
-            text @3 :Text;
-            data @4 :Data;
+            str @3 :Text;
+            bool @4 :Bool;
+            data @5 :Data;
         }
     }
 }
