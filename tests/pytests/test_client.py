@@ -177,7 +177,6 @@ def test_unkeep_unfinished(test_env):
         t2.wait()
 
 
-@pytest.mark.xfail(reason="unkeep_failed not implemented")
 def test_unkeep_failed(test_env):
     test_env.start(1)
     client = test_env.client

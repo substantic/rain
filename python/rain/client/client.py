@@ -7,6 +7,11 @@ from .session import Session
 CLIENT_PROTOCOL_VERSION = 0
 
 
+def check_result(result):
+    if result.which() == "error":
+        raise RainException(result.error.message)
+
+
 class Client:
 
     def __init__(self, address, port):
@@ -54,9 +59,7 @@ class Client:
         req.id.sessionId = dataobj.session.session_id
         req.offset = 0
         result = req.send().wait()
-
-        if result.which() == "error":
-            raise RainException(result.error.message)
+        check_result(result)
 
         reader = result.reader
         FETCH_SIZE = 2 << 20  # 2MB
@@ -82,12 +85,7 @@ class Client:
             req.objectIds[i].sessionId = dataobjs[i].session.session_id
 
         result = req.send().wait()
-        state = result.state.which()
-        if state == "ok":
-            return None
-        else:
-            assert state == "error"
-            raise RainException(result.state.error.message)
+        check_result(result)
 
     def _close_session(self, session):
         self.service.closeSession(session.session_id).wait()
@@ -136,7 +134,9 @@ class Client:
             req.objectIds[i].id = dataobjs[i].id
             req.objectIds[i].sessionId = dataobjs[i].session.session_id
 
-        req.send().wait()
+        result = req.send().wait()
+        check_result(result)
+
 
     def _get_state(self, tasks, dataobjs):
         req = self.service.getState_request()

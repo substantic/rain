@@ -36,7 +36,7 @@ interface ClientService {
     # Submit new tasks and data objects into server
     # allTaskId / allDataObjectsId is NOT allowed
 
-    unkeep @4 (objectIds :List(DataObjectId)) -> ();
+    unkeep @4 (objectIds :List(DataObjectId)) -> UnitResult;
     # Removed "keep" flag from data objects
     # It is an error if called for non-keep object 
     # allDataObjectsId is allowed

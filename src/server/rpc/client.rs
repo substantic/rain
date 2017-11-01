@@ -182,7 +182,7 @@ impl client_service::Server for ClientServiceImpl {
 
         // Set error from session to result
         fn set_error(mut result: &mut ::common_capnp::unit_result::Builder, error: &SessionError) {
-            error.to_capnp(&mut result.borrow().get_state().init_error());
+            error.to_capnp(&mut result.borrow().init_error());
         }
 
         let state = self.state.clone();
@@ -222,14 +222,14 @@ impl client_service::Server for ClientServiceImpl {
         debug!("{} waiting futures", task_futures.len());
 
         if task_futures.is_empty() {
-           result.get().get_state().set_ok(());
+           result.get().set_ok(());
            return Promise::ok(());
         }
 
         Promise::from_future(::futures::future::join_all(task_futures)
                              .then(move |r| {
                                  match r {
-                                     Ok(_) => result.get().get_state().set_ok(()),
+                                     Ok(_) => result.get().set_ok(()),
                                      Err(_) => {
                                         let session = sessions.iter().find(|s| s.get().is_failed()).unwrap();
                                         set_error(&mut result.get(), session.get().get_error().as_ref().unwrap());
@@ -256,7 +256,7 @@ impl client_service::Server for ClientServiceImpl {
     fn unkeep(
         &mut self,
         params: client_service::UnkeepParams,
-        _: client_service::UnkeepResults,
+        mut results: client_service::UnkeepResults,
     ) -> Promise<(), ::capnp::Error> {
         let mut s = self.state.get_mut();
         let params = pry!(params.get());
@@ -264,13 +264,23 @@ impl client_service::Server for ClientServiceImpl {
         debug!("New unkeep request ({} data objects) from client",
               object_ids.len());
 
-        // TODO: Check that session is ok
-
+        let mut objects = Vec::new();
         for oid in object_ids.iter() {
             let id: DataObjectId = DataObjectId::from_capnp(&oid);
-            let o: DataObjectRef = pry!(s.object_by_id(id));
+            match s.object_by_id_check_session(id) {
+                Ok(obj) => objects.push(obj),
+                Err(Error(ErrorKind::SessionErr(ref e), _)) => {
+                    e.to_capnp(&mut results.get().init_error());
+                    return Promise::ok(())
+                },
+                Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+            };
+        }
+
+        for o in objects.iter() {
             s.unkeep_object(&o);
         }
+
         Promise::ok(())
     }
 

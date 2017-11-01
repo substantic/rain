@@ -91,7 +91,7 @@ struct Error {
 }
 
 struct UnitResult {
-        state :union {
+        union {
             ok @0 :Void;
             error @1 :Error;
         }
