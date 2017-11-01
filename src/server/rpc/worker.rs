@@ -1,5 +1,5 @@
 use common::convert::FromCapnp;
-use common::Additional;
+use common::Additionals;
 use common::id::{DataObjectId, TaskId};
 use server::state::StateRef;
 use server::graph::{WorkerRef, Worker, DataObjectState};
@@ -59,8 +59,8 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
             debug!("Update for object id={}", id);
             let object = pry!(state.object_by_id(id));
             let size = obj_update.get_size() as usize;
-            let additional = Default::default(); // TODO: Additionals
-            obj_updates.push((object, pry!(obj_update.get_state()), size, additional));
+            let additionals = Default::default(); // TODO: Additionals
+            obj_updates.push((object, pry!(obj_update.get_state()), size, additionals));
         }
 
         // For some reason collect over iterator do not work here !?
@@ -69,8 +69,8 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
             let id = TaskId::from_capnp(&pry!(task_update.get_id()));
             debug!("Update for task id={}", id);
             let task = pry!(state.task_by_id(id));
-            let additional = Additional::from_capnp(&task_update.get_additional().unwrap());
-          task_updates.push((task, pry!(task_update.get_state()), additional));
+            let additionals = Additionals::from_capnp(&task_update.get_additionals().unwrap());
+          task_updates.push((task, pry!(task_update.get_state()), additionals));
         }
 
         state.updates_from_worker(&self.worker, obj_updates, task_updates);

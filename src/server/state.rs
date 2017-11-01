@@ -19,7 +19,7 @@ use server::scheduler::{Scheduler, RandomScheduler, UpdatedIn, UpdatedOut};
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
-use common::{Additional, ConsistencyCheck};
+use common::{Additionals, ConsistencyCheck};
 use common::events::Event;
 
 pub struct State {
@@ -179,12 +179,12 @@ impl State {
                client_keep: bool,
                label: String,
                data: Option<Vec<u8>>,
-               additional: Additional) -> Result<DataObjectRef> {
+               additionals: Additionals) -> Result<DataObjectRef> {
         if self.graph.objects.contains_key(&id) {
             bail!("State already contains object with id {}", id);
         }
         let oref = DataObjectRef::new(session, id, object_type, client_keep,
-                                   label, data, additional);
+                                   label, data, additionals);
         // add to graph
         self.graph.objects.insert(oref.get_id(), oref.clone());
         // add to updated objects
@@ -218,11 +218,11 @@ impl State {
         outputs: Vec<DataObjectRef>,
         task_type: String,
         task_config: Vec<u8>,
-        additional: Additional,) -> Result<TaskRef> {
+        additionals: Additionals,) -> Result<TaskRef> {
         if self.graph.tasks.contains_key(&id) {
             bail!("Task {} already in the graph", id);
         }
-        let tref = TaskRef::new(session, id, inputs, outputs, task_type, task_config, additional)?;
+        let tref = TaskRef::new(session, id, inputs, outputs, task_type, task_config, additionals)?;
         // add to graph
         self.graph.tasks.insert(tref.get_id(), tref.clone());
         // add to scheduler updates
@@ -684,13 +684,13 @@ impl State {
     /// Process state updates from one Worker.
     pub fn updates_from_worker(&mut self,
                               worker: &WorkerRef,
-                              obj_updates: Vec<(DataObjectRef, DataObjectState, usize, Additional)>,
-                              task_updates: Vec<(TaskRef, TaskState, Additional)>) {
+                              obj_updates: Vec<(DataObjectRef, DataObjectState, usize, Additionals)>,
+                              task_updates: Vec<(TaskRef, TaskState, Additionals)>) {
         debug!("Update states for {:?}, objs: {}, tasks: {}", worker,
                obj_updates.len(), task_updates.len());
         worker.check_consistency_opt().unwrap(); // non-recoverable
 
-        for (tref, state, additional) in task_updates {
+        for (tref, state, additionals) in task_updates {
             // inform the scheduler
             self.updates.tasks.insert(tref.clone());
             // set the state and possibly propagate
@@ -699,7 +699,7 @@ impl State {
                     {
                         let mut t = tref.get_mut();
                         t.state = state;
-                        t.additional = additional;
+                        t.additionals = additionals;
                         t.scheduled = None;
                         worker.get_mut().scheduled_tasks.remove(&tref);
                         t.assigned = None;
@@ -724,17 +724,17 @@ impl State {
                     let mut t = tref.get_mut();
                     assert_eq!(t.state, TaskState::Assigned);
                     t.state = state;
-                    t.additional = additional;
+                    t.additionals = additionals;
                 },
                 TaskState::Failed => {
                     debug!("Task {:?} failed on {:?} with additional {:?}", *tref.get(), worker,
-                           additional);
-                    let error_message = additional.get_string("error").unwrap_or_else(|| {
+                           additionals);
+                    let error_message = additionals.get_string("error").unwrap_or_else(|| {
                         warn!("Task failed with no error message");
                         "Task failed with no error message".to_string()
                     });
                     tref.get_mut().state = state;
-                    tref.get_mut().additional = additional;
+                    tref.get_mut().additionals = additionals;
                     let session = tref.get().session.clone();
                     let error_message = format!("Task {} failed: {}", tref.get().id, error_message);
                     self.fail_session(&session, error_message).unwrap();
@@ -744,7 +744,7 @@ impl State {
             }
         }
 
-        for (oref, state, size, additional) in obj_updates {
+        for (oref, state, size, additionals) in obj_updates {
             // Inform the scheduler
             self.updates.objects.entry(oref.clone()).or_insert(Default::default())
                 .insert(worker.clone());
@@ -760,7 +760,7 @@ impl State {
                                 // first completion
                                 o.state = state;
                                 o.size = Some(size);
-                                o.additional = additional;
+                                o.additionals = additionals;
                                 o.trigger_finish_hooks();
                             }
                             for cref in oref.get().consumers.clone() {

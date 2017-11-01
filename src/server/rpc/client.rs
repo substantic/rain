@@ -10,7 +10,7 @@ use client_capnp::client_service;
 use server::state::StateRef;
 use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef, TaskInput, SessionError};
 use errors::{Result, ResultExt, ErrorKind, Error};
-use common::Additional;
+use common::Additionals;
 use common::RcSet;
 use server::rpc::ClientDataStoreImpl;
 
@@ -117,16 +117,16 @@ impl client_service::Server for ClientServiceImpl {
                     } else {
                         None
                     };
-                let additional = Additional::new(); // TODO: decode additional
+                let additionals = Additionals::new(); // TODO: decode additional
                 let o = s.add_object(&session, id,co.get_type().map_err(|_| "reading TaskType")?,
-                                     co.get_keep(), co.get_label()?.to_string(),data, additional)?;
+                                     co.get_keep(), co.get_label()?.to_string(),data, additionals)?;
                 created_objects.push(o);
             }
             // second create the tasks
             for ct in tasks.iter() {
                 let id = TaskId::from_capnp(&ct.get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
-                let additional = Additional::new(); // TODO: decode additional
+                let additionals = Additionals::new(); // TODO: decode additional
                 let mut inputs = Vec::<TaskInput>::new();
                 for ci in ct.get_inputs()?.iter() {
                     inputs.push(TaskInput {
@@ -141,7 +141,7 @@ impl client_service::Server for ClientServiceImpl {
                 }
                 let t = s.add_task(&session, id, inputs, outputs,
                                    ct.get_task_type()?.to_string(), ct.get_task_config()?.into(),
-                                   additional)?;
+                                   additionals)?;
                 created_tasks.push(t);
             }
             debug!("New tasks: {:?}", created_tasks);

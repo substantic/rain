@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use common::id::{TaskId};
 use super::{DataObjectRef, Graph};
-use common::{Additional, RcSet};
+use common::{Additionals, RcSet};
 use std::iter::FromIterator;
 
 use std::io::Bytes;
@@ -54,7 +54,7 @@ pub struct Task {
     pub (in super::super) task_type: String,
     pub (in super::super) task_config: Vec<u8>,
 
-    pub (in super::super) new_additionals: Additional
+    pub (in super::super) new_additionals: Additionals
 }
 
 impl Task {
@@ -136,7 +136,7 @@ impl TaskRef {
             task_type,
             task_config,
             state: TaskState::Assigned,
-            new_additionals: Additional::new(),
+            new_additionals: Additionals::new(),
         });
 
         for obj in &task.get().waiting_for {

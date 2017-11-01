@@ -13,7 +13,7 @@ use std::collections::HashSet;
 use futures::unsync::oneshot;
 
 pub type RcSet<T> = HashSet<T>;
-pub use self::additional::Additional;
+pub use self::additional::Additionals;
 
 pub mod monitoring;
 

@@ -6,7 +6,7 @@ using import "datastore.capnp".DataStore;
 using import "common.capnp".WorkerId;
 using import "common.capnp".TaskId;
 using import "common.capnp".DataObjectId;
-using import "common.capnp".Additional;
+using import "common.capnp".Additionals;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
 using import "common.capnp".DataObjectType;
@@ -33,7 +33,7 @@ struct WorkerStateUpdate {
     struct TaskUpdate {
         id @0 :TaskId;
         state @1 :TaskState;
-        additional @2 :Additional;
+        additionals @2 :Additionals;
     }
 
     struct DataObjectUpdate {
@@ -103,7 +103,7 @@ struct Task {
 
     taskConfig @4 :Data;
 
-    additional @5: Additional;
+    additionals @5: Additionals;
 
     nCpus @6: Int32;
     # Number of request CPUs; will be replaced by more sophisticated
@@ -137,5 +137,5 @@ struct DataObject {
 
     label @6 :Text;
 
-    additional @7 :Additional;
+    additionals @7 :Additionals;
 }

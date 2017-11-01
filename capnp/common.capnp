@@ -64,7 +64,7 @@ enum DataObjectType {
     # may be started even the stream is not fully constructed
 }
 
-struct Additional {
+struct Additionals {
     # Additonal data - stats, plugin data, user data, ...
     # TODO: Specify in an extensible way.
     # TODO: Consider embedding CBOR, MSGPACK, ... as Data.

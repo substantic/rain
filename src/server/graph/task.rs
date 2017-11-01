@@ -3,7 +3,7 @@ use std::fmt;
 
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
-use common::{RcSet, Additional, FinishHook, ConsistencyCheck};
+use common::{RcSet, Additionals, FinishHook, ConsistencyCheck};
 use common::id::{TaskId, SId};
 use super::{DataObjectRef, WorkerRef, SessionRef, Graph, DataObjectState, DataObjectType};
 pub use common_capnp::TaskState;
@@ -59,7 +59,7 @@ pub struct Task {
     pub(in super::super) finish_hooks: Vec<FinishHook>,
 
     /// Additional attributes
-    pub(in super::super) additional: Additional,
+    pub(in super::super) additionals: Additionals,
 }
 
 pub type TaskRef = WrappedRcRefCell<Task>;
@@ -144,7 +144,7 @@ impl TaskRef {
         outputs: Vec<DataObjectRef>,
         task_type: String,
         task_config: Vec<u8>,
-        additional: Additional,
+        additionals: Additionals,
     ) -> Result<Self> {
         assert_eq!(id.get_session_id(), session.get_id());
         let mut waiting = RcSet::new();
@@ -207,7 +207,7 @@ impl TaskRef {
             task_type: task_type,
             task_config: task_config,
             finish_hooks: Default::default(),
-            additional: additional,
+            additionals: additionals,
         });
         // add to session
         session.get_mut().tasks.insert(sref.clone());

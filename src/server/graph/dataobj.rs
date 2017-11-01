@@ -6,7 +6,7 @@ use errors::Error;
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
-use common::{RcSet, Additional, FinishHook, ConsistencyCheck};
+use common::{RcSet, Additionals, FinishHook, ConsistencyCheck};
 use super::{TaskRef, WorkerRef, SessionRef, Graph, TaskState};
 pub use common_capnp::{DataObjectState, DataObjectType};
 use errors::Result;
@@ -62,7 +62,7 @@ pub struct DataObject {
     pub(in super::super) data: Option<Vec<u8>>,
 
     /// Additional attributes (WIP)
-    pub(in super::super) additional: Additional,
+    pub(in super::super) additionals: Additionals,
 }
 
 impl DataObject {
@@ -129,7 +129,7 @@ impl DataObjectRef {
                client_keep: bool,
                label: String,
                data: Option<Vec<u8>>,
-               additional: Additional) -> Self {
+               additionals: Additionals) -> Self {
         assert_eq!(id.get_session_id(), session.get_id());
         let s = DataObjectRef::wrap(DataObject {
             id: id,
@@ -151,7 +151,7 @@ impl DataObjectRef {
             finish_hooks: Vec::new(),
             size: data.as_ref().map(|v| v.len()),
             data: data,
-            additional: additional,
+            additionals: additionals,
         });
         // add to session
         session.get_mut().objects.insert(s.clone());

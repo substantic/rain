@@ -218,7 +218,7 @@ impl State {
                 });
 
                 if !task.new_additionals.is_empty() {
-                    task.new_additionals.to_capnp(&mut ct.borrow().get_additional().unwrap());
+                    task.new_additionals.to_capnp(&mut ct.borrow().get_additionals().unwrap());
                     task.new_additionals.clear();
                 }
                 task.id.to_capnp(&mut ct.get_id().unwrap());

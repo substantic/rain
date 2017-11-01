@@ -3,7 +3,7 @@
 using import "common.capnp".TaskId;
 using import "common.capnp".WorkerId;
 using import "common.capnp".DataObjectId;
-using import "common.capnp".Additional;
+using import "common.capnp".Additionals;
 using import "common.capnp".SessionId;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
@@ -92,7 +92,7 @@ struct Task {
     outputs @2 :List(DataObjectId);
     taskType @3 :Text;
     taskConfig @4 :Data;
-    additional @5 :Additional;
+    additionals @5 :Additionals;
 
     nCpus @6 :Int32;
     # Number of request CPUs; will be replaced by more sophisticated
@@ -113,5 +113,5 @@ struct DataObject {
     data @2 :Data;
     type @3 :DataObjectType;
     label @4 :Text;
-    additional @5: Additional;
+    additionals @5: Additionals;
 }
