@@ -22,6 +22,7 @@ pub struct ClientServiceImpl {
 
 impl ClientServiceImpl {
     pub fn new(state: &StateRef, address: &SocketAddr)  -> Result<Self> {
+
         Ok(Self {
             state: state.clone(),
             client: state.get_mut().add_client(address.clone())?,
@@ -149,6 +150,9 @@ impl client_service::Server for ClientServiceImpl {
             }
             debug!("New tasks: {:?}", created_tasks);
             debug!("New objects: {:?}", created_objects);
+            s.logger.add_client_submit_event(
+                created_tasks.iter().map(|t| t.get_id()).collect(),
+                created_objects.iter().map(|o| o.get_id()).collect());
             // verify submit integrity
             s.verify_submit(&created_tasks, &created_objects)
         })();
@@ -312,7 +316,7 @@ impl client_service::Server for ClientServiceImpl {
         for o in objects.iter() {
             s.unkeep_object(&o);
         }
-
+        s.logger.add_client_unkeep_event(objects.iter().map(|o|{o.get().id}).collect());
         Promise::ok(())
     }
 

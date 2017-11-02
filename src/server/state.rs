@@ -53,7 +53,7 @@ pub struct State {
 
     self_ref: Option<StateRef>,
 
-    logger: Box<Logger>,
+    pub logger: Box<Logger>,
 
     timer: tokio_timer::Timer
 }
@@ -111,6 +111,7 @@ impl State {
         assert!(worker.get_mut().error.is_none());
         worker.get_mut().error = Some(cause.clone());
         // TODO: Cleanup and recovery if possible
+        self.logger.add_worker_failed_event(worker.get_id(), cause.clone());
         panic!("Worker {} error: {:?}", worker.get_id(), cause);
     }
 
@@ -122,6 +123,7 @@ impl State {
         }
         let c = ClientRef::new(address);
         self.graph.clients.insert(c.get().id, c.clone());
+        self.logger.add_new_client_event(c.get().id);
         Ok(c)
     }
 
@@ -133,6 +135,7 @@ impl State {
         for s in sessions { self.remove_session(&s)?; }
         // remove from graph
         self.graph.clients.remove(&client.get_id()).unwrap();
+        self.logger.add_removed_client_event(client.get_id(), String::from("client disconnected"));
         Ok(())
     }
 
@@ -725,6 +728,7 @@ impl State {
                         worker.get_mut().scheduled_tasks.remove(&tref);
                         t.assigned = None;
                         worker.get_mut().assigned_tasks.remove(&tref);
+                        self.logger.add_task_finished_event(t.id);
                     }
                     tref.get_mut().trigger_finish_hooks();
                     self.update_task_assignment(&tref);
@@ -747,6 +751,8 @@ impl State {
                     assert_eq!(t.state, TaskState::Assigned);
                     t.state = state;
                     t.additionals = additionals;
+                    self.logger.add_task_started_event(t.id, worker.get_id());
+
                 },
                 TaskState::Failed => {
                     debug!("Task {:?} failed on {:?} with additional {:?}", *tref.get(), worker,
@@ -756,11 +762,14 @@ impl State {
                         "Task failed with no error message".to_string()
                     });
                     self.underload_workers.insert(worker.clone());
-                    tref.get_mut().state = state;
-                    tref.get_mut().additionals = additionals;
-                    let session = tref.get().session.clone();
-                    let error_message = format!("Task {} failed: {}", tref.get().id, error_message);
-                    self.fail_session(&session, error_message).unwrap();
+
+                    let mut t = tref.get_mut();
+                    t.state = state;
+                    t.additionals = additionals;
+                    let session = t.session.clone();
+                    let error_message = format!("Task {} failed: {}", t.id, error_message);
+                    self.fail_session(&session, error_message.clone()).unwrap();
+                    self.logger.add_task_failed_event(t.id, worker.get_id(), error_message);
                 }
                 _  => panic!("Invalid worker {:?} task {:?} state update to {:?}", worker,
                              *tref.get(), state)
