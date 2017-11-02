@@ -111,7 +111,7 @@ impl Data {
         builder.set_type(::capnp_gen::common_capnp::DataObjectType::Blob);
         match self.storage {
             Storage::Memory(ref data) => builder.borrow().get_storage().set_memory(&data),
-            _ => unimplemented!()
+            Storage::Path(ref data) => builder.borrow().get_storage().set_path(data.path.to_str().unwrap())
         };
     }
 }

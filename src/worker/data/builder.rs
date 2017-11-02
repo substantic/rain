@@ -1,5 +1,7 @@
 
+use std::fs::File;
 use super::data::{Data, Storage, DataType};
+use errors::{Result};
 
 /// Trait for building Data from data stream
 pub trait DataBuilder {
@@ -19,12 +21,16 @@ impl BlobBuilder {
         }
     }
 
-    pub fn write_blob(&mut self, data: &Data) {
+    pub fn write_blob(&mut self, data: &Data) -> Result<()> {
         // TODO: Assert that data is blob
         match data.storage() {
             &Storage::Memory(ref bytes) => self.write(&bytes[..]),
-            &Storage::Path(ref path) => unimplemented!()
+            &Storage::Path(ref path) => {
+                let mem = unsafe { ::memmap::Mmap::map(&File::open(&path.path)?)}?;
+                self.write(&mem);
+            }
         }
+        Ok(())
     }
 }
 

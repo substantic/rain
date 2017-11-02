@@ -3,7 +3,12 @@ import cloudpickle
 
 
 def data_from_capnp(reader):
-    return MemoryBlob(reader.storage.memory)
+    which = reader.storage.which()
+    if which == "memory":
+        return MemoryBlob(reader.storage.memory)
+    if which == "path":
+        return FileBlob(reader.storage.path)
+    raise Exception("Invalid storage type")
 
 
 class Data:
@@ -20,10 +25,6 @@ class Blob(Data):
             self.load_cache = obj
         return obj
 
-    def to_str(self):
-        # TODO: Check additionals for encoding
-        self.to_bytes().decode()
-
 
 class MemoryBlob(Blob):
 
@@ -32,3 +33,23 @@ class MemoryBlob(Blob):
 
     def to_bytes(self):
         return self.data
+
+
+    def to_str(self):
+        # TODO: Check additionals for encoding
+        self.to_bytes().decode()
+
+
+class FileBlob(Blob):
+
+    def __init__(self, filename):
+        self.filename = filename
+
+    def to_bytes(self):
+        with open(self.filename, "rb") as f:
+            return f.read()
+
+    def to_str(self):
+        # TODO: Check additionals for encoding
+        with open(self.filename, "r") as f:
+            return f.read()

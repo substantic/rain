@@ -28,15 +28,21 @@ class Program:
 
         self.vars = vars
 
-    def input(self, path, label):
+    def input(self, path, label=None):
         """Create new input"""
+        if label is None:
+            label = path
         self.input_paths.append(path)
         self.input_labels.append(label)
+        return self
 
-    def output(self, path, label):
+    def output(self, path, label=None):
         """Create new output"""
+        if label is None:
+            label = path
         self.output_paths.append(path)
         self.output_labels.append(label)
+        return self
 
     def __repr__(self):
         return "<Program {}>".format(self.args)
@@ -47,7 +53,6 @@ class Program:
         for var in self.vars:
             var_string = "${{{}}}".format(var)
             call_args = [a.replace(var_string, args[var]) for a in call_args]
-        print(call_args)
 
         config = rpc.tasks.RunTask.new_message()
         config.init("args", len(call_args))

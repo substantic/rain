@@ -363,6 +363,7 @@ impl State {
 
         if let Err(e) = future {
             self.task_failed(task2, e);
+            self.need_scheduling();
             return;
         }
 
@@ -373,6 +374,7 @@ impl State {
             debug!("Task id={} finished", task.id);
 
             let mut state = state_ref.get_mut();
+            state.need_scheduling();
             state.updated_tasks.insert(context.task.clone());
 
             if let Some(subworker) = ::std::mem::replace(&mut context.subworker, None) {
@@ -409,7 +411,9 @@ impl State {
             let removed = state.graph.tasks.remove(&task2.get().id);
             assert!(removed.is_some());
             state.updated_tasks.insert(task2);*/
-            state_ref2.get_mut().task_failed(task2, e);
+            let mut state = state_ref2.get_mut();
+            state.task_failed(task2, e);
+            state.need_scheduling();
         }));
     }
 

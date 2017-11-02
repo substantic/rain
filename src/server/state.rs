@@ -793,7 +793,8 @@ impl State {
     /// For all workers, if the worker is not overbooked and has ready messages, distribute
     /// more scheduled ready tasks to workers.
     pub fn distribute_tasks(&mut self) {
-        let ws = self.graph.workers.values().map(|x| x.clone()).collect::<Vec<_>>();
+        let ws : Vec<_> = self.graph.workers.values().map(|w| w.clone()).collect();
+
         if ws.is_empty() {
             return;
         }
