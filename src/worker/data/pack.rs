@@ -1,5 +1,6 @@
 
 use std::sync::Arc;
+use std::fs::File;
 use errors::Result;
 use super::{Data, Storage};
 
@@ -20,7 +21,8 @@ pub fn new_pack_stream(data: Arc<Data>) -> Result<Box<PackStream>> {
         &Storage::Path(ref p) => Box::new(MmapPackStream {
             data: data_ref,
             position: 0,
-            mmap: ::memmap::Mmap::open_path(&p.path, ::memmap::Protection::Read)?})
+            mmap: unsafe { ::memmap::Mmap::map(&File::open(&p.path)?) }?
+        })
     })
 }
 
@@ -65,8 +67,7 @@ impl PackStream for MmapPackStream {
        } else {
            (data_size, data_size - start, true)
        };
-       let slice: &[u8] = unsafe { self.mmap.as_slice() };
-       (slice, eof)
+       (&self.mmap, eof)
     }
 
 }
