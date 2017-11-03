@@ -39,6 +39,8 @@ pub struct State {
 
     updates: UpdatedIn,
 
+    underload_workers: RcSet<WorkerRef>,
+
     scheduler: RandomScheduler,
 
     self_ref: Option<StateRef>,
@@ -57,6 +59,7 @@ impl State {
         }
         let w = WorkerRef::new(address, control, resources);
         self.graph.workers.insert(w.get_id(), w.clone());
+        self.underload_workers.insert(w.clone());
         Ok(w)
     }
 
@@ -720,6 +723,7 @@ impl State {
                                 self.purge_object(&input.object);
                             }
                     }
+                    self.underload_workers.insert(worker.clone());
                 },
                 TaskState::Running => {
                     let mut t = tref.get_mut();
@@ -734,6 +738,7 @@ impl State {
                         warn!("Task failed with no error message");
                         "Task failed with no error message".to_string()
                     });
+                    self.underload_workers.insert(worker.clone());
                     tref.get_mut().state = state;
                     tref.get_mut().additionals = additionals;
                     let session = tref.get().session.clone();
@@ -793,13 +798,11 @@ impl State {
     /// For all workers, if the worker is not overbooked and has ready messages, distribute
     /// more scheduled ready tasks to workers.
     pub fn distribute_tasks(&mut self) {
-        let ws : Vec<_> = self.graph.workers.values().map(|w| w.clone()).collect();
-
-        if ws.is_empty() {
+        if self.underload_workers.is_empty() {
             return;
         }
         debug!("Distributing tasks");
-        for wref in ws {
+        for wref in &::std::mem::replace(&mut self.underload_workers, Default::default()) {
             //let mut w = wref.get_mut();
             // TODO: Customize the overbook limit
             while wref.get().assigned_tasks.len() < 128 &&
@@ -872,6 +875,7 @@ impl StateRef {
             listen_address: listen_address,
             handle: handle,
             scheduler: Default::default(),
+            underload_workers: Default::default(),
             updates: Default::default(),
             stop_server: false,
             self_ref: None,
@@ -901,8 +905,6 @@ impl StateRef {
 
     /// Main loop State entry. Returns `false` when the server should stop.
     pub fn turn(&self) -> bool {
-        self.get().check_consistency_opt().unwrap(); // unrecoverable
-
         // TODO: better conditional scheduling
         if !self.get().updates.is_empty() {
             self.get_mut().run_scheduler();
@@ -911,8 +913,6 @@ impl StateRef {
 
         // Assign ready tasks to workers (up to overbook limit)
         self.get_mut().distribute_tasks();
-        self.get().check_consistency_opt().unwrap(); // unrecoverable
-
         !self.get().stop_server
     }
 
