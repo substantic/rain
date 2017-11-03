@@ -1,0 +1,46 @@
+stages:
+  - check
+  - build
+  - test
+
+flake8:
+  image: rustdocker/rust:stable
+  stage: check
+  script:
+    - apt-get update
+    - apt-get install -y flake8
+    - flake8 python
+  allow_failure: true
+
+cargo:build:
+  image: rustdocker/rust:stable
+  stage: build
+  script:
+    - apt-get update
+    - apt-get install -y capnproto
+    - cargo install capnpc
+    - ./build_capnp.sh
+    - cargo build --all-features --release --verbose --jobs 1
+  artifacts:
+    paths:
+      - target
+
+pytest:
+  image: rustdocker/rust:stable
+  stage: test
+  script:
+    - apt-get update
+    - apt-get install -y capnproto python3-dev python3-pip
+    - pip3 install --upgrade pip
+    - pip3 install pycapnp cloudpickle pytest
+    - TARGET=release pytest
+    
+cargo:test:
+  image: rustdocker/rust:stable
+  stage: test
+  script:
+    - apt-get update
+    - apt-get install -y capnproto
+    - cargo install capnpc
+    - ./build_capnp.sh
+    - cargo test
