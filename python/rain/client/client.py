@@ -12,11 +12,12 @@ CLIENT_PROTOCOL_VERSION = 0
 
 def check_result(result):
     if result.which() == "ok":
-        return # Do nothing
+        return  # Do nothing
     elif result.which() == "error":
         raise RainException(result.error.message)
     else:
         raise Exception("Invalid result")
+
 
 class Client:
 

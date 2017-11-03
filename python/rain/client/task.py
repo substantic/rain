@@ -44,6 +44,10 @@ class Task:
         else:
             self.inputs = Table({name: to_data(obj) for name, obj in inputs.items()})
 
+    @property
+    def id_pair(self):
+        return (self.id, self.session.session_id)
+
     def get(self, name):
         try:
             if self.additionals:

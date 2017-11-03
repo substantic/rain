@@ -16,6 +16,7 @@ import weakref
 
 from rain.client import rpc
 from .common import RainException
+from . import graph
 
 _global_sessions = []
 
@@ -47,6 +48,7 @@ class SessionBinder:
     def __exit__(self, type, value, traceback):
         s = global_session_pop()
         assert self.session is s
+
 
 class Session:
 
@@ -187,6 +189,25 @@ class Session:
 
     def update(self, items):
         self.client.update(items)
+
+    def pending_graph(self):
+        g = graph.Graph()
+        for o in self.dataobjs:
+            node = g.node(o)
+            node.label = o.id_pair
+            node.shape = "box"
+            if o.is_kept():
+                node.fillcolor = "gray"
+
+        for t in self.tasks:
+            node = g.node(t)
+            node.label = "{}\n{}".format(t.id_pair, t.task_type)
+            node.shape = "oval"
+            for key, o in t.inputs:
+                g.node(o).add_arc(node, key)
+            for key, o in t.out:
+                node.add_arc(g.node(o), key)
+        return g
 
 
 def get_active_session():

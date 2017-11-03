@@ -30,6 +30,10 @@ class DataObject:
         self.label = label
         self.id = session.register_dataobj(self)
 
+    @property
+    def id_pair(self):
+        return (self.id, self.session.session_id)
+
     def _free(self):
         """Set flag that object is not available on the server """
         self._keep = False
