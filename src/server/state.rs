@@ -39,6 +39,7 @@ pub struct State {
 
     updates: UpdatedIn,
 
+    /// Workers that will checked by reactor in the next turn()
     underload_workers: RcSet<WorkerRef>,
 
     scheduler: RandomScheduler,
@@ -833,6 +834,7 @@ impl State {
         for tref in changed.tasks.iter() {
             self.update_task_assignment(tref);
         }
+        self.underload_workers = self.graph.workers.values().map(|w| w.clone()).collect();
     }
 
     pub fn handle(&self) -> &Handle {

@@ -78,6 +78,7 @@ impl worker_control::Server for WorkerControlImpl {
                  params: worker_control::AddNodesParams,
                  mut _results: worker_control::AddNodesResults)
                  -> Promise<(), ::capnp::Error> {
+        debug!("New tasks and objects");
         let params = pry!(params.get());
         let new_tasks = pry!(params.get_new_tasks());
         let new_objects = pry!(params.get_new_objects());
