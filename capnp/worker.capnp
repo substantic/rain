@@ -45,8 +45,8 @@ struct WorkerStateUpdate {
 }
 
 struct WorkerInfo {
-    nTasks @0 :UInt32;
-    nObjects @1 :UInt32;
+    tasks @0 :List(TaskId);
+    objects @1 :List(DataObjectId);
 }
 
 interface WorkerUpstream {

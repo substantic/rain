@@ -757,6 +757,12 @@ impl State {
                 .insert(worker.clone());
             match state {
                 DataObjectState::Finished => {
+                    if !oref.get().assigned.contains(&worker) {
+                        // We did not assign the object to the worker
+                        // It means that it was an input of scheduled tasks, but object
+                        // was not directly scheduled
+                        continue;
+                    }
                     oref.get_mut().located.insert(worker.clone());
                     worker.get_mut().located_objects.insert(oref.clone());
                     let cur_state = oref.get().state; // To satisfy the borrow checker

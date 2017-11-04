@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use common::RcSet;
 use common::keeppolicy;
-use common::convert::FromCapnp;
+use common::convert::{ToCapnp, FromCapnp};
 use common::id::{DataObjectId, WorkerId, TaskId};
 use worker::graph::{DataObjectState, TaskInput};
 use worker::StateRef;
@@ -89,6 +89,12 @@ impl worker_control::Server for WorkerControlImpl {
 
         for co in new_objects.iter() {
             let id = DataObjectId::from_capnp(&co.get_id().unwrap());
+
+            if (state.graph.objects.contains_key(&id)) {
+                // Update remote if not downloaded yet
+                continue;
+            }
+
             let placement = WorkerId::from_capnp(&co.get_placement().unwrap());
             let object_type = co.get_type().unwrap();
             let (object_state, is_remote) = if placement == *state.worker_id() {
@@ -106,7 +112,6 @@ impl worker_control::Server for WorkerControlImpl {
             let label = pry!(co.get_label()).to_string();
 
             let assigned = co.get_assigned();
-
             let dataobject = state.add_dataobject(id, object_state, object_type, assigned, size, label);
 
             debug!("Received DataObject {:?}, is_remote: {}", dataobject.get(), is_remote);
@@ -135,13 +140,14 @@ impl worker_control::Server for WorkerControlImpl {
             let task = state.add_task(id, inputs, outputs, task_type.into(), task_config.into());
 
             debug!("Received Task {:?}", task.get());
-
         }
 
         // Start fetching remote objects
-        // TODO: Introduce some kind of limitations
+        // TODO: Introduce some kind of limitations of how many tasks are
+        // fetched at once
         for object in remote_objects {
             let worker_id = object.get().remote().unwrap();
+            let object_id = object.get().id;
 
             let state_ref1 = self.state.clone();
             let state_ref2 = self.state.clone();
@@ -157,11 +163,11 @@ impl worker_control::Server for WorkerControlImpl {
                     object_ref.get_mut().set_data(Arc::new(data));
                     state.object_is_finished(&object_ref);
                 });
-            state.handle().spawn(future.map_err(|e| {
+            state.handle().spawn(future.map_err(move |e| {
                 // This can be an error or maybe just race condition
                 // when session is closed and object was not found,
                 // we are not just logging do nothing, but TODO: we should be informing server
-                warn!("Fetching dataobject failed {:?}", e);
+                warn!("Fetching dataobject id={} from worker={} failed {:?}", object_id, worker_id, e);
                 ()
             }));
         }
@@ -199,8 +205,18 @@ impl worker_control::Server for WorkerControlImpl {
     {
         let mut result = results.get();
         let state = self.state.get();
-        result.set_n_tasks(state.graph.tasks.len() as u32);
-        result.set_n_objects(state.graph.objects.len() as u32);
+        {
+            let mut tasks = result.borrow().init_tasks(state.graph.tasks.len() as u32);
+            for (i, task) in state.graph.tasks.values().enumerate() {
+                task.get().id.to_capnp(&mut tasks.borrow().get(i as u32))
+            }
+        }
+        {
+            let mut objects = result.init_objects(state.graph.objects.len() as u32);
+            for (i, object) in state.graph.objects.values().enumerate() {
+                object.get().id.to_capnp(&mut objects.borrow().get(i as u32))
+            }
+        }
         Promise::ok(())
     }
 }

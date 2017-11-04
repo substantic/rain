@@ -14,8 +14,8 @@ def test_get_info(test_env):
     workers = info["workers"]
     assert len(workers) == 2
     for w in workers:
-        assert w["n_tasks"] == 0
-        assert w["n_objects"] == 0
+        assert w["tasks"] == []
+        assert w["objects"] == []
 
 
 def test_session_autoclose(test_env):

@@ -160,9 +160,9 @@ impl State {
         self.updated_objects.insert(dataobj.clone());
 
         let mut new_ready = false;
-        for task in ::std::mem::replace(&mut dataobject.consumers, Default::default()) {
+        for task in &dataobject.consumers {
             if task.get_mut().input_finished(dataobj) {
-                self.graph.ready_tasks.push(task);
+                self.graph.ready_tasks.push(task.clone());
                 new_ready = true;
             }
         }
@@ -294,28 +294,9 @@ impl State {
         Ok(())
     }
 
-    /// You can call this ONLY when wait_for_datastore was success full
+    /// You can call this ONLY when wait_for_datastore was successfully finished
     pub fn get_datastore(&self, worker_id: &WorkerId) ->  &::datastore_capnp::data_store::Client {
         self.datastores.get(worker_id).unwrap().get()
-    }
-
-    pub fn fetch_dataobject(&self, dataobj: &DataObjectRef) -> Box<Future<Item=(), Error=Error>> {
-        /*let worker_id = dataobj.remote().unwrap();
-
-        let builder = Box::new(BlobBuilder::new());
-
-        if worker_id.ip().is_unspecified() {
-            // Fetch from server
-            self.fetch_from_datastore(dataobj,
-                                      &self.datastore.as_ref().unwrap(),
-                                      builder).and_then(|data| {
-
-            })
-        } else {
-            // TODO FETCH FROM WORKER
-            unimplemented!();
-        }*/
-        unimplemented!()
     }
 
     pub fn spawn_panic_on_error<F, E>(&self, f: F)
@@ -439,14 +420,25 @@ impl State {
             // Data are on server
             let req = self.upstream.as_ref().unwrap().get_data_store_request();
             Box::new(req.send().promise.map(move |r| {
+                debug!("Obtained datastore from server");
                 let datastore = r.get().unwrap().get_store().unwrap();
                 let mut inner = state.get_mut();
                 let wrapper = inner.datastores.get_mut(&worker_id).unwrap();
                 wrapper.set_value(datastore);
             }).map_err(|e| e.into()))
         } else {
-            // Data are on workers
-            unimplemented!();
+            Box::new(TcpStream::connect(&worker_id, &self.handle)
+                         .map(move |stream| {
+                            debug!("Connection to worker {} established", worker_id);
+                            let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
+                            let datastore: ::datastore_capnp::data_store::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+                            let mut s = state.get_mut();
+                            {
+                                 let wrapper = s.datastores.get_mut(&worker_id).unwrap();
+                                 wrapper.set_value(datastore);
+                            }
+                            s.spawn_panic_on_error(rpc_system);
+                        }).map_err(|e| e.into()))
         }
     }
 

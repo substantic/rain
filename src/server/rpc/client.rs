@@ -59,8 +59,8 @@ impl client_service::Server for ClientServiceImpl {
             for (i, &(ref worker_id, ref r)) in rs.iter().enumerate() {
                 let mut w = workers.borrow().get(i as u32);
                 let r = r.get().unwrap();
-                w.set_n_tasks(r.get_n_tasks());
-                w.set_n_objects(r.get_n_objects());
+                w.set_tasks(r.get_tasks().unwrap());
+                w.set_objects(r.get_objects().unwrap());
                 worker_id.to_capnp(&mut w.get_worker_id().unwrap());
             }
             ()

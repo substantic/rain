@@ -13,8 +13,8 @@ using import "datastore.capnp".DataStore;
 
 struct WorkerInfo {
     workerId @0: WorkerId;
-    nTasks @1 :UInt32;
-    nObjects @2 :UInt32;
+    tasks @1 :List(TaskId);
+    objects @2 :List(DataObjectId);
 }
 
 struct ServerInfo {

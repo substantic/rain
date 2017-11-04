@@ -56,7 +56,6 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
         let mut obj_updates = Vec::new();
         for obj_update in pry!(update.get_objects()).iter() {
             let id = DataObjectId::from_capnp(&pry!(obj_update.get_id()));
-            debug!("Update for object id={}", id);
             let object = pry!(state.object_by_id(id));
             let size = obj_update.get_size() as usize;
             let additionals = Default::default(); // TODO: Additionals
@@ -67,7 +66,6 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
         let mut task_updates = Vec::new();
         for task_update in pry!(update.get_tasks()).iter() {
             let id = TaskId::from_capnp(&pry!(task_update.get_id()));
-            debug!("Update for task id={}", id);
             let task = pry!(state.task_by_id(id));
             let additionals = Additionals::from_capnp(&task_update.get_additionals().unwrap());
           task_updates.push((task, pry!(task_update.get_state()), additionals));

@@ -139,8 +139,8 @@ impl TaskRef {
             new_additionals: Additionals::new(),
         });
 
-        for obj in &task.get().waiting_for {
-            obj.get_mut().consumers.insert(task.clone());
+        for input in &task.get().inputs {
+            input.object.get_mut().consumers.insert(task.clone());
         }
 
         graph.tasks.insert(id, task.clone());

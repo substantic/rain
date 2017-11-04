@@ -155,8 +155,8 @@ class TestEnv(Env):
             workers = info["workers"]
             assert len(workers) == self.n_workers
             for w in workers:
-                assert w["n_tasks"] == 0
-                assert w["n_objects"] == 0
+                assert not w["tasks"]
+                assert not w["objects"]
 
     def close(self):
         self._client = None

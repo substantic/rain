@@ -40,7 +40,8 @@ class Client:
         """ Returns basic server info """
         info = self.service.getServerInfo().wait()
         return {
-            "workers": [{"n_tasks": w.nTasks, "n_objects": w.nObjects}
+            "workers": [{"tasks": [(t.sessionId, t.id) for t in w.tasks],
+                         "objects": [(o.sessionId, o.id) for o in w.objects]}
                         for w in info.workers]
         }
 

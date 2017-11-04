@@ -15,16 +15,16 @@ def test_number_of_tasks_and_objects(test_env):
         info = test_env.client.get_server_info()
         workers = info["workers"]
         assert len(workers) == 1
-        assert workers[0]["n_tasks"] == 1
-        assert workers[0]["n_objects"] == 2
+        assert workers[0]["tasks"] == [(1, 12)]
+        assert sorted(workers[0]["objects"]) == [(1, 10), (1, 11)]
 
         t1.wait()
 
         info = test_env.client.get_server_info()
         workers = info["workers"]
         assert len(workers) == 1
-        assert workers[0]["n_tasks"] == 0
-        assert workers[0]["n_objects"] == 1
+        assert workers[0]["tasks"] == []
+        assert workers[0]["objects"] == [(1, 11)]
 
         t1.out.output.unkeep()
         time.sleep(1.15)
@@ -32,5 +32,5 @@ def test_number_of_tasks_and_objects(test_env):
         info = test_env.client.get_server_info()
         workers = info["workers"]
         assert len(workers) == 1
-        assert workers[0]["n_tasks"] == 0
-        assert workers[0]["n_objects"] == 0
+        assert workers[0]["tasks"] == []
+        assert workers[0]["objects"] == []
