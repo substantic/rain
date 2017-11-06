@@ -1,7 +1,7 @@
 
-from .program import Program
-from .data import blob
-from .task import Task
-from .common import RainException
-from .pycode import remote
-from .client import Client
+from .program import Program  # noqa
+from .data import blob  # noqa
+from .task import Task  # noqa
+from .common import RainException  # noqa
+from .pycode import remote  # noqa
+from .client import Client  # noqa

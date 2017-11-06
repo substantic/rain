@@ -16,7 +16,8 @@ class Subworker:
         sock.connect(address)
         self.rpc_client = capnp.TwoPartyClient(sock)
 
-        upstream = self.rpc_client.bootstrap().cast_as(rpc_subworker.SubworkerUpstream)
+        upstream = self.rpc_client.bootstrap().cast_as(
+            rpc_subworker.SubworkerUpstream)
         self.upstream = upstream
 
         control = ControlImpl(self)
@@ -59,7 +60,7 @@ def main():
 
     print("Initalizing subworker {} ...".format(subworker_id))
     sys.stdout.flush()
-    subworker = Subworker(get_environ("RAIN_SUBWORKER_SOCKET"), subworker_id)
+    Subworker(get_environ("RAIN_SUBWORKER_SOCKET"), subworker_id)
     print("Subworker initialized")
     sys.stdout.flush()
     capnp.wait_forever()

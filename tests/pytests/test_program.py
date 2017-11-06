@@ -85,4 +85,3 @@ def test_program_invalid_filename(test_env):
         t1.out.output.keep()
         s.submit()
         pytest.raises(RainException, lambda: t1.wait())
-

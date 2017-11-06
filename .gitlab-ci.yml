@@ -9,8 +9,7 @@ flake8:
   script:
     - apt-get update
     - apt-get install -y flake8
-    - flake8 python
-  allow_failure: true
+    - flake8
 
 cargo:build:
   image: rustdocker/rust:stable

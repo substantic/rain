@@ -1,8 +1,6 @@
 from rain.client import tasks
-from rain.client import RainException
 
 import time
-import pytest
 
 
 def test_number_of_tasks_and_objects(test_env):

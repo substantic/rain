@@ -17,7 +17,8 @@ class DataObject:
     # None = Not submitted
     state = None
 
-    # Value of data object (value can be filled by client if it is constant, or by fetching from server)
+    # Value of data object (value can be filled by client if it is constant,
+    # or by fetching from server)
     data = None
 
     type = None
@@ -93,7 +94,8 @@ class Blob(DataObject):
     type = common.DataObjectType.blob
 
     def __repr__(self):
-        return "<Blob {} {}/{}>".format(self.label, self.session.session_id, self.id)
+        return "<Blob {} {}/{}>".format(
+            self.label, self.session.session_id, self.id)
 
 
 class Directory(DataObject):
@@ -135,7 +137,8 @@ def blob(value, label=""):
     if isinstance(value, str):
         value = bytes(value, "utf-8")
     elif not isinstance(value, bytes):
-        raise RainException("Invalid blob type (only str or bytes are allowed)")
+        raise RainException(
+            "Invalid blob type (only str or bytes are allowed)")
 
     dataobj = Blob(label)
     dataobj.data = value

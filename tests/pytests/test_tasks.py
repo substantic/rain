@@ -17,7 +17,7 @@ def test_task_construction(fake_session):
 
 
 def test_task_outputs(fake_session):
-    with fake_session as session:
+    with fake_session:
         t1 = Task("dummy",
                   outputs=(Blob("a"),
                            Blob("long_name"),

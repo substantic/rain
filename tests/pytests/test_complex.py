@@ -1,6 +1,5 @@
 
-from rain.client import Task, remote
-import pytest
+from rain.client import remote
 
 from rain.client import blob, Program, tasks
 import string

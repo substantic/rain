@@ -104,7 +104,8 @@ class Session:
         >>> with session.bind_only() as s:
         ...     doSometing()
 
-        binds the session, but do not close it at the end. Except closing it the same as
+        binds the session, but do not close it at the end.
+        Except closing it the same as
 
         >>> with session as s:
         ...     doSometing()
@@ -149,7 +150,8 @@ class Session:
 
     def wait_some(self, tasks, dataobjects):
         """Wait until some of specified tasks/dataobjects are finished"""
-        finished_tasks, finished_dataobjs = self.client._wait_some(tasks, dataobjects)
+        finished_tasks, finished_dataobjs = self.client._wait_some(
+            tasks, dataobjects)
 
         for task in finished_tasks:
             task.state = rpc.common.TaskState.finished
@@ -180,7 +182,8 @@ class Session:
             if not dataobj.is_kept():
                 raise RainException("Object {} is not kept".format(dataobj.id))
             if dataobj.state is None:
-                raise RainException("Object {} not submitted".format(dataobj.id))
+                raise RainException(
+                    "Object {} not submitted".format(dataobj.id))
 
         self.client._unkeep(dataobjects)
 

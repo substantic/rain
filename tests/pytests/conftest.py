@@ -12,7 +12,8 @@ PYTEST_DIR = os.path.dirname(__file__)
 ROOT = os.path.dirname(os.path.dirname(PYTEST_DIR))
 PYTHON_DIR = os.path.join(ROOT, "python")
 WORK_DIR = os.path.join(PYTEST_DIR, "work")
-RAIN_BIN = os.environ.get("RAIN_TEST_BIN", os.path.join(ROOT, "target", "debug", "rain"))
+RAIN_BIN = os.environ.get("RAIN_TEST_BIN",
+                          os.path.join(ROOT, "target", "debug", "rain"))
 
 sys.path.insert(0, PYTHON_DIR)
 

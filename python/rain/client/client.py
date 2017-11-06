@@ -26,7 +26,8 @@ class Client:
         self.handles = {}
         self.rpc_client = capnp.TwoPartyClient("{}:{}".format(address, port))
 
-        bootstrap = self.rpc_client.bootstrap().cast_as(rpc.server.ServerBootstrap)
+        bootstrap = self.rpc_client.bootstrap().cast_as(
+            rpc.server.ServerBootstrap)
         registration = bootstrap.registerAsClient(CLIENT_PROTOCOL_VERSION)
         self.service = registration.wait().service
         self.datastore = self.service.getDataStore().wait().store
@@ -39,7 +40,7 @@ class Client:
         """ Returns basic server info """
         info = self.service.getServerInfo().wait()
         return {
-            "workers": [{"n_tasks": w.nTasks, "n_objects" : w.nObjects}
+            "workers": [{"n_tasks": w.nTasks, "n_objects": w.nObjects}
                         for w in info.workers]
         }
 
@@ -60,7 +61,8 @@ class Client:
 
     def _fetch(self, dataobj):
         if not dataobj._keep:
-            raise RainException("Can't fetch object without keep flag.", dataobj)
+            raise RainException(
+                "Can't fetch object without keep flag.", dataobj)
         req = self.datastore.createReader_request()
         req.id.id = dataobj.id
         req.id.sessionId = dataobj.session.session_id
@@ -115,9 +117,10 @@ class Client:
             req.objectIds[i].sessionId = dataobjs[i].session.session_id
 
         finished = req.send().wait()
-
-        finished_tasks = [tasks_dict[f_task.id] for f_task in finished.finishedTasks]
-        finished_dataobjs = [dataobjs_dict[f_dataobj.id] for f_dataobj in finished.finishedObjects]
+        finished_tasks = [tasks_dict[f_task.id]
+                          for f_task in finished.finishedTasks]
+        finished_dataobjs = [dataobjs_dict[f_dataobj.id]
+                             for f_dataobj in finished.finishedObjects]
 
         return finished_tasks, finished_dataobjs
 
@@ -168,7 +171,8 @@ class Client:
 
         for task_update, task in zip(results.tasks, tasks):
             task.state = task_update.state
-            new_additionals = additionals.additionals_from_capnp(task_update.additionals)
+            new_additionals = additionals.additionals_from_capnp(
+                task_update.additionals)
             if task.additionals is None:
                 task.additionals = new_additionals
             else:
@@ -191,5 +195,6 @@ def split_items(items):
         elif isinstance(item, DataObject):
             dataobjects.append(item)
         else:
-            raise RainException("'{}' is not tasks nor dataobject".format(item))
+            raise RainException(
+                "'{}' is not tasks nor dataobject".format(item))
     return tasks, dataobjects

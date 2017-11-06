@@ -129,6 +129,7 @@ def test_wait_some(test_env):
         assert finished[0][0].id == t1.id
         t2.wait()
 
+
 @pytest.mark.xfail(reason="server wait does not support the sepcial 'all' ID")
 def test_wait_all(test_env):
     test_env.start(1)
@@ -248,7 +249,6 @@ def test_fetch_from_failed_session_immediate(test_env):
             t1.out.output.fetch()
 
 
-
 def test_update_from_failed_session(test_env):
     """Setting input file for program"""
     test_env.start(1)
@@ -278,5 +278,3 @@ def test_dataobj_wait(test_env):
         assert o1.state == rpc.common.DataObjectState.unfinished
         o1.wait()
         assert o1.state == rpc.common.DataObjectState.finished
-
-

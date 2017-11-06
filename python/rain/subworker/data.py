@@ -34,7 +34,6 @@ class MemoryBlob(Blob):
     def to_bytes(self):
         return self.data
 
-
     def to_str(self):
         # TODO: Check additionals for encoding
         self.to_bytes().decode()

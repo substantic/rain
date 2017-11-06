@@ -1,7 +1,4 @@
 from rain.client import tasks
-from rain.client import RainException
-
-import pytest
 
 
 def test_sleep1(test_env):

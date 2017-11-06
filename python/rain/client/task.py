@@ -42,7 +42,8 @@ class Task:
         if isinstance(inputs, tuple):
             self.inputs = Table(tuple(to_data(obj) for obj in inputs))
         else:
-            self.inputs = Table({name: to_data(obj) for name, obj in inputs.items()})
+            self.inputs = Table({name: to_data(obj)
+                                 for name, obj in inputs.items()})
 
     @property
     def id_pair(self):
@@ -93,4 +94,5 @@ class Task:
         self.session.update((self,))
 
     def __repr__(self):
-        return "<Task id={}/{} type={}>".format(self.session.session_id, self.id, self.task_type)
+        return "<Task id={}/{} type={}>".format(
+            self.session.session_id, self.id, self.task_type)
