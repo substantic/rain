@@ -12,7 +12,7 @@ PYTEST_DIR = os.path.dirname(__file__)
 ROOT = os.path.dirname(os.path.dirname(PYTEST_DIR))
 PYTHON_DIR = os.path.join(ROOT, "python")
 WORK_DIR = os.path.join(PYTEST_DIR, "work")
-RAIN_DEBUG_BIN = os.path.join(ROOT, "target", os.environ.get("TARGET", "debug"), "rain")
+RAIN_BIN = os.environ.get("RAIN_TEST_BIN", os.path.join(ROOT, "target", "debug", "rain"))
 
 sys.path.insert(0, PYTHON_DIR)
 
@@ -95,7 +95,7 @@ class TestEnv(Env):
         self.running_port = port
 
         # Start SERVER
-        args = (RAIN_DEBUG_BIN, "server", "--listen", str(addr))
+        args = (RAIN_BIN, "server", "--listen", str(addr))
         server = self.start_process("server", args, env=env)
         time.sleep(0.1)
         if server.poll():
@@ -103,7 +103,7 @@ class TestEnv(Env):
 
         # Start WORKERS
         workers = []
-        args = (RAIN_DEBUG_BIN,
+        args = (RAIN_BIN,
                 "worker", "127.0.0.1:" + str(port),
                 "--cpus", str(n_cpus),
                 "--workdir", WORK_DIR)

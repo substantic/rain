@@ -34,7 +34,7 @@ pytest:
     - apt-get install -y capnproto python3-dev python3-pip
     - pip3 install --upgrade pip
     - pip3 install pycapnp cloudpickle pytest pytest-timeout
-    - TARGET=release pytest -x -v --timeout=20
+    - RAIN_TEST_BIN=${PWD}/target/release/rain pytest -x -v --timeout=20
   artifacts:
     when: on_failure
     paths:
