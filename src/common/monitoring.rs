@@ -74,8 +74,13 @@ impl Monitor {
     fn get_cpu_usage(&self, cpu_time: &CpuTimes, timestamp: SystemTime) -> Vec<CpuUsage> {
         let mut cpu_usage = Vec::new();
         let time_diff = timestamp.duration_since(self.last_timestamp).unwrap();
-        let nanos = time_diff.subsec_nanos() as u64 / 1000000;
-        let factor = (1000 * time_diff.as_secs() + nanos) as u64 * self.clk_tck as u64;
+        let mut millis = time_diff.subsec_nanos() as f64 / 1_000_000.0;
+        let secs = time_diff.as_secs();
+        if secs == 0 && millis < 1.0 {
+            warn!("get_cpu_usage() called too often ({}ms since the last measurements)", millis);
+            millis = 1.0;
+        }
+        let factor = (1_000.0 * secs as f64 + millis) as u64 * self.clk_tck as u64;
         for (new_time, old_time) in cpu_time.iter().zip(&self.last_cpu_time) {
             let cpu_time_diff = new_time - old_time;
             let usage = cpu_time_diff / factor;
