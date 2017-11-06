@@ -24,6 +24,7 @@ cargo:build:
   artifacts:
     paths:
       - target
+    expire_in: 6h
 
 pytest:
   image: rustdocker/rust:stable
@@ -32,8 +33,13 @@ pytest:
     - apt-get update
     - apt-get install -y capnproto python3-dev python3-pip
     - pip3 install --upgrade pip
-    - pip3 install pycapnp cloudpickle pytest
-    - TARGET=release pytest
+    - pip3 install pycapnp cloudpickle pytest pytest-timeout
+    - TARGET=release pytest -x -v --timeout=20
+  artifacts:
+    when: on_failure
+    paths:
+      - tests/pytests/work
+    expire_in: 1d
     
 cargo:test:
   image: rustdocker/rust:stable
@@ -43,4 +49,4 @@ cargo:test:
     - apt-get install -y capnproto
     - cargo install capnpc
     - ./build_capnp.sh
-    - cargo test
+    - cargo test --all-features
