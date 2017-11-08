@@ -9,7 +9,7 @@ class Program:
 
     def __init__(self, args, stdout=None, stdin=None, vars=()):
         if isinstance(args, str):
-            args = tuple(shlex.shlex(args))
+            args = tuple(shlex.split(args))
         self.args = args
 
         self.output_paths = []
@@ -27,6 +27,16 @@ class Program:
             self.input("+in", stdin)
 
         self.vars = vars
+
+    def arg(self, value):
+        assert isinstance(value, str)
+        self.args += (value,)
+        return self
+
+    def arg_path(self, path, label=None):
+        self.arg(path)
+        self.input(path, label)
+        return self
 
     def input(self, path, label=None):
         """Create new input"""

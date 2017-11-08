@@ -4,6 +4,19 @@ from rain.client import RainException
 import pytest
 
 
+def test_program_construction():
+    program = Program("/s/bin right --now /here 'and there'")
+    assert program.args == ("/s/bin", "right", "--now", "/here", "and there")
+
+    program = Program("test").arg("arg1").arg("arg2 with space")
+    assert program.args == ("test", "arg1", "arg2 with space")
+
+    program = Program("test").arg("arg1").arg_path("name", "label")
+    assert program.args == ("test", "arg1", "name")
+    assert program.input_paths == ["name"]
+    assert program.input_labels == ["label"]
+
+
 def test_program_sleep_1(test_env):
     """Sleep followed by wait"""
     test_env.start(1)
@@ -41,9 +54,7 @@ def test_program_create_file(test_env):
 def test_program_input_file(test_env):
     """Setting input file for program"""
     test_env.start(1)
-    args = ("/bin/grep", "ab", "input.txt")
-    program = Program(args, stdout="output")
-    program.input("input.txt", "in1")
+    program = Program("/bin/grep", stdout="output").arg("ab").arg_path("in1")
     with test_env.client.new_session() as s:
         t1 = program(in1="abc\nNOTHING\nabab")
         t1.out.output.keep()
