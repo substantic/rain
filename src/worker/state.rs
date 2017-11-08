@@ -20,7 +20,7 @@ use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
 use common::monitoring::{Monitor, Frame};
 
-use worker::graph::{DataObjectRef, DataObjectType, DataObjectState,
+use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject,
                     Graph, TaskRef, TaskInput, TaskState, SubworkerRef, subworker_command};
 use worker::data::{DataBuilder, Data, BlobBuilder};
 use worker::tasks::TaskContext;
@@ -320,11 +320,28 @@ impl State {
     }
 
     pub fn task_failed(&mut self, task: TaskRef, error: Error) {
-        task.get_mut().set_failed(error.description().to_string());
+        {
+            let mut t = task.get_mut();
+            for input in &t.inputs {
+             self.remove_consumer(&mut input.object.get_mut(), &task);
+            }
+            t.set_failed(error.description().to_string());
+        }
         let removed = self.graph.tasks.remove(&task.get().id);
         assert!(removed.is_some());
         self.updated_tasks.insert(task);
     }
+
+    pub fn remove_consumer(&mut self, object: &mut DataObject, task: &TaskRef) {
+        let found = object.consumers.remove(task);
+        // We test "found" because of possible multiple occurence of object in inputs
+        if found && !object.assigned && object.consumers.is_empty() {
+            let removed = self.graph.objects.remove(&object.id);
+            assert!(removed.is_some());
+        }
+    }
+
+
 
     pub fn start_task(&mut self, task: TaskRef, state_ref: &StateRef) {
         {
@@ -365,12 +382,7 @@ impl State {
 
             for input in &task.inputs {
                 let mut obj = input.object.get_mut();
-                let found = obj.consumers.remove(&context.task);
-                // We test "found" because of possible multiple occurence of object in inputs
-                if found && !obj.assigned && obj.consumers.is_empty() {
-                    let removed = state.graph.objects.remove(&obj.id);
-                    assert!(removed.is_some());
-                }
+                state.remove_consumer(&mut obj, &context.task);
             }
 
             for output in &task.outputs {
