@@ -3,18 +3,28 @@ from rain.client import remote
 
 from rain.client import blob, Program, tasks
 import string
+import random
+import pytest
+
+CHARS = string.ascii_letters + string.digits
+
+
+@pytest.fixture
+def test_rnd():
+    return random.Random("Rain")
+
+
+def random_string(rnd, length):
+    return "".join(rnd.choice(CHARS) for i in range(length))
 
 
 def run_small_gridcat(session):
     BLOB_SIZE = 5000
     BLOB_COUNT = 10
 
-    import random
-    rnd = random.Random("Rain")
+    rnd = test_rnd()
 
-    CHARS = string.ascii_letters + string.digits
-
-    def random_string(length):
+    def random_string(rnd, length):
         return "".join(rnd.choice(CHARS) for i in range(length))
 
     cat = Program("cat input1 input2",
@@ -25,7 +35,7 @@ def run_small_gridcat(session):
     def take_first(data):
         return data.to_bytes().split()[0]
 
-    consts = [blob(random_string(BLOB_SIZE)) for i in range(BLOB_COUNT)]
+    consts = [blob(random_string(rnd, BLOB_SIZE)) for i in range(BLOB_COUNT)]
     ts = []
     for i in range(BLOB_COUNT):
         for j in range(BLOB_COUNT):
@@ -56,3 +66,46 @@ def test_small_gridcat_4(test_env):
     test_env.start(4)
     with test_env.client.new_session() as s:
         run_small_gridcat(s)
+
+
+def test_big_diamond(test_env):
+
+    @remote(outputs=("out1", "out2"))
+    def splitter(data):
+        data = data.to_bytes()
+        left = data[0:len(data)]
+        right = data[len(data):]
+        return {"out1": left, "out2": right}
+
+    @remote()
+    def upper(data):
+        return data.to_bytes().upper()
+
+    LAYERS = 6
+    rnd = test_rnd()
+    data = random_string(rnd, 100).lower().encode()
+
+    test_env.start(4)
+    with test_env.client.new_session() as s:
+        layer = [data]
+        for i in range(LAYERS):
+            new_layer = []
+            for l in layer:
+                task = splitter(l)
+                new_layer.append(task.out.out1)
+                new_layer.append(task.out.out2)
+            layer = new_layer
+        layer = [upper(t) for t in layer]
+
+        for i in range(LAYERS):
+            new_layer = []
+            for j in range(0, len(layer), 2):
+                new_layer.append(tasks.concat(layer[j], layer[j+1]))
+            layer = new_layer
+        #  s.pending_graph().write("test.dot")
+        assert len(layer) == 1
+        result = layer[0]
+        result.out.output.keep()
+        s.submit()
+        result = result.out.output.fetch()
+        assert result == data.upper()
