@@ -109,3 +109,49 @@ def test_big_diamond(test_env):
         s.submit()
         result = result.out.output.fetch()
         assert result == data.upper()
+
+
+def test_separated_lines(test_env):
+
+    @remote()
+    def op(data):
+        data = data.to_bytes()
+        return data + data[:1]
+
+    N_LINES = 30
+    STEPS = 4
+
+    initial_data = [chr(ord("A") + i).encode() for i in range(N_LINES)]
+    streams = initial_data
+
+    test_env.start(4)
+    with test_env.client.new_session() as s:
+
+        for i in range(STEPS):
+            streams = [op(t) for t in streams]
+
+        for t in streams:
+            t.out.output.keep()
+
+        s.submit()
+        checkpoint = streams
+
+        for i in range(STEPS):
+            streams = [op(t) for t in streams]
+
+        for t in streams:
+            t.out.output.keep()
+
+        for i in range(STEPS):
+            streams = [op(t) for t in streams]
+
+        for t in streams:
+            t.out.output.keep()
+
+        s.submit()
+
+        results1 = [t.out.output.fetch() for t in checkpoint]
+        results2 = [t.out.output.fetch() for t in streams]
+
+        assert results1 == [d * STEPS + d for d in initial_data]
+        assert results2 == [d * STEPS * 3 + d for d in initial_data]
