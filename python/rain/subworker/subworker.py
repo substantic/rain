@@ -5,13 +5,16 @@ import socket
 
 from .rpc import subworker as rpc_subworker
 from .control import ControlImpl
+from ..common.fs import remove_dir_content
 
 SUBWORKER_PROTOCOL_VERSION = 0
 
 
 class Subworker:
 
-    def __init__(self, address, subworker_id):
+    def __init__(self, address, subworker_id, task_path, stage_path):
+        self.task_path = task_path
+        self.stage_path = stage_path
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(address)
         self.rpc_client = capnp.TwoPartyClient(sock)
@@ -28,19 +31,23 @@ class Subworker:
         register.control = control
         register.send().wait()
 
-    def run_task(self, config, inputs, outputs):
-        fn = inputs[0].load(cache=True)
-        result = fn(*inputs[1:])
-        return self._decode_results(result, outputs)
+    def run_task(self, context, config, inputs, outputs):
+        fn, has_ctx = inputs[0].load(cache=True)
+        remove_dir_content(self.task_path)
+        os.chdir(self.task_path)
+        if has_ctx:
+            result = fn(context, *inputs[1:])
+        else:
+            result = fn(*inputs[1:])
+        results = self._decode_results(result, outputs)
+        return results
 
     def _decode_results(self, result, outputs):
-        if isinstance(result, bytes) and len(outputs) == 1:
-            return [result]
-        if isinstance(result, str) and len(outputs) == 1:
-            return [result.encode()]
         if isinstance(result, dict):
             return [result[label] for label in outputs]
-        raise Exception("Invalid returned object:" + repr(result))
+        if len(outputs) == 1:
+            return [result]
+        raise Exception("Invalid result of task:" + repr(result))
 
 
 def get_environ(name):
@@ -61,8 +68,20 @@ def main():
     subworker_id = get_environ_int("RAIN_SUBWORKER_ID")
 
     print("Initalizing subworker {} ...".format(subworker_id))
+    print("Working directory: ".format(os.getcwd()))
     sys.stdout.flush()
-    Subworker(get_environ("RAIN_SUBWORKER_SOCKET"), subworker_id)
+
+    os.makedirs("task")
+    os.makedirs("stage")
+
+    stage_path = os.path.abspath("stage")
+    task_path = os.path.abspath("task")
+
+    Subworker(get_environ("RAIN_SUBWORKER_SOCKET"),
+              subworker_id,
+              task_path,
+              stage_path)
+
     print("Subworker initialized")
     sys.stdout.flush()
     capnp.wait_forever()

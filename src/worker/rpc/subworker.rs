@@ -1,10 +1,14 @@
+use std::path::Path;
+
 use worker::StateRef;
 use worker::graph::SubworkerRef;
 use worker::data::{Data, DataType, Storage};
+use worker::fs::workdir::WorkDir;
 use subworker_capnp::subworker_upstream;
 use futures::Future;
 use capnp;
 use capnp::capability::Promise;
+
 
 use errors::Result;
 
@@ -54,13 +58,17 @@ impl subworker_upstream::Server for SubworkerUpstreamImpl {
     }
 }
 
-pub fn data_from_capnp(reader: &::capnp_gen::subworker_capnp::local_data::Reader) -> Result<Data>
+pub fn data_from_capnp(work_dir: &WorkDir, reader: &::capnp_gen::subworker_capnp::local_data::Reader) -> Result<Data>
 {
     let data_type = reader.get_type()?;
     assert!(data_type == ::capnp_gen::common_capnp::DataObjectType::Blob);
     match reader.get_storage().which()? {
         ::capnp_gen::subworker_capnp::local_data::storage::Memory(data) =>
             Ok(Data::new(DataType::Blob, Storage::Memory(data?.into()))),
+        ::capnp_gen::subworker_capnp::local_data::storage::Path(data) => {
+            let target_path = work_dir.new_path_for_dataobject();
+            Ok(Data::new_by_fs_move(&Path::new(data?), target_path)?)
+        },
         _ => unimplemented!()
     }
 }

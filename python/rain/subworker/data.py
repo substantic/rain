@@ -1,5 +1,7 @@
 
 import cloudpickle
+import os
+from rain.client.rpc import common as rpc_common
 
 
 def data_from_capnp(reader):
@@ -38,6 +40,10 @@ class MemoryBlob(Blob):
         # TODO: Check additionals for encoding
         self.to_bytes().decode()
 
+    def to_capnp(self, builder):
+        builder.type = rpc_common.DataObjectType.blob
+        builder.storage.memory = self.data
+
 
 class FileBlob(Blob):
 
@@ -52,3 +58,10 @@ class FileBlob(Blob):
         # TODO: Check additionals for encoding
         with open(self.filename, "r") as f:
             return f.read()
+
+    def to_capnp(self, builder):
+        builder.type = rpc_common.DataObjectType.blob
+        builder.storage.path = self.filename
+
+    def _remove(self):
+        os.unlink(self.filename)

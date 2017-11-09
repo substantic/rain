@@ -92,9 +92,9 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult
                     if !path.is_file() {
                         bail!("Output '{}' not found");
                     }
-                    let mut obj = dataobj.get_mut();
-                    let target_path = state.work_dir().path_for_dataobject(&obj.id);
+                    let target_path = state.work_dir().new_path_for_dataobject();
                     let data = Data::new_by_fs_move(&path, target_path)?;
+                    let mut obj = dataobj.get_mut();
                     obj.set_data(Arc::new(data));
                 }
             }

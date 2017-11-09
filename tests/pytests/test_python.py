@@ -150,3 +150,22 @@ def test_string_output(test_env):
         t1.out.output.keep()
         s.submit()
         assert b"Hello world!" == t1.out.output.fetch()
+
+
+def test_py_file_output(test_env):
+    @remote()
+    def test(ctx):
+        import os
+        assert not os.listdir(".")
+        with open("test_file", "w") as f:
+            f.write("Hello world!")
+        f = ctx.stage_file("test_file")
+        assert not os.listdir(".")
+        return f
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = test()
+        t1.out.output.keep()
+        s.submit()
+        assert b"Hello world!" == t1.out.output.fetch()

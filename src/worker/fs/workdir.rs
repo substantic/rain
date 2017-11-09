@@ -1,5 +1,6 @@
 
 use std::path::{Path, PathBuf};
+use std::cell::Cell;
 
 use common::id::{SubworkerId, TaskId, SId, DataObjectId};
 use errors::Result;
@@ -7,7 +8,8 @@ use errors::Result;
 
 
 pub struct WorkDir {
-    path: PathBuf
+    path: PathBuf,
+    id_counter: Cell<u64>
 }
 
 impl WorkDir {
@@ -18,7 +20,8 @@ impl WorkDir {
         ::std::fs::create_dir(path.join("subworkers/logs")).unwrap();
         ::std::fs::create_dir(path.join("subworkers/work")).unwrap();
         WorkDir {
-            path
+            path,
+            id_counter: Cell::new(0)
         }
     }
 
@@ -51,8 +54,14 @@ impl WorkDir {
             .map_err(|e| e.into())
     }
 
-    pub fn path_for_dataobject(&self, id: &DataObjectId) -> PathBuf {
-        self.path.join(Path::new(&format!("data/{}-{}", id.get_session_id(), id.get_id())))
+    fn new_id(&self) -> u64 {
+        let value = self.id_counter.get();
+        self.id_counter.set(value + 1);
+        value
+    }
+
+    pub fn new_path_for_dataobject(&self) -> PathBuf {
+        self.path.join(Path::new(&format!("data/{}", self.new_id())))
     }
 
 }

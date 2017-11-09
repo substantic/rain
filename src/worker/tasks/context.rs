@@ -103,7 +103,7 @@ impl TaskContext {
                     if response.get_ok() {
                         debug!("Task id={} finished in subworker", task.id);
                         for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
-                            let data = data_from_capnp(&co)?;
+                            let data = data_from_capnp(self.state.get().work_dir(), &co)?;
                             output.get_mut().set_data(Arc::new(data));
                         }
                     } else {
