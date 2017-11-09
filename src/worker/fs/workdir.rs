@@ -16,6 +16,7 @@ impl WorkDir {
         ::std::fs::create_dir(path.join("tasks")).unwrap();
         ::std::fs::create_dir(path.join("subworkers")).unwrap();
         ::std::fs::create_dir(path.join("subworkers/logs")).unwrap();
+        ::std::fs::create_dir(path.join("subworkers/work")).unwrap();
         WorkDir {
             path
         }
@@ -34,6 +35,13 @@ impl WorkDir {
         let err = self.path.join(Path::new(&format!("subworkers/logs/subworker-{}.err",
                                                           id)));
         (out, err)
+    }
+
+    /// Create subworker working directory
+    pub fn make_subworker_work_dir(&self, id: SubworkerId) -> Result<::tempdir::TempDir> {
+        ::tempdir::TempDir::new_in(self.path.join("subworkers/work"),
+                                   &format!("{}", id))
+            .map_err(|e| e.into())
     }
 
     /// Create temporary directory for task

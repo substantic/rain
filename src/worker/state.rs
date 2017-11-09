@@ -247,7 +247,7 @@ impl State {
                                                        sender));
                     let state_ref = state_ref.clone();
                     let program_name = &args[0];
-                    let mut command = subworker_command(&self.work_dir, subworker_id, subworker_type, program_name, &args[1..]);
+                    let (mut command, subworker_dir) = subworker_command(&self.work_dir, subworker_id, subworker_type, program_name, &args[1..])?;
                     self.spawn_panic_on_error(
                         command
                             .status_async(&self.handle)
@@ -255,7 +255,13 @@ impl State {
                                 error!("Subworker {} terminated with exit code: {}", subworker_id, status);
                                 panic!("Subworker terminated; TODO handle this situation");
                                 Ok(())
-                    }));
+                            }).then(move |r| {
+                                // Main purpose of this block is to hold subworker_dir
+                                // for the whole life of subworker and then
+                                debug!("Disposing directory {:?}", subworker_dir.path());
+                                r
+                            })
+                    );
                     Ok(Box::new(receiver.map_err(|_| "Subwork start cancelled".into())))
                 } else {
                     bail!("Unknown subworker")

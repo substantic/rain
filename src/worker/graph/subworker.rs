@@ -13,6 +13,8 @@ use subworker_capnp::subworker_upstream;
 use capnp::capability::Promise;
 use futures::Future;
 
+use errors::Result;
+
 pub struct Subworker {
     subworker_id: SubworkerId,
     subworker_type: String,
@@ -54,9 +56,14 @@ impl SubworkerRef {
 }
 
 
-pub fn subworker_command(work_dir: &WorkDir, subworker_id: SubworkerId, subworker_type: &str, program_name: &str, program_args: &[String]) -> Command
+pub fn subworker_command(work_dir: &WorkDir,
+                         subworker_id: SubworkerId,
+                         subworker_type: &str,
+                         program_name: &str,
+                         program_args: &[String]) -> Result<(Command, ::tempdir::TempDir)>
 {
     let (log_path_out, log_path_err) = work_dir.subworker_log_paths(subworker_id);
+    let subworker_dir = work_dir.make_subworker_work_dir(subworker_id)?;
 
     info!("Staring new subworker type={} id={}", subworker_type, subworker_id);
     info!("Subworker stdout log: {:?}", log_path_out);
@@ -78,7 +85,7 @@ pub fn subworker_command(work_dir: &WorkDir, subworker_id: SubworkerId, subworke
         .stdout(log_path_out_pipe)
         .stderr(log_path_err_pipe)
         .env("RAIN_SUBWORKER_SOCKET", work_dir.subworker_listen_path())
-        .env("RAIN_SUBWORKER_ID", subworker_id.to_string());
-
-    command
+        .env("RAIN_SUBWORKER_ID", subworker_id.to_string())
+        .current_dir(subworker_dir.path());
+    Ok((command, subworker_dir))
 }
