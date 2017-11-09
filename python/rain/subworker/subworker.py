@@ -36,9 +36,11 @@ class Subworker:
     def _decode_results(self, result, outputs):
         if isinstance(result, bytes) and len(outputs) == 1:
             return [result]
+        if isinstance(result, str) and len(outputs) == 1:
+            return [result.encode()]
         if isinstance(result, dict):
             return [result[label] for label in outputs]
-        raise Exception("Invalid returned object:")
+        raise Exception("Invalid returned object:" + repr(result))
 
 
 def get_environ(name):

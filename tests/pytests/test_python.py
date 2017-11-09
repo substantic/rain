@@ -120,3 +120,33 @@ def test_remote_exception_fetch_immediate(test_env):
             t1.out.output.fetch()
         with pytest.raises(RainException):
             t1.wait()
+
+
+def test_python_invalid_output(test_env):
+
+    @remote()
+    def test():
+        class X():
+            pass
+        return X()
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = test()
+        s.submit()
+        with pytest.raises(RainException):
+            t1.wait()
+
+
+def test_string_output(test_env):
+
+    @remote()
+    def test():
+        return "Hello world!"
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = test()
+        t1.out.output.keep()
+        s.submit()
+        assert b"Hello world!" == t1.out.output.fetch()
