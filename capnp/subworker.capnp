@@ -70,5 +70,9 @@ struct LocalData {
 
         stream @4 :Void;
         # TODO
+
+        inWorker @5 :DataObjectId;
+        # This is used when subworker returns object to worker
+        # we have just returned one of inputs
     }
 }

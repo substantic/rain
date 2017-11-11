@@ -16,6 +16,9 @@ def data_from_capnp(reader):
 class Data:
     load_cache = None
 
+    # Contains object id if the object is known to worker
+    worker_object_id = None
+
 
 class Blob(Data):
 
@@ -42,7 +45,12 @@ class MemoryBlob(Blob):
 
     def to_capnp(self, builder):
         builder.type = rpc_common.DataObjectType.blob
-        builder.storage.memory = self.data
+        if self.worker_object_id:
+            builder.storage.init("inWorker")
+            builder.storage.inWorker.sessionId = self.worker_object_id[0]
+            builder.storage.inWorker.id = self.worker_object_id[1]
+        else:
+            builder.storage.memory = self.data
 
 
 class FileBlob(Blob):
@@ -61,7 +69,12 @@ class FileBlob(Blob):
 
     def to_capnp(self, builder):
         builder.type = rpc_common.DataObjectType.blob
-        builder.storage.path = self.filename
+        if self.worker_object_id:
+            builder.storage.init("inWorker")
+            builder.storage.inWorker.sessionId = self.worker_object_id[0]
+            builder.storage.inWorker.id = self.worker_object_id[1]
+        else:
+            builder.storage.path = self.filename
 
     def _remove(self):
         os.unlink(self.filename)

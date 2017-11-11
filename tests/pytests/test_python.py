@@ -171,10 +171,10 @@ def test_py_file_output(test_env):
         assert b"Hello world!" == t1.out.output.fetch()
 
 
-def test_py_file_pass_through(test_env):
-    @remote()
-    def test(data):
-        return data
+def test_py_pass_through(test_env):
+    @remote(outputs=("out1", "out2"))
+    def test(data1, data2):
+        return {"out1": data1, "out2": data2}
 
     test_env.start(1)
 
@@ -183,7 +183,9 @@ def test_py_file_pass_through(test_env):
     with test_env.client.new_session() as s:
         data = b"ABC" * 10000
         t0 = cat(input1=data)
-        t1 = test(t0)
-        t1.out.output.keep()
+        t1 = test(t0, "Hello!")
+        t1.out.out1.keep()
+        t1.out.out2.keep()
         s.submit()
-        assert b"Hello world!" == t1.out.output.fetch()
+        assert data == t1.out.out1.fetch()
+        assert b"Hello!" == t1.out.out2.fetch()

@@ -5,6 +5,12 @@ from .context import Context
 import traceback
 
 
+def load_worker_object(reader):
+    data = data_from_capnp(reader.data)
+    data.worker_object_id = (reader.id.sessionId, reader.id.id)
+    return data
+
+
 class ControlImpl(rpc_subworker.SubworkerControl.Server):
 
     def __init__(self, subworker):
@@ -14,8 +20,10 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
         task_context = Context(self.subworker)
         try:
             params = _context.params
-            inputs = [data_from_capnp(reader.data)
+
+            inputs = [load_worker_object(reader)
                       for reader in params.task.inputs]
+
             outputs = [reader.label
                        for reader in params.task.outputs]
 

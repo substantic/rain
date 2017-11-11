@@ -6,4 +6,4 @@ pub mod data;
 pub mod rpc;
 pub mod tasks;
 
-pub use self::state::StateRef;
+pub use self::state::{StateRef, State};

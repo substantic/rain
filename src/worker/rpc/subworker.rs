@@ -1,6 +1,10 @@
 use std::path::Path;
 
-use worker::StateRef;
+use std::sync::Arc;
+
+use common::id::DataObjectId;
+use common::convert::FromCapnp;
+use worker::{StateRef, State};
 use worker::graph::SubworkerRef;
 use worker::data::{Data, DataType, Storage};
 use worker::fs::workdir::WorkDir;
@@ -54,13 +58,13 @@ impl subworker_upstream::Server for SubworkerUpstreamImpl {
     }
 }
 
-pub fn data_from_capnp(work_dir: &WorkDir, subworker_dir: &Path, reader: &::capnp_gen::subworker_capnp::local_data::Reader) -> Result<Data>
+pub fn data_from_capnp(state: &State, subworker_dir: &Path, reader: &::capnp_gen::subworker_capnp::local_data::Reader) -> Result<Arc<Data>>
 {
     let data_type = reader.get_type()?;
     assert!(data_type == ::capnp_gen::common_capnp::DataObjectType::Blob);
     match reader.get_storage().which()? {
         ::capnp_gen::subworker_capnp::local_data::storage::Memory(data) =>
-            Ok(Data::new(DataType::Blob, Storage::Memory(data?.into()))),
+            Ok(Arc::new(Data::new(DataType::Blob, Storage::Memory(data?.into())))),
         ::capnp_gen::subworker_capnp::local_data::storage::Path(data) => {
             let source_path = Path::new(data?);
             if (!source_path.is_absolute()) {
@@ -69,9 +73,15 @@ pub fn data_from_capnp(work_dir: &WorkDir, subworker_dir: &Path, reader: &::capn
             if (!source_path.starts_with(subworker_dir)) {
                 bail!("Path of dataobject is not in subworker dir");
             }
-            let target_path = work_dir.new_path_for_dataobject();
-            Ok(Data::new_by_fs_move(&Path::new(source_path), target_path)?)
+            let target_path = state.work_dir().new_path_for_dataobject();
+            Ok(Arc::new(Data::new_by_fs_move(&Path::new(source_path), target_path)?))
         },
+        ::capnp_gen::subworker_capnp::local_data::storage::InWorker(data) => {
+            let object_id = DataObjectId::from_capnp(&data?);
+            let object = state.object_by_id(object_id)?;
+            let data = object.get().data().clone();
+            Ok(data)
+        }
         _ => unimplemented!()
     }
 }
