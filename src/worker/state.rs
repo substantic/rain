@@ -76,7 +76,8 @@ pub struct State {
     /// The second member of triplet is subworker_type
     /// Third member (oneshot) is fired when registration is completed
     initializing_subworkers: Vec<(SubworkerId,
-                                  String,
+                                  String, // type (e.g. "py")
+                                  ::tempdir::TempDir, // working dir
                                   ::futures::unsync::oneshot::Sender<SubworkerRef>)>,
 
     // Map from name of subworkers to its arguments
@@ -242,12 +243,13 @@ impl State {
                 let subworker_id = self.graph.make_id();
                 if let Some(args) = self.subworker_args.get(subworker_type) {
                         let (sender, receiver) = ::futures::unsync::oneshot::channel();
-                    self.initializing_subworkers.push((subworker_id,
-                                                       subworker_type.to_string(),
-                                                       sender));
                     let state_ref = state_ref.clone();
                     let program_name = &args[0];
                     let (mut command, subworker_dir) = subworker_command(&self.work_dir, subworker_id, subworker_type, program_name, &args[1..])?;
+                    self.initializing_subworkers.push((subworker_id,
+                                                       subworker_type.to_string(),
+                                                       subworker_dir,
+                                                       sender));
                     self.spawn_panic_on_error(
                         command
                             .status_async(&self.handle)
@@ -255,11 +257,6 @@ impl State {
                                 error!("Subworker {} terminated with exit code: {}", subworker_id, status);
                                 panic!("Subworker terminated; TODO handle this situation");
                                 Ok(())
-                            }).then(move |r| {
-                                // Main purpose of this block is to hold subworker_dir
-                                // for the whole life of subworker and then
-                                debug!("Disposing directory {:?}", subworker_dir.path());
-                                r
                             })
                     );
                     Ok(Box::new(receiver.map_err(|_| "Subwork start cancelled".into())))
@@ -275,23 +272,29 @@ impl State {
     }
 
     /// This method is called when subworker is connected & registered
-    pub fn add_subworker(&mut self, subworker: SubworkerRef) -> Result<()> {
-        let subworker_id = subworker.get().id();
-
+    pub fn add_subworker(&mut self,
+                         subworker_id: SubworkerId,
+                         subworker_type: String,
+                         control: ::subworker_capnp::subworker_control::Client) -> Result<()> {
         let index = self.initializing_subworkers.iter()
-            .position(|&(id, _, _)| id == subworker_id)
+            .position(|&(id, _, _, _)| id == subworker_id)
             .ok_or("Subworker registered under unexpected id")?;
 
+        info!("Subworker registered (subworker_id={})", subworker_id);
+
+        let (sw, sw_type, work_dir, sender) = self.initializing_subworkers.remove(index);
+
+        if sw_type != subworker_type {
+            bail!("Unexpected type of worker registered");
+        }
+
+        let subworker = SubworkerRef::new(subworker_id,
+                                          subworker_type,
+                                          control,
+                                          work_dir);
 
         let r = self.graph.subworkers.insert(subworker_id, subworker.clone());
         assert!(r.is_none());
-        info!("Subworker registered (subworker_id={})", subworker_id);
-
-        let (sw, sw_type, sender) = self.initializing_subworkers.remove(index);
-
-        if sw_type != subworker.get().subworker_type() {
-            bail!("Unexpected type of worker registered");
-        }
 
         if let Err(subworker) = sender.send(subworker) {
             debug!("Failed to inform about new subworker");

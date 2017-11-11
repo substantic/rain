@@ -66,7 +66,7 @@ struct LocalData {
         # Actual content of the data object
 
         path @3 :Text;
-        # The object is in file, the argument is the size in bytes
+        # The object is on fs, the argument is path to object
 
         stream @4 :Void;
         # TODO

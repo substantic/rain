@@ -3,7 +3,9 @@ use std::process::{Command, Stdio};
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::fs::File;
+use std::path::PathBuf;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
+use std::path::Path;
 
 use common::id::SubworkerId;
 use common::wrapped::WrappedRcRefCell;
@@ -18,7 +20,8 @@ use errors::Result;
 pub struct Subworker {
     subworker_id: SubworkerId,
     subworker_type: String,
-    control: ::subworker_capnp::subworker_control::Client
+    control: ::subworker_capnp::subworker_control::Client,
+    work_dir: ::tempdir::TempDir
 }
 
 pub type SubworkerRef = WrappedRcRefCell<Subworker>;
@@ -36,6 +39,11 @@ impl Subworker {
     }
 
     #[inline]
+    pub fn work_dir(&self) -> &Path {
+        self.work_dir.path()
+    }
+
+    #[inline]
     pub fn control(&self) -> &::subworker_capnp::subworker_control::Client {
         &self.control
     }
@@ -46,11 +54,13 @@ impl SubworkerRef {
     pub fn new(
         subworker_id: SubworkerId,
         subworker_type: String,
-        control: ::subworker_capnp::subworker_control::Client) -> Self {
+        control: ::subworker_capnp::subworker_control::Client,
+        work_dir: ::tempdir::TempDir) -> Self {
             Self::wrap(Subworker {
                 subworker_id,
                 subworker_type,
-                control
+                control,
+                work_dir
             })
     }
 }

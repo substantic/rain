@@ -100,10 +100,13 @@ impl TaskContext {
                 {
                     let task = self.task.get();
                     let response = response.get()?;
+                    let subworker = self.subworker.as_ref().unwrap().get();
+                    let work_dir = subworker.work_dir();
                     if response.get_ok() {
                         debug!("Task id={} finished in subworker", task.id);
                         for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
-                            let data = data_from_capnp(self.state.get().work_dir(), &co)?;
+                            let data = data_from_capnp(self.state.get().work_dir(),
+                                                       work_dir, &co)?;
                             output.get_mut().set_data(Arc::new(data));
                         }
                     } else {
