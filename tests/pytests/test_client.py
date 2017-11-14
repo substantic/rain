@@ -130,16 +130,59 @@ def test_wait_some(test_env):
         t2.wait()
 
 
-@pytest.mark.xfail(reason="server wait does not support the sepcial 'all' ID")
 def test_wait_all(test_env):
     test_env.start(1)
     client = test_env.client
     s = client.new_session()
     with s:
         t1 = tasks.concat("a", "b")
-    s.submit()
-    s.wait_all()
-    assert t1.state == rpc.common.TaskState.finished
+        t2 = tasks.sleep(0.4, t1)
+        s.submit()
+        test_env.assert_duration(0.35, 0.48, lambda: s.wait_all())
+        assert t1.state == rpc.common.TaskState.finished
+        assert t2.state == rpc.common.TaskState.finished
+        test_env.assert_max_duration(0.1, lambda: t2.wait())
+
+
+def test_late_wait_all_failed(test_env):
+    test_env.start(1)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        args = ("/bin/non-existing-program",)
+        program = Program(args, stdout="output")
+        t1 = program()
+        t1_output = t1.out.output
+        t1_output.keep()
+        s.submit()
+        time.sleep(0.3)
+        with pytest.raises(RainException):
+            s.wait_all()
+
+
+def test_early_wait_all_failed_(test_env):
+    test_env.start(1)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        t0 = tasks.sleep(0.4, "test")
+        args = ("/bin/non-existing-program")
+        program = Program(args, stdout="output", stdin="input")
+        t1 = program(input=t0)
+        t1_output = t1.out.output
+        t1_output.keep()
+        s.submit()
+        with pytest.raises(RainException):
+            s.wait_all()
+
+
+def test_wait_all_empty(test_env):
+    test_env.start(1)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        s.submit()
+        test_env.assert_max_duration(0.1, lambda: s.wait_all())
 
 
 def test_unkeep_finished(test_env):

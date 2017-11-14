@@ -130,12 +130,8 @@ class Client:
         req.init("taskIds", 1)
         req.taskIds[0].id = rpc.common.allTasksId
         req.taskIds[0].sessionId = session_id
-
-        req.init("objectIds", 1)
-        req.objectIds[0].id = rpc.common.allDataObjectsId
-        req.objectIds[0].sessionId = session_id
-
-        req.send().wait()
+        result = req.send().wait()
+        check_result(result)
 
     def _unkeep(self, dataobjs):
         req = self.service.unkeep_request()

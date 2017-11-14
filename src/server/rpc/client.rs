@@ -193,6 +193,35 @@ impl client_service::Server for ClientServiceImpl {
         info!("New wait request ({} tasks, {} data objects) from client",
               task_ids.len(), object_ids.len());
 
+
+        if task_ids.len() == 1
+            && object_ids.len() == 0
+            && task_ids.get(0).get_id() == ::capnp_gen::common_capnp::ALL_TASKS_ID
+        {
+            let session_id = task_ids.get(0).get_session_id();
+            debug!("Waiting for all session session_id={}", session_id);
+            let session = match s.session_by_id(session_id) {
+                Ok(s) => s,
+                Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+            };
+            if let &Some(ref e) = session.get().get_error() {
+                set_error(&mut result.get(), e);
+                return Promise::ok(())
+            }
+
+            let session2 = session.clone();
+            return Promise::from_future(session.get_mut().wait()
+                             .then(move |r| {
+                                 match r {
+                                     Ok(_) => result.get().set_ok(()),
+                                     Err(_) => {
+                                        set_error(&mut result.get(), session2.get().get_error().as_ref().unwrap());
+                                     }
+                                 };
+                                 Ok(())}
+                             ));
+        }
+
         let mut sessions = RcSet::new();
 
         // TODO: Wait for data objects

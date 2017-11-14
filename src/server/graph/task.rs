@@ -209,8 +209,12 @@ impl TaskRef {
             finish_hooks: Default::default(),
             additionals: additionals,
         });
-        // add to session
-        session.get_mut().tasks.insert(sref.clone());
+        {
+            // add to session
+            let mut s = session.get_mut();
+            s.tasks.insert(sref.clone());
+            s.unfinished_tasks += 1;
+        }
         {
             let s = sref.get_mut();
             // add to the DataObjects

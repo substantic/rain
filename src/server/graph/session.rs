@@ -1,4 +1,4 @@
-use futures::unsync::oneshot::Sender;
+use futures::unsync::oneshot::{Sender, Receiver};
 use std::fmt;
 
 use common::wrapped::WrappedRcRefCell;
@@ -27,6 +27,9 @@ pub struct Session {
     /// Client holding the session alive.
     pub (in super::super) client: ClientRef,
 
+    /// Number of unfinished tasks
+    pub (in super::super) unfinished_tasks: usize,
+
     /// Hooks executed when all tasks are finished.
     pub (in super::super) finish_hooks: Vec<FinishHook>,
 }
@@ -45,6 +48,31 @@ impl Session {
     }
 }
 
+impl Session {
+
+    /// Returns a future that is triggered when session has no unfinished tasks
+    pub fn wait(&mut self) -> Receiver<()> {
+        let (sender, receiver) = ::futures::unsync::oneshot::channel();
+        if self.unfinished_tasks == 0 {
+            sender.send(()).unwrap();
+        } else {
+            self.finish_hooks.push(sender);
+        }
+        receiver
+    }
+
+    /// This should be called task is finished in session
+    pub fn task_finished(&mut self) {
+        assert!(self.unfinished_tasks > 0);
+        self.unfinished_tasks -= 1;
+        if self.unfinished_tasks == 0 {
+            for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
+                sender.send(());
+            }
+        }
+    }
+}
+
 impl SessionRef {
 
     /// Create new session object and link it to the owning client.
@@ -54,6 +82,7 @@ impl SessionRef {
             tasks: Default::default(),
             objects: Default::default(),
             client: client.clone(),
+            unfinished_tasks: 0,
             finish_hooks: Default::default(),
             error: None,
         });
@@ -78,7 +107,6 @@ impl SessionRef {
         // clear finish_hooks
         inner.finish_hooks.clear();
     }
-
 }
 
 impl ConsistencyCheck for SessionRef {

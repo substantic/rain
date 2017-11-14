@@ -702,6 +702,7 @@ impl State {
                 TaskState::Finished => {
                     {
                         let mut t = tref.get_mut();
+                        t.session.get_mut().task_finished();
                         t.state = state;
                         t.additionals = additionals;
                         t.additionals.set_str("worker", format!("{}", worker.get().id()));

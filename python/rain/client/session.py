@@ -162,7 +162,7 @@ class Session:
         return finished_tasks, finished_dataobjs
 
     def wait_all(self):
-        """Wait until all registered tasks are finished"""
+        """Wait until all submitted tasks are finished"""
         self.client._wait_all(self.session_id)
 
         for task in self.submitted_tasks:
