@@ -1,4 +1,4 @@
-from rain.client import Program
+from rain.client import Program, Input, Output
 from rain.client import RainException
 
 import pytest
@@ -8,13 +8,14 @@ def test_program_construction():
     program = Program("/s/bin right --now /here 'and there'")
     assert program.args == ("/s/bin", "right", "--now", "/here", "and there")
 
-    program = Program("test").arg("arg1").arg("arg2 with space")
-    assert program.args == ("test", "arg1", "arg2 with space")
-
-    program = Program("test").arg("arg1").arg_path("name", "label")
-    assert program.args == ("test", "arg1", "name")
-    assert program.input_paths == ["name"]
-    assert program.input_labels == ["label"]
+    program = Program(["test", "-x",
+                       Input("model", "model.txt"),
+                       Output("result", "result.dat")])
+    assert program.args == ("test", "-x", "model.txt", "result.dat")
+    assert program.input_paths == ["model.txt"]
+    assert program.input_labels == ["model"]
+    assert program.output_paths == ["result.dat"]
+    assert program.output_labels == ["result"]
 
 
 def test_program_sleep_1(test_env):
@@ -43,7 +44,7 @@ def test_program_create_file(test_env):
     test_env.start(1)
     args = ("/bin/bash", "-c", "echo ABC > output.txt")
     program = Program(args)
-    program.output("output.txt", "my_output")
+    program.output("my_output", "output.txt")
     with test_env.client.new_session() as s:
         t1 = program()
         t1.out.my_output.keep()
@@ -54,7 +55,7 @@ def test_program_create_file(test_env):
 def test_program_input_file(test_env):
     """Setting input file for program"""
     test_env.start(1)
-    program = Program("/bin/grep", stdout="output").arg("ab").arg_path("in1")
+    program = Program(("/bin/grep", "ab", Input("in1")), stdout="output")
     with test_env.client.new_session() as s:
         t1 = program(in1="abc\nNOTHING\nabab")
         t1.out.output.keep()
@@ -77,7 +78,7 @@ def test_program_stdin(test_env):
 def test_program_vars(test_env):
     program = Program(("/bin/grep", "${pattern}", "input.txt"),
                       vars=("pattern",), stdout="output")
-    program.input("input.txt", "input")
+    program.input("input", "input.txt")
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = program(input="abc\nNOTHING\nabab", pattern="abab")

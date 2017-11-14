@@ -5,13 +5,27 @@ from .task import Task
 from . import rpc
 
 
+class Input:
+
+    def __init__(self, label, path=None):
+        self.label = label
+        if path is None:
+            path = label
+        self.path = path
+
+
+class Output:
+
+    def __init__(self, label, path=None):
+        self.label = label
+        if path is None:
+            path = label
+        self.path = path
+
+
 class Program:
 
     def __init__(self, args, stdout=None, stdin=None, vars=()):
-        if isinstance(args, str):
-            args = tuple(shlex.split(args))
-        self.args = args
-
         self.output_paths = []
         self.output_labels = []
 
@@ -20,36 +34,42 @@ class Program:
 
         if stdout is not None:
             # +out is a name of where stdout is redirected
-            self.output("+out", stdout)
+            self.output(stdout, "+out")
 
         if stdin is not None:
             # +in is a name of where stdout is redirected
-            self.input("+in", stdin)
+            self.input(stdin, "+in")
+
+        if isinstance(args, str):
+            self.args = tuple(shlex.split(args))
+        else:
+            self.args = tuple(self._process_arg(arg) for arg in args)
 
         self.vars = vars
 
-    def arg(self, value):
-        assert isinstance(value, str)
-        self.args += (value,)
-        return self
+    def _process_arg(self, arg):
+        if isinstance(arg, str):
+            return arg
+        if isinstance(arg, Input):
+            self.input(arg.label, arg.path)
+            return arg.path
+        if isinstance(arg, Output):
+            self.output(arg.label, arg.path)
+            return arg.path
+        raise Exception("Argument {!r} is invalid".format(arg))
 
-    def arg_path(self, path, label=None):
-        self.arg(path)
-        self.input(path, label)
-        return self
-
-    def input(self, path, label=None):
+    def input(self, label, path=None):
         """Create new input"""
-        if label is None:
-            label = path
+        if path is None:
+            path = label
         self.input_paths.append(path)
         self.input_labels.append(label)
         return self
 
-    def output(self, path, label=None):
+    def output(self, label, path=None):
         """Create new output"""
-        if label is None:
-            label = path
+        if path is None:
+            path = label
         self.output_paths.append(path)
         self.output_labels.append(label)
         return self

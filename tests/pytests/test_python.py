@@ -178,7 +178,7 @@ def test_py_pass_through(test_env):
 
     test_env.start(1)
 
-    cat = Program("/bin/cat", stdout="output").arg_path("input1")
+    cat = Program("/bin/cat input1", stdout="output").input("input1")
 
     with test_env.client.new_session() as s:
         data = b"ABC" * 10000
