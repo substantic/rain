@@ -25,25 +25,30 @@ class Output:
 
 class Program:
 
-    def __init__(self, args, stdout=None, stdin=None, vars=()):
-        self.output_paths = []
-        self.output_labels = []
-
-        self.input_paths = []
-        self.input_labels = []
+    def __init__(self, args, stdout=None, stdin=None, vars=(), io=()):
+        self.inputs = []
+        self.outputs = []
 
         if stdout is not None:
             # +out is a name of where stdout is redirected
-            self.output(stdout, "+out")
+            self.outputs.append(Output(stdout, "+out"))
 
         if stdin is not None:
-            # +in is a name of where stdout is redirected
-            self.input(stdin, "+in")
+            # +in is a name of where stdin is redirected
+            self.inputs.append(Input(stdin, "+in"))
 
         if isinstance(args, str):
             self.args = tuple(shlex.split(args))
         else:
             self.args = tuple(self._process_arg(arg) for arg in args)
+
+        for obj in io:
+            if isinstance(obj, Input):
+                self.inputs.append(obj)
+            elif isinstance(obj, Output):
+                self.outputs.append(obj)
+            else:
+                raise Exception("Object {!r} is nor intput or output")
 
         self.vars = vars
 
@@ -51,28 +56,12 @@ class Program:
         if isinstance(arg, str):
             return arg
         if isinstance(arg, Input):
-            self.input(arg.label, arg.path)
+            self.inputs.append(arg)
             return arg.path
         if isinstance(arg, Output):
-            self.output(arg.label, arg.path)
+            self.outputs.append(arg)
             return arg.path
         raise Exception("Argument {!r} is invalid".format(arg))
-
-    def input(self, label, path=None):
-        """Create new input"""
-        if path is None:
-            path = label
-        self.input_paths.append(path)
-        self.input_labels.append(label)
-        return self
-
-    def output(self, label, path=None):
-        """Create new output"""
-        if path is None:
-            path = label
-        self.output_paths.append(path)
-        self.output_labels.append(label)
-        return self
 
     def __repr__(self):
         return "<Program {}>".format(self.args)
@@ -88,17 +77,17 @@ class Program:
         config.init("args", len(call_args))
         for i, arg in enumerate(call_args):
             config.args[i] = arg
-        config.init("inputPaths", len(self.input_paths))
-        for i, path in enumerate(self.input_paths):
-            config.inputPaths[i] = path
-        config.init("outputPaths", len(self.output_paths))
-        for i, path in enumerate(self.output_paths):
-            config.outputPaths[i] = path
+        config.init("inputPaths", len(self.inputs))
+        for i, obj in enumerate(self.inputs):
+            config.inputPaths[i] = obj.path
+        config.init("outputPaths", len(self.outputs))
+        for i, obj in enumerate(self.outputs):
+            config.outputPaths[i] = obj.path
 
-        inputs = tuple(args[label] for label in self.input_labels)
+        inputs = tuple(args[obj.label] for obj in self.inputs)
         # TODO: A proper error if there are too few or too many inputs
 
-        outputs = [Blob(label) for label in self.output_labels]
+        outputs = [Blob(obj.label) for label in self.outputs]
         return Task("!run",
                     config.to_bytes_packed(),
                     inputs=inputs,

@@ -1,7 +1,7 @@
 
 from rain.client import remote
 
-from rain.client import blob, Program, tasks
+from rain.client import blob, Program, tasks, Input
 import string
 import random
 import pytest
@@ -27,8 +27,8 @@ def run_small_gridcat(session):
     def random_string(rnd, length):
         return "".join(rnd.choice(CHARS) for i in range(length))
 
-    cat = Program("cat input1 input2",
-                  stdout="output").input("input1").input("input2")
+    cat = Program(("cat", Input("input1"), Input("input2")),
+                  stdout="output")
     md5sum = Program("md5sum", stdin="input", stdout="output")
 
     @remote()

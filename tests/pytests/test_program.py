@@ -12,10 +12,12 @@ def test_program_construction():
                        Input("model", "model.txt"),
                        Output("result", "result.dat")])
     assert program.args == ("test", "-x", "model.txt", "result.dat")
-    assert program.input_paths == ["model.txt"]
-    assert program.input_labels == ["model"]
-    assert program.output_paths == ["result.dat"]
-    assert program.output_labels == ["result"]
+    assert len(program.inputs) == 1
+    assert len(program.outputs) == 1
+    assert program.inputs[0].label == "model"
+    assert program.inputs[0].path == "model.txt"
+    assert program.outputs[0].label == "result"
+    assert program.outputs[0].path == "result.dat"
 
 
 def test_program_sleep_1(test_env):
@@ -43,8 +45,7 @@ def test_program_create_file(test_env):
     """Capturing file"""
     test_env.start(1)
     args = ("/bin/bash", "-c", "echo ABC > output.txt")
-    program = Program(args)
-    program.output("my_output", "output.txt")
+    program = Program(args, io=[Output("my_output", "output.txt")])
     with test_env.client.new_session() as s:
         t1 = program()
         t1.out.my_output.keep()
@@ -77,8 +78,9 @@ def test_program_stdin(test_env):
 
 def test_program_vars(test_env):
     program = Program(("/bin/grep", "${pattern}", "input.txt"),
-                      vars=("pattern",), stdout="output")
-    program.input("input", "input.txt")
+                      vars=("pattern",),
+                      stdout="output",
+                      io=[Input("input", "input.txt")])
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = program(input="abc\nNOTHING\nabab", pattern="abab")
