@@ -2,7 +2,6 @@ import cloudpickle
 from .task import Task
 from .data import blob, DataObject, DataObjectPart
 from .session import get_active_session
-import inspect
 
 
 def py_call(fn, inputs):
@@ -17,20 +16,13 @@ def py_obj(obj, label=""):
     return blob(cloudpickle.dumps(obj), label)
 
 
-def has_ctx_arg(fn):
-    args = inspect.getargspec(fn).args
-    return args and args[0] == "ctx"
-
-
 def remote(outputs=None):
     def make_remote(fn):
-        has_ctx = has_ctx_arg(fn)
-
         def make_task(*args):
             session = get_active_session()
             fn_blob = session.static_data.get(fn)
             if fn_blob is None:
-                fn_blob = blob(cloudpickle.dumps((fn, has_ctx)), fn.__name__)
+                fn_blob = blob(cloudpickle.dumps(fn), fn.__name__)
                 fn_blob.keep()
                 session.static_data[fn] = fn_blob
             inputs = (fn_blob,) + args

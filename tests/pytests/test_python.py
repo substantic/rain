@@ -6,7 +6,7 @@ def test_remote_bytes_inout(test_env):
     """Pytask taking and returning bytes"""
 
     @remote()
-    def hello(data):
+    def hello(ctx, data):
         return data.to_bytes() + b" rocks!"
 
     test_env.start(1)
@@ -21,7 +21,7 @@ def test_remote_more_bytes_outputs(test_env):
     """Pytask returning more tasks"""
 
     @remote(outputs=("x1", "x2"))
-    def test():
+    def test(ctx):
         return {"x1": b"One", "x2": b"Two"}
 
     test_env.start(1)
@@ -40,7 +40,7 @@ def test_remote_exception(test_env):
     # but "match" in pytest.raises somehow do not work??
 
     @remote()
-    def test():
+    def test(ctx):
         raise Exception("Hello world!")
 
     test_env.start(1)
@@ -62,7 +62,7 @@ def test_remote_exception(test_env):
 def test_remote_exception_sleep(test_env):
 
     @remote()
-    def test():
+    def test(ctx):
         import time
         time.sleep(0.2)
         raise Exception("Hello world!")
@@ -84,7 +84,7 @@ def test_remote_exception_fetch_after_delay(test_env):
     import time
 
     @remote()
-    def test():
+    def test(ctx):
         raise Exception("Hello world!")
 
     test_env.start(1)
@@ -104,7 +104,7 @@ def test_remote_exception_fetch_after_delay(test_env):
 def test_remote_exception_fetch_immediate(test_env):
 
     @remote()
-    def test():
+    def test(ctx):
         import time
         time.sleep(0.3)
         raise Exception("Hello world!")
@@ -125,7 +125,7 @@ def test_remote_exception_fetch_immediate(test_env):
 def test_python_invalid_output(test_env):
 
     @remote()
-    def test():
+    def test(ctx):
         class X():
             pass
         return X()
@@ -141,7 +141,7 @@ def test_python_invalid_output(test_env):
 def test_string_output(test_env):
 
     @remote()
-    def test():
+    def test(ctx):
         return "Hello world!"
 
     test_env.start(1)
@@ -173,7 +173,7 @@ def test_py_file_output(test_env):
 
 def test_py_pass_through(test_env):
     @remote(outputs=("out1", "out2"))
-    def test(data1, data2):
+    def test(ctx, data1, data2):
         return {"out1": data1, "out2": data2}
 
     test_env.start(1)

@@ -32,15 +32,11 @@ class Subworker:
         register.send().wait()
 
     def run_task(self, context, config, inputs, outputs):
-        fn, has_ctx = inputs[0].load(cache=True)
+        fn = inputs[0].load(cache=True)
         remove_dir_content(self.task_path)
         os.chdir(self.task_path)
-        if has_ctx:
-            result = fn(context, *inputs[1:])
-        else:
-            result = fn(*inputs[1:])
-        results = self._decode_results(result, outputs)
-        return results
+        result = fn(context, *inputs[1:])
+        return self._decode_results(result, outputs)
 
     def _decode_results(self, result, outputs):
         if isinstance(result, dict):

@@ -5,7 +5,7 @@ import pytest
 def test_update_additionals(test_env):
 
     @remote()
-    def test():
+    def test(ctx):
         return b""
 
     test_env.start(1)

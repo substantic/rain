@@ -32,7 +32,7 @@ def run_small_gridcat(session):
     md5sum = Program("md5sum", stdin="input", stdout="output")
 
     @remote()
-    def take_first(data):
+    def take_first(ctx, data):
         return data.to_bytes().split()[0]
 
     consts = [blob(random_string(rnd, BLOB_SIZE)) for i in range(BLOB_COUNT)]
@@ -71,14 +71,14 @@ def test_small_gridcat_4(test_env):
 def test_big_diamond(test_env):
 
     @remote(outputs=("out1", "out2"))
-    def splitter(data):
+    def splitter(ctx, data):
         data = data.to_bytes()
         left = data[0:len(data)]
         right = data[len(data):]
         return {"out1": left, "out2": right}
 
     @remote()
-    def upper(data):
+    def upper(ctx, data):
         return data.to_bytes().upper()
 
     LAYERS = 6
@@ -114,7 +114,7 @@ def test_big_diamond(test_env):
 def test_separated_lines(test_env):
 
     @remote()
-    def op(data):
+    def op(ctx, data):
         data = data.to_bytes()
         return data + data[:1]
 
