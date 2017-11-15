@@ -23,6 +23,7 @@ extern crate tempdir;
 extern crate memmap;
 extern crate sysconf;
 extern crate sys_info;
+extern crate ssh2;
 
 
 pub mod common;
@@ -60,6 +61,7 @@ pub mod errors {
             CapnpNotInSchema(::capnp::NotInSchema);
             Timer(::tokio_timer::TimerError);
             SessionErr(::server::graph::SessionError);
+            Ssh(::ssh2::Error);
         }
     }
     // Explicit alias just to make the IDEs happier

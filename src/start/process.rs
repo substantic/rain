@@ -2,14 +2,7 @@ use std::process::{Stdio, Child, Command};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use librain::errors::{Error, Result};
 use std::path::{PathBuf, Path};
-
-pub enum Readiness {
-    /// Ready file is a file th
-    /// at is created when a process is ready
-    WaitingForReadyFile(PathBuf),
-    IsReady,
-}
-
+use start::common::{Readiness};
 
 /// Struct that represents a process running under a starter
 /// It is wrapper over std::process::Child with a string name
@@ -70,7 +63,6 @@ impl Process {
                 }
             }
         }
-
         self.child.kill()?;
         Ok(())
     }

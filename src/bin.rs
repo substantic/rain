@@ -9,6 +9,7 @@ extern crate num_cpus;
 extern crate nix;
 #[macro_use]
 extern crate error_chain;
+extern crate ssh2;
 
 pub mod start;
 
@@ -21,7 +22,7 @@ use std::collections::HashMap;
 use librain::{server, worker, VERSION};
 use clap::ArgMatches;
 
-use std::net::{SocketAddr, IpAddr, Ipv4Addr};
+use std::net::{SocketAddr, IpAddr, Ipv4Addr, ToSocketAddrs};
 
 const DEFAULT_SERVER_PORT: u16 = 7210;
 const DEFAULT_WORKER_PORT: u16 = 0;
@@ -99,10 +100,27 @@ fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, Str
 fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let ready_file = cmd_args.value_of("READY_FILE");
     let listen_address = parse_listen_arg(cmd_args, DEFAULT_WORKER_PORT);
-    let server_address = value_t!(cmd_args, "SERVER_ADDRESS", SocketAddr).unwrap_or_else(|_| {
-        SocketAddr::new(value_t_or_exit!(cmd_args, "SERVER_ADDRESS", IpAddr),
-                        DEFAULT_SERVER_PORT)
-    });
+    let mut server_address = cmd_args.value_of("SERVER_ADDRESS").unwrap().to_string();
+    if !server_address.contains(":") {
+        server_address = format!("{}:{}", server_address, DEFAULT_SERVER_PORT);
+    }
+
+
+    let server_addr = match server_address.to_socket_addrs() {
+        Err(_) => {
+            error!("Cannot resolve server address");
+            exit(1);
+        },
+        Ok(mut addrs) => {
+            match addrs.next() {
+                None => {
+                    error!("Cannot resolve server address");
+                    exit(1);
+                },
+                Some(ref addr) => *addr
+            }
+        }
+    };
 
     let cpus = if cmd_args.is_present("CPUS") {
         value_t_or_exit!(cmd_args, "CPUS", u32)
@@ -126,6 +144,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     info!("Starting Rain {} as worker", VERSION);
     info!("Resources: {} cpus", cpus);
     info!("Working directory: {:?}", work_dir);
+    info!("Server address {} was resolved as {}", server_address, server_addr);
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
 
@@ -139,7 +158,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         // Python subworker
         subworkers);
 
-    state.start(server_address, listen_address, ready_file);
+    state.start(server_addr, listen_address, ready_file);
 
     loop {
         tokio_core.turn(None);
@@ -155,25 +174,30 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         0u32
     };
     let worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(|s| Path::new(s));
+    let auth_file = cmd_args.value_of("AUTH_FILE").map(|s| Path::new(s));
 
     let listen_address = parse_listen_arg(cmd_args, DEFAULT_SERVER_PORT);
     let log_dir = ::std::env::current_dir().unwrap();
 
     info!("Log directory: {}", log_dir.to_str().unwrap());
 
-    if local_workers == 0 {
-        error!("No workers is specified.");
-        exit(1);
-    }
+    let mut starter = start::starter::Starter::new(local_workers, listen_address, &log_dir);
 
-    let mut starter = start::starter::Starter::new(local_workers, listen_address, log_dir);
+    let result = (||{
+        if let Some(path) = auth_file {
+            starter.read_auth_file(path)?;
+        }
+        starter.start(worker_host_file)
+    })();
 
-    match starter.start(worker_host_file) {
+    match result {
         Ok(()) => info!("Rain is started."),
         Err(e) => {
             error!("Error occurs: {}", e.description());
-            info!("Error occurs; clean up started ...");
-            starter.kill_all();
+            if (starter.has_processes()) {
+                info!("Error occurs; clean up started processes ...");
+                starter.kill_all();
+            }
         }
     }
 }
@@ -210,7 +234,9 @@ fn main() {
         (@subcommand run =>
             (about: "Start server and workers")
             (@arg LOCAL_WORKERS: --local_workers +takes_value "Number of local workers (default = 0)")
+            (@arg AUTH_FILE: --auth_file +takes_value "Path to file containing login/password")
             (@arg WORKER_HOST_FILE: --worker_host_file +takes_value "Path to file that contains contains name of computers where workers are executed")
+            (@arg WORK_DIR: --workdir +takes_value "Working directory (default = /tmp)")
             (@arg LISTEN_ADDRESS: --listen +takes_value "Server listening address (same as --listen in 'server' command)")
             )
         ).get_matches();
