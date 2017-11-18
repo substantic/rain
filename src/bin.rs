@@ -9,7 +9,6 @@ extern crate num_cpus;
 extern crate nix;
 #[macro_use]
 extern crate error_chain;
-extern crate ssh2;
 
 pub mod start;
 
@@ -174,7 +173,6 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         0u32
     };
     let worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(|s| Path::new(s));
-    let auth_file = cmd_args.value_of("AUTH_FILE").map(|s| Path::new(s));
 
     let listen_address = parse_listen_arg(cmd_args, DEFAULT_SERVER_PORT);
     let log_dir = ::std::env::current_dir().unwrap();
@@ -184,16 +182,13 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let mut starter = start::starter::Starter::new(local_workers, listen_address, &log_dir);
 
     let result = (||{
-        if let Some(path) = auth_file {
-            starter.read_auth_file(path)?;
-        }
         starter.start(worker_host_file)
     })();
 
     match result {
         Ok(()) => info!("Rain is started."),
         Err(e) => {
-            error!("Error occurs: {}", e.description());
+            error!("{}", e.description());
             if (starter.has_processes()) {
                 info!("Error occurs; clean up started processes ...");
                 starter.kill_all();
@@ -234,7 +229,6 @@ fn main() {
         (@subcommand run =>
             (about: "Start server and workers")
             (@arg LOCAL_WORKERS: --local_workers +takes_value "Number of local workers (default = 0)")
-            (@arg AUTH_FILE: --auth_file +takes_value "Path to file containing login/password")
             (@arg WORKER_HOST_FILE: --worker_host_file +takes_value "Path to file that contains contains name of computers where workers are executed")
             (@arg WORK_DIR: --workdir +takes_value "Working directory (default = /tmp)")
             (@arg LISTEN_ADDRESS: --listen +takes_value "Server listening address (same as --listen in 'server' command)")

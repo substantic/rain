@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::net::SocketAddr;
 use start::common::{Readiness};
 use start::process::{Process};
-use start::ssh::{SshProcess, SshAuth};
+use start::ssh::{RemoteProcess};
 use librain::errors::{Error, Result};
 
 use nix::unistd::{gethostname, getpid};
@@ -28,10 +28,7 @@ pub struct Starter {
     processes: Vec<Process>,
 
     /// Spawned and running processes
-    remote_processes: Vec<SshProcess>,
-
-    /// Ssh authentication
-    auth: SshAuth,
+    remote_processes: Vec<RemoteProcess>,
 }
 
 fn read_host_file(path: &Path) -> Result<Vec<String>> {
@@ -57,26 +54,11 @@ impl Starter {
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
             processes: Vec::new(),
             remote_processes: Vec::new(),
-            auth: SshAuth::new(),
         }
     }
 
     pub fn has_processes(&self) -> bool {
         !self.processes.is_empty()
-    }
-
-    pub fn read_auth_file(&mut self, path: &Path) -> Result<()> {
-        let mut file = BufReader::new(File::open(path)
-            .map_err(|e| format!("Cannot open auth file {:?}: {}", path,
-                                ::std::error::Error::description(&e)))?);
-        let mut username = String::new();
-        let mut password = String::new();
-        file.read_line(&mut username)?;
-        file.read_line(&mut password)?;
-
-        self.auth.set_username(username.trim());
-        self.auth.set_password(password.trim());
-        Ok(())
     }
 
     /// Main method of starter that launch everything
@@ -161,9 +143,8 @@ impl Starter {
             info!("Connecting to {} (remote log dir: {:?})", host, self.log_dir);
             let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
             let name = format!("worker-{}", i);
-            let mut process = SshProcess::new(
-                name, host, &self.auth,
-                Readiness::WaitingForReadyFile(ready_file.to_path_buf()))?;
+            let mut process = RemoteProcess::new(
+                name, host, Readiness::WaitingForReadyFile(ready_file.to_path_buf()));
             let command = format!(
                 "{rain} worker {server_address} --ready_file {ready_file:?}",
                 rain=rain, server_address=server_address, ready_file=ready_file);

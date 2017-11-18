@@ -1,65 +1,88 @@
-use ssh2::Session;
-
 use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 use std::io::BufRead;
+use std::process::{Stdio, Child, Command};
+use std::error::Error;
 
 use librain::errors::{Result};
 use std::io::BufReader;
 use start::common::{Readiness};
 
-pub struct SshAuth {
+pub struct User {
     pub username: String,
     pub password: String,
 }
 
-impl SshAuth {
-    pub fn new() -> Self {
-        SshAuth {
-            username: env!("USER").to_string(),
-            password: "".to_string(),
-        }
-    }
-
-    pub fn set_username(&mut self, username: &str) {
-        self.username = username.to_string();
-    }
-
-    pub fn set_password(&mut self, password: &str) {
-        self.password = password.to_string();
-    }
-}
-
-pub struct SshProcess {
+pub struct RemoteProcess {
     name: String,
     host: String,
-    stream: ::std::net::TcpStream,
-    session: Session,
     pid: i32,
     readiness: Readiness
 }
 
-impl SshProcess {
-    pub fn new(name: String, host: &str, auth: &SshAuth, readiness: Readiness) -> Result<Self> {
-        let tcp = if host.contains(":") {
-            ::std::net::TcpStream::connect(host)?
-        } else {
-            ::std::net::TcpStream::connect((host, 22))?
-        };
-        let mut sess = Session::new().unwrap();
-
-        sess.handshake(&tcp)?;
-        sess.userauth_password(&auth.username, &auth.password)?;
-
-        Ok(Self {
+impl RemoteProcess {
+    pub fn new(name: String, host: &str, readiness: Readiness) -> Self {
+        RemoteProcess {
             name: name,
             host: host.to_string(),
-            stream: tcp,
-            session: sess,
             pid: 0,
             readiness: readiness
-        })
+        }
+    }
+
+    fn create_ssh_command(&self) -> Command {
+        let mut command = Command::new("ssh");
+        command
+            .arg(&self.host)
+            .arg("/bin/sh")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        command
+    }
+
+    pub fn run_ssh_first_line(&self, command: &str) -> Result<String> {
+        let mut child = self.create_ssh_command()
+            .spawn()
+            .map_err(|e| format!("Start of 'ssh' failed: {}", e.description()))?;
+        {
+            let stdin = child.stdin.as_mut().unwrap();
+            stdin.write_all(command.as_bytes())?;
+            stdin.flush()?;
+        }
+        let mut output = String::new();
+        {
+            let mut reader = BufReader::new(child.stdout.as_mut().unwrap());
+            reader.read_line(&mut output)?;
+        }
+
+        if output.is_empty() {
+            let out = child.wait_with_output()?;
+            bail!("ssh failed with: {}", ::std::str::from_utf8(&out.stderr)?);
+        }
+
+        Ok(output)
+    }
+
+
+    pub fn run_ssh(&self, command: &str) -> Result<(String, String)> {
+        let mut child = self.create_ssh_command()
+            .spawn()
+            .map_err(|e| format!("Start of 'ssh' failed: {}", e.description()))?;
+        {
+            let stdin = child.stdin.as_mut().unwrap();
+            stdin.write_all(command.as_bytes())?;
+            stdin.flush()?;
+        }
+
+        let output = child.wait_with_output()?;
+        let stderr = ::std::str::from_utf8(&output.stderr)?;
+        let stdout = ::std::str::from_utf8(&output.stdout)?;
+        if !output.status.success() {
+            bail!("Connection to remote site failed: {}", stderr);
+        }
+        Ok((stdout.to_string(), stderr.to_string()))
     }
 
     pub fn start(&mut self, command: &str, cwd: &Path, log_dir: &Path) -> Result<()> {
@@ -73,86 +96,63 @@ impl SshProcess {
         let log_out = log_dir.join(&format!("{}.out", self.name));
         let log_err = log_dir.join(&format!("{}.err", self.name));
 
-        let shell_cmd = format!("\n\
-touch {log_out:?} || (echo \"Error: Cannot create log file\"; exit 1)
-touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)
-({{
-    cd {cwd:?} || exit 1;\n\
-    {command}\n\
-    }} > {log_out:?} 2> {log_err:?})&\n\
-    echo \"Ok: $!\"\n\
+        let shell_cmd = format!("\n
+touch {log_out:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
+touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
+({{\n
+    cd {cwd:?} || exit 1;\n
+    {command}\n
+    }} > {log_out:?} 2> {log_err:?})&\n
+    echo \"Ok: $!\"\n
     ", cwd=cwd, command=command, log_out=log_out, log_err=log_err);
 
-        let mut channel = self.session.channel_session()?;
-        channel.exec("/bin/sh")?;
-        channel.write_all(shell_cmd.as_bytes())?;
-        channel.send_eof();
-        let mut reader = BufReader::new(channel);
-        let mut first_line = String::new();
-        reader.read_line(&mut first_line)?;
+        let stdout = self.run_ssh_first_line(&shell_cmd)?;
 
-        if first_line.starts_with("Ok: ") {
-            self.pid = first_line[4..]
+        if stdout.starts_with("Ok: ") {
+            self.pid = stdout[4..]
                 .trim()
                 .parse()
-                .map_err(|e| format!("Internal error, value is not integer: {}", first_line))?;
-        } else if first_line.starts_with("Error: ") {
+                .map_err(|e| format!("Internal error, value is not integer: {}", stdout))?;
+        } else if stdout.starts_with("Error: ") {
             bail!("Remote process at {}, the following error occurs: {}",
-                  self.host, &first_line[7..]);
+                  self.host, &stdout[7..]);
         } else {
-            bail!("Invalid line obtained from remote process: {}", first_line);
+            bail!("Invalid line obtained from remote process: '{}'", stdout);
         }
         Ok(())
-    }
-
-    pub fn check_still_running(&self) -> Result<()>
-    {
-        let mut channel = self.session.channel_session()?;
-        channel.exec(&format!("ps -p {}", self.pid))?;
-        channel.wait_eof()?;
-        channel.wait_close()?;
-        if channel.exit_status()? != 0 {
-            bail!("Remote process '{0}' terminated; \
-                   process outputs can be found at remote side {0}.{{out/err}}",
-                  self.name)
-        }
-        Ok(())
-    }
-
-    pub fn remove_file(&self, path: &Path) -> Result<bool> {
-        let mut channel = self.session.channel_session()?;
-        channel.exec(&format!("rm {:?}", path))?;
-        channel.wait_eof()?;
-        channel.wait_close()?;
-        Ok(channel.exit_status()? == 0)
     }
 
     pub fn check_ready(&mut self) -> Result<bool> {
-        self.check_still_running()?;
-
-        match self.readiness {
-            Readiness::IsReady => return Ok(true),
+        let mut shell_cmd = format!("ps -p {pid} > /dev/null || (echo 'Not running'; exit 1)\n", pid=self.pid);
+        let is_ready = match self.readiness {
+            Readiness::IsReady => true,
             Readiness::WaitingForReadyFile(ref path) => {
-                if !self.remove_file(path)? {
-                    return Ok(false);
-                }
+                shell_cmd += &format!("rm {:?} && echo 'Ready' && exit 0\n", path);
+                false
             }
-        }
-        info!("Process '{}' is ready", self.name);
-        self.readiness = Readiness::IsReady;
-        Ok(true)
+        };
+        shell_cmd += "echo 'Ok'";
+
+        let (stdout, stderr) = self.run_ssh(&shell_cmd)?;
+        Ok(match stdout.trim() {
+            "Ok" => is_ready,
+            "Ready" => {
+                info!("Remote process {} is ready", self.name);
+                self.readiness = Readiness::IsReady;
+                true
+            },
+            "Not Running" => bail!("Remote process {} is not running", self.name),
+            output => bail!("Unexpected output from remote process {}: {}", self.name, output)
+        })
     }
 
     pub fn kill(&mut self) -> Result<()> {
-        let mut channel = self.session.channel_session()?;
-        channel.exec(&format!("pkill -P {}", self.pid))?;
-        channel.wait_eof()?;
-        channel.wait_close()?;
-
-        if let Readiness::WaitingForReadyFile(ref path) = self.readiness {
-            self.remove_file(path)?; // we do care about return value
-        }
+        let shell_cmd = match self.readiness {
+            Readiness::IsReady => format!("pkill -P {pid}; exit 0", pid=self.pid),
+            Readiness::WaitingForReadyFile(ref path) =>
+                format!("pkill -P {pid}; rm -f {ready_file:?}; exit 0", pid=self.pid, ready_file=path)
+        };
+        self.run_ssh(&shell_cmd)?;
         Ok(())
     }
-
 }
