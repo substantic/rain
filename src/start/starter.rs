@@ -13,16 +13,48 @@ use std::io::BufRead;
 use std::fs::File;
 
 
-/// Starts server & workers
-pub struct Starter {
+pub struct StarterConfig {
     /// Number of local worker that will be spawned
-    n_local_workers: u32,
+    pub n_local_workers: u32,
 
     /// Listening address of server
-    server_listen_address: SocketAddr,
+    pub server_listen_address: SocketAddr,
 
     /// Directory where logs are stored (absolute path)
-    log_dir: PathBuf,
+    pub log_dir: PathBuf,
+
+    pub worker_host_file: Option<PathBuf>
+}
+
+impl StarterConfig {
+    pub fn new(local_workers: u32, server_listen_address: SocketAddr, log_dir: &Path) -> Self {
+        Self {
+            n_local_workers: local_workers,
+            server_listen_address,
+            log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
+            worker_host_file: None
+        }
+    }
+
+    pub fn autoconf_pbs(&mut self) -> Result<()> {
+        info!("Configuring PBS environment");
+        if self.worker_host_file.is_some() {
+            bail!("Options --autoconf=pbs and --worker_host_file are not compatible");
+        }
+        let nodefile = ::std::env::var("PBS_NODEFILE");
+        match nodefile {
+            Err(e) => bail!("Variable PBS_NODEFILE not defined, are you running inside PBS?"),
+            Ok(path) => self.worker_host_file = Some(PathBuf::from(path))
+        }
+        Ok(())
+    }
+}
+
+/// Starts server & workers
+pub struct Starter {
+
+    /// Configuration of starter
+    config: StarterConfig,
 
     /// Spawned and running processes
     processes: Vec<Process>,
@@ -47,11 +79,9 @@ fn read_host_file(path: &Path) -> Result<Vec<String>> {
 }
 
 impl Starter {
-    pub fn new(local_workers: u32, server_listen_address: SocketAddr, log_dir: &Path) -> Self {
+    pub fn new(config: StarterConfig) -> Self {
         Self {
-            n_local_workers: local_workers,
-            server_listen_address,
-            log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
+            config: config,
             processes: Vec::new(),
             remote_processes: Vec::new(),
         }
@@ -62,23 +92,26 @@ impl Starter {
     }
 
     /// Main method of starter that launch everything
-    pub fn start(&mut self,
-                worker_host_file: Option<&Path>) -> Result<()> {
+    pub fn start(&mut self) -> Result<()> {
 
-        let worker_hosts = if let Some(ref path) = worker_host_file {
+        if self.config.n_local_workers != 0 && self.config.worker_host_file.is_some() {
+            bail!("Cannot combine remote & local workers");
+        }
+
+        let worker_hosts = if let Some(ref path) = self.config.worker_host_file {
             read_host_file(path)?
         } else {
             Vec::new()
         };
 
-        if self.n_local_workers == 0 && worker_hosts.is_empty() {
+        if self.config.n_local_workers == 0 && worker_hosts.is_empty() {
             bail!("No workers are specified.");
         }
 
         self.start_server()?;
         self.busy_wait_for_ready()?;
 
-        if self.n_local_workers > 0 {
+        if self.config.n_local_workers > 0 {
             self.start_local_workers()?;
         }
         if !worker_hosts.is_empty() {
@@ -100,7 +133,7 @@ impl Starter {
         command: &mut Command,
     ) -> Result<&Process> {
         self.processes.push(Process::spawn(
-            &self.log_dir,
+            &self.config.log_dir,
             name,
             Readiness::WaitingForReadyFile(ready_file.to_path_buf()),
             command,
@@ -116,7 +149,7 @@ impl Starter {
     fn start_server(&mut self) -> Result<()> {
         let ready_file = self.create_tmp_filename("server-ready");
         let rain = self.local_rain_program();
-        let server_address = format!("{}", self.server_listen_address);
+        let server_address = format!("{}", self.config.server_listen_address);
         info!("Starting local server ({})", server_address);
         let process = self.spawn_process(
             "server",
@@ -140,7 +173,7 @@ impl Starter {
         let server_address = self.server_address();
 
         for (i, host) in worker_hosts.iter().enumerate() {
-            info!("Connecting to {} (remote log dir: {:?})", host, self.log_dir);
+            info!("Connecting to {} (remote log dir: {:?})", host, self.config.log_dir);
             let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
             let name = format!("worker-{}", i);
             let mut process = RemoteProcess::new(
@@ -148,7 +181,7 @@ impl Starter {
             let command = format!(
                 "{rain} worker {server_address} --ready_file {ready_file:?}",
                 rain=rain, server_address=server_address, ready_file=ready_file);
-            process.start(&command, &dir, &self.log_dir)?;
+            process.start(&command, &dir, &self.config.log_dir)?;
             self.remote_processes.push(process);
         }
         Ok(())
@@ -156,17 +189,17 @@ impl Starter {
 
     fn server_address(&self) -> String {
         let mut buf = [0u8; 256];
-        gethostname(&mut buf).unwrap();
+        let result : &str = gethostname(&mut buf).unwrap().to_str().unwrap();
         format!("{}:{}",
-                ::std::str::from_utf8(&buf).unwrap(),
-                self.server_listen_address.port())
+                result,
+                self.config.server_listen_address.port())
     }
 
     fn start_local_workers(&mut self) -> Result<()> {
-        info!("Starting {} local workers", self.n_local_workers);
+        info!("Starting {} local workers", self.config.n_local_workers);
         let server_address = self.server_address();
         let rain = self.local_rain_program();
-        for i in 0..self.n_local_workers {
+        for i in 0..self.config.n_local_workers {
             let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
             let process = self.spawn_process(
                 &format!("worker-{}", i),

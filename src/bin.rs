@@ -172,20 +172,32 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     } else {
         0u32
     };
-    let worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(|s| Path::new(s));
-
     let listen_address = parse_listen_arg(cmd_args, DEFAULT_SERVER_PORT);
     let log_dir = ::std::env::current_dir().unwrap();
 
     info!("Log directory: {}", log_dir.to_str().unwrap());
 
-    let mut starter = start::starter::Starter::new(local_workers, listen_address, &log_dir);
+    let mut config = start::starter::StarterConfig::new(local_workers, listen_address, &log_dir);
 
-    let result = (||{
-        starter.start(worker_host_file)
-    })();
+    config.worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(|s| PathBuf::from(s));
 
-    match result {
+    // Autoconf
+    match cmd_args.value_of("AUTOCONF") {
+        None => Ok(()),
+        Some("pbs") => config.autoconf_pbs(),
+        Some(name) => {
+            error!("Unknown autoconf environment '{}'", name);
+            exit(1)
+        }
+    }.map_err(|e| {
+        error!("Autoconf failed: {}", e.description());
+        exit(1);
+    }).unwrap();
+
+    // Ignite starter
+    let mut starter = start::starter::Starter::new(config);
+
+    match starter.start() {
         Ok(()) => info!("Rain is started."),
         Err(e) => {
             error!("{}", e.description());
@@ -229,9 +241,10 @@ fn main() {
         (@subcommand run =>
             (about: "Start server and workers")
             (@arg LOCAL_WORKERS: --local_workers +takes_value "Number of local workers (default = 0)")
-            (@arg WORKER_HOST_FILE: --worker_host_file +takes_value "Path to file that contains contains name of computers where workers are executed")
+            (@arg AUTOCONF: --autoconf +takes_value "Automatic configuration (possible values: pbs)")
+            (@arg WORKER_HOST_FILE: --worker_host_file +takes_value "Path to file with hostnames of workers")
             (@arg WORK_DIR: --workdir +takes_value "Working directory (default = /tmp)")
-            (@arg LISTEN_ADDRESS: --listen +takes_value "Server listening address (same as --listen in 'server' command)")
+            (@arg LISTEN_ADDRESS: --listen +takes_value "Server listening address")
             )
         ).get_matches();
 
