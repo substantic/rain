@@ -105,7 +105,7 @@ struct Task {
 
     additionals @5: Additionals;
 
-    nCpus @6: Int32;
+    resources @6: Resources;
     # Number of request CPUs; will be replaced by more sophisticated
     # resource requests
 

@@ -3,14 +3,16 @@ from .session import get_active_session
 from .data import Blob, to_data
 from .common import RainException
 from .table import Table
+from ..common.resources import cpu_1
 
 
 class Task:
+
     # State of object
     # None = Not submitted
     state = None
     id = None
-    n_cpus = 1
+    resources = cpu_1
 
     def __init__(self,
                  task_type,
@@ -84,7 +86,7 @@ class Task:
         if self.task_config:  # We need this since, task_config may be None
             out.taskConfig = self.task_config
 
-        out.nCpus = self.n_cpus
+        self.resources.to_capnp(out.resources)
         out.taskType = self.task_type
 
     def wait(self):

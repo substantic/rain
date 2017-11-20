@@ -10,6 +10,7 @@ use std::rc::Rc;
 use std::hash::{Hash, Hasher};
 use worker::data::Data;
 use common::wrapped::WrappedRcRefCell;
+use common::resources::Resources;
 use std::fmt;
 
 use errors::Result;
@@ -54,6 +55,8 @@ pub struct Task {
     pub (in super::super) task_type: String,
     pub (in super::super) task_config: Vec<u8>,
 
+    pub (in super::super) resources: Resources,
+
     pub (in super::super) new_additionals: Additionals
 }
 
@@ -95,7 +98,6 @@ impl Task {
         Ok(())
     }
 
-
     pub fn output(&self, index: usize) -> DataObjectRef {
         self.outputs.get(index).unwrap().clone()
     }
@@ -117,6 +119,7 @@ impl TaskRef {
         id: TaskId,
         inputs: Vec<TaskInput>,
         outputs: Vec<DataObjectRef>,
+        resources: Resources,
         task_type: String,
         task_config: Vec<u8>,
     ) -> Self {
@@ -136,6 +139,7 @@ impl TaskRef {
             task_type,
             task_config,
             state: TaskState::Assigned,
+            resources: resources,
             new_additionals: Additionals::new(),
         });
 

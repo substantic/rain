@@ -9,6 +9,7 @@ using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
 using import "common.capnp".DataObjectType;
 using import "common.capnp".UnitResult;
+using import "common.capnp".Resources;
 using import "datastore.capnp".DataStore;
 
 struct WorkerInfo {
@@ -97,9 +98,7 @@ struct Task {
     taskConfig @4 :Data;
     additionals @5 :Additionals;
 
-    nCpus @6 :Int32;
-    # Number of request CPUs; will be replaced by more sophisticated
-    # resource requests
+    resources @6 :Resources;
 
     struct InDataObject {
         id @0 :DataObjectId;

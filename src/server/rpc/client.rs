@@ -4,6 +4,7 @@ use std::iter::FromIterator;
 use std::collections::HashSet;
 use futures::{Future, future};
 
+use common::resources::Resources;
 use common::id::{DataObjectId, TaskId, SessionId, SId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
@@ -127,6 +128,7 @@ impl client_service::Server for ClientServiceImpl {
                 let id = TaskId::from_capnp(&ct.get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
                 let additionals = Additionals::new(); // TODO: decode additional
+                let resources = Resources::from_capnp(&ct.get_resources().unwrap());
                 let mut inputs = Vec::<TaskInput>::new();
                 for ci in ct.get_inputs()?.iter() {
                     inputs.push(TaskInput {
@@ -139,9 +141,10 @@ impl client_service::Server for ClientServiceImpl {
                 for co in ct.get_outputs()?.iter() {
                     outputs.push(s.object_by_id(DataObjectId::from_capnp(&co))?);
                 }
-                let t = s.add_task(&session, id, inputs, outputs,
-                                   ct.get_task_type()?.to_string(), ct.get_task_config()?.into(),
-                                   additionals)?;
+                let t = s.add_task(
+                    &session, id, inputs, outputs,
+                    ct.get_task_type()?.to_string(), ct.get_task_config()?.into(),
+                                   additionals, resources)?;
                 created_tasks.push(t);
             }
             debug!("New tasks: {:?}", created_tasks);

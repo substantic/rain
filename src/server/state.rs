@@ -222,11 +222,14 @@ impl State {
         outputs: Vec<DataObjectRef>,
         task_type: String,
         task_config: Vec<u8>,
-        additionals: Additionals,) -> Result<TaskRef> {
+        additionals: Additionals,
+        resources: Resources,
+    ) -> Result<TaskRef> {
         if self.graph.tasks.contains_key(&id) {
             bail!("Task {} already in the graph", id);
         }
-        let tref = TaskRef::new(session, id, inputs, outputs, task_type, task_config, additionals)?;
+        let tref = TaskRef::new(
+            session, id, inputs, outputs, task_type, task_config, additionals, resources)?;
         // add to graph
         self.graph.tasks.insert(tref.get_id(), tref.clone());
         // add to scheduler updates

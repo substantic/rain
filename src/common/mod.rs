@@ -14,6 +14,7 @@ use futures::unsync::oneshot;
 
 pub type RcSet<T> = HashSet<T>;
 pub use self::additional::Additionals;
+pub use self::resources::Resources;
 
 pub mod monitoring;
 

@@ -1,6 +1,7 @@
 
 use std::sync::Arc;
 
+use common::Resources;
 use common::RcSet;
 use common::keeppolicy;
 use common::convert::{ToCapnp, FromCapnp};
@@ -125,6 +126,7 @@ impl worker_control::Server for WorkerControlImpl {
             let id = TaskId::from_capnp(&ct.get_id().unwrap());
             let task_type = ct.get_task_type().unwrap();
             let task_config = ct.get_task_config().unwrap();
+            let resources = Resources::from_capnp(&ct.get_resources().unwrap());
 
             let inputs: Vec<_> = ct.get_inputs().unwrap().iter().map(|ci| {
                 TaskInput {
@@ -137,7 +139,8 @@ impl worker_control::Server for WorkerControlImpl {
             let outputs: Vec<_> = ct.get_outputs().unwrap().iter().map(|co| {
                 state.object_by_id(DataObjectId::from_capnp(&co)).unwrap()
             }).collect();
-            let task = state.add_task(id, inputs, outputs, task_type.into(), task_config.into());
+            let task = state.add_task(
+                id, inputs, outputs, resources, task_type.into(), task_config.into());
 
             debug!("Received Task {:?}", task.get());
         }

@@ -1,6 +1,7 @@
 use futures::unsync::oneshot;
 use std::fmt;
 
+use common::resources::Resources;
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::{RcSet, Additionals, FinishHook, ConsistencyCheck};
@@ -60,6 +61,9 @@ pub struct Task {
 
     /// Additional attributes
     pub(in super::super) additionals: Additionals,
+
+    /// Additional attributes
+    pub(in super::super) resources: Resources,
 }
 
 pub type TaskRef = WrappedRcRefCell<Task>;
@@ -86,10 +90,11 @@ impl Task {
             }
         }
 
+        self.resources.to_capnp(&mut builder.borrow().get_resources().unwrap());
+
         builder.set_task_type(&self.task_type);
         builder.set_task_config(&self.task_config);
 
-        // TODO: Resources
         // TODO: Additionals
     }
 
@@ -145,6 +150,7 @@ impl TaskRef {
         task_type: String,
         task_config: Vec<u8>,
         additionals: Additionals,
+        resources: Resources,
     ) -> Result<Self> {
         assert_eq!(id.get_session_id(), session.get_id());
         let mut waiting = RcSet::new();
@@ -208,6 +214,7 @@ impl TaskRef {
             task_config: task_config,
             finish_hooks: Default::default(),
             additionals: additionals,
+            resources: resources,
         });
         {
             // add to session

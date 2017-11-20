@@ -127,12 +127,14 @@ impl State {
                     id: TaskId,
                     inputs: Vec<TaskInput>,
                     outputs: Vec<DataObjectRef>,
+                    resources: Resources,
                     procedure_key: String,
                     procedure_config: Vec<u8>) -> TaskRef {
         let task = TaskRef::new(&mut self.graph,
                                 id,
                                 inputs,
                                 outputs,
+                                resources,
                                 procedure_key,
                                 procedure_config);
         if task.get().is_ready() {
