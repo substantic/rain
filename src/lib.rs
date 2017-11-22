@@ -23,7 +23,6 @@ extern crate tempdir;
 extern crate memmap;
 extern crate sysconf;
 extern crate sys_info;
-extern crate ssh2;
 extern crate hyper;
 extern crate rusqlite;
 #[macro_use]

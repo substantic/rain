@@ -763,13 +763,12 @@ impl State {
                     });
                     self.underload_workers.insert(worker.clone());
 
-                    let mut t = tref.get_mut();
-                    t.state = state;
-                    t.additionals = additionals;
-                    let session = t.session.clone();
-                    let error_message = format!("Task {} failed: {}", t.id, error_message);
+                    tref.get_mut().state = state;
+                    tref.get_mut().additionals = additionals;
+                    let session = tref.get().session.clone();
+                    let error_message = format!("Task {} failed: {}", tref.get().id, error_message);
                     self.fail_session(&session, error_message.clone()).unwrap();
-                    self.logger.add_task_failed_event(t.id, worker.get_id(), error_message);
+                    self.logger.add_task_failed_event(tref.get().id, worker.get_id(), error_message);
                 }
                 _  => panic!("Invalid worker {:?} task {:?} state update to {:?}", worker,
                              *tref.get(), state)
