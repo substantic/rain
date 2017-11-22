@@ -13,7 +13,7 @@ enum Value {
 #[derive(Default, Debug)]
 pub struct Additionals {
     // TODO: Int & Float types
-    items: HashMap<String, Value>
+    items: HashMap<String, Value>,
 }
 
 impl Additionals {
@@ -71,26 +71,37 @@ impl Additionals {
     pub fn get_string(&self, key: &str) -> Option<String> {
         match self.items.get(key) {
             Some(&Value::Str(ref s)) => Some(s.clone()),
-            _ => None
+            _ => None,
         }
     }
 
     fn value_from_capnp(reader: &::common_capnp::additionals::item::value::Reader) -> Value {
         match reader.which().unwrap() {
-            ::common_capnp::additionals::item::value::Str(value) => Value::Str(value.unwrap().to_string()),
+            ::common_capnp::additionals::item::value::Str(value) => Value::Str(
+                value.unwrap().to_string(),
+            ),
             ::common_capnp::additionals::item::value::Int(value) => Value::Int(value),
             ::common_capnp::additionals::item::value::Float(value) => Value::Float(value),
             ::common_capnp::additionals::item::value::Bool(value) => Value::Bool(value),
-            ::common_capnp::additionals::item::value::Data(value) => Value::Data(value.unwrap().to_vec()),
+            ::common_capnp::additionals::item::value::Data(value) => Value::Data(
+                value.unwrap().to_vec(),
+            ),
         }
     }
 
-    pub fn from_capnp(reader: & ::common_capnp::additionals::Reader) -> Self {
+    pub fn from_capnp(reader: &::common_capnp::additionals::Reader) -> Self {
         Additionals {
-            items: reader.get_items().unwrap().iter()
-                .map(|r|
-                    (r.get_key().unwrap().to_string(), Additionals::value_from_capnp(&r.get_value())))
-                .collect()
+            items: reader
+                .get_items()
+                .unwrap()
+                .iter()
+                .map(|r| {
+                    (
+                        r.get_key().unwrap().to_string(),
+                        Additionals::value_from_capnp(&r.get_value()),
+                    )
+                })
+                .collect(),
         }
     }
 }

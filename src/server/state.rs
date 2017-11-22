@@ -1,4 +1,4 @@
-use std::net::{SocketAddr};
+use std::net::SocketAddr;
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -13,9 +13,8 @@ use errors::Result;
 use common::RcSet;
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
 use common::rpc::new_rpc_system;
-use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef,
-                    ClientRef, DataObjectState, DataObjectType, TaskState, TaskInput,
-                    SessionError};
+use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef, ClientRef,
+                    DataObjectState, DataObjectType, TaskState, TaskInput, SessionError};
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{Scheduler, RandomScheduler, UpdatedIn, UpdatedOut};
 use common::convert::ToCapnp;
@@ -55,16 +54,17 @@ pub struct State {
 
     pub logger: Box<Logger>,
 
-    timer: tokio_timer::Timer
+    timer: tokio_timer::Timer,
 }
 
 impl State {
-
     /// Add new worker, register it in the graph
-    pub fn add_worker(&mut self,
-                      address: SocketAddr,
-                      control: Option<::worker_capnp::worker_control::Client>,
-                      resources: Resources) -> Result<WorkerRef> {
+    pub fn add_worker(
+        &mut self,
+        address: SocketAddr,
+        control: Option<::worker_capnp::worker_control::Client>,
+        resources: Resources,
+    ) -> Result<WorkerRef> {
         debug!("New worker {}", address);
         if self.graph.workers.contains_key(&address) {
             bail!("State already contains worker {}", address);
@@ -111,7 +111,10 @@ impl State {
         assert!(worker.get_mut().error.is_none());
         worker.get_mut().error = Some(cause.clone());
         // TODO: Cleanup and recovery if possible
-        self.logger.add_worker_failed_event(worker.get_id(), cause.clone());
+        self.logger.add_worker_failed_event(
+            worker.get_id(),
+            cause.clone(),
+        );
         panic!("Worker {} error: {:?}", worker.get_id(), cause);
     }
 
@@ -129,13 +132,23 @@ impl State {
 
     /// Remove Client and its (owned) sessions. Called on client disconnect,
     /// so assume the client is inaccesible.
-    pub fn remove_client(&mut self, client: &ClientRef)  -> Result<()> {
+    pub fn remove_client(&mut self, client: &ClientRef) -> Result<()> {
         // remove owned sessions
-        let sessions = client.get().sessions.iter().map(|x| x.clone()).collect::<Vec<_>>();
-        for s in sessions { self.remove_session(&s)?; }
+        let sessions = client
+            .get()
+            .sessions
+            .iter()
+            .map(|x| x.clone())
+            .collect::<Vec<_>>();
+        for s in sessions {
+            self.remove_session(&s)?;
+        }
         // remove from graph
         self.graph.clients.remove(&client.get_id()).unwrap();
-        self.logger.add_removed_client_event(client.get_id(), String::from("client disconnected"));
+        self.logger.add_removed_client_event(
+            client.get_id(),
+            String::from("client disconnected"),
+        );
         Ok(())
     }
 
@@ -168,8 +181,11 @@ impl State {
     /// Remove a session and all the tasks and objects, both from the graph and from the workers,
     /// cancel all the finish hooks.
     pub fn remove_session(&mut self, session: &SessionRef) -> Result<()> {
-        debug!("Removing session {} of client {}", session.get_id(),
-               session.get().client.get_id());
+        debug!(
+            "Removing session {} of client {}",
+            session.get_id(),
+            session.get().client.get_id()
+        );
         // remove children objects
         self.clear_session(session)?;
         // remove from graph
@@ -182,8 +198,12 @@ impl State {
     /// Put the session into a failed state, removing all tasks and objects,
     /// cancelling all finish_hooks.
     pub fn fail_session(&mut self, session: &SessionRef, cause: String) -> Result<()> {
-        debug!("Failing session {} of client {} with cause {:?}", session.get_id(),
-               session.get().client.get_id(), cause);
+        debug!(
+            "Failing session {} of client {} with cause {:?}",
+            session.get_id(),
+            session.get().client.get_id(),
+            cause
+        );
         assert!(session.get_mut().error.is_none());
         session.get_mut().error = Some(SessionError::new(cause));
         // Remove all tasks + objects (with their finish hooks)
@@ -191,19 +211,28 @@ impl State {
     }
 
     /// Add a new object, register it in the graph and the session.
-    pub fn add_object(&mut self,
-               session: &SessionRef,
-               id: DataObjectId,
-               object_type: DataObjectType,
-               client_keep: bool,
-               label: String,
-               data: Option<Vec<u8>>,
-               additionals: Additionals) -> Result<DataObjectRef> {
+    pub fn add_object(
+        &mut self,
+        session: &SessionRef,
+        id: DataObjectId,
+        object_type: DataObjectType,
+        client_keep: bool,
+        label: String,
+        data: Option<Vec<u8>>,
+        additionals: Additionals,
+    ) -> Result<DataObjectRef> {
         if self.graph.objects.contains_key(&id) {
             bail!("State already contains object with id {}", id);
         }
-        let oref = DataObjectRef::new(session, id, object_type, client_keep,
-                                   label, data, additionals);
+        let oref = DataObjectRef::new(
+            session,
+            id,
+            object_type,
+            client_keep,
+            label,
+            data,
+            additionals,
+        );
         // add to graph
         self.graph.objects.insert(oref.get_id(), oref.clone());
         // add to updated objects
@@ -230,7 +259,8 @@ impl State {
 
     /// Add the task to the graph, checking consistency with adjacent objects.
     /// All the inputs+outputs must already be present.
-    pub fn add_task(&mut self,
+    pub fn add_task(
+        &mut self,
         session: &SessionRef,
         id: TaskId,
         inputs: Vec<TaskInput>,
@@ -244,7 +274,15 @@ impl State {
             bail!("Task {} already in the graph", id);
         }
         let tref = TaskRef::new(
-            session, id, inputs, outputs, task_type, task_config, additionals, resources)?;
+            session,
+            id,
+            inputs,
+            outputs,
+            task_type,
+            task_config,
+            additionals,
+            resources,
+        )?;
         // add to graph
         self.graph.tasks.insert(tref.get_id(), tref.clone());
         // add to scheduler updates
@@ -270,7 +308,7 @@ impl State {
         Ok(())
     }
 
-    pub fn worker_by_id(&self, id: WorkerId) -> Result  <WorkerRef> {
+    pub fn worker_by_id(&self, id: WorkerId) -> Result<WorkerRef> {
         match self.graph.workers.get(&id) {
             Some(w) => Ok(w.clone()),
             None => Err(format!("Worker {:?} not found", id))?,
@@ -309,7 +347,7 @@ impl State {
                     return Err(obj.session.get().get_error().clone().unwrap().into());
                 }
                 Ok(o.clone())
-            },
+            }
             None => {
                 let session = self.session_by_id(id.get_session_id())?;
                 if session.get().is_failed() {
@@ -339,7 +377,7 @@ impl State {
                     return Err(task.session.get().get_error().clone().unwrap().into());
                 }
                 Ok(t.clone())
-            },
+            }
             None => {
                 let session = self.session_by_id(id.get_session_id())?;
                 if session.get().is_failed() {
@@ -359,9 +397,12 @@ impl State {
         for oref in objects.iter() {
             let o = oref.get();
             if o.producer.is_some() && o.data.is_some() {
-                bail!("Object {} submitted with both producer task {} and data of size {}",
-                    o.id, o.producer.as_ref().unwrap().get_id(),
-                    o.data.as_ref().unwrap().len());
+                bail!(
+                    "Object {} submitted with both producer task {} and data of size {}",
+                    o.id,
+                    o.producer.as_ref().unwrap().get_id(),
+                    o.data.as_ref().unwrap().len()
+                );
             }
             if o.producer.is_none() && o.data.is_none() {
                 bail!("Object {} submitted with neither producer nor data.", o.id);
@@ -396,7 +437,9 @@ impl State {
             let mut co = &mut new_objects.borrow().get(0);
             let o = object.get();
             o.to_worker_capnp(&mut co);
-            let placement = o.located.iter().next()
+            let placement = o.located
+                .iter()
+                .next()
                 .map(|w| w.get().id().clone())
                 .unwrap_or_else(|| {
                     // If there is no placement, then server is the source of datobject
@@ -407,10 +450,11 @@ impl State {
             co.set_assigned(true);
         }
 
-        self.handle.spawn(req
-            .send().promise
-            .map(|_| ())
-            .map_err(|e| panic!("[assign_object] Send failed {:?}", e)));
+        self.handle.spawn(
+            req.send().promise.map(|_| ()).map_err(|e| {
+                panic!("[assign_object] Send failed {:?}", e)
+            }),
+        );
 
         object.get_mut().assigned.insert(wref.clone());
         wref.get_mut().assigned_objects.insert(object.clone());
@@ -436,7 +480,11 @@ impl State {
         wref.check_consistency_opt().unwrap(); // non-recoverable
 
         // Create request
-        let mut req = wref.get().control.as_ref().unwrap().unassign_objects_request();
+        let mut req = wref.get()
+            .control
+            .as_ref()
+            .unwrap()
+            .unassign_objects_request();
         {
             let mut objects = req.get().init_objects(1);
             let co = &mut objects.borrow().get(0);
@@ -446,11 +494,16 @@ impl State {
         {
             let o2 = object.clone();
             let w2 = wref.clone();
-            self.handle.spawn(req
-                .send().promise
-                .map(|_| ())
-                .map_err(move |e| panic!("Sending unassign_object {:?} to {:?} failed {:?}",
-                                    o2, w2, e)));
+            self.handle.spawn(req.send().promise.map(|_| ()).map_err(
+                move |e| {
+                    panic!(
+                        "Sending unassign_object {:?} to {:?} failed {:?}",
+                        o2,
+                        w2,
+                        e
+                    )
+                },
+            ));
         }
 
         object.get_mut().assigned.remove(wref);
@@ -494,7 +547,9 @@ impl State {
                 let o = input.object.get_mut();
                 if !o.assigned.contains(&wref) {
                     // Just take first placement
-                    let placement = o.located.iter().next()
+                    let placement = o.located
+                        .iter()
+                        .next()
                         .map(|w| w.get().id().clone())
                         .unwrap_or_else(|| {
                             // If there is no placement, then server is the source of datobject
@@ -516,8 +571,7 @@ impl State {
 
             // Serialize objects
             {
-                let mut new_objects = req.get()
-                    .init_new_objects(objects.len() as u32);
+                let mut new_objects = req.get().init_new_objects(objects.len() as u32);
                 for (i, &(ref object, placement)) in objects.iter().enumerate() {
                     let mut co = &mut new_objects.borrow().get(i as u32);
                     placement.to_capnp(&mut co.borrow().get_placement().unwrap());
@@ -534,10 +588,11 @@ impl State {
                 t.to_worker_capnp(&mut new_tasks.get(0));
             }
 
-            self.handle.spawn(req
-                .send().promise
-                .map(|_| ())
-                .map_err(|e| panic!("[assign_task] Send failed {:?}", e)));
+            self.handle.spawn(
+                req.send().promise.map(|_| ()).map_err(|e| {
+                    panic!("[assign_task] Send failed {:?}", e)
+                }),
+            );
 
             wref.get_mut().assigned_tasks.insert(task.clone());
             wref.get_mut().scheduled_ready_tasks.remove(task);
@@ -570,17 +625,23 @@ impl State {
             task.get_id().to_capnp(ct);
         }
 
-        self.handle.spawn(req
-            .send().promise
-            .map(|_| ())
-            .map_err(|e| panic!("[unassign_task] Send failed {:?}", e)));
+        self.handle.spawn(
+            req.send().promise.map(|_| ()).map_err(|e| {
+                panic!("[unassign_task] Send failed {:?}", e)
+            }),
+        );
 
         task.get_mut().assigned = None;
         task.get_mut().state = TaskState::Ready;
         wref.get_mut().assigned_tasks.remove(task);
         self.update_task_assignment(task);
 
-        for oref in task.get().outputs.iter().map(|x| x.clone()).collect::<Vec<_>>() {
+        for oref in task.get()
+            .outputs
+            .iter()
+            .map(|x| x.clone())
+            .collect::<Vec<_>>()
+        {
             self.unassign_object(&oref, &wref);
         }
 
@@ -667,20 +728,23 @@ impl State {
                 if let Some(ref wref) = worker {
                     if wref.get().scheduled_objects.contains(oref) {
                         if !wref.get().assigned_objects.contains(oref) &&
-                            oref.get().state == DataObjectState::Finished {
+                            oref.get().state == DataObjectState::Finished
+                        {
                             self.assign_object(oref, wref);
                         }
                     } else {
                         if wref.get().assigned_objects.contains(oref) &&
                             (!oref.get().is_needed() || oref.get().located.len() > 2 ||
-                                !oref.get().located.contains(wref)) {
+                                 !oref.get().located.contains(wref))
+                        {
                             self.unassign_object(oref, wref);
                         }
                     }
                 }
                 // Note that the object may be already Removed here
-                if oref.get().scheduled.is_empty()
-                    && oref.get().state == DataObjectState::Finished {
+                if oref.get().scheduled.is_empty() &&
+                    oref.get().state == DataObjectState::Finished
+                {
                     if !oref.get().is_needed() {
                         let assigned = oref.get().assigned.clone();
                         for wa in assigned {
@@ -691,25 +755,32 @@ impl State {
                 } else {
                     if oref.get().located.len() > oref.get().scheduled.len() {
                         for wa in oref.get().located.clone() {
-                            if !oref.get().scheduled.contains(&wa)
-                                && oref.get().located.len() >= 2 {
+                            if !oref.get().scheduled.contains(&wa) &&
+                                oref.get().located.len() >= 2
+                            {
                                 self.unassign_object(oref, &wa);
                             }
                         }
                     }
                 }
-            },
+            }
         }
         oref.check_consistency_opt().unwrap(); // unrecoverable
     }
 
     /// Process state updates from one Worker.
-    pub fn updates_from_worker(&mut self,
-                              worker: &WorkerRef,
-                              obj_updates: Vec<(DataObjectRef, DataObjectState, usize, Additionals)>,
-                              task_updates: Vec<(TaskRef, TaskState, Additionals)>) {
-        debug!("Update states for {:?}, objs: {}, tasks: {}", worker,
-               obj_updates.len(), task_updates.len());
+    pub fn updates_from_worker(
+        &mut self,
+        worker: &WorkerRef,
+        obj_updates: Vec<(DataObjectRef, DataObjectState, usize, Additionals)>,
+        task_updates: Vec<(TaskRef, TaskState, Additionals)>,
+    ) {
+        debug!(
+            "Update states for {:?}, objs: {}, tasks: {}",
+            worker,
+            obj_updates.len(),
+            task_updates.len()
+        );
         worker.check_consistency_opt().unwrap(); // non-recoverable
 
         for (tref, state, additionals) in task_updates {
@@ -723,7 +794,10 @@ impl State {
                         t.session.get_mut().task_finished();
                         t.state = state;
                         t.additionals = additionals;
-                        t.additionals.set_str("worker", format!("{}", worker.get().id()));
+                        t.additionals.set_str(
+                            "worker",
+                            format!("{}", worker.get().id()),
+                        );
                         t.scheduled = None;
                         worker.get_mut().scheduled_tasks.remove(&tref);
                         t.assigned = None;
@@ -734,18 +808,18 @@ impl State {
                     self.update_task_assignment(&tref);
 
                     for input in &tref.get().inputs {
-                            // We check that need_by was really decreased to protect against
-                            // task that uses objects as more inputs
-                            let not_needed = {
-                                let mut o = input.object.get_mut();
-                                o.need_by.remove(&tref) && !o.is_needed()
-                            };
-                            if not_needed {
-                                self.purge_object(&input.object);
-                            }
+                        // We check that need_by was really decreased to protect against
+                        // task that uses objects as more inputs
+                        let not_needed = {
+                            let mut o = input.object.get_mut();
+                            o.need_by.remove(&tref) && !o.is_needed()
+                        };
+                        if not_needed {
+                            self.purge_object(&input.object);
+                        }
                     }
                     self.underload_workers.insert(worker.clone());
-                },
+                }
                 TaskState::Running => {
                     let mut t = tref.get_mut();
                     assert_eq!(t.state, TaskState::Assigned);
@@ -753,10 +827,14 @@ impl State {
                     t.additionals = additionals;
                     self.logger.add_task_started_event(t.id, worker.get_id());
 
-                },
+                }
                 TaskState::Failed => {
-                    debug!("Task {:?} failed on {:?} with additional {:?}", *tref.get(), worker,
-                           additionals);
+                    debug!(
+                        "Task {:?} failed on {:?} with additional {:?}",
+                        *tref.get(),
+                        worker,
+                        additionals
+                    );
                     let error_message = additionals.get_string("error").unwrap_or_else(|| {
                         warn!("Task failed with no error message");
                         "Task failed with no error message".to_string()
@@ -768,16 +846,29 @@ impl State {
                     let session = tref.get().session.clone();
                     let error_message = format!("Task {} failed: {}", tref.get().id, error_message);
                     self.fail_session(&session, error_message.clone()).unwrap();
-                    self.logger.add_task_failed_event(tref.get().id, worker.get_id(), error_message);
+                    self.logger.add_task_failed_event(
+                        tref.get().id,
+                        worker.get_id(),
+                        error_message,
+                    );
                 }
-                _  => panic!("Invalid worker {:?} task {:?} state update to {:?}", worker,
-                             *tref.get(), state)
+                _ => {
+                    panic!(
+                        "Invalid worker {:?} task {:?} state update to {:?}",
+                        worker,
+                        *tref.get(),
+                        state
+                    )
+                }
             }
         }
 
         for (oref, state, size, additionals) in obj_updates {
             // Inform the scheduler
-            self.updates.objects.entry(oref.clone()).or_insert(Default::default())
+            self.updates
+                .objects
+                .entry(oref.clone())
+                .or_insert(Default::default())
                 .insert(worker.clone());
             match state {
                 DataObjectState::Finished => {
@@ -792,7 +883,8 @@ impl State {
                     let cur_state = oref.get().state; // To satisfy the borrow checker
                     match cur_state {
                         DataObjectState::Unfinished => {
-                            { // capture `o`
+                            {
+                                // capture `o`
                                 let mut o = oref.get_mut();
                                 // first completion
                                 o.state = state;
@@ -806,20 +898,28 @@ impl State {
                                 self.update_task_assignment(&cref);
                             }
                             self.update_object_assignments(&oref, Some(worker));
-                        },
+                        }
                         DataObjectState::Finished => {
                             // cloning to some other worker done
                             self.update_object_assignments(&oref, Some(worker));
-                        },
+                        }
                         _ => {
-                            panic!("worker {:?} set object {:?} state to {:?}", worker,
-                                   *oref.get(), state);
+                            panic!(
+                                "worker {:?} set object {:?} state to {:?}",
+                                worker,
+                                *oref.get(),
+                                state
+                            );
                         }
                     }
-                },
+                }
                 _ => {
-                    panic!("worker {:?} set object {:?} state to {:?}", worker, *oref.get(),
-                        state);
+                    panic!(
+                        "worker {:?} set object {:?} state to {:?}",
+                        worker,
+                        *oref.get(),
+                        state
+                    );
                 }
             }
         }
@@ -837,9 +937,15 @@ impl State {
             //let mut w = wref.get_mut();
             // TODO: Customize the overbook limit
             while wref.get().assigned_tasks.len() < 128 &&
-                  !wref.get().scheduled_ready_tasks.is_empty() {
+                !wref.get().scheduled_ready_tasks.is_empty()
+            {
                 // TODO: Prioritize older members of w.scheduled_ready_tasks (order-preserving set)
-                let tref = wref.get().scheduled_ready_tasks.iter().next().unwrap().clone();
+                let tref = wref.get()
+                    .scheduled_ready_tasks
+                    .iter()
+                    .next()
+                    .unwrap()
+                    .clone();
                 assert!(tref.get().scheduled == Some(wref.clone()));
                 self.assign_task(&tref);
             }
@@ -899,7 +1005,6 @@ impl ConsistencyCheck for State {
 pub type StateRef = WrappedRcRefCell<State>;
 
 impl StateRef {
-
     pub fn new(handle: Handle, listen_address: SocketAddr) -> Self {
         let s = Self::wrap(State {
             graph: Default::default(),
@@ -915,7 +1020,7 @@ impl StateRef {
             timer: tokio_timer::wheel()
                 .tick_duration(Duration::from_millis(100))
                 .num_slots(256)
-                .build()
+                .build(),
         });
         s.get_mut().self_ref = Some(s.clone());
         s
@@ -996,9 +1101,9 @@ impl StateRef {
         ).from_server::<::capnp_rpc::Server>();
 
         let rpc_system = new_rpc_system(stream, Some(bootstrap.client));
-        self.get().handle.spawn(rpc_system.map_err(|e| {
-            panic!("RPC error: {:?}", e)
-        }));
+        self.get().handle.spawn(rpc_system.map_err(
+            |e| panic!("RPC error: {:?}", e),
+        ));
     }
 
     #[inline]

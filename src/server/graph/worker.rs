@@ -42,7 +42,7 @@ pub struct Worker {
     pub(in super::super) scheduled_objects: RcSet<DataObjectRef>,
 
     /// Control interface. Optional for testing and modelling.
-    pub (in super::super) control: Option<::worker_capnp::worker_control::Client>,
+    pub(in super::super) control: Option<::worker_capnp::worker_control::Client>,
 
     datastore: Option<AsyncInitWrapper<::datastore_capnp::data_store::Client>>,
 
@@ -54,7 +54,6 @@ pub struct Worker {
 pub type WorkerRef = WrappedRcRefCell<Worker>;
 
 impl Worker {
-
     #[inline]
     pub fn id(&self) -> &WorkerId {
         &self.id
@@ -63,13 +62,16 @@ impl Worker {
     /// Get datastore of worker,
     /// First you have to call wait_for_datastore to make sure that
     /// datastore exists
-    pub fn get_datastore(&self) ->  &::datastore_capnp::data_store::Client {
+    pub fn get_datastore(&self) -> &::datastore_capnp::data_store::Client {
         self.datastore.as_ref().unwrap().get()
     }
 
     /// Create a future that completes when datastore is available
-    pub fn wait_for_datastore(&mut self, worker_ref: &WorkerRef,
-              handle: &::tokio_core::reactor::Handle) -> Box<Future<Item=(), Error=Error>> {
+    pub fn wait_for_datastore(
+        &mut self,
+        worker_ref: &WorkerRef,
+        handle: &::tokio_core::reactor::Handle,
+    ) -> Box<Future<Item = (), Error = Error>> {
         if let Some(ref mut store) = self.datastore {
             return store.wait();
         }
@@ -79,25 +81,29 @@ impl Worker {
         let worker_ref = worker_ref.clone();
         let handle = handle.clone();
 
-        Box::new(::tokio_core::net::TcpStream::connect(&self.id, &handle)
-            .map(move |stream| {
-                let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
-                let bootstrap: ::datastore_capnp::data_store::Client =
-                    rpc_system.bootstrap(::capnp_rpc::rpc_twoparty_capnp::Side::Server);
-                handle.spawn(rpc_system.map_err(|e| {
-                    panic!("Rpc system error: {:?}", e)
-                }));
-                worker_ref.get_mut().datastore.as_mut().unwrap().set_value(bootstrap);
-            }).map_err(|e| e.into()))
+        Box::new(
+            ::tokio_core::net::TcpStream::connect(&self.id, &handle)
+                .map(move |stream| {
+                    let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
+                    let bootstrap: ::datastore_capnp::data_store::Client =
+                        rpc_system.bootstrap(::capnp_rpc::rpc_twoparty_capnp::Side::Server);
+                    handle.spawn(rpc_system.map_err(|e| panic!("Rpc system error: {:?}", e)));
+                    worker_ref.get_mut().datastore.as_mut().unwrap().set_value(
+                        bootstrap,
+                    );
+                })
+                .map_err(|e| e.into()),
+        )
     }
-
 }
 
 
 impl WorkerRef {
-    pub fn new(address: SocketAddr,
-               control: Option<::worker_capnp::worker_control::Client>,
-               resources: Resources) -> Self {
+    pub fn new(
+        address: SocketAddr,
+        control: Option<::worker_capnp::worker_control::Client>,
+        resources: Resources,
+    ) -> Self {
         WorkerRef::wrap(Worker {
             id: address,
             assigned_tasks: Default::default(),
@@ -115,7 +121,9 @@ impl WorkerRef {
     }
 
     /// Return the object ID in graph.
-    pub fn get_id(&self) -> WorkerId { self.get().id }
+    pub fn get_id(&self) -> WorkerId {
+        self.get().id
+    }
 }
 
 impl ConsistencyCheck for WorkerRef {
@@ -151,7 +159,11 @@ impl ConsistencyCheck for WorkerRef {
         }
         for tref in s.scheduled_ready_tasks.iter() {
             if tref.get().scheduled != Some(self.clone()) {
-                bail!("scheduled_ready task ref {:?} inconsistency in {:?}", tref, s)
+                bail!(
+                    "scheduled_ready task ref {:?} inconsistency in {:?}",
+                    tref,
+                    s
+                )
             }
         }
         Ok(())

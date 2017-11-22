@@ -41,7 +41,6 @@ impl Drop for ServerBootstrapImpl {
 }
 
 impl server_bootstrap::Server for ServerBootstrapImpl {
-
     fn register_as_client(
         &mut self,
         params: server_bootstrap::RegisterAsClientParams,
@@ -105,7 +104,11 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             address
         };
 
-        info!("Connection {} registered as worker {}", self.address, worker_id);
+        info!(
+            "Connection {} registered as worker {}",
+            self.address,
+            worker_id
+        );
 
         let control = pry!(params.get_control());
         let state = self.state.clone();
@@ -121,8 +124,11 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             // 1) add worker
             // 2) create upstream
             // reason: upstream drop tries to remove worker
-            let worker = pry!(state.get_mut().add_worker(worker_id, Some(control),
-                              resources));
+            let worker = pry!(state.get_mut().add_worker(
+                worker_id,
+                Some(control),
+                resources,
+            ));
             let upstream = ::worker_capnp::worker_upstream::ToClient::new(
                 WorkerUpstreamImpl::new(&state, &worker),
             ).from_server::<::capnp_rpc::Server>();

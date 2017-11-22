@@ -5,15 +5,12 @@ use chrono::{DateTime, Utc};
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct NewWorkerEvent {
-    worker: WorkerId
-    // TODO: Resources
+    worker: WorkerId, // TODO: Resources
 }
 
 impl NewWorkerEvent {
     pub fn new(worker: WorkerId) -> Self {
-        NewWorkerEvent {
-            worker: worker
-        }
+        NewWorkerEvent { worker: worker }
     }
 }
 
@@ -21,14 +18,14 @@ impl NewWorkerEvent {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct RemovedWorkerEvent {
     worker: WorkerId,
-    error_msg: String
+    error_msg: String,
 }
 
 impl RemovedWorkerEvent {
     pub fn new(worker: WorkerId, error_msg: String) -> Self {
         RemovedWorkerEvent {
             worker: worker,
-            error_msg: error_msg
+            error_msg: error_msg,
         }
     }
 }
@@ -36,14 +33,12 @@ impl RemovedWorkerEvent {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct NewClientEvent {
-    client: ClientId
+    client: ClientId,
 }
 
 impl NewClientEvent {
     pub fn new(client: ClientId) -> Self {
-        NewClientEvent {
-            client: client
-        }
+        NewClientEvent { client: client }
     }
 }
 
@@ -52,14 +47,14 @@ impl NewClientEvent {
 pub struct RemovedClientEvent {
     client: ClientId,
     // If client is disconnected because of error, otherwise empty
-    error_msg: String
+    error_msg: String,
 }
 
 impl RemovedClientEvent {
     pub fn new(client: ClientId, error_msg: String) -> Self {
         RemovedClientEvent {
             client: client,
-            error_msg: error_msg
+            error_msg: error_msg,
         }
     }
 }
@@ -68,14 +63,14 @@ impl RemovedClientEvent {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ClientSubmitEvent {
     tasks: Vec<TaskId>,
-    dataobjs: Vec<DataObjectId>
+    dataobjs: Vec<DataObjectId>,
 }
 
 impl ClientSubmitEvent {
     pub fn new(tasks: Vec<TaskId>, dataobjs: Vec<DataObjectId>) -> Self {
         ClientSubmitEvent {
             tasks: tasks,
-            dataobjs: dataobjs
+            dataobjs: dataobjs,
         }
     }
 }
@@ -83,14 +78,12 @@ impl ClientSubmitEvent {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ClientUnkeepEvent {
-    dataobjs: Vec<DataObjectId>
+    dataobjs: Vec<DataObjectId>,
 }
 
 impl ClientUnkeepEvent {
     pub fn new(dataobjs: Vec<DataObjectId>) -> Self {
-        ClientUnkeepEvent {
-            dataobjs: dataobjs
-        }
+        ClientUnkeepEvent { dataobjs: dataobjs }
     }
 }
 
@@ -99,14 +92,14 @@ impl ClientUnkeepEvent {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TaskStartedEvent {
     task: TaskId,
-    worker: WorkerId
+    worker: WorkerId,
 }
 
 impl TaskStartedEvent {
     pub fn new(task: TaskId, worker: WorkerId) -> Self {
         TaskStartedEvent {
             task: task,
-            worker: worker
+            worker: worker,
         }
     }
 }
@@ -114,14 +107,12 @@ impl TaskStartedEvent {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TaskFinishedEvent {
-    task: TaskId
+    task: TaskId,
 }
 
 impl TaskFinishedEvent {
     pub fn new(task: TaskId) -> Self {
-        TaskFinishedEvent {
-            task: task
-        }
+        TaskFinishedEvent { task: task }
     }
 }
 
@@ -130,7 +121,7 @@ impl TaskFinishedEvent {
 pub struct DataObjectFinishedEvent {
     dataobject: DataObjectId,
     worker: WorkerId,
-    size: usize
+    size: usize,
 }
 
 impl DataObjectFinishedEvent {
@@ -138,7 +129,7 @@ impl DataObjectFinishedEvent {
         DataObjectFinishedEvent {
             dataobject: dataobject,
             worker: worker,
-            size: size
+            size: size,
         }
     }
 }
@@ -154,7 +145,7 @@ impl DataObjectRemovedEvent {
     pub fn new(dataobject: DataObjectId, worker: WorkerId) -> Self {
         DataObjectRemovedEvent {
             dataobject: dataobject,
-            worker: worker
+            worker: worker,
         }
     }
 }
@@ -163,14 +154,14 @@ impl DataObjectRemovedEvent {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkerMonitoringEvent {
     frame: Frame,
-    worker: WorkerId
+    worker: WorkerId,
 }
 
 impl WorkerMonitoringEvent {
     pub fn new(frame: Frame, worker: WorkerId) -> Self {
         WorkerMonitoringEvent {
             frame: frame,
-            worker: worker
+            worker: worker,
         }
     }
 }
@@ -180,7 +171,7 @@ impl WorkerMonitoringEvent {
 pub struct TaskFailedEvent {
     task: TaskId,
     worker: WorkerId,
-    error_msg: String
+    error_msg: String,
 }
 
 impl TaskFailedEvent {
@@ -188,7 +179,7 @@ impl TaskFailedEvent {
         TaskFailedEvent {
             task: task,
             worker: worker,
-            error_msg: error_msg
+            error_msg: error_msg,
         }
     }
 }
@@ -197,14 +188,14 @@ impl TaskFailedEvent {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkerFailedEvent {
     worker: WorkerId,
-    error_msg: String
+    error_msg: String,
 }
 
 impl WorkerFailedEvent {
     pub fn new(worker: WorkerId, error_msg: String) -> Self {
         WorkerFailedEvent {
             worker: worker,
-            error_msg: error_msg
+            error_msg: error_msg,
         }
     }
 }
@@ -213,14 +204,14 @@ impl WorkerFailedEvent {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ClientInvalidRequestEvent {
     client: ClientId,
-    error_msg: String
+    error_msg: String,
 }
 
 impl ClientInvalidRequestEvent {
     pub fn new(client: ClientId, error_msg: String) -> Self {
         ClientInvalidRequestEvent {
             client: client,
-            error_msg: error_msg
+            error_msg: error_msg,
         }
     }
 }
@@ -228,7 +219,6 @@ impl ClientInvalidRequestEvent {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum EventType {
-
     WorkerNew(NewWorkerEvent),
     WorkerRemoved(RemovedWorkerEvent),
 
@@ -250,14 +240,14 @@ pub enum EventType {
     WorkerFailed(WorkerFailedEvent),
     ClientInvalidRequest(ClientInvalidRequestEvent),
 
-    Dummy()
+    Dummy(),
 }
 
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Event {
     pub event: EventType,
-    pub timestamp: DateTime<Utc>
+    pub timestamp: DateTime<Utc>,
 }
 
 
@@ -265,7 +255,7 @@ impl Event {
     pub fn new(event: EventType, timestamp: DateTime<Utc>) -> Self {
         Event {
             event: event,
-            timestamp: timestamp
+            timestamp: timestamp,
         }
     }
 }

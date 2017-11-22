@@ -8,4 +8,3 @@ pub mod datastore;
 pub use self::bootstrap::WorkerBootstrapImpl;
 pub use self::control::WorkerControlImpl;
 pub use self::subworker::SubworkerUpstreamImpl;
-

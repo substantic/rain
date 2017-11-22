@@ -25,7 +25,9 @@ impl Drop for WorkerUpstreamImpl {
     fn drop(&mut self) {
         error!("Connection to worker {} lost", self.worker.get_id());
         let mut s = self.state.get_mut();
-        s.remove_worker(&self.worker).expect("dropping worker upstream");
+        s.remove_worker(&self.worker).expect(
+            "dropping worker upstream",
+        );
     }
 }
 
@@ -68,7 +70,7 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
             let id = TaskId::from_capnp(&pry!(task_update.get_id()));
             let task = pry!(state.task_by_id(id));
             let additionals = Additionals::from_capnp(&task_update.get_additionals().unwrap());
-          task_updates.push((task, pry!(task_update.get_state()), additionals));
+            task_updates.push((task, pry!(task_update.get_state()), additionals));
         }
 
         state.updates_from_worker(&self.worker, obj_updates, task_updates);
@@ -86,6 +88,4 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
     }
 }
 
-impl Worker {
-
-}
+impl Worker {}

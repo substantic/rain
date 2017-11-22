@@ -8,20 +8,20 @@ use errors::Result;
 pub struct DataOnFs {
     pub path: PathBuf,
     /// If data is directory than size is sum of sizes of all blobs in directory
-    pub size: usize
+    pub size: usize,
 }
 
 #[derive(Debug)]
 pub enum Storage {
     Memory(Vec<u8>),
-    Path(DataOnFs)
+    Path(DataOnFs),
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum DataType {
     Blob,
     Directory,
-    Stream
+    Stream,
 }
 
 #[derive(Debug)]
@@ -32,22 +32,22 @@ pub struct Data {
 
 
 impl Data {
-
     /// Create Data from vector
     pub fn new(data_type: DataType, storage: Storage) -> Data {
-        Data {
-            data_type, storage
-        }
+        Data { data_type, storage }
     }
 
     pub fn new_from_path(data_type: DataType, path: PathBuf, size: usize) -> Data {
         Data {
             data_type,
-            storage: Storage::Path(DataOnFs {path, size})
+            storage: Storage::Path(DataOnFs { path, size }),
         }
     }
 
-    pub fn new_by_fs_move(source_path: &Path, target_path: PathBuf) -> ::std::result::Result<Self, ::std::io::Error> {
+    pub fn new_by_fs_move(
+        source_path: &Path,
+        target_path: PathBuf,
+    ) -> ::std::result::Result<Self, ::std::io::Error> {
         ::std::fs::rename(source_path, &target_path)?;
         let metadata = ::std::fs::metadata(&target_path)?;
         metadata.permissions().set_mode(0o400);
@@ -72,7 +72,7 @@ impl Data {
     pub fn size(&self) -> usize {
         match self.storage {
             Storage::Memory(ref data) => data.len(),
-            Storage::Path(ref data) => data.size
+            Storage::Path(ref data) => data.size,
         }
     }
 
@@ -99,25 +99,30 @@ impl Data {
     pub fn is_blob(&self) -> bool {
         match self.data_type {
             DataType::Blob => true,
-            _ => false
+            _ => false,
         }
     }
 
-    pub fn to_subworker_capnp(&self, builder: &mut ::capnp_gen::subworker_capnp::local_data::Builder)
-    {
+    pub fn to_subworker_capnp(
+        &self,
+        builder: &mut ::capnp_gen::subworker_capnp::local_data::Builder,
+    ) {
         if self.data_type != DataType::Blob {
             unimplemented!();
         }
         builder.set_type(::capnp_gen::common_capnp::DataObjectType::Blob);
         match self.storage {
             Storage::Memory(ref data) => builder.borrow().get_storage().set_memory(&data),
-            Storage::Path(ref data) => builder.borrow().get_storage().set_path(data.path.to_str().unwrap())
+            Storage::Path(ref data) => {
+                builder.borrow().get_storage().set_path(
+                    data.path.to_str().unwrap(),
+                )
+            }
         };
     }
 }
 
 impl Drop for Data {
-
     fn drop(&mut self) {
         match self.storage {
             Storage::Path(ref data) => ::std::fs::remove_file(&data.path).unwrap(),

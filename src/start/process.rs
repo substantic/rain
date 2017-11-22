@@ -2,7 +2,7 @@ use std::process::{Stdio, Child, Command};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use librain::errors::{Error, Result};
 use std::path::{PathBuf, Path};
-use start::common::{Readiness};
+use start::common::Readiness;
 
 /// Struct that represents a process running under a starter
 /// It is wrapper over std::process::Child with a string name
@@ -23,7 +23,6 @@ pub struct Process {
 
 
 impl Process {
-
     pub fn spawn(
         log_dir: &Path,
         name: &str,

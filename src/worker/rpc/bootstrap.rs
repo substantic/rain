@@ -27,7 +27,6 @@ impl worker_bootstrap::Server for WorkerBootstrapImpl {
     }
 
     fn get_worker_control(
-
         &mut self,
         _arg: worker_bootstrap::GetWorkerControlParams,
         mut res: worker_bootstrap::GetWorkerControlResults,

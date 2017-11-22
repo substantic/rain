@@ -5,9 +5,9 @@ use std::io::BufRead;
 use std::process::{Stdio, Child, Command};
 use std::error::Error;
 
-use librain::errors::{Result};
+use librain::errors::Result;
 use std::io::BufReader;
-use start::common::{Readiness};
+use start::common::Readiness;
 
 pub struct User {
     pub username: String,
@@ -18,7 +18,7 @@ pub struct RemoteProcess {
     name: String,
     host: String,
     pid: i32,
-    readiness: Readiness
+    readiness: Readiness,
 }
 
 impl RemoteProcess {
@@ -27,7 +27,7 @@ impl RemoteProcess {
             name: name,
             host: host.to_string(),
             pid: 0,
-            readiness: readiness
+            readiness: readiness,
         }
     }
 
@@ -43,9 +43,9 @@ impl RemoteProcess {
     }
 
     pub fn run_ssh_first_line(&self, command: &str) -> Result<String> {
-        let mut child = self.create_ssh_command()
-            .spawn()
-            .map_err(|e| format!("Start of 'ssh' failed: {}", e.description()))?;
+        let mut child = self.create_ssh_command().spawn().map_err(|e| {
+            format!("Start of 'ssh' failed: {}", e.description())
+        })?;
         {
             let stdin = child.stdin.as_mut().unwrap();
             stdin.write_all(command.as_bytes())?;
@@ -67,9 +67,9 @@ impl RemoteProcess {
 
 
     pub fn run_ssh(&self, command: &str) -> Result<(String, String)> {
-        let mut child = self.create_ssh_command()
-            .spawn()
-            .map_err(|e| format!("Start of 'ssh' failed: {}", e.description()))?;
+        let mut child = self.create_ssh_command().spawn().map_err(|e| {
+            format!("Start of 'ssh' failed: {}", e.description())
+        })?;
         {
             let stdin = child.stdin.as_mut().unwrap();
             stdin.write_all(command.as_bytes())?;
@@ -87,7 +87,7 @@ impl RemoteProcess {
 
     pub fn start(&mut self, command: &str, cwd: &Path, log_dir: &Path) -> Result<()> {
 
-       /* Shell script that has following goals:
+        /* Shell script that has following goals:
         - check that log files are accessible
         - start a new sub-shell with desired command
         - return PID of the new shell and then terminate
@@ -96,7 +96,8 @@ impl RemoteProcess {
         let log_out = log_dir.join(&format!("{}.out", self.name));
         let log_err = log_dir.join(&format!("{}.err", self.name));
 
-        let shell_cmd = format!("\n
+        let shell_cmd = format!(
+            "\n
 touch {log_out:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
 touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
 ({{\n
@@ -104,18 +105,25 @@ touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
     {command}\n
     }} > {log_out:?} 2> {log_err:?})&\n
     echo \"Ok: $!\"\n
-    ", cwd=cwd, command=command, log_out=log_out, log_err=log_err);
+    ",
+            cwd = cwd,
+            command = command,
+            log_out = log_out,
+            log_err = log_err
+        );
 
         let stdout = self.run_ssh_first_line(&shell_cmd)?;
 
         if stdout.starts_with("Ok: ") {
-            self.pid = stdout[4..]
-                .trim()
-                .parse()
-                .map_err(|e| format!("Internal error, value is not integer: {}", stdout))?;
+            self.pid = stdout[4..].trim().parse().map_err(|e| {
+                format!("Internal error, value is not integer: {}", stdout)
+            })?;
         } else if stdout.starts_with("Error: ") {
-            bail!("Remote process at {}, the following error occurs: {}",
-                  self.host, &stdout[7..]);
+            bail!(
+                "Remote process at {}, the following error occurs: {}",
+                self.host,
+                &stdout[7..]
+            );
         } else {
             bail!("Invalid line obtained from remote process: '{}'", stdout);
         }
@@ -123,7 +131,10 @@ touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
     }
 
     pub fn check_ready(&mut self) -> Result<bool> {
-        let mut shell_cmd = format!("ps -p {pid} > /dev/null || (echo 'Not running'; exit 1)\n", pid=self.pid);
+        let mut shell_cmd = format!(
+            "ps -p {pid} > /dev/null || (echo 'Not running'; exit 1)\n",
+            pid = self.pid
+        );
         let is_ready = match self.readiness {
             Readiness::IsReady => true,
             Readiness::WaitingForReadyFile(ref path) => {
@@ -140,17 +151,28 @@ touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
                 info!("Remote process {} is ready", self.name);
                 self.readiness = Readiness::IsReady;
                 true
-            },
+            }
             "Not Running" => bail!("Remote process {} is not running", self.name),
-            output => bail!("Unexpected output from remote process {}: {}", self.name, output)
+            output => {
+                bail!(
+                    "Unexpected output from remote process {}: {}",
+                    self.name,
+                    output
+                )
+            }
         })
     }
 
     pub fn kill(&mut self) -> Result<()> {
         let shell_cmd = match self.readiness {
-            Readiness::IsReady => format!("pkill -P {pid}; exit 0", pid=self.pid),
-            Readiness::WaitingForReadyFile(ref path) =>
-                format!("pkill -P {pid}; rm -f {ready_file:?}; exit 0", pid=self.pid, ready_file=path)
+            Readiness::IsReady => format!("pkill -P {pid}; exit 0", pid = self.pid),
+            Readiness::WaitingForReadyFile(ref path) => {
+                format!(
+                    "pkill -P {pid}; rm -f {ready_file:?}; exit 0",
+                    pid = self.pid,
+                    ready_file = path
+                )
+            }
         };
         self.run_ssh(&shell_cmd)?;
         Ok(())

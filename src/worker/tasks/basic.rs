@@ -9,8 +9,7 @@ use errors::Result;
 use bytes::{Buf, LittleEndian};
 
 /// Task that merge all input blobs and merge them into one blob
-pub fn task_concat(context: TaskContext, state: &State) -> TaskResult
-{
+pub fn task_concat(context: TaskContext, state: &State) -> TaskResult {
     let inputs = context.task.get().inputs();
 
     for (i, input) in inputs.iter().enumerate() {
@@ -34,8 +33,7 @@ pub fn task_concat(context: TaskContext, state: &State) -> TaskResult
 }
 
 /// Task that returns the input argument after a given number of milliseconds
-pub fn task_sleep(context: TaskContext, state: &State) -> TaskResult
-{
+pub fn task_sleep(context: TaskContext, state: &State) -> TaskResult {
     context.task.get().check_number_of_args(1)?;
     let sleep_ms = {
         let task = context.task.get();

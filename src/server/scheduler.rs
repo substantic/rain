@@ -89,7 +89,11 @@ impl Scheduler for RandomScheduler {
                 };
                 w.get_mut().scheduled_objects.insert(oref.clone());
                 o.scheduled.insert(w.clone());
-                up_out.objects.entry(w).or_insert(Default::default()).insert(oref.clone());
+                up_out
+                    .objects
+                    .entry(w)
+                    .or_insert(Default::default())
+                    .insert(oref.clone());
             }
         }
 

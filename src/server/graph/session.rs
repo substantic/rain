@@ -11,27 +11,27 @@ use errors::{Result, Error};
 #[derive(Debug)]
 pub struct Session {
     /// Unique ID
-    pub (in super::super) id: SessionId,
+    pub(in super::super) id: SessionId,
 
     /// State of the Session and an optional cause of the error.
-    pub (in super::super) error: Option<SessionError>,
+    pub(in super::super) error: Option<SessionError>,
 
     /// Contained tasks.
     /// NB: These are owned by the Session and are cleaned up by it.
-    pub (in super::super) tasks: RcSet<TaskRef>,
+    pub(in super::super) tasks: RcSet<TaskRef>,
 
     /// Contained objects.
     /// NB: These are owned by the Session and are cleaned up by it.
-    pub (in super::super) objects: RcSet<DataObjectRef>,
+    pub(in super::super) objects: RcSet<DataObjectRef>,
 
     /// Client holding the session alive.
-    pub (in super::super) client: ClientRef,
+    pub(in super::super) client: ClientRef,
 
     /// Number of unfinished tasks
-    pub (in super::super) unfinished_tasks: usize,
+    pub(in super::super) unfinished_tasks: usize,
 
     /// Hooks executed when all tasks are finished.
-    pub (in super::super) finish_hooks: Vec<FinishHook>,
+    pub(in super::super) finish_hooks: Vec<FinishHook>,
 }
 
 pub type SessionRef = WrappedRcRefCell<Session>;
@@ -49,7 +49,6 @@ impl Session {
 }
 
 impl Session {
-
     /// Returns a future that is triggered when session has no unfinished tasks
     pub fn wait(&mut self) -> Receiver<()> {
         let (sender, receiver) = ::futures::unsync::oneshot::channel();
@@ -74,7 +73,6 @@ impl Session {
 }
 
 impl SessionRef {
-
     /// Create new session object and link it to the owning client.
     pub fn new(id: SessionId, client: &ClientRef) -> Self {
         let s = SessionRef::wrap(Session {
@@ -91,7 +89,7 @@ impl SessionRef {
         s
     }
 
-        /// Return the object ID in graph.
+    /// Return the object ID in graph.
     pub fn get_id(&self) -> SessionId {
         self.get().id
     }
@@ -130,13 +128,19 @@ impl ConsistencyCheck for SessionRef {
         }
         // finished?
         if !s.finish_hooks.is_empty() &&
-            s.tasks.iter().all(|tr| tr.get().state == TaskState::Finished) &&
-            s.objects.iter().all(|or| or.get().state != DataObjectState::Unfinished) {
+            s.tasks.iter().all(
+                |tr| tr.get().state == TaskState::Finished,
+            ) &&
+            s.objects.iter().all(|or| {
+                or.get().state != DataObjectState::Unfinished
+            })
+        {
             bail!("finish_hooks on all-finished session {:?}", s);
         }
         // in case of error, the session should be cleared
         if s.error.is_some() &&
-            !(s.finish_hooks.is_empty() && s.tasks.is_empty() && s.objects.is_empty()) {
+            !(s.finish_hooks.is_empty() && s.tasks.is_empty() && s.objects.is_empty())
+        {
             bail!("Session with error is not cleared: {:?}", s);
         }
         Ok(())
@@ -151,7 +155,7 @@ impl fmt::Debug for SessionRef {
 
 #[derive(Debug, Clone)]
 pub struct SessionError {
-    message: String
+    message: String,
 }
 
 impl SessionError {
@@ -159,14 +163,12 @@ impl SessionError {
         SessionError { message }
     }
 
-    pub fn to_capnp(&self, builder: &mut ::capnp_gen::common_capnp::error::Builder)
-    {
+    pub fn to_capnp(&self, builder: &mut ::capnp_gen::common_capnp::error::Builder) {
         builder.borrow().set_message(&self.message);
     }
 }
 
 impl ::std::error::Error for SessionError {
-
     fn description(&self) -> &str {
         &self.message
     }

@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use common::id::{TaskId};
+use common::id::TaskId;
 use super::{DataObjectRef, Graph};
 use common::{Additionals, RcSet};
 use std::iter::FromIterator;
@@ -20,7 +20,7 @@ pub enum TaskState {
     Assigned,
     Running,
     Finished,
-    Failed
+    Failed,
 }
 
 #[derive(Debug)]
@@ -38,30 +38,29 @@ pub struct TaskInput {
 
 #[derive(Debug)]
 pub struct Task {
-    pub (in super::super) id: TaskId,
+    pub(in super::super) id: TaskId,
 
     /// Ordered inputs for the task. Note that one object can be present as multiple inputs!
-    pub (in super::super) inputs: Vec<TaskInput>,
+    pub(in super::super) inputs: Vec<TaskInput>,
 
     /// Ordered outputs for the task. Every object in the list must be distinct.
-    pub (in super::super) outputs: Vec<DataObjectRef>,
+    pub(in super::super) outputs: Vec<DataObjectRef>,
 
     /// Unfinished objects that we wait for. These must be a subset of `inputs`,
     /// but multiplicities in `inputs` are here represented only once.
-    pub (in super::super) waiting_for: RcSet<DataObjectRef>,
+    pub(in super::super) waiting_for: RcSet<DataObjectRef>,
 
-    pub (in super::super) state: TaskState,
+    pub(in super::super) state: TaskState,
 
-    pub (in super::super) task_type: String,
-    pub (in super::super) task_config: Vec<u8>,
+    pub(in super::super) task_type: String,
+    pub(in super::super) task_config: Vec<u8>,
 
-    pub (in super::super) resources: Resources,
+    pub(in super::super) resources: Resources,
 
-    pub (in super::super) new_additionals: Additionals
+    pub(in super::super) new_additionals: Additionals,
 }
 
 impl Task {
-
     #[inline]
     pub fn is_ready(&self) -> bool {
         self.waiting_for.is_empty()
@@ -87,7 +86,10 @@ impl Task {
 
     /// Get all input data as vector
     pub fn inputs(&self) -> Vec<Arc<Data>> {
-        self.inputs.iter().map(|input| input.object.get().data().clone()).collect()
+        self.inputs
+            .iter()
+            .map(|input| input.object.get().data().clone())
+            .collect()
     }
 
     /// Returns an error if task has different number of arguments
@@ -113,7 +115,6 @@ impl Task {
 pub type TaskRef = WrappedRcRefCell<Task>;
 
 impl TaskRef {
-
     pub fn new(
         graph: &mut Graph,
         id: TaskId,
@@ -151,7 +152,6 @@ impl TaskRef {
 
         task
     }
-
 }
 
 impl fmt::Debug for TaskRef {

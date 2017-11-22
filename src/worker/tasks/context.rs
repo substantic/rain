@@ -2,16 +2,16 @@
 use std::sync::Arc;
 use futures::Future;
 
-use common::id::{TaskId};
+use common::id::TaskId;
 use worker::graph::{TaskRef, DataObjectRef, SubworkerRef};
 use errors::{Result, Error};
 use worker::state::{StateRef, State};
-use worker::data::{Data};
+use worker::data::Data;
 use worker::tasks;
 use worker::rpc::subworker::data_from_capnp;
 use common::convert::ToCapnp;
 
-pub type TaskFuture = Future<Item=TaskContext, Error=Error>;
+pub type TaskFuture = Future<Item = TaskContext, Error = Error>;
 pub type TaskResult = Result<Box<TaskFuture>>;
 
 
@@ -21,14 +21,16 @@ pub type TaskResult = Result<Box<TaskFuture>>;
 pub struct TaskContext {
     pub task: TaskRef,
     pub state: StateRef,
-    pub subworker: Option<SubworkerRef>
-    // TODO: Allocated resources
+    pub subworker: Option<SubworkerRef>, // TODO: Allocated resources
 }
 
 impl TaskContext {
-
     pub fn new(task: TaskRef, state: StateRef) -> Self {
-        TaskContext { task, state, subworker: None }
+        TaskContext {
+            task,
+            state,
+            subworker: None,
+        }
     }
 
     /// Start the task -- returns a future that is finished when task is finished
@@ -39,7 +41,7 @@ impl TaskContext {
                 "!run" => tasks::run::task_run,
                 "!concat" => tasks::basic::task_concat,
                 "!sleep" => tasks::basic::task_sleep,
-                task_type => bail!("Unknown task type {}", task_type)
+                task_type => bail!("Unknown task type {}", task_type),
             };
             task_function(self, state)
         } else {
@@ -50,7 +52,9 @@ impl TaskContext {
 
     fn start_task_in_subworker(mut self, state: &mut State) -> TaskResult {
         let future = state.get_subworker(
-            &self.state, self.task.get().task_type.as_ref())?;
+            &self.state,
+            self.task.get().task_type.as_ref(),
+        )?;
 
         Ok(Box::new(future.and_then(|subworker| {
             self.subworker = Some(subworker.clone());
@@ -74,7 +78,9 @@ impl TaskContext {
                             let mut p_input = p_inputs.borrow().get(i as u32);
                             p_input.set_label(&input.label);
                             let obj = input.object.get();
-                            obj.data().to_subworker_capnp(&mut p_input.borrow().get_data().unwrap());
+                            obj.data().to_subworker_capnp(
+                                &mut p_input.borrow().get_data().unwrap(),
+                            );
                             obj.id.to_capnp(&mut p_input.get_id().unwrap());
                         }
                     }

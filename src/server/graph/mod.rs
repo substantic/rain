@@ -11,4 +11,3 @@ pub use self::task::{Task, TaskRef, TaskState, TaskInput};
 pub use self::dataobj::{DataObject, DataObjectRef, DataObjectState, DataObjectType};
 pub use self::worker::{Worker, WorkerRef};
 pub use self::graph::Graph;
-

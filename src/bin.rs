@@ -38,21 +38,25 @@ fn parse_listen_arg(args: &ArgMatches, default_port: u16) -> SocketAddr {
 
     value_t!(args, "LISTEN_ADDRESS", SocketAddr)
         .unwrap_or_else(|_| match value_t!(args, "LISTEN_ADDRESS", IpAddr) {
-                            Ok(ip) => SocketAddr::new(ip, default_port),
-                            _ => {
-                                SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-                                                value_t_or_exit!(args, "LISTEN_ADDRESS", u16))
-                            }
-                        })
+            Ok(ip) => SocketAddr::new(ip, default_port),
+            _ => {
+                SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+                    value_t_or_exit!(args, "LISTEN_ADDRESS", u16),
+                )
+            }
+        })
 }
 
 
 fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let listen_address = parse_listen_arg(cmd_args, DEFAULT_SERVER_PORT);
     let ready_file = cmd_args.value_of("READY_FILE");
-    info!("Starting Rain {} server at port {}",
-          VERSION,
-          listen_address);
+    info!(
+        "Starting Rain {} server at port {}",
+        VERSION,
+        listen_address
+    );
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
     let state = server::state::StateRef::new(tokio_core.handle(), listen_address);
@@ -65,7 +69,9 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     loop {
         tokio_core.turn(None);
-        if !state.turn() { break; }
+        if !state.turn() {
+            break;
+        }
     }
 }
 
@@ -74,11 +80,17 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 // It checks that 'prefix' exists, but not the full path
 fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, String> {
     if !prefix.exists() {
-        return Err(format!("Working directory prefix {:?} does not exists", prefix));
+        return Err(format!(
+            "Working directory prefix {:?} does not exists",
+            prefix
+        ));
     }
 
     if !prefix.is_dir() {
-        return Err(format!("Working directory prefix {:?} is not directory", prefix));
+        return Err(format!(
+            "Working directory prefix {:?} is not directory",
+            prefix
+        ));
     }
 
     let pid = nix::unistd::getpid();
@@ -90,9 +102,11 @@ fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, Str
 
     debug!("Creating working directory {:?}", work_dir);
     if let Err(e) = std::fs::create_dir_all(work_dir.clone()) {
-        return Err(format!("Working directory {:?} cannot by created: {}",
-                           work_dir,
-                           e.description()));
+        return Err(format!(
+            "Working directory {:?} cannot by created: {}",
+            work_dir,
+            e.description()
+        ));
     }
     Ok(work_dir)
 }
@@ -111,14 +125,14 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         Err(_) => {
             error!("Cannot resolve server address");
             exit(1);
-        },
+        }
         Ok(mut addrs) => {
             match addrs.next() {
                 None => {
                     error!("Cannot resolve server address");
                     exit(1);
-                },
-                Some(ref addr) => *addr
+                }
+                Some(ref addr) => *addr,
             }
         }
     };
@@ -145,19 +159,31 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     info!("Starting Rain {} as worker", VERSION);
     info!("Resources: {} cpus", cpus);
     info!("Working directory: {:?}", work_dir);
-    info!("Server address {} was resolved as {}", server_address, server_addr);
+    info!(
+        "Server address {} was resolved as {}",
+        server_address,
+        server_addr
+    );
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
 
     let mut subworkers = HashMap::new();
-    subworkers.insert("py".to_string(), vec!["python3".to_string(), "-m".to_string(), "rain.subworker".to_string()]);
+    subworkers.insert(
+        "py".to_string(),
+        vec![
+            "python3".to_string(),
+            "-m".to_string(),
+            "rain.subworker".to_string(),
+        ],
+    );
 
     let state = worker::state::StateRef::new(
         tokio_core.handle(),
         work_dir,
         cpus,
         // Python subworker
-        subworkers);
+        subworkers,
+    );
 
     state.start(server_addr, listen_address, ready_file);
 
@@ -181,7 +207,9 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let mut config = start::starter::StarterConfig::new(local_workers, listen_address, &log_dir);
 
-    config.worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(|s| PathBuf::from(s));
+    config.worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(
+        |s| PathBuf::from(s),
+    );
 
     // Autoconf
     match cmd_args.value_of("AUTOCONF") {
@@ -194,7 +222,8 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }.map_err(|e| {
         error!("Autoconf failed: {}", e.description());
         exit(1);
-    }).unwrap();
+    })
+        .unwrap();
 
     // Ignite starter
     let mut starter = start::starter::Starter::new(config);

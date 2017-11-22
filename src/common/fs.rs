@@ -13,7 +13,7 @@ pub fn create_ready_file(path: &Path) {
         Ok(mut file) => {
             file.write_all(b"ready\n").unwrap();
             debug!("Ready file {:?} created", path);
-        },
+        }
         Err(e) => {
             error!("Cannot create ready file: {}", e.description());
             exit(1);

@@ -6,7 +6,7 @@ use common::convert::FromCapnp;
 use common::id::DataObjectId;
 use worker::data::{PackStream, new_pack_stream};
 
-use worker::data::{Data};
+use worker::data::Data;
 use datastore_capnp::{reader, data_store, read_reply};
 use worker::state::StateRef;
 
@@ -24,7 +24,6 @@ impl DataStoreImpl {
 
 
 impl data_store::Server for DataStoreImpl {
-
     fn create_reader(
         &mut self,
         params: data_store::CreateReaderParams,
@@ -40,8 +39,8 @@ impl data_store::Server for DataStoreImpl {
         assert!(offset == 0); // TODO: implement for different offset
 
         let pack_stream = new_pack_stream(object.get().data().clone()).unwrap();
-        let reader = reader::ToClient::new(
-            ReaderImpl::new(pack_stream)).from_server::<::capnp_rpc::Server>();
+        let reader = reader::ToClient::new(ReaderImpl::new(pack_stream))
+            .from_server::<::capnp_rpc::Server>();
 
         let mut results = results.get();
         results.set_reader(reader);
@@ -49,7 +48,6 @@ impl data_store::Server for DataStoreImpl {
         results.set_ok(());
         Promise::ok(())
     }
-
 }
 
 
@@ -59,30 +57,27 @@ pub struct ReaderImpl {
 
 impl ReaderImpl {
     pub fn new(pack_stream: Box<PackStream>) -> Self {
-        Self {
-            pack_stream,
-        }
+        Self { pack_stream }
     }
 }
 
 
 impl reader::Server for ReaderImpl {
-
-   fn read(
+    fn read(
         &mut self,
         params: reader::ReadParams,
         mut results: reader::ReadResults,
     ) -> Promise<(), ::capnp::Error> {
-       let param_size = pry!(params.get()).get_size() as usize;
-       let (slice, eof) = self.pack_stream.read(param_size);
-       let mut results = results.get();
-       results.set_data(slice);
-       results.set_status(if eof {
-           read_reply::Status::Eof
-       } else {
-           read_reply::Status::Ok
-       });
+        let param_size = pry!(params.get()).get_size() as usize;
+        let (slice, eof) = self.pack_stream.read(param_size);
+        let mut results = results.get();
+        results.set_data(slice);
+        results.set_status(if eof {
+            read_reply::Status::Eof
+        } else {
+            read_reply::Status::Ok
+        });
 
-       Promise::ok(())
+        Promise::ok(())
     }
 }

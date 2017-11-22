@@ -12,13 +12,13 @@ impl Service for RequestHandler {
     type Response = Response;
     type Error = Error;
 
-    type Future = Box<futures::Future<Item=Self::Response, Error=Self::Error>>;
+    type Future = Box<futures::Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, _req: Request) -> Self::Future {
         Box::new(futures::future::ok(
             Response::new()
                 .with_header(ContentLength(PHRASE.len() as u64))
-                .with_body(PHRASE)
+                .with_body(PHRASE),
         ))
     }
 }

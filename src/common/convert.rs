@@ -3,7 +3,10 @@ use std::io::{Write, Read};
 
 /// Generic trait for reading the value from a Capnp `Reader`.
 /// All values are copied into `Self`.
-pub trait FromCapnp<'a> where Self: Sized {
+pub trait FromCapnp<'a>
+where
+    Self: Sized,
+{
     type Reader: traits::FromPointerReader<'a>;
     fn from_capnp(read: &'a Self::Reader) -> Self;
 }
@@ -35,7 +38,10 @@ pub trait WriteCapnp {
     fn write_capnp<W: Write>(self: &Self, w: &mut W);
 }
 
-impl<T> WriteCapnp for T where T: for <'a> ToCapnp<'a> {
+impl<T> WriteCapnp for T
+where
+    T: for<'a> ToCapnp<'a>,
+{
     fn write_capnp<W: Write>(self: &Self, w: &mut W) {
         let mut msg = message::Builder::new_default();
         self.to_capnp(&mut msg.get_root::<T::Builder>().unwrap());

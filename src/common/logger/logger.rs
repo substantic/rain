@@ -29,7 +29,12 @@ pub trait Logger {
 
     fn add_task_failed_event(&mut self, task: TaskId, worker: WorkerId, error_msg: String);
 
-    fn add_dataobject_finished_event(&mut self, dataobject: DataObjectId, worker: WorkerId, size: usize);
+    fn add_dataobject_finished_event(
+        &mut self,
+        dataobject: DataObjectId,
+        worker: WorkerId,
+        size: usize,
+    );
 
     fn add_dataobject_removed_event(&mut self, dataobject: DataObjectId, worker: WorkerId);
 

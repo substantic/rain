@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::path::Path;
 use std::fmt;
 
-pub use common_capnp::{DataObjectType};
+pub use common_capnp::DataObjectType;
 
 #[derive(Debug)]
 pub enum DataObjectState {
@@ -40,7 +40,6 @@ pub struct DataObject {
 
     /// Task that produces data object; it is None if task not computed in this worker
     // producer: Option<Task>,
-
     /// Consumer set, e.g. to notify of completion.
     pub(in super::super) consumers: RcSet<TaskRef>,
 
@@ -53,13 +52,12 @@ pub struct DataObject {
 
     /// Label may be the role that the output has in the `producer`, or it may be
     /// the name of the initial uploaded object.
-    pub(in super::super) label: String
+    pub(in super::super) label: String,
 }
 
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
 impl DataObject {
-
     pub fn set_data(&mut self, data: Arc<Data>) {
         assert!(!self.is_finished());
         self.size = Some(data.size());
@@ -70,14 +68,14 @@ impl DataObject {
     pub fn is_finished(&self) -> bool {
         match self.state {
             DataObjectState::Finished(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub fn data(&self) -> &Arc<Data> {
         match self.state {
             DataObjectState::Finished(ref data) => data,
-            _ => panic!("DataObject is not finished")
+            _ => panic!("DataObject is not finished"),
         }
     }
 
@@ -85,21 +83,22 @@ impl DataObject {
         match self.state {
             DataObjectState::Remote(ref addr) => Some(*addr),
             DataObjectState::Pulling(ref addr) => Some(*addr),
-            _ => None
+            _ => None,
         }
     }
 }
 
 
 impl DataObjectRef {
-
-    pub fn new(graph: &mut Graph,
-               id: DataObjectId,
-               state: DataObjectState,
-               obj_type: DataObjectType,
-               assigned: bool,
-               size: Option<usize>,
-               label: String) -> Self {
+    pub fn new(
+        graph: &mut Graph,
+        id: DataObjectId,
+        state: DataObjectState,
+        obj_type: DataObjectType,
+        assigned: bool,
+        size: Option<usize>,
+        label: String,
+    ) -> Self {
 
         debug!("New object id={}", id);
 
@@ -112,25 +111,24 @@ impl DataObjectRef {
                     assigned,
                     obj_type,
                     consumers: Default::default(),
-                    label
+                    label,
                 });
                 e.insert(dataobj.clone());
                 dataobj
             }
-          ::std::collections::hash_map::Entry::Occupied(e) => {
-              let dataobj = e.get().clone();
-              {
-                  let obj = dataobj.get();
-                  // TODO: If object is remote and not finished and new remote obtained,
-                  // then update remote
-                  assert!(obj.id == id);
-                  assert!(obj.obj_type == obj_type);
-              }
-              dataobj
-          }
+            ::std::collections::hash_map::Entry::Occupied(e) => {
+                let dataobj = e.get().clone();
+                {
+                    let obj = dataobj.get();
+                    // TODO: If object is remote and not finished and new remote obtained,
+                    // then update remote
+                    assert!(obj.id == id);
+                    assert!(obj.obj_type == obj_type);
+                }
+                dataobj
+            }
         }
     }
-
 }
 
 impl fmt::Debug for DataObjectRef {

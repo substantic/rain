@@ -66,11 +66,9 @@ pub struct DataObject {
 }
 
 impl DataObject {
-
     /// To capnp for worker message
     /// It does not fill `placement` and `assigned`, that must be done by caller
-    pub fn to_worker_capnp(&self,
-                           builder: &mut ::worker_capnp::data_object::Builder) {
+    pub fn to_worker_capnp(&self, builder: &mut ::worker_capnp::data_object::Builder) {
         self.id.to_capnp(&mut builder.borrow().get_id().unwrap());
         builder.set_type(self.object_type);
         self.size.map(|s| builder.set_size(s as i64));
@@ -83,11 +81,12 @@ impl DataObject {
     pub fn trigger_finish_hooks(&mut self) {
         debug!("trigger_finish_hooks for {:?}", self);
         for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
-//        for sender in self.finish_hooks, Vec::new()) {
+            //        for sender in self.finish_hooks, Vec::new()) {
             match sender.send(()) {
                 Ok(()) => { /* Do nothing */}
-                Err(e) => { /* Just log error, it is non fatal */
-                               debug!("Failed to inform about finishing dataobject: {:?}", e);
+                Err(e) => {
+                    /* Just log error, it is non fatal */
+                    debug!("Failed to inform about finishing dataobject: {:?}", e);
                 }
             }
         }
@@ -100,7 +99,7 @@ impl DataObject {
         match self.state {
             DataObjectState::Finished => sender.send(()).unwrap(),
             DataObjectState::Removed => panic!("waiting on Removed object"),
-            _ => self.finish_hooks.push(sender)
+            _ => self.finish_hooks.push(sender),
         };
         receiver
     }
@@ -123,13 +122,15 @@ pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
 impl DataObjectRef {
     /// Create new data object and link it to the owning session.
-    pub fn new(session: &SessionRef,
-               id: DataObjectId,
-               object_type: DataObjectType,
-               client_keep: bool,
-               label: String,
-               data: Option<Vec<u8>>,
-               additionals: Additionals) -> Self {
+    pub fn new(
+        session: &SessionRef,
+        id: DataObjectId,
+        object_type: DataObjectType,
+        client_keep: bool,
+        label: String,
+        data: Option<Vec<u8>>,
+        additionals: Additionals,
+    ) -> Self {
         assert_eq!(id.get_session_id(), session.get_id());
         let s = DataObjectRef::wrap(DataObject {
             id: id,
@@ -139,7 +140,7 @@ impl DataObjectRef {
                 DataObjectState::Unfinished
             } else {
                 DataObjectState::Finished
-            } ,
+            },
             object_type: object_type,
             consumers: Default::default(),
             need_by: Default::default(),
@@ -176,10 +177,22 @@ impl DataObjectRef {
     pub fn unlink(&self) {
         self.unschedule();
         let mut inner = self.get_mut();
-        assert!(inner.assigned.is_empty(), "Can only remove non-assigned objects.");
-        assert!(inner.located.is_empty(), "Can only remove non-located objects.");
-        assert!(inner.consumers.is_empty(), "Can only remove objects without consumers.");
-        assert!(inner.producer.is_none(), "Can only remove objects without a producer.");
+        assert!(
+            inner.assigned.is_empty(),
+            "Can only remove non-assigned objects."
+        );
+        assert!(
+            inner.located.is_empty(),
+            "Can only remove non-located objects."
+        );
+        assert!(
+            inner.consumers.is_empty(),
+            "Can only remove objects without consumers."
+        );
+        assert!(
+            inner.producer.is_none(),
+            "Can only remove objects without a producer."
+        );
         // remove from owner
         assert!(inner.session.get_mut().objects.remove(&self));
         // clear finish_hooks
@@ -238,7 +251,7 @@ impl ConsistencyCheck for DataObjectRef {
                     bail!("not scheduled to producer worker in {:?}");
                 }
             }
-  */          if let Some(ref swr) = p.assigned {
+  */            if let Some(ref swr) = p.assigned {
                 if !s.assigned.contains(swr) {
                     bail!("not assigned to producer worker in {:?}");
                 }
@@ -282,12 +295,15 @@ impl ConsistencyCheck for DataObjectRef {
 
         // used or kept objects must be assigned when their producers are
         if (s.client_keep || !s.consumers.is_empty()) && s.assigned.is_empty() &&
-                s.state == DataObjectState::Unfinished {
+            s.state == DataObjectState::Unfinished
+        {
             if let Some(ref prod) = s.producer {
                 let p = prod.get();
                 if p.state == TaskState::Assigned || p.state == TaskState::Running {
                     bail!(
-                    "Unfinished object is not assigned when it's producer task is in {:?}", s);
+                        "Unfinished object is not assigned when it's producer task is in {:?}",
+                        s
+                    );
                 }
             }
         }
@@ -303,20 +319,28 @@ impl ::std::fmt::Debug for DataObjectRef {
 
 impl fmt::Debug for DataObjectState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match *self {
-            DataObjectState::Unfinished => "Unfinished",
-            DataObjectState::Finished => "Finished",
-            DataObjectState::Removed => "Removed",
-        })
+        write!(
+            f,
+            "{}",
+            match *self {
+                DataObjectState::Unfinished => "Unfinished",
+                DataObjectState::Finished => "Finished",
+                DataObjectState::Removed => "Removed",
+            }
+        )
     }
 }
 
 impl fmt::Debug for DataObjectType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match *self {
-            DataObjectType::Blob => "Blob",
-            DataObjectType::Directory => "Directory",
-            DataObjectType::Stream => "Stream",
-        })
+        write!(
+            f,
+            "{}",
+            match *self {
+                DataObjectType::Blob => "Blob",
+                DataObjectType::Directory => "Directory",
+                DataObjectType::Stream => "Stream",
+            }
+        )
     }
 }

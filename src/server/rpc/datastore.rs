@@ -23,7 +23,6 @@ impl ClientDataStoreImpl {
 }
 
 impl data_store::Server for ClientDataStoreImpl {
-
     fn create_reader(
         &mut self,
         params: data_store::CreateReaderParams,
@@ -32,17 +31,19 @@ impl data_store::Server for ClientDataStoreImpl {
         let params = pry!(params.get());
         let id = DataObjectId::from_capnp(&pry!(params.get_id()));
         let object = match self.state.get().object_by_id_check_session(id) {
-                Ok(t) => t,
-                Err(Error(ErrorKind::SessionErr(ref e), _)) => {
-                    e.to_capnp(&mut results.get().init_error());
-                    return Promise::ok(())
-                },
-                Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+            Ok(t) => t,
+            Err(Error(ErrorKind::SessionErr(ref e), _)) => {
+                e.to_capnp(&mut results.get().init_error());
+                return Promise::ok(());
+            }
+            Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string())),
         };
         let offset = params.get_offset();
         if object.get().state == DataObjectState::Removed {
-            return Promise::err(::capnp::Error::failed(
-                format!("create_reader on removed object {:?}", object.get())));
+            return Promise::err(::capnp::Error::failed(format!(
+                "create_reader on removed object {:?}",
+                object.get()
+            )));
         }
 
         let state = self.state.clone();
@@ -103,7 +104,6 @@ impl data_store::Server for ClientDataStoreImpl {
                 }))
             }).map_err(|e| panic!("Fetch failed: {:?}", e)))
     }
-
 }
 
 // Datastore provided for workers
@@ -119,7 +119,6 @@ impl WorkerDataStoreImpl {
 
 
 impl data_store::Server for WorkerDataStoreImpl {
-
     fn create_reader(
         &mut self,
         params: data_store::CreateReaderParams,
@@ -136,8 +135,8 @@ impl data_store::Server for WorkerDataStoreImpl {
         let size = object.get().size.map(|s| s as i64).unwrap_or(-1i64);
 
         let offset = params.get_offset();
-        let reader = reader::ToClient::new(
-            LocalReaderImpl::new(object, offset as usize)).from_server::<::capnp_rpc::Server>();
+        let reader = reader::ToClient::new(LocalReaderImpl::new(object, offset as usize))
+            .from_server::<::capnp_rpc::Server>();
 
         let mut results = results.get();
         results.set_reader(reader);
@@ -145,7 +144,6 @@ impl data_store::Server for WorkerDataStoreImpl {
         results.set_ok(());
         Promise::ok(())
     }
-
 }
 
 
@@ -155,7 +153,7 @@ impl data_store::Server for WorkerDataStoreImpl {
 pub struct LocalReaderImpl {
     object: DataObjectRef,
     offset: usize,
-    size: usize
+    size: usize,
 }
 
 impl LocalReaderImpl {
@@ -171,29 +169,28 @@ impl LocalReaderImpl {
 
 
 impl reader::Server for LocalReaderImpl {
-
-   fn read(
+    fn read(
         &mut self,
         params: reader::ReadParams,
         mut results: reader::ReadResults,
     ) -> Promise<(), ::capnp::Error> {
-       let param_size = pry!(params.get()).get_size() as usize;
-       let mut results = results.get();
-       let start = self.offset;
-       let (end, size, status) = if start + param_size < self.size {
-           (start + param_size, param_size, read_reply::Status::Ok)
-       } else {
-           (self.size, self.size - start, read_reply::Status::Eof)
-       };
+        let param_size = pry!(params.get()).get_size() as usize;
+        let mut results = results.get();
+        let start = self.offset;
+        let (end, size, status) = if start + param_size < self.size {
+            (start + param_size, param_size, read_reply::Status::Ok)
+        } else {
+            (self.size, self.size - start, read_reply::Status::Eof)
+        };
 
-       results.set_data(&self.object.get().data.as_ref().unwrap()[start..end]);
-       results.set_status(if end < self.size {
-           read_reply::Status::Ok
-       } else {
-           read_reply::Status::Eof
-       });
+        results.set_data(&self.object.get().data.as_ref().unwrap()[start..end]);
+        results.set_status(if end < self.size {
+            read_reply::Status::Ok
+        } else {
+            read_reply::Status::Eof
+        });
 
-       self.offset = end;
-       Promise::ok(())
+        self.offset = end;
+        Promise::ok(())
     }
 }

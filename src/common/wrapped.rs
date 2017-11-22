@@ -16,23 +16,32 @@ use std::fmt::{Debug, Formatter, Result as FmtResult};
 /// Note that you can add methods to the wrapper with
 /// `impl WrappedRcRefCell<MyType> { fn foo(&self) {} }`
 /// or even `type WrapType = WrappedRcRefCell<MyType>; impl WrapType { ... }`.
-
 #[derive(Default)]
-pub struct WrappedRcRefCell<T> { inner: Rc<RefCell<T>> }
+pub struct WrappedRcRefCell<T> {
+    inner: Rc<RefCell<T>>,
+}
 
 impl<T> WrappedRcRefCell<T> {
     /// Create a new wrapped instance. This is not called `new` so that you may implement
     /// your own function `new`.
-    pub(crate) fn wrap(t: T) -> Self { WrappedRcRefCell { inner: Rc::new(RefCell::new(t)) } }
+    pub(crate) fn wrap(t: T) -> Self {
+        WrappedRcRefCell { inner: Rc::new(RefCell::new(t)) }
+    }
 
     /// Return a immutable reference to contents. Panics whenever `RefCell::borrow()` would.
-    pub(crate) fn get(&self) -> Ref<T> { self.inner.deref().borrow() }
+    pub(crate) fn get(&self) -> Ref<T> {
+        self.inner.deref().borrow()
+    }
 
     /// Return a mutable reference to contents. Panics whenever `RefCell::borrow_mut()` would.
-    pub(crate) fn get_mut(&self) -> RefMut<T> { self.inner.deref().borrow_mut() }
+    pub(crate) fn get_mut(&self) -> RefMut<T> {
+        self.inner.deref().borrow_mut()
+    }
 
     /// Return the number of strong references to the contained Rc
-    pub(crate) fn get_num_refs(&self) -> usize { Rc::strong_count(&self.inner) }
+    pub(crate) fn get_num_refs(&self) -> usize {
+        Rc::strong_count(&self.inner)
+    }
 }
 
 impl<T> Clone for WrappedRcRefCell<T> {

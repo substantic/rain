@@ -21,7 +21,7 @@ pub struct ClientServiceImpl {
 }
 
 impl ClientServiceImpl {
-    pub fn new(state: &StateRef, address: &SocketAddr)  -> Result<Self> {
+    pub fn new(state: &StateRef, address: &SocketAddr) -> Result<Self> {
 
         Ok(Self {
             state: state.clone(),
@@ -31,11 +31,12 @@ impl ClientServiceImpl {
 }
 
 impl Drop for ClientServiceImpl {
-    fn drop(&mut self)
-    {
+    fn drop(&mut self) {
         let mut s = self.state.get_mut();
         info!("Client {} disconnected", self.client.get_id());
-        s.remove_client(&self.client).expect("client connection drop");
+        s.remove_client(&self.client).expect(
+            "client connection drop",
+        );
     }
 }
 
@@ -48,12 +49,18 @@ impl client_service::Server for ClientServiceImpl {
         debug!("Client asked for info");
         let s = self.state.get();
 
-        let futures : Vec<_> = s.graph.workers.iter().map(|(worker_id, worker)| {
-            let w = worker.get();
-            let control = w.control.as_ref().unwrap();
-            let worker_id = worker_id.clone();
-            control.get_info_request().send().promise.map(move |r| (worker_id, r))
-        }).collect();
+        let futures: Vec<_> = s.graph
+            .workers
+            .iter()
+            .map(|(worker_id, worker)| {
+                let w = worker.get();
+                let control = w.control.as_ref().unwrap();
+                let worker_id = worker_id.clone();
+                control.get_info_request().send().promise.map(move |r| {
+                    (worker_id, r)
+                })
+            })
+            .collect();
 
         Promise::from_future(future::join_all(futures).map(move |rs| {
             let results = results.get();
@@ -102,8 +109,12 @@ impl client_service::Server for ClientServiceImpl {
         let params = pry!(params.get());
         let tasks = pry!(params.get_tasks());
         let objects = pry!(params.get_objects());
-        info!("New task submission ({} tasks, {} data objects) from client {}",
-              tasks.len(), objects.len(), self.client.get_id());
+        info!(
+            "New task submission ({} tasks, {} data objects) from client {}",
+            tasks.len(),
+            objects.len(),
+            self.client.get_id()
+        );
         debug!("Sessions: {:?}", s.graph.sessions);
         let mut created_tasks = Vec::<TaskRef>::new();
         let mut created_objects = Vec::<DataObjectRef>::new();
@@ -113,15 +124,21 @@ impl client_service::Server for ClientServiceImpl {
             for co in objects.iter() {
                 let id = DataObjectId::from_capnp(&co.get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
-                let data =
-                    if co.get_has_data() {
-                        Some(co.get_data()?.into())
-                    } else {
-                        None
-                    };
+                let data = if co.get_has_data() {
+                    Some(co.get_data()?.into())
+                } else {
+                    None
+                };
                 let additionals = Additionals::new(); // TODO: decode additional
-                let o = s.add_object(&session, id,co.get_type().map_err(|_| "reading TaskType")?,
-                                     co.get_keep(), co.get_label()?.to_string(),data, additionals)?;
+                let o = s.add_object(
+                    &session,
+                    id,
+                    co.get_type().map_err(|_| "reading TaskType")?,
+                    co.get_keep(),
+                    co.get_label()?.to_string(),
+                    data,
+                    additionals,
+                )?;
                 created_objects.push(o);
             }
             // second create the tasks
@@ -143,16 +160,23 @@ impl client_service::Server for ClientServiceImpl {
                     outputs.push(s.object_by_id(DataObjectId::from_capnp(&co))?);
                 }
                 let t = s.add_task(
-                    &session, id, inputs, outputs,
-                    ct.get_task_type()?.to_string(), ct.get_task_config()?.into(),
-                                   additionals, resources)?;
+                    &session,
+                    id,
+                    inputs,
+                    outputs,
+                    ct.get_task_type()?.to_string(),
+                    ct.get_task_config()?.into(),
+                    additionals,
+                    resources,
+                )?;
                 created_tasks.push(t);
             }
             debug!("New tasks: {:?}", created_tasks);
             debug!("New objects: {:?}", created_objects);
             s.logger.add_client_submit_event(
                 created_tasks.iter().map(|t| t.get_id()).collect(),
-                created_objects.iter().map(|o| o.get_id()).collect());
+                created_objects.iter().map(|o| o.get_id()).collect(),
+            );
             // verify submit integrity
             s.verify_submit(&created_tasks, &created_objects)
         })();
@@ -176,7 +200,8 @@ impl client_service::Server for ClientServiceImpl {
     ) -> Promise<(), ::capnp::Error> {
         debug!("server data store requested from client");
         let datastore = ::datastore_capnp::data_store::ToClient::new(
-            ClientDataStoreImpl::new(&self.state)).from_server::<::capnp_rpc::Server>();
+            ClientDataStoreImpl::new(&self.state),
+        ).from_server::<::capnp_rpc::Server>();
         results.get().set_store(datastore);
         Promise::ok(())
     }
@@ -197,36 +222,40 @@ impl client_service::Server for ClientServiceImpl {
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
-        info!("New wait request ({} tasks, {} data objects) from client",
-              task_ids.len(), object_ids.len());
+        info!(
+            "New wait request ({} tasks, {} data objects) from client",
+            task_ids.len(),
+            object_ids.len()
+        );
 
 
-        if task_ids.len() == 1
-            && object_ids.len() == 0
-            && task_ids.get(0).get_id() == ::capnp_gen::common_capnp::ALL_TASKS_ID
+        if task_ids.len() == 1 && object_ids.len() == 0 &&
+            task_ids.get(0).get_id() == ::capnp_gen::common_capnp::ALL_TASKS_ID
         {
             let session_id = task_ids.get(0).get_session_id();
             debug!("Waiting for all session session_id={}", session_id);
             let session = match s.session_by_id(session_id) {
                 Ok(s) => s,
-                Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+                Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string())),
             };
             if let &Some(ref e) = session.get().get_error() {
                 set_error(&mut result.get(), e);
-                return Promise::ok(())
+                return Promise::ok(());
             }
 
             let session2 = session.clone();
-            return Promise::from_future(session.get_mut().wait()
-                             .then(move |r| {
-                                 match r {
-                                     Ok(_) => result.get().set_ok(()),
-                                     Err(_) => {
-                                        set_error(&mut result.get(), session2.get().get_error().as_ref().unwrap());
-                                     }
-                                 };
-                                 Ok(())}
-                             ));
+            return Promise::from_future(session.get_mut().wait().then(move |r| {
+                match r {
+                    Ok(_) => result.get().set_ok(()),
+                    Err(_) => {
+                        set_error(
+                            &mut result.get(),
+                            session2.get().get_error().as_ref().unwrap(),
+                        );
+                    }
+                };
+                Ok(())
+            }));
         }
 
         let mut sessions = RcSet::new();
@@ -249,30 +278,32 @@ impl client_service::Server for ClientServiceImpl {
                 }
                 Err(Error(ErrorKind::SessionErr(ref e), _)) => {
                     set_error(&mut result.get(), e);
-                    return Promise::ok(())
-                },
-                Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+                    return Promise::ok(());
+                }
+                Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string())),
             };
         }
 
         debug!("{} waiting futures", task_futures.len());
 
         if task_futures.is_empty() {
-           result.get().set_ok(());
-           return Promise::ok(());
+            result.get().set_ok(());
+            return Promise::ok(());
         }
 
-        Promise::from_future(::futures::future::join_all(task_futures)
-                             .then(move |r| {
-                                 match r {
-                                     Ok(_) => result.get().set_ok(()),
-                                     Err(_) => {
-                                        let session = sessions.iter().find(|s| s.get().is_failed()).unwrap();
-                                        set_error(&mut result.get(), session.get().get_error().as_ref().unwrap());
-                                     }
-                                 };
-                                 Ok(())}
-                             ))
+        Promise::from_future(::futures::future::join_all(task_futures).then(move |r| {
+            match r {
+                Ok(_) => result.get().set_ok(()),
+                Err(_) => {
+                    let session = sessions.iter().find(|s| s.get().is_failed()).unwrap();
+                    set_error(
+                        &mut result.get(),
+                        session.get().get_error().as_ref().unwrap(),
+                    );
+                }
+            };
+            Ok(())
+        }))
     }
 
     fn wait_some(
@@ -284,9 +315,14 @@ impl client_service::Server for ClientServiceImpl {
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
-        info!("New wait_some request ({} tasks, {} data objects) from client",
-              task_ids.len(), object_ids.len());
-        Promise::err(::capnp::Error::failed("wait_sone is not implemented yet".to_string()))
+        info!(
+            "New wait_some request ({} tasks, {} data objects) from client",
+            task_ids.len(),
+            object_ids.len()
+        );
+        Promise::err(::capnp::Error::failed(
+            "wait_sone is not implemented yet".to_string(),
+        ))
     }
 
     fn unkeep(
@@ -297,8 +333,10 @@ impl client_service::Server for ClientServiceImpl {
         let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let object_ids = pry!(params.get_object_ids());
-        debug!("New unkeep request ({} data objects) from client",
-              object_ids.len());
+        debug!(
+            "New unkeep request ({} data objects) from client",
+            object_ids.len()
+        );
 
         let mut objects = Vec::new();
         for oid in object_ids.iter() {
@@ -307,16 +345,18 @@ impl client_service::Server for ClientServiceImpl {
                 Ok(obj) => objects.push(obj),
                 Err(Error(ErrorKind::SessionErr(ref e), _)) => {
                     e.to_capnp(&mut results.get().init_error());
-                    return Promise::ok(())
-                },
-                Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+                    return Promise::ok(());
+                }
+                Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string())),
             };
         }
 
         for o in objects.iter() {
             s.unkeep_object(&o);
         }
-        s.logger.add_client_unkeep_event(objects.iter().map(|o|{o.get().id}).collect());
+        s.logger.add_client_unkeep_event(
+            objects.iter().map(|o| o.get().id).collect(),
+        );
         Promise::ok(())
     }
 
@@ -328,26 +368,37 @@ impl client_service::Server for ClientServiceImpl {
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
-        info!("New get_state request ({} tasks, {} data objects) from client",
-              task_ids.len(), object_ids.len());
+        info!(
+            "New get_state request ({} tasks, {} data objects) from client",
+            task_ids.len(),
+            object_ids.len()
+        );
 
         let s = self.state.get();
-        let tasks : Vec<_> = match task_ids.iter().map(|id| s.task_by_id_check_session(TaskId::from_capnp(&id))).collect() {
+        let tasks: Vec<_> = match task_ids
+            .iter()
+            .map(|id| s.task_by_id_check_session(TaskId::from_capnp(&id)))
+            .collect() {
             Ok(tasks) => tasks,
             Err(Error(ErrorKind::SessionErr(ref e), _)) => {
                 e.to_capnp(&mut results.get().get_state().unwrap().init_error());
-                return Promise::ok(())
-            },
-            Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+                return Promise::ok(());
+            }
+            Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string())),
         };
 
-        let objects : Vec<_> = match object_ids.iter().map(|id| s.object_by_id_check_session(DataObjectId::from_capnp(&id))).collect() {
+        let objects: Vec<_> = match object_ids
+            .iter()
+            .map(|id| {
+                s.object_by_id_check_session(DataObjectId::from_capnp(&id))
+            })
+            .collect() {
             Ok(tasks) => tasks,
             Err(Error(ErrorKind::SessionErr(ref e), _)) => {
                 e.to_capnp(&mut results.get().get_state().unwrap().init_error());
-                return Promise::ok(())
-            },
-            Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string()))
+                return Promise::ok(());
+            }
+            Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string())),
         };
 
         let mut results = results.get();
@@ -358,7 +409,9 @@ impl client_service::Server for ClientServiceImpl {
                 let mut update = task_updates.borrow().get(i as u32);
                 let t = task.get();
                 t.id.to_capnp(&mut update.borrow().get_id().unwrap());
-                t.additionals.to_capnp(&mut update.get_additionals().unwrap());
+                t.additionals.to_capnp(
+                    &mut update.get_additionals().unwrap(),
+                );
             }
         }
 

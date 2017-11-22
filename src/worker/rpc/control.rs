@@ -32,19 +32,22 @@ impl Drop for WorkerControlImpl {
 }
 
 impl worker_control::Server for WorkerControlImpl {
-
-    fn get_worker_resources(&mut self,
-              _params: worker_control::GetWorkerResourcesParams,
-              mut results: worker_control::GetWorkerResourcesResults)
-              -> Promise<(), ::capnp::Error> {
-        results.get().set_n_cpus(self.state.get().get_resources().n_cpus);
+    fn get_worker_resources(
+        &mut self,
+        _params: worker_control::GetWorkerResourcesParams,
+        mut results: worker_control::GetWorkerResourcesResults,
+    ) -> Promise<(), ::capnp::Error> {
+        results.get().set_n_cpus(
+            self.state.get().get_resources().n_cpus,
+        );
         Promise::ok(())
     }
 
-    fn unassign_objects(&mut self,
-                 params: worker_control::UnassignObjectsParams,
-                 mut _results: worker_control::UnassignObjectsResults)
-                 -> Promise<(), ::capnp::Error> {
+    fn unassign_objects(
+        &mut self,
+        params: worker_control::UnassignObjectsParams,
+        mut _results: worker_control::UnassignObjectsResults,
+    ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let objects = pry!(params.get_objects());
 
@@ -56,7 +59,9 @@ impl worker_control::Server for WorkerControlImpl {
             let dataobject = pry!(state.object_by_id(id));
             let mut obj = dataobject.get_mut();
             if !obj.assigned {
-                return Promise::err(::capnp::Error::failed("Object exists in worker but is not assigned".into()));
+                return Promise::err(::capnp::Error::failed(
+                    "Object exists in worker but is not assigned".into(),
+                ));
             }
             obj.assigned = false;
             if obj.consumers.is_empty() {
@@ -67,18 +72,20 @@ impl worker_control::Server for WorkerControlImpl {
         Promise::ok(())
     }
 
-    fn stop_tasks(&mut self,
-                 params: worker_control::StopTasksParams,
-                 mut _results: worker_control::StopTasksResults)
-                 -> Promise<(), ::capnp::Error> {
+    fn stop_tasks(
+        &mut self,
+        params: worker_control::StopTasksParams,
+        mut _results: worker_control::StopTasksResults,
+    ) -> Promise<(), ::capnp::Error> {
         // TODO: Implement real task stop
         Promise::ok(())
     }
 
-    fn add_nodes(&mut self,
-                 params: worker_control::AddNodesParams,
-                 mut _results: worker_control::AddNodesResults)
-                 -> Promise<(), ::capnp::Error> {
+    fn add_nodes(
+        &mut self,
+        params: worker_control::AddNodesParams,
+        mut _results: worker_control::AddNodesResults,
+    ) -> Promise<(), ::capnp::Error> {
         debug!("New tasks and objects");
         let params = pry!(params.get());
         let new_tasks = pry!(params.get_new_tasks());
@@ -113,9 +120,14 @@ impl worker_control::Server for WorkerControlImpl {
             let label = pry!(co.get_label()).to_string();
 
             let assigned = co.get_assigned();
-            let dataobject = state.add_dataobject(id, object_state, object_type, assigned, size, label);
+            let dataobject =
+                state.add_dataobject(id, object_state, object_type, assigned, size, label);
 
-            debug!("Received DataObject {:?}, is_remote: {}", dataobject.get(), is_remote);
+            debug!(
+                "Received DataObject {:?}, is_remote: {}",
+                dataobject.get(),
+                is_remote
+            );
 
             if is_remote {
                 remote_objects.push(dataobject);
@@ -128,19 +140,35 @@ impl worker_control::Server for WorkerControlImpl {
             let task_config = ct.get_task_config().unwrap();
             let resources = Resources::from_capnp(&ct.get_resources().unwrap());
 
-            let inputs: Vec<_> = ct.get_inputs().unwrap().iter().map(|ci| {
-                TaskInput {
-                    object: state.object_by_id(DataObjectId::from_capnp(&ci.get_id().unwrap())).unwrap(),
-                    label: ci.get_label().unwrap().into(),
-                    path: ci.get_path().unwrap().into(),
-                }
-            }).collect();
+            let inputs: Vec<_> = ct.get_inputs()
+                .unwrap()
+                .iter()
+                .map(|ci| {
+                    TaskInput {
+                        object: state
+                            .object_by_id(DataObjectId::from_capnp(&ci.get_id().unwrap()))
+                            .unwrap(),
+                        label: ci.get_label().unwrap().into(),
+                        path: ci.get_path().unwrap().into(),
+                    }
+                })
+                .collect();
 
-            let outputs: Vec<_> = ct.get_outputs().unwrap().iter().map(|co| {
-                state.object_by_id(DataObjectId::from_capnp(&co)).unwrap()
-            }).collect();
+            let outputs: Vec<_> = ct.get_outputs()
+                .unwrap()
+                .iter()
+                .map(|co| {
+                    state.object_by_id(DataObjectId::from_capnp(&co)).unwrap()
+                })
+                .collect();
             let task = state.add_task(
-                id, inputs, outputs, resources, task_type.into(), task_config.into());
+                id,
+                inputs,
+                outputs,
+                resources,
+                task_type.into(),
+                task_config.into(),
+            );
 
             debug!("Received Task {:?}", task.get());
         }
@@ -170,7 +198,12 @@ impl worker_control::Server for WorkerControlImpl {
                 // This can be an error or maybe just race condition
                 // when session is closed and object was not found,
                 // we are not just logging do nothing, but TODO: we should be informing server
-                warn!("Fetching dataobject id={} from worker={} failed {:?}", object_id, worker_id, e);
+                warn!(
+                    "Fetching dataobject id={} from worker={} failed {:?}",
+                    object_id,
+                    worker_id,
+                    e
+                );
                 ()
             }));
         }
@@ -178,10 +211,11 @@ impl worker_control::Server for WorkerControlImpl {
         Promise::ok(())
     }
 
-    fn get_monitoring_frames(&mut self,
-              _params: worker_control::GetMonitoringFramesParams,
-              mut results: worker_control::GetMonitoringFramesResults)
-              -> Promise<(), ::capnp::Error> {
+    fn get_monitoring_frames(
+        &mut self,
+        _params: worker_control::GetMonitoringFramesParams,
+        mut results: worker_control::GetMonitoringFramesResults,
+    ) -> Promise<(), ::capnp::Error> {
         let mut state = self.state.get_mut();
         let monitor = state.monitor_mut();
         let frames = monitor.collect_frames();
@@ -201,11 +235,11 @@ impl worker_control::Server for WorkerControlImpl {
         Promise::ok(())
     }
 
-    fn get_info(&mut self,
-                _params: worker_control::GetInfoParams,
-                mut results: worker_control::GetInfoResults)
-                -> Promise<(), ::capnp::Error>
-    {
+    fn get_info(
+        &mut self,
+        _params: worker_control::GetInfoParams,
+        mut results: worker_control::GetInfoResults,
+    ) -> Promise<(), ::capnp::Error> {
         let mut result = results.get();
         let state = self.state.get();
         {
@@ -217,7 +251,9 @@ impl worker_control::Server for WorkerControlImpl {
         {
             let mut objects = result.init_objects(state.graph.objects.len() as u32);
             for (i, object) in state.graph.objects.values().enumerate() {
-                object.get().id.to_capnp(&mut objects.borrow().get(i as u32))
+                object.get().id.to_capnp(
+                    &mut objects.borrow().get(i as u32),
+                )
             }
         }
         Promise::ok(())

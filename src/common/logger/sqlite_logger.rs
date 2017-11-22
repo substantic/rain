@@ -1,8 +1,9 @@
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
 use common::events::{Event, EventType, NewWorkerEvent, RemovedWorkerEvent, WorkerFailedEvent,
                      NewClientEvent, RemovedClientEvent, ClientSubmitEvent, ClientUnkeepEvent,
-                     ClientInvalidRequestEvent, TaskStartedEvent, TaskFinishedEvent, TaskFailedEvent,
-                     DataObjectFinishedEvent, DataObjectRemovedEvent, WorkerMonitoringEvent};
+                     ClientInvalidRequestEvent, TaskStartedEvent, TaskFinishedEvent,
+                     TaskFailedEvent, DataObjectFinishedEvent, DataObjectRemovedEvent,
+                     WorkerMonitoringEvent};
 use common::monitor::Frame;
 use super::logger::Logger;
 
@@ -18,21 +19,21 @@ pub struct SQLiteLogger {
 }
 
 impl SQLiteLogger {
-
     pub fn new() -> Self {
-        let mut conn = Connection::open_in_memory()
-            .unwrap_or_else(|e| {
-                panic!("{}", e);
-            });
+        let mut conn = Connection::open_in_memory().unwrap_or_else(|e| {
+            panic!("{}", e);
+        });
 
-        conn.execute("CREATE TABLE events (
+        conn.execute(
+            "CREATE TABLE events (
                 id SERIAL PRIMARY KEY,
                 event TEXT NOT NULL,
                 timestamp TEXT NOT NULL
-             )", &[])
-             .unwrap_or_else(|e|{
+             )",
+            &[],
+        ).unwrap_or_else(|e| {
                 panic!("{}", e);
-             });
+            });
 
         SQLiteLogger {
             events: Vec::new(),
@@ -41,14 +42,15 @@ impl SQLiteLogger {
     }
 
     fn save_events(&self) -> Result<(), ()> {
-        let mut stmt = self.conn.prepare("INSERT INTO events (timestamp, event) VALUES (?, ?)")
-            .unwrap_or_else(|e|{
+        let mut stmt = self.conn
+            .prepare("INSERT INTO events (timestamp, event) VALUES (?, ?)")
+            .unwrap_or_else(|e| {
                 panic!("{}", e);
-             });
+            });
 
         for e in self.events.iter() {
             stmt.execute(&[&e.timestamp, &serde_json::to_string(&e.event).unwrap()])
-                .unwrap_or_else(|e|{
+                .unwrap_or_else(|e| {
                     panic!("{}", e);
                 });
         }
@@ -69,107 +71,127 @@ impl Logger for SQLiteLogger {
     fn add_new_worker_event(&mut self, worker: WorkerId) {
         self.add_event(Event::new(
             EventType::WorkerNew(NewWorkerEvent::new(worker)),
-            Utc::now())
-        );
+            Utc::now(),
+        ));
     }
 
     fn add_worker_removed_event(&mut self, worker: WorkerId, error_msg: String) {
         self.add_event(Event::new(
-            EventType::WorkerRemoved(RemovedWorkerEvent::new(worker, error_msg)),
-            Utc::now())
-        );
+            EventType::WorkerRemoved(
+                RemovedWorkerEvent::new(worker, error_msg),
+            ),
+            Utc::now(),
+        ));
     }
 
     fn add_worker_failed_event(&mut self, worker: WorkerId, error_msg: String) {
         self.add_event(Event::new(
-            EventType::WorkerFailed(WorkerFailedEvent::new(worker, error_msg)),
-            Utc::now())
-        );
+            EventType::WorkerFailed(
+                WorkerFailedEvent::new(worker, error_msg),
+            ),
+            Utc::now(),
+        ));
     }
 
     fn add_new_client_event(&mut self, client: ClientId) {
         self.add_event(Event::new(
             EventType::NewClient(NewClientEvent::new(client)),
-            Utc::now())
-        );
+            Utc::now(),
+        ));
     }
 
     fn add_removed_client_event(&mut self, client: ClientId, error_msg: String) {
         self.add_event(Event::new(
-            EventType::RemovedClient(RemovedClientEvent::new(client, error_msg)),
-            Utc::now())
-        );
+            EventType::RemovedClient(
+                RemovedClientEvent::new(client, error_msg),
+            ),
+            Utc::now(),
+        ));
     }
 
     fn add_client_submit_event(&mut self, tasks: Vec<TaskId>, dataobjs: Vec<DataObjectId>) {
         self.add_event(Event::new(
-            EventType::ClientSubmit(ClientSubmitEvent::new(tasks, dataobjs)),
-            Utc::now())
-        );
+            EventType::ClientSubmit(
+                ClientSubmitEvent::new(tasks, dataobjs),
+            ),
+            Utc::now(),
+        ));
     }
 
     fn add_client_invalid_request_event(&mut self, client: ClientId, error_msg: String) {
         self.add_event(Event::new(
-            EventType::ClientInvalidRequest(ClientInvalidRequestEvent::new(client, error_msg)),
-            Utc::now())
-        );
+            EventType::ClientInvalidRequest(
+                ClientInvalidRequestEvent::new(client, error_msg),
+            ),
+            Utc::now(),
+        ));
     }
 
     fn add_client_unkeep_event(&mut self, dataobjs: Vec<DataObjectId>) {
         self.add_event(Event::new(
             EventType::ClientUnkeep(ClientUnkeepEvent::new(dataobjs)),
-            Utc::now())
-        );
+            Utc::now(),
+        ));
     }
 
     fn add_task_started_event(&mut self, task: TaskId, worker: WorkerId) {
         self.add_event(Event::new(
             EventType::TaskStarted(TaskStartedEvent::new(task, worker)),
-            Utc::now())
-        );
+            Utc::now(),
+        ));
     }
 
-    fn add_task_finished_event(&mut self, task: TaskId){
+    fn add_task_finished_event(&mut self, task: TaskId) {
         self.add_event(Event::new(
             EventType::TaskFinished(TaskFinishedEvent::new(task)),
-            Utc::now())
-        );
+            Utc::now(),
+        ));
     }
 
     fn add_task_failed_event(&mut self, task: TaskId, worker: WorkerId, error_msg: String) {
         self.add_event(Event::new(
-            EventType::TaskFailed(TaskFailedEvent::new(task, worker, error_msg)),
-            Utc::now())
-        );
+            EventType::TaskFailed(
+                TaskFailedEvent::new(task, worker, error_msg),
+            ),
+            Utc::now(),
+        ));
     }
 
-    fn add_dataobject_finished_event(&mut self, dataobject: DataObjectId, worker: WorkerId, size: usize) {
+    fn add_dataobject_finished_event(
+        &mut self,
+        dataobject: DataObjectId,
+        worker: WorkerId,
+        size: usize,
+    ) {
         self.add_event(Event::new(
-            EventType::DataObjectFinished(DataObjectFinishedEvent::new(dataobject, worker, size)),
-            Utc::now())
-        );
+            EventType::DataObjectFinished(
+                DataObjectFinishedEvent::new(dataobject, worker, size),
+            ),
+            Utc::now(),
+        ));
     }
 
     fn add_dataobject_removed_event(&mut self, dataobject: DataObjectId, worker: WorkerId) {
         self.add_event(Event::new(
-            EventType::DataObjectRemoved(DataObjectRemovedEvent::new(dataobject, worker)),
-            Utc::now())
-        );
+            EventType::DataObjectRemoved(
+                DataObjectRemovedEvent::new(dataobject, worker),
+            ),
+            Utc::now(),
+        ));
     }
 
     fn add_worker_monitoring_event(&mut self, frame: Frame, worker: WorkerId) {
         let timestamp = frame.timestamp.clone();
         self.add_event(Event::new(
-            EventType::WorkerMonitoring(WorkerMonitoringEvent::new(frame, worker)),
-            timestamp)
-        );
+            EventType::WorkerMonitoring(
+                WorkerMonitoringEvent::new(frame, worker),
+            ),
+            timestamp,
+        ));
     }
 
     fn add_dummy_event(&mut self) {
-        self.add_event(Event::new(
-            EventType::Dummy(),
-            Utc::now())
-        );
+        self.add_event(Event::new(EventType::Dummy(), Utc::now()));
     }
 }
 
@@ -187,27 +209,27 @@ mod tests {
     }
 
     fn create_test_task_ids() -> Vec<TaskId> {
-        vec!(TaskId::new(1,1))
+        vec![TaskId::new(1, 1)]
     }
 
     fn create_test_task_id() -> TaskId {
-        TaskId::new(1,1)
+        TaskId::new(1, 1)
     }
 
     fn create_test_dataobj_ids() -> Vec<DataObjectId> {
-        vec!(DataObjectId::new(1,1))
+        vec![DataObjectId::new(1, 1)]
     }
 
     fn create_test_dataobj_id() -> DataObjectId {
-        DataObjectId::new(1,1)
+        DataObjectId::new(1, 1)
     }
 
     fn create_test_frame() -> Frame {
         Frame {
-            cpu_usage: vec!(10, 10, 10, 10),
+            cpu_usage: vec![10, 10, 10, 10],
             mem_usage: 50,
             timestamp: Utc::now(),
-            net_stat: [(String::from("net0"), vec!(50))].iter().cloned().collect()
+            net_stat: [(String::from("net0"), vec![50])].iter().cloned().collect(),
         }
     }
 

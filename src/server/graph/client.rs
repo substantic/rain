@@ -8,14 +8,13 @@ use errors::Result;
 
 #[derive(Debug)]
 pub struct Client {
-    pub (in super::super) id: ClientId,
-    pub (in super::super) sessions: RcSet<SessionRef>,
+    pub(in super::super) id: ClientId,
+    pub(in super::super) sessions: RcSet<SessionRef>,
 }
 
 pub type ClientRef = WrappedRcRefCell<Client>;
 
 impl ClientRef {
-
     /// Create new Client object
     pub fn new(address: SocketAddr) -> Self {
         ClientRef::wrap(Client {
@@ -25,7 +24,9 @@ impl ClientRef {
     }
 
     /// Return the object ID in graph.
-    pub fn get_id(&self) -> ClientId { self.get().id }
+    pub fn get_id(&self) -> ClientId {
+        self.get().id
+    }
 }
 
 impl ConsistencyCheck for ClientRef {

@@ -20,8 +20,8 @@ use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
 use common::monitor::{Monitor, Frame};
 
-use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject,
-                    Graph, TaskRef, TaskInput, TaskState, SubworkerRef, subworker_command};
+use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject, Graph, TaskRef,
+                    TaskInput, TaskState, SubworkerRef, subworker_command};
 use worker::data::{DataBuilder, Data, BlobBuilder};
 use worker::tasks::TaskContext;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
@@ -75,21 +75,21 @@ pub struct State {
     /// Listing of subworkers that were started as process, but not registered
     /// The second member of triplet is subworker_type
     /// Third member (oneshot) is fired when registration is completed
-    initializing_subworkers: Vec<(SubworkerId,
-                                  String, // type (e.g. "py")
-                                  ::tempdir::TempDir, // working dir
-                                  ::futures::unsync::oneshot::Sender<SubworkerRef>)>,
+    initializing_subworkers: Vec<
+        (SubworkerId,
+         String, // type (e.g. "py")
+         ::tempdir::TempDir, // working dir
+         ::futures::unsync::oneshot::Sender<SubworkerRef>),
+    >,
 
     // Map from name of subworkers to its arguments
     // e.g. "py" => ["python", "-m", "rain.subworker"]
     subworker_args: HashMap<String, Vec<String>>,
-
 }
 
 pub type StateRef = WrappedRcRefCell<State>;
 
 impl State {
-
     #[inline]
     pub fn work_dir(&self) -> &WorkDir {
         &self.work_dir
@@ -123,20 +123,24 @@ impl State {
         self.need_scheduling = true;
     }
 
-    pub fn add_task(&mut self,
-                    id: TaskId,
-                    inputs: Vec<TaskInput>,
-                    outputs: Vec<DataObjectRef>,
-                    resources: Resources,
-                    procedure_key: String,
-                    procedure_config: Vec<u8>) -> TaskRef {
-        let task = TaskRef::new(&mut self.graph,
-                                id,
-                                inputs,
-                                outputs,
-                                resources,
-                                procedure_key,
-                                procedure_config);
+    pub fn add_task(
+        &mut self,
+        id: TaskId,
+        inputs: Vec<TaskInput>,
+        outputs: Vec<DataObjectRef>,
+        resources: Resources,
+        procedure_key: String,
+        procedure_config: Vec<u8>,
+    ) -> TaskRef {
+        let task = TaskRef::new(
+            &mut self.graph,
+            id,
+            inputs,
+            outputs,
+            resources,
+            procedure_key,
+            procedure_config,
+        );
         if task.get().is_ready() {
             self.graph.ready_tasks.push(task.clone());
         }
@@ -178,12 +182,16 @@ impl State {
     /// Send status of updated elements (updated_tasks/updated_objects) and then clear this sets
     pub fn send_update(&mut self) {
 
-        debug!("Sending update objs={}, tasks={}",
-               self.updated_objects.len(), self.updated_tasks.len());
+        debug!(
+            "Sending update objs={}, tasks={}",
+            self.updated_objects.len(),
+            self.updated_tasks.len()
+        );
 
         let mut req = self.upstream.as_ref().unwrap().update_states_request();
 
-        {   // Data Objects
+        {
+            // Data Objects
             let req_update = req.get().get_update().unwrap();
             let mut req_objs = req_update.init_objects(self.updated_objects.len() as u32);
 
@@ -205,7 +213,8 @@ impl State {
             self.updated_objects.clear();
         }
 
-        {   // Tasks
+        {
+            // Tasks
             let req_update = req.get().get_update().unwrap();
             let mut req_tasks = req_update.init_tasks(self.updated_tasks.len() as u32);
 
@@ -217,11 +226,13 @@ impl State {
                     TaskState::Running => ::common_capnp::TaskState::Running,
                     TaskState::Finished => ::common_capnp::TaskState::Finished,
                     TaskState::Failed => ::common_capnp::TaskState::Failed,
-                    _ => panic!("Invalid state")
+                    _ => panic!("Invalid state"),
                 });
 
                 if !task.new_additionals.is_empty() {
-                    task.new_additionals.to_capnp(&mut ct.borrow().get_additionals().unwrap());
+                    task.new_additionals.to_capnp(&mut ct.borrow()
+                        .get_additionals()
+                        .unwrap());
                     task.new_additionals.clear();
                 }
                 task.id.to_capnp(&mut ct.get_id().unwrap());
@@ -234,34 +245,57 @@ impl State {
     }
 
     fn register_subworker(&mut self, name: &str, args: &[&str]) {
-        self.subworker_args.insert(name.into(), args.iter().map(|i| i.to_string()).collect());
+        self.subworker_args.insert(
+            name.into(),
+            args.iter()
+                .map(|i| i.to_string())
+                .collect(),
+        );
     }
 
-    pub fn get_subworker(&mut self, state_ref: &StateRef, subworker_type: &str) -> Result<Box<Future<Item=SubworkerRef, Error=Error>>> {
+    pub fn get_subworker(
+        &mut self,
+        state_ref: &StateRef,
+        subworker_type: &str,
+    ) -> Result<Box<Future<Item = SubworkerRef, Error = Error>>> {
         use tokio_process::CommandExt;
-        let index = self.graph.idle_subworkers.iter().position(|sw| sw.get().subworker_type() == subworker_type);
+        let index = self.graph.idle_subworkers.iter().position(|sw| {
+            sw.get().subworker_type() == subworker_type
+        });
         match index {
             None => {
                 let subworker_id = self.graph.make_id();
                 if let Some(args) = self.subworker_args.get(subworker_type) {
-                        let (sender, receiver) = ::futures::unsync::oneshot::channel();
+                    let (sender, receiver) = ::futures::unsync::oneshot::channel();
                     let state_ref = state_ref.clone();
                     let program_name = &args[0];
-                    let (mut command, subworker_dir) = subworker_command(&self.work_dir, subworker_id, subworker_type, program_name, &args[1..])?;
-                    self.initializing_subworkers.push((subworker_id,
-                                                       subworker_type.to_string(),
-                                                       subworker_dir,
-                                                       sender));
+                    let (mut command, subworker_dir) = subworker_command(
+                        &self.work_dir,
+                        subworker_id,
+                        subworker_type,
+                        program_name,
+                        &args[1..],
+                    )?;
+                    self.initializing_subworkers.push((
+                        subworker_id,
+                        subworker_type.to_string(),
+                        subworker_dir,
+                        sender,
+                    ));
                     self.spawn_panic_on_error(
-                        command
-                            .status_async(&self.handle)
-                            .and_then(move |status| {
-                                error!("Subworker {} terminated with exit code: {}", subworker_id, status);
-                                panic!("Subworker terminated; TODO handle this situation");
-                                Ok(())
-                            })
+                        command.status_async(&self.handle).and_then(move |status| {
+                            error!(
+                                "Subworker {} terminated with exit code: {}",
+                                subworker_id,
+                                status
+                            );
+                            panic!("Subworker terminated; TODO handle this situation");
+                            Ok(())
+                        }),
                     );
-                    Ok(Box::new(receiver.map_err(|_| "Subwork start cancelled".into())))
+                    Ok(Box::new(
+                        receiver.map_err(|_| "Subwork start cancelled".into()),
+                    ))
                 } else {
                     bail!("Unknown subworker")
                 }
@@ -274,11 +308,14 @@ impl State {
     }
 
     /// This method is called when subworker is connected & registered
-    pub fn add_subworker(&mut self,
-                         subworker_id: SubworkerId,
-                         subworker_type: String,
-                         control: ::subworker_capnp::subworker_control::Client) -> Result<()> {
-        let index = self.initializing_subworkers.iter()
+    pub fn add_subworker(
+        &mut self,
+        subworker_id: SubworkerId,
+        subworker_type: String,
+        control: ::subworker_capnp::subworker_control::Client,
+    ) -> Result<()> {
+        let index = self.initializing_subworkers
+            .iter()
             .position(|&(id, _, _, _)| id == subworker_id)
             .ok_or("Subworker registered under unexpected id")?;
 
@@ -290,12 +327,12 @@ impl State {
             bail!("Unexpected type of worker registered");
         }
 
-        let subworker = SubworkerRef::new(subworker_id,
-                                          subworker_type,
-                                          control,
-                                          work_dir);
+        let subworker = SubworkerRef::new(subworker_id, subworker_type, control, work_dir);
 
-        let r = self.graph.subworkers.insert(subworker_id, subworker.clone());
+        let r = self.graph.subworkers.insert(
+            subworker_id,
+            subworker.clone(),
+        );
         assert!(r.is_none());
 
         if let Err(subworker) = sender.send(subworker) {
@@ -306,24 +343,31 @@ impl State {
     }
 
     /// You can call this ONLY when wait_for_datastore was successfully finished
-    pub fn get_datastore(&self, worker_id: &WorkerId) ->  &::datastore_capnp::data_store::Client {
+    pub fn get_datastore(&self, worker_id: &WorkerId) -> &::datastore_capnp::data_store::Client {
         self.datastores.get(worker_id).unwrap().get()
     }
 
     pub fn spawn_panic_on_error<F, E>(&self, f: F)
-        where F: Future<Item = (), Error = E> + 'static, E : ::std::fmt::Debug
+    where
+        F: Future<Item = (), Error = E> + 'static,
+        E: ::std::fmt::Debug,
     {
-        self.handle.spawn(f.map_err(|e| panic!("Future failed {:?}", e)));
+        self.handle.spawn(
+            f.map_err(|e| panic!("Future failed {:?}", e)),
+        );
     }
 
-    pub fn add_dataobject(&mut self,
-                          id: DataObjectId,
-                          state: DataObjectState,
-                          obj_type: DataObjectType,
-                          assigned: bool,
-                          size: Option<usize>,
-                          label: String) -> DataObjectRef {
-        let dataobj = DataObjectRef::new(&mut self.graph, id, state, obj_type, assigned, size, label);
+    pub fn add_dataobject(
+        &mut self,
+        id: DataObjectId,
+        state: DataObjectState,
+        obj_type: DataObjectType,
+        assigned: bool,
+        size: Option<usize>,
+        label: String,
+    ) -> DataObjectRef {
+        let dataobj =
+            DataObjectRef::new(&mut self.graph, id, state, obj_type, assigned, size, label);
         /*if dataobj.remote().is_some() {
             self.fetch_dataobject(&dataobj)
         }*/
@@ -334,7 +378,7 @@ impl State {
         {
             let mut t = task.get_mut();
             for input in &t.inputs {
-             self.remove_consumer(&mut input.object.get_mut(), &task);
+                self.remove_consumer(&mut input.object.get_mut(), &task);
             }
             t.set_failed(error.description().to_string());
         }
@@ -376,49 +420,54 @@ impl State {
             return;
         }
 
-        self.handle.spawn(future.unwrap().and_then(move |mut context| {
+        self.handle.spawn(
+            future
+                .unwrap()
+                .and_then(move |mut context| {
 
-            let mut task = context.task.get_mut();
-            task.state = TaskState::Finished;
-            debug!("Task id={} finished", task.id);
+                    let mut task = context.task.get_mut();
+                    task.state = TaskState::Finished;
+                    debug!("Task id={} finished", task.id);
 
-            let mut state = state_ref.get_mut();
-            state.need_scheduling();
-            state.updated_tasks.insert(context.task.clone());
+                    let mut state = state_ref.get_mut();
+                    state.need_scheduling();
+                    state.updated_tasks.insert(context.task.clone());
 
-            if let Some(subworker) = ::std::mem::replace(&mut context.subworker, None) {
-                // Return subworker to idle
-                state.graph.idle_subworkers.push(subworker);
-            }
+                    if let Some(subworker) = ::std::mem::replace(&mut context.subworker, None) {
+                        // Return subworker to idle
+                        state.graph.idle_subworkers.push(subworker);
+                    }
 
-            for input in &task.inputs {
-                let mut obj = input.object.get_mut();
-                state.remove_consumer(&mut obj, &context.task);
-            }
+                    for input in &task.inputs {
+                        let mut obj = input.object.get_mut();
+                        state.remove_consumer(&mut obj, &context.task);
+                    }
 
-            for output in &task.outputs {
-                let obj = output.get();
-                if !obj.is_finished() {
-                    bail!("Not all outputs produced");
-                }
-            }
+                    for output in &task.outputs {
+                        let obj = output.get();
+                        if !obj.is_finished() {
+                            bail!("Not all outputs produced");
+                        }
+                    }
 
-            for output in &task.outputs {
-                state.object_is_finished(output);
-            }
-            let removed = state.graph.tasks.remove(&task.id);
-            assert!(removed.is_some());
-            Ok(())
-        }).map_err(move |e| {
-            /*task2.get_mut().set_failed(e.description().to_string());
+                    for output in &task.outputs {
+                        state.object_is_finished(output);
+                    }
+                    let removed = state.graph.tasks.remove(&task.id);
+                    assert!(removed.is_some());
+                    Ok(())
+                })
+                .map_err(move |e| {
+                    /*task2.get_mut().set_failed(e.description().to_string());
             let mut state = state_ref2.get_mut();
             let removed = state.graph.tasks.remove(&task2.get().id);
             assert!(removed.is_some());
             state.updated_tasks.insert(task2);*/
-            let mut state = state_ref2.get_mut();
-            state.task_failed(task2, e);
-            state.need_scheduling();
-        }));
+                    let mut state = state_ref2.get_mut();
+                    state.task_failed(task2, e);
+                    state.need_scheduling();
+                }),
+        );
     }
 
     pub fn schedule(&mut self, state_ref: &StateRef) {
@@ -428,7 +477,11 @@ impl State {
         }
     }
 
-    pub fn wait_for_datastore(&mut self, state: &StateRef, worker_id: &WorkerId) -> Box<Future<Item=(), Error=Error>> {
+    pub fn wait_for_datastore(
+        &mut self,
+        state: &StateRef,
+        worker_id: &WorkerId,
+    ) -> Box<Future<Item = (), Error = Error>> {
         if let Some(ref mut wrapper) = self.datastores.get_mut(worker_id) {
             return wrapper.wait();
         }
@@ -442,13 +495,18 @@ impl State {
         if worker_id.ip().is_unspecified() {
             // Data are on server
             let req = self.upstream.as_ref().unwrap().get_data_store_request();
-            Box::new(req.send().promise.map(move |r| {
-                debug!("Obtained datastore from server");
-                let datastore = r.get().unwrap().get_store().unwrap();
-                let mut inner = state.get_mut();
-                let wrapper = inner.datastores.get_mut(&worker_id).unwrap();
-                wrapper.set_value(datastore);
-            }).map_err(|e| e.into()))
+            Box::new(
+                req.send()
+                    .promise
+                    .map(move |r| {
+                        debug!("Obtained datastore from server");
+                        let datastore = r.get().unwrap().get_store().unwrap();
+                        let mut inner = state.get_mut();
+                        let wrapper = inner.datastores.get_mut(&worker_id).unwrap();
+                        wrapper.set_value(datastore);
+                    })
+                    .map_err(|e| e.into()),
+            )
         } else {
             Box::new(TcpStream::connect(&worker_id, &self.handle)
                          .map(move |stream| {
@@ -471,26 +529,31 @@ impl State {
 }
 
 impl StateRef {
-    pub fn new(handle: Handle, work_dir: PathBuf, n_cpus: u32, subworkers: HashMap<String, Vec<String>>) -> Self {
+    pub fn new(
+        handle: Handle,
+        work_dir: PathBuf,
+        n_cpus: u32,
+        subworkers: HashMap<String, Vec<String>>,
+    ) -> Self {
         Self::wrap(State {
-                       handle,
-                       resources: Resources {n_cpus},
-                       upstream: None,
-                       datastores: HashMap::new(),
-                       updated_objects: Default::default(),
-                       updated_tasks: Default::default(),
-                       timer: tokio_timer::wheel()
-                           .tick_duration(Duration::from_millis(100))
-                           .num_slots(256)
-                           .build(),
-                       work_dir: WorkDir::new(work_dir),
-                       worker_id: empty_worker_id(),
-                       graph: Graph::new(),
-                       need_scheduling: false,
-                       monitor: Monitor::new(),
-                       initializing_subworkers: Vec::new(),
-                       subworker_args: subworkers,
-                   })
+            handle,
+            resources: Resources { n_cpus },
+            upstream: None,
+            datastores: HashMap::new(),
+            updated_objects: Default::default(),
+            updated_tasks: Default::default(),
+            timer: tokio_timer::wheel()
+                .tick_duration(Duration::from_millis(100))
+                .num_slots(256)
+                .build(),
+            work_dir: WorkDir::new(work_dir),
+            worker_id: empty_worker_id(),
+            graph: Graph::new(),
+            need_scheduling: false,
+            monitor: Monitor::new(),
+            initializing_subworkers: Vec::new(),
+            subworker_args: subworkers,
+        })
     }
 
     // This is called when an incoming connection arrives
@@ -501,26 +564,28 @@ impl StateRef {
         stream.set_nodelay(true).unwrap();
 
         let bootstrap = ::datastore_capnp::data_store::ToClient::new(
-            ::worker::rpc::datastore::DataStoreImpl::new(self)
+            ::worker::rpc::datastore::DataStoreImpl::new(self),
         ).from_server::<::capnp_rpc::Server>();
         let rpc_system = ::common::rpc::new_rpc_system(stream, Some(bootstrap.client));
         self.get().spawn_panic_on_error(rpc_system);
     }
 
     // This is called when worker connection to server is established
-    pub fn on_connected_to_server(&self,
-                                  stream: TcpStream,
-                                  listen_address: SocketAddr,
-                                  ready_file: Option<String>) {
+    pub fn on_connected_to_server(
+        &self,
+        stream: TcpStream,
+        listen_address: SocketAddr,
+        ready_file: Option<String>,
+    ) {
         info!("Connected to server; registering as worker");
         stream.set_nodelay(true).unwrap();
         let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
         let bootstrap: ::server_capnp::server_bootstrap::Client =
             rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        let worker_control =
-            ::worker_capnp::worker_control::ToClient::new(WorkerControlImpl::new(self))
-                .from_server::<::capnp_rpc::Server>();
+        let worker_control = ::worker_capnp::worker_control::ToClient::new(
+            WorkerControlImpl::new(self),
+        ).from_server::<::capnp_rpc::Server>();
 
         let mut req = bootstrap.register_as_worker_request();
 
@@ -548,33 +613,35 @@ impl StateRef {
                 Promise::ok(())
             })
             .map_err(|e| {
-                         panic!("Error {}", e);
-                     });
+                panic!("Error {}", e);
+            });
 
         let inner = self.get();
         inner.handle.spawn(future);
-        inner
-            .handle
-            .spawn(rpc_system.map_err(|e| error!("RPC error: {:?}", e)));
+        inner.handle.spawn(rpc_system.map_err(
+            |e| error!("RPC error: {:?}", e),
+        ));
     }
 
     pub fn on_subworker_connection(&self, stream: UnixStream) {
         info!("New subworker connected");
-        let upstream =
-            ::subworker_capnp::subworker_upstream::ToClient::new(SubworkerUpstreamImpl::new(self))
-                .from_server::<::capnp_rpc::Server>();
+        let upstream = ::subworker_capnp::subworker_upstream::ToClient::new(
+            SubworkerUpstreamImpl::new(self),
+        ).from_server::<::capnp_rpc::Server>();
         let rpc_system = ::common::rpc::new_rpc_system(stream, Some(upstream.client));
         let inner = self.get();
-        inner
-            .handle
-            .spawn(rpc_system.map_err(|e| error!("RPC error: {:?}", e)));
+        inner.handle.spawn(rpc_system.map_err(
+            |e| error!("RPC error: {:?}", e),
+        ));
     }
 
 
-    pub fn start(&self,
-                 server_address: SocketAddr,
-                 mut listen_address: SocketAddr,
-                 ready_file: Option<&str>) {
+    pub fn start(
+        &self,
+        server_address: SocketAddr,
+        mut listen_address: SocketAddr,
+        ready_file: Option<&str>,
+    ) {
         let handle = self.get().handle.clone();
 
         // --- Create workdir layout ---
@@ -589,12 +656,12 @@ impl StateRef {
         let future = listener
             .incoming()
             .for_each(move |(stream, addr)| {
-                          state.on_subworker_connection(stream);
-                          Ok(())
-                      })
+                state.on_subworker_connection(stream);
+                Ok(())
+            })
             .map_err(|e| {
-                         panic!("Subworker listening failed {:?}", e);
-                     });
+                panic!("Subworker listening failed {:?}", e);
+            });
         handle.spawn(future);
 
         // -- Start python subworker (FOR TESTING PURPOSE)
@@ -610,12 +677,12 @@ impl StateRef {
         let future = listener
             .incoming()
             .for_each(move |(stream, addr)| {
-                          state.on_connection(stream, addr);
-                          Ok(())
-                      })
+                state.on_connection(stream, addr);
+                Ok(())
+            })
             .map_err(|e| {
-                         panic!("Listening failed {:?}", e);
-                     });
+                panic!("Listening failed {:?}", e);
+            });
         handle.spawn(future);
 
         // --- Start monitoring ---
@@ -640,13 +707,13 @@ impl StateRef {
         info!("Connecting to server addr={}", server_address);
         let connect = TcpStream::connect(&server_address, &handle)
             .and_then(move |stream| {
-                          core1.on_connected_to_server(stream, listen_address, ready_file);
-                          Ok(())
-                      })
+                core1.on_connected_to_server(stream, listen_address, ready_file);
+                Ok(())
+            })
             .map_err(|e| {
-                         error!("Connecting to server failed: {}", e);
-                         exit(1);
-                     });
+                error!("Connecting to server failed: {}", e);
+                exit(1);
+            });
         handle.spawn(connect);
     }
 

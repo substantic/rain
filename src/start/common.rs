@@ -7,4 +7,3 @@ pub enum Readiness {
     WaitingForReadyFile(PathBuf),
     IsReady,
 }
-

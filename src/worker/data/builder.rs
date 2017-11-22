@@ -1,7 +1,7 @@
 
 use std::fs::File;
 use super::data::{Data, Storage, DataType};
-use errors::{Result};
+use errors::Result;
 
 /// Trait for building Data from data stream
 pub trait DataBuilder {
@@ -11,14 +11,12 @@ pub trait DataBuilder {
 }
 
 pub struct BlobBuilder {
-    buffer: Vec<u8>
+    buffer: Vec<u8>,
 }
 
 impl BlobBuilder {
     pub fn new() -> Self {
-        BlobBuilder {
-            buffer: Vec::new()
-        }
+        BlobBuilder { buffer: Vec::new() }
     }
 
     pub fn write_blob(&mut self, data: &Data) -> Result<()> {
@@ -26,7 +24,7 @@ impl BlobBuilder {
         match data.storage() {
             &Storage::Memory(ref bytes) => self.write(&bytes[..]),
             &Storage::Path(ref path) => {
-                let mem = unsafe { ::memmap::Mmap::map(&File::open(&path.path)?)}?;
+                let mem = unsafe { ::memmap::Mmap::map(&File::open(&path.path)?) }?;
                 self.write(&mem);
             }
         }
@@ -35,7 +33,6 @@ impl BlobBuilder {
 }
 
 impl DataBuilder for BlobBuilder {
-
     fn set_size(&mut self, size: usize) {
         // If size bigger than a threadshold, create directly a file
         self.buffer.reserve(size);
@@ -46,7 +43,9 @@ impl DataBuilder for BlobBuilder {
     }
 
     fn build(&mut self) -> Data {
-        Data::new(DataType::Blob, Storage::Memory(
-            ::std::mem::replace(&mut self.buffer, Vec::new())))
+        Data::new(
+            DataType::Blob,
+            Storage::Memory(::std::mem::replace(&mut self.buffer, Vec::new())),
+        )
     }
 }

@@ -8,21 +8,22 @@ use super::{Data, Storage};
 
 pub trait PackStream {
     fn read(&mut self, size: usize) -> (&[u8], bool);
-
-
 }
 
 // Create a new pack stream for given dataobject
 pub fn new_pack_stream(data: Arc<Data>) -> Result<Box<PackStream>> {
     let data_ref = data.clone();
     Ok(match data.storage() {
-        &Storage::Memory(_) => Box::new(MemoryPackStream {data: data_ref, position: 0}),
+        &Storage::Memory(_) => Box::new(MemoryPackStream {
+            data: data_ref,
+            position: 0,
+        }),
         // TODO: Directory
         &Storage::Path(ref p) => Box::new(MmapPackStream {
             data: data_ref,
             position: 0,
-            mmap: unsafe { ::memmap::Mmap::map(&File::open(&p.path)?) }?
-        })
+            mmap: unsafe { ::memmap::Mmap::map(&File::open(&p.path)?) }?,
+        }),
     })
 }
 
@@ -34,20 +35,20 @@ struct MemoryPackStream {
 
 impl PackStream for MemoryPackStream {
     fn read(&mut self, read_size: usize) -> (&[u8], bool) {
-       let start = self.position;
-       let data_size = self.data.size();
-       let (end, size, eof) = if start + read_size < data_size {
-           (start + read_size, read_size, false)
-       } else {
-           (data_size, data_size - start, true)
-       };
+        let start = self.position;
+        let data_size = self.data.size();
+        let (end, size, eof) = if start + read_size < data_size {
+            (start + read_size, read_size, false)
+        } else {
+            (data_size, data_size - start, true)
+        };
 
-       if let &Storage::Memory(ref mem) = self.data.storage() {
-           self.position = end;
-           (&mem[start..end], eof)
-       } else {
-           unreachable!()
-       }
+        if let &Storage::Memory(ref mem) = self.data.storage() {
+            self.position = end;
+            (&mem[start..end], eof)
+        } else {
+            unreachable!()
+        }
     }
 }
 
@@ -58,18 +59,16 @@ struct MmapPackStream {
 }
 
 impl PackStream for MmapPackStream {
-
     fn read(&mut self, read_size: usize) -> (&[u8], bool) {
-       let start = self.position;
-       let data_size = self.data.size();
-       let (end, size, eof) = if start + read_size < data_size {
-           (start + read_size, read_size, false)
-       } else {
-           (data_size, data_size - start, true)
-       };
-       (&self.mmap, eof)
+        let start = self.position;
+        let data_size = self.data.size();
+        let (end, size, eof) = if start + read_size < data_size {
+            (start + read_size, read_size, false)
+        } else {
+            (data_size, data_size - start, true)
+        };
+        (&self.mmap, eof)
     }
-
 }
 
 

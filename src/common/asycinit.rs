@@ -13,16 +13,15 @@ enum State<T> {
     Initing(Vec<unsync::oneshot::Sender<()>>),
 
     // Value is ready
-    Ready(T)
+    Ready(T),
 }
 
 pub struct AsyncInitWrapper<T> {
-    state: State<T>
+    state: State<T>,
 }
 
 
 impl<T> AsyncInitWrapper<T> {
-
     pub fn new() -> Self {
         Self { state: State::Initing(Vec::new()) }
     }
@@ -30,14 +29,14 @@ impl<T> AsyncInitWrapper<T> {
     pub fn is_ready(&self) -> bool {
         match self.state {
             State::Initing(_) => false,
-            State::Ready(_) => true
+            State::Ready(_) => true,
         }
     }
 
     pub fn get(&self) -> &T {
         match self.state {
             State::Ready(ref value) => &value,
-            State::Initing(_) => panic!("Element is not ready")
+            State::Initing(_) => panic!("Element is not ready"),
         }
     }
 
@@ -56,7 +55,7 @@ impl<T> AsyncInitWrapper<T> {
 
     /// Returns future that is finished when object is ready,
     /// If object is already prepared than future is finished immediately
-    pub fn wait(&mut self) -> Box<Future<Item=(), Error=Error>> {
+    pub fn wait(&mut self) -> Box<Future<Item = (), Error = Error>> {
         match self.state {
             State::Ready(ref value) => Box::new(Ok(()).into_future()),
             State::Initing(ref mut senders) => {
@@ -67,5 +66,4 @@ impl<T> AsyncInitWrapper<T> {
             }
         }
     }
-
 }

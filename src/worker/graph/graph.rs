@@ -11,9 +11,8 @@ pub struct Graph {
     pub subworkers: HashMap<SubworkerId, SubworkerRef>,
     pub idle_subworkers: Vec<SubworkerRef>,
 
-
     /// Last assigned id
-    id_counter: Id
+    id_counter: Id,
 }
 
 impl Graph {
@@ -24,7 +23,7 @@ impl Graph {
             objects: HashMap::new(),
             subworkers: HashMap::new(),
             idle_subworkers: Vec::new(),
-            id_counter: 0
+            id_counter: 0,
         }
     }
 

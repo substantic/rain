@@ -90,7 +90,9 @@ impl Task {
             }
         }
 
-        self.resources.to_capnp(&mut builder.borrow().get_resources().unwrap());
+        self.resources.to_capnp(
+            &mut builder.borrow().get_resources().unwrap(),
+        );
 
         builder.set_task_type(&self.task_type);
         builder.set_task_config(&self.task_config);
@@ -102,7 +104,7 @@ impl Task {
     pub fn is_finished(&self) -> bool {
         match self.state {
             TaskState::Finished => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -112,14 +114,15 @@ impl Task {
         for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
             match sender.send(()) {
                 Ok(()) => { /* Do nothing */}
-                Err(e) => { /* Just log error, it is non fatal */
-                               debug!("Failed to inform about finishing task");
+                Err(e) => {
+                    /* Just log error, it is non fatal */
+                    debug!("Failed to inform about finishing task");
                 }
             }
         }
     }
 
-/*    pub fn set_state(&mut self, new_state: TaskState) {
+    /*    pub fn set_state(&mut self, new_state: TaskState) {
         self.state = new_state;
         match new_state {
             TaskState::Finished => self.trigger_finish_hooks(),
@@ -132,11 +135,10 @@ impl Task {
         let (sender, receiver) = oneshot::channel();
         match self.state {
             TaskState::Finished => sender.send(()).unwrap(),
-            _ => self.finish_hooks.push(sender)
+            _ => self.finish_hooks.push(sender),
         };
         receiver
     }
-
 }
 
 impl TaskRef {
@@ -158,22 +160,33 @@ impl TaskRef {
             let inobj = i.object.get();
             match inobj.state {
                 DataObjectState::Removed => {
-                    bail!("Can't create Task {} with Finished input object {}",
-                        id, inobj.id);
+                    bail!(
+                        "Can't create Task {} with Finished input object {}",
+                        id,
+                        inobj.id
+                    );
                 }
                 DataObjectState::Finished => {
                     if inobj.object_type == DataObjectType::Stream {
-                        bail!("Can't create Task {} with done input stream {}", id, inobj.id);
+                        bail!(
+                            "Can't create Task {} with done input stream {}",
+                            id,
+                            inobj.id
+                        );
                     }
                     // Finished objects are assigned and located somewhere
-                },
+                }
                 DataObjectState::Unfinished => {
                     if inobj.object_type == DataObjectType::Stream {
                         if let Some(ref prod) = inobj.producer {
                             if prod.get().state != TaskState::NotAssigned &&
-                                prod.get().state != TaskState::Ready {
-                                bail!("Can't create Task {} with running input stream {}",
-                                id, inobj.id);
+                                prod.get().state != TaskState::Ready
+                            {
+                                bail!(
+                                    "Can't create Task {} with running input stream {}",
+                                    id,
+                                    inobj.id
+                                );
                             }
                         }
                     }
@@ -181,29 +194,47 @@ impl TaskRef {
                 }
             }
             if inobj.object_type == DataObjectType::Stream &&
-                inobj.state != DataObjectState::Unfinished {
-                bail!("Can't create Task {} with active input stream object {}",
-                    id, inobj.id);
+                inobj.state != DataObjectState::Unfinished
+            {
+                bail!(
+                    "Can't create Task {} with active input stream object {}",
+                    id,
+                    inobj.id
+                );
             }
             if inobj.id.get_session_id() != id.get_session_id() {
-                bail!("Input object {} for task {} is from a different session",
-                    inobj.id, id);
+                bail!(
+                    "Input object {} for task {} is from a different session",
+                    inobj.id,
+                    id
+                );
             }
         }
         for out in outputs.iter() {
             let o = out.get();
             if let Some(ref prod) = o.producer {
-                bail!("Object {} already has producer (task {}) when creating task {}",
-                    o.id, prod.get().id, id);
+                bail!(
+                    "Object {} already has producer (task {}) when creating task {}",
+                    o.id,
+                    prod.get().id,
+                    id
+                );
             }
             if o.id.get_session_id() != id.get_session_id() {
-                bail!("Output object {} for task {} is from a different session",
-                    o.id, id);
+                bail!(
+                    "Output object {} for task {} is from a different session",
+                    o.id,
+                    id
+                );
             }
         }
         let sref = TaskRef::wrap(Task {
             id: id,
-            state: if waiting.is_empty() { TaskState::Ready } else { TaskState::NotAssigned },
+            state: if waiting.is_empty() {
+                TaskState::Ready
+            } else {
+                TaskState::NotAssigned
+            },
             inputs: inputs,
             outputs: outputs.into_iter().collect(),
             waiting_for: waiting,
@@ -254,7 +285,10 @@ impl TaskRef {
     pub fn unlink(&self) {
         self.unschedule();
         let mut inner = self.get_mut();
-        assert!(inner.assigned.is_none(), "Can only unlink non-assigned tasks.");
+        assert!(
+            inner.assigned.is_none(),
+            "Can only unlink non-assigned tasks."
+        );
         // remove from outputs
         for o in inner.outputs.iter() {
             debug_assert!(o.get_mut().producer == Some(self.clone()));
@@ -313,8 +347,13 @@ impl ConsistencyCheck for TaskRef {
                 bail!("waiting for removed object {:?} in {:?}", o, s);
             }
             if (o.state == DataObjectState::Finished || o.state == DataObjectState::Removed) ==
-                (s.waiting_for.contains(&i.object)) {
-                bail!("waiting_for all unfinished inputs invalid woth {:?} in {:?}", o, s);
+                (s.waiting_for.contains(&i.object))
+            {
+                bail!(
+                    "waiting_for all unfinished inputs invalid woth {:?} in {:?}",
+                    o,
+                    s
+                );
             }
         }
         // outputs consistency
@@ -324,12 +363,17 @@ impl ConsistencyCheck for TaskRef {
                 bail!("output/producer incosistency of {:?} in {:?}", o, s);
             }
             if (o.state == DataObjectState::Finished || o.state == DataObjectState::Removed) &&
-                s.state != TaskState::Finished {
-                bail!("data object {:?} done/removed before the task has finished in {:?}", or, s);
+                s.state != TaskState::Finished
+            {
+                bail!(
+                    "data object {:?} done/removed before the task has finished in {:?}",
+                    or,
+                    s
+                );
             }
         }
         // state constraints
-        if ! (match s.state {
+        if !(match s.state {
             TaskState::NotAssigned =>
                 s.assigned.is_none() && (!s.waiting_for.is_empty() || s.inputs.is_empty()),
             TaskState::Ready =>
@@ -342,7 +386,8 @@ impl ConsistencyCheck for TaskRef {
                 s.assigned.is_none() && s.waiting_for.is_empty(),
             TaskState::Failed =>
                 /* ??? s.assigned.is_none() && */ s.waiting_for.is_empty(),
-        }) {
+        })
+        {
             bail!("state/assigned/waiting_for inconsistency in {:?}", s);
         }
         if s.state == TaskState::Finished && !s.finish_hooks.is_empty() {
@@ -364,14 +409,17 @@ impl fmt::Debug for TaskRef {
 
 impl fmt::Debug for TaskState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", match *self {
-            TaskState::NotAssigned => "NotAssigned",
-            TaskState::Assigned => "Assigned",
-            TaskState::Ready => "Ready",
-            TaskState::Running => "Running",
-            TaskState::Finished => "Finished",
-            TaskState::Failed => "Failed"
-        })
+        write!(
+            f,
+            "{}",
+            match *self {
+                TaskState::NotAssigned => "NotAssigned",
+                TaskState::Assigned => "Assigned",
+                TaskState::Ready => "Ready",
+                TaskState::Running => "Running",
+                TaskState::Finished => "Finished",
+                TaskState::Failed => "Failed",
+            }
+        )
     }
 }
-

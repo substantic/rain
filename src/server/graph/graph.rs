@@ -6,18 +6,17 @@ use super::{WorkerRef, TaskRef, DataObjectRef, SessionRef, ClientRef};
 #[derive(Clone, Default)]
 pub struct Graph {
     /// Contained objects
-    pub (in super::super) workers: HashMap<WorkerId, WorkerRef>,
-    pub (in super::super) tasks: HashMap<TaskId, TaskRef>,
-    pub (in super::super) objects: HashMap<DataObjectId, DataObjectRef>,
-    pub (in super::super) sessions: HashMap<SessionId, SessionRef>,
-    pub (in super::super) clients: HashMap<ClientId, ClientRef>,
+    pub(in super::super) workers: HashMap<WorkerId, WorkerRef>,
+    pub(in super::super) tasks: HashMap<TaskId, TaskRef>,
+    pub(in super::super) objects: HashMap<DataObjectId, DataObjectRef>,
+    pub(in super::super) sessions: HashMap<SessionId, SessionRef>,
+    pub(in super::super) clients: HashMap<ClientId, ClientRef>,
 
     /// The last SessionId assigned.
     session_id_counter: SessionId,
 }
 
 impl Graph {
-
     pub fn new() -> Self {
         Default::default()
     }
@@ -31,18 +30,26 @@ impl Graph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::{ClientRef, SessionRef, Graph, TaskRef, WorkerRef,
-                       DataObjectRef, DataObjectType, TaskInput};
+    use super::super::{ClientRef, SessionRef, Graph, TaskRef, WorkerRef, DataObjectRef,
+                       DataObjectType, TaskInput};
     use common::id::{SId, TaskId, SessionId, ClientId, DataObjectId, WorkerId};
     use common::resources::Resources;
     use common::keeppolicy;
 
-    fn create_test_graph(workers: usize, clients: usize, sessions: usize,
-                         tasks: usize, objects: usize) -> Graph {
+    fn create_test_graph(
+        workers: usize,
+        clients: usize,
+        sessions: usize,
+        tasks: usize,
+        objects: usize,
+    ) -> Graph {
         let mut g = Graph::new();
         for wi in 0..workers {
-            let w = WorkerRef::new(format!("0.0.0.{}:67", wi + 1).parse().unwrap(), None,
-                                   Resources { n_cpus: 8, });
+            let w = WorkerRef::new(
+                format!("0.0.0.{}:67", wi + 1).parse().unwrap(),
+                None,
+                Resources { n_cpus: 8 },
+            );
         }
         for ci in 0..clients {
             let c = ClientRef::new(format!("0.0.0.{}:42", ci + 1).parse().unwrap());
@@ -50,11 +57,15 @@ mod tests {
                 let s = SessionRef::new(si as i32, &c);
                 let mut objs = Vec::new();
                 for oi in 0..objects {
-                    let o = DataObjectRef::new(&s,
-                                               DataObjectId::new(s.get_id(), oi as i32),
-                                               DataObjectType::Blob, Default::default(),
-                                               "label".to_string(), None,
-                                               Default::default());
+                    let o = DataObjectRef::new(
+                        &s,
+                        DataObjectId::new(s.get_id(), oi as i32),
+                        DataObjectType::Blob,
+                        Default::default(),
+                        "label".to_string(),
+                        None,
+                        Default::default(),
+                    );
                     objs.push(o);
                 }
                 for ti in 0..tasks {
@@ -65,11 +76,19 @@ mod tests {
                                 object: objs[ti - i].clone(),
                                 label: Default::default(),
                                 path: Default::default(),
-                            });}}
+                            });
+                        }
+                    }
                     let outputs = vec![objs[ti].clone()];
-                    let t = TaskRef::new(&s, TaskId::new(s.get_id(), (ti + objects) as i32),
-                                         inputs, outputs, "TType".to_string(),
-                                         Vec::new(), Default::default()).unwrap();
+                    let t = TaskRef::new(
+                        &s,
+                        TaskId::new(s.get_id(), (ti + objects) as i32),
+                        inputs,
+                        outputs,
+                        "TType".to_string(),
+                        Vec::new(),
+                        Default::default(),
+                    ).unwrap();
                 }
             }
         }

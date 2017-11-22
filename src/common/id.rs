@@ -2,7 +2,7 @@ use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, Ipv4Addr, Ipv6Addr, IpAdd
 use common_capnp::{task_id, data_object_id, socket_address};
 use super::convert::{FromCapnp, ToCapnp, ReadCapnp, WriteCapnp};
 use std::io::Read;
-use capnp::{serialize};
+use capnp::serialize;
 use std::fmt;
 
 /// Generic ID type. Negative values have special meaning.
@@ -26,14 +26,20 @@ impl<'a> FromCapnp<'a> for SocketAddr {
 
     fn from_capnp(read: &Self::Reader) -> Self {
         match read.get_address().which().unwrap() {
-            socket_address::address::Ipv4(ref octet) =>
-                SocketAddr::V4(SocketAddrV4::new(
-                    Ipv4Addr::from(*array_ref![octet.as_ref().unwrap(), 0, 4]),
-                    read.get_port())),
-            socket_address::address::Ipv6(ref octet) =>
-                SocketAddr::V6(SocketAddrV6::new(
-                    Ipv6Addr::from(*array_ref![octet.as_ref().unwrap(), 0, 16]),
-                    read.get_port(), 0, 0)),
+            socket_address::address::Ipv4(ref octet) => SocketAddr::V4(SocketAddrV4::new(
+                Ipv4Addr::from(
+                    *array_ref![octet.as_ref().unwrap(), 0, 4],
+                ),
+                read.get_port(),
+            )),
+            socket_address::address::Ipv6(ref octet) => SocketAddr::V6(SocketAddrV6::new(
+                Ipv6Addr::from(
+                    *array_ref![octet.as_ref().unwrap(), 0, 16],
+                ),
+                read.get_port(),
+                0,
+                0,
+            )),
         }
     }
 }
@@ -60,7 +66,8 @@ impl ReadCapnp for SocketAddr {
 }
 
 /// Common trait for `TaskId` and `DataObjectID`.
-pub trait SId: for <'a> ToCapnp<'a> + for <'a> FromCapnp<'a> + WriteCapnp + ReadCapnp {
+pub trait SId
+    : for<'a> ToCapnp<'a> + for<'a> FromCapnp<'a> + WriteCapnp + ReadCapnp {
     fn new(session_id: SessionId, id: Id) -> Self;
     fn get_id(&self) -> Id;
     fn get_session_id(&self) -> SessionId;
@@ -76,7 +83,10 @@ pub struct TaskId {
 impl SId for TaskId {
     #[inline]
     fn new(session_id: SessionId, id: Id) -> Self {
-        TaskId { session_id: session_id, id: id }
+        TaskId {
+            session_id: session_id,
+            id: id,
+        }
     }
 
     #[inline]
@@ -138,7 +148,10 @@ pub struct DataObjectId {
 impl SId for DataObjectId {
     #[inline]
     fn new(session_id: SessionId, id: Id) -> Self {
-        DataObjectId { session_id: session_id, id: id }
+        DataObjectId {
+            session_id: session_id,
+            id: id,
+        }
     }
 
     #[inline]

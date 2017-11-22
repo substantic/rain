@@ -2,9 +2,9 @@
 use std::process::Command;
 use std::path::{Path, PathBuf};
 use std::net::SocketAddr;
-use start::common::{Readiness};
-use start::process::{Process};
-use start::ssh::{RemoteProcess};
+use start::common::Readiness;
+use start::process::Process;
+use start::ssh::RemoteProcess;
 use librain::errors::{Error, Result};
 
 use nix::unistd::{gethostname, getpid};
@@ -23,7 +23,7 @@ pub struct StarterConfig {
     /// Directory where logs are stored (absolute path)
     pub log_dir: PathBuf,
 
-    pub worker_host_file: Option<PathBuf>
+    pub worker_host_file: Option<PathBuf>,
 }
 
 impl StarterConfig {
@@ -32,7 +32,7 @@ impl StarterConfig {
             n_local_workers: local_workers,
             server_listen_address,
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
-            worker_host_file: None
+            worker_host_file: None,
         }
     }
 
@@ -44,7 +44,7 @@ impl StarterConfig {
         let nodefile = ::std::env::var("PBS_NODEFILE");
         match nodefile {
             Err(e) => bail!("Variable PBS_NODEFILE not defined, are you running inside PBS?"),
-            Ok(path) => self.worker_host_file = Some(PathBuf::from(path))
+            Ok(path) => self.worker_host_file = Some(PathBuf::from(path)),
         }
         Ok(())
     }
@@ -52,7 +52,6 @@ impl StarterConfig {
 
 /// Starts server & workers
 pub struct Starter {
-
     /// Configuration of starter
     config: StarterConfig,
 
@@ -64,9 +63,13 @@ pub struct Starter {
 }
 
 fn read_host_file(path: &Path) -> Result<Vec<String>> {
-    let file = BufReader::new(File::open(path)
-        .map_err(|e| format!("Cannot open worker host file {:?}: {}", path,
-                             ::std::error::Error::description(&e)))?);
+    let file = BufReader::new(File::open(path).map_err(|e| {
+        format!(
+            "Cannot open worker host file {:?}: {}",
+            path,
+            ::std::error::Error::description(&e)
+        )
+    })?);
     let mut result = Vec::new();
     for line in file.lines() {
         let line = line?;
@@ -165,22 +168,31 @@ impl Starter {
         Ok(())
     }
 
-    fn start_remote_workers(&mut self, worker_hosts: &Vec<String>) -> Result<()>
-    {
+    fn start_remote_workers(&mut self, worker_hosts: &Vec<String>) -> Result<()> {
         info!("Starting {} remote worker(s)", worker_hosts.len());
         let rain = self.local_rain_program(); // TODO: configurable path for remotes
         let dir = ::std::env::current_dir().unwrap(); // TODO: Do it configurable
         let server_address = self.server_address();
 
         for (i, host) in worker_hosts.iter().enumerate() {
-            info!("Connecting to {} (remote log dir: {:?})", host, self.config.log_dir);
+            info!(
+                "Connecting to {} (remote log dir: {:?})",
+                host,
+                self.config.log_dir
+            );
             let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
             let name = format!("worker-{}", i);
             let mut process = RemoteProcess::new(
-                name, host, Readiness::WaitingForReadyFile(ready_file.to_path_buf()));
+                name,
+                host,
+                Readiness::WaitingForReadyFile(ready_file.to_path_buf()),
+            );
             let command = format!(
                 "{rain} worker {server_address} --ready_file {ready_file:?}",
-                rain=rain, server_address=server_address, ready_file=ready_file);
+                rain = rain,
+                server_address = server_address,
+                ready_file = ready_file
+            );
             process.start(&command, &dir, &self.config.log_dir)?;
             self.remote_processes.push(process);
         }
@@ -189,10 +201,8 @@ impl Starter {
 
     fn server_address(&self) -> String {
         let mut buf = [0u8; 256];
-        let result : &str = gethostname(&mut buf).unwrap().to_str().unwrap();
-        format!("{}:{}",
-                result,
-                self.config.server_listen_address.port())
+        let result: &str = gethostname(&mut buf).unwrap().to_str().unwrap();
+        format!("{}:{}", result, self.config.server_listen_address.port())
     }
 
     fn start_local_workers(&mut self) -> Result<()> {

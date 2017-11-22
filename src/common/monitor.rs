@@ -16,9 +16,9 @@ type MemUsage = u8;
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Frame {
     pub cpu_usage: Vec<CpuUsage>, // Cpu usage in percent
-    pub mem_usage: MemUsage,     // Memory usage in bytes
+    pub mem_usage: MemUsage, // Memory usage in bytes
     pub timestamp: DateTime<Utc>, // Sample timestamp
-    pub net_stat: HashMap<String, Vec<u64>> // Network IO
+    pub net_stat: HashMap<String, Vec<u64>>, // Network IO
 }
 
 
@@ -26,11 +26,10 @@ pub struct Monitor {
     clk_tck: isize, // Result of syscall CLK_TCK
     frames: Vec<Frame>,
     last_timestamp: DateTime<Utc>,
-    last_cpu_time: CpuTimes
+    last_cpu_time: CpuTimes,
 }
 
 impl Monitor {
-
     pub fn new() -> Self {
         if cfg!(not(target_os = "linux")) {
             warn!("Resource monitoring may not work properly on non-linux systems");
@@ -42,7 +41,7 @@ impl Monitor {
             }),
             frames: Vec::new(),
             last_timestamp: Utc::now(),
-            last_cpu_time: Vec::new()
+            last_cpu_time: Vec::new(),
         }
     }
 
@@ -52,17 +51,16 @@ impl Monitor {
         if cfg!(target_os = "linux") {
             let f = match File::open("/proc/stat") {
                 Ok(f) => f,
-                Err(e) => panic!("Cannot open /proc/stat")
+                Err(e) => panic!("Cannot open /proc/stat"),
             };
             let f = BufReader::new(&f);
             for l in f.lines() {
                 let line = l.unwrap();
                 if line.starts_with("cpu") {
                     let mut parsed_line = line.split_whitespace();
-                    let cpu_time =
-                        parsed_line.nth(1).unwrap().parse::<u64>().unwrap() +
-                            parsed_line.next().unwrap().parse::<u64>().unwrap() +
-                            parsed_line.next().unwrap().parse::<u64>().unwrap();
+                    let cpu_time = parsed_line.nth(1).unwrap().parse::<u64>().unwrap() +
+                        parsed_line.next().unwrap().parse::<u64>().unwrap() +
+                        parsed_line.next().unwrap().parse::<u64>().unwrap();
                     cpu_time_vec.push(cpu_time);
                 } else {
                     break;
@@ -78,7 +76,10 @@ impl Monitor {
         let mut millis = time_diff.num_nanoseconds().unwrap() as f64 / 1_000_000.0;
         let secs = time_diff.num_seconds();
         if secs == 0 && millis < 1.0 {
-            warn!("get_cpu_usage() called too often ({}ms since the last measurements)", millis);
+            warn!(
+                "get_cpu_usage() called too often ({}ms since the last measurements)",
+                millis
+            );
             millis = 1.0;
         }
         let factor = (1_000.0 * secs as f64 + millis) as u64 * self.clk_tck as u64;
@@ -101,10 +102,10 @@ impl Monitor {
 
     fn get_net_stat(&self) -> HashMap<String, Vec<u64>> {
         let mut net_stat = HashMap::new();
-        if cfg!(target_os = "linux")  {
+        if cfg!(target_os = "linux") {
             let f = match File::open("/proc/net/dev") {
                 Ok(f) => f,
-                Err(e) => panic!("Cannot open /proc/net/dev")
+                Err(e) => panic!("Cannot open /proc/net/dev"),
             };
             let f = BufReader::new(&f);
             for l in f.lines() {
@@ -112,9 +113,13 @@ impl Monitor {
                 if line.find(":").is_some() {
                     let spl: Vec<&str> = line.split(":").collect();
                     let data: Vec<&str> = spl[1].split_whitespace().collect();
-                    net_stat.insert(spl[0].to_string(),
-                                    vec!(data[0].parse::<u64>().unwrap(),
-                                         data[8].parse::<u64>().unwrap()));
+                    net_stat.insert(
+                        spl[0].to_string(),
+                        vec![
+                            data[0].parse::<u64>().unwrap(),
+                            data[8].parse::<u64>().unwrap(),
+                        ],
+                    );
                 }
             }
         }
@@ -133,7 +138,7 @@ impl Monitor {
             cpu_usage: cpu_usage,
             mem_usage: mem_usage,
             timestamp: timestamp,
-            net_stat: net_stat
+            net_stat: net_stat,
         };
 
         self.last_timestamp = timestamp;
@@ -181,7 +186,7 @@ mod tests {
     fn test_cpu_uasge() {
         let mut monitor = Monitor::new();
         let cpu_usage = monitor.get_cpu_usage(&(monitor.get_cpu_time()), Utc::now());
-        for u  in cpu_usage {
+        for u in cpu_usage {
             assert!(u >= 0);
             assert!(u <= 100)
         }
@@ -191,7 +196,7 @@ mod tests {
     fn test_net_stat() {
         let mut monitor = Monitor::new();
         let net_stat = monitor.get_net_stat();
-        for (dev, bytes)  in net_stat {
+        for (dev, bytes) in net_stat {
             assert!(bytes.len() == 2);
         }
     }
