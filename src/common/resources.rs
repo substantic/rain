@@ -4,6 +4,11 @@ pub struct Resources {
 }
 
 impl Resources {
+
+    pub fn cpus(n_cpus: u32) -> Self {
+        Resources { n_cpus }
+    }
+
     pub fn from_capnp(reader: &::capnp_gen::common_capnp::resources::Reader) -> Self {
         Resources { n_cpus: reader.get_n_cpus() }
     }

@@ -88,6 +88,7 @@ mod tests {
                         "TType".to_string(),
                         Vec::new(),
                         Default::default(),
+                        Resources::cpus(1),
                     ).unwrap();
                 }
             }
