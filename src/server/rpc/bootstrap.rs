@@ -104,10 +104,13 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             address
         };
 
+        let resources = Resources::from_capnp(&pry!(params.get_resources()));
+
         info!(
-            "Connection {} registered as worker {}",
+            "Connection {} registered as worker {} with {:?}",
             self.address,
-            worker_id
+            worker_id,
+            resources
         );
 
         let control = pry!(params.get_control());
@@ -117,9 +120,6 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         let req = control.get_worker_resources_request();
         Promise::from_future(req.send().promise.and_then(move |response| {
             let response = pry!(response.get());
-            // TODO: Fill other resources
-            let resources: Resources = Resources { n_cpus: response.get_n_cpus() };
-
             // The order is important here:
             // 1) add worker
             // 2) create upstream

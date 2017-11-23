@@ -592,6 +592,7 @@ impl StateRef {
         req.get().set_version(WORKER_PROTOCOL_VERSION);
         req.get().set_control(worker_control);
         listen_address.to_capnp(&mut req.get().get_address().unwrap());
+        self.get().resources.to_capnp(&mut req.get().get_resources().unwrap());
 
         let state = self.clone();
         let future = req.send()
