@@ -65,10 +65,17 @@ pub struct State {
 
     timer: tokio_timer::Timer,
 
-    /// Path to working directory
-    work_dir: WorkDir,
+    /// This is hard limit for number of simultaneously executed tasks
+    /// The purpose is to limit task with empty resources
+    /// The initial value is 4 * n_cpus
+    free_slots: u32,
 
     resources: Resources,
+
+    free_resources: Resources,
+
+    /// Path to working directory
+    work_dir: WorkDir,
 
     monitor: Monitor,
 
@@ -377,6 +384,8 @@ impl State {
     pub fn task_failed(&mut self, task: TaskRef, error: Error) {
         {
             let mut t = task.get_mut();
+            self.free_resources.add(&t.resources);
+            self.free_slots += 1;
             for input in &t.inputs {
                 self.remove_consumer(&mut input.object.get_mut(), &task);
             }
@@ -396,8 +405,6 @@ impl State {
         }
     }
 
-
-
     pub fn start_task(&mut self, task: TaskRef, state_ref: &StateRef) {
         {
             let mut t = task.get_mut();
@@ -407,16 +414,17 @@ impl State {
 
         self.updated_tasks.insert(task.clone());
 
-
         let state_ref = state_ref.clone();
         let state_ref2 = state_ref.clone();
         let task2 = task.clone();
 
+
+        self.free_slots -= 1;
+        self.free_resources.remove(&task.get().resources);
         let future = TaskContext::new(task, state_ref.clone()).start(self);
 
         if let Err(e) = future {
             self.task_failed(task2, e);
-            self.need_scheduling();
             return;
         }
 
@@ -430,6 +438,8 @@ impl State {
                     debug!("Task id={} finished", task.id);
 
                     let mut state = state_ref.get_mut();
+                    state.free_resources.add(&task.resources);
+                    state.free_slots += 1;
                     state.need_scheduling();
                     state.updated_tasks.insert(context.task.clone());
 
@@ -471,9 +481,24 @@ impl State {
     }
 
     pub fn schedule(&mut self, state_ref: &StateRef) {
-        // TODO: Some serious scheduling
-        if let Some(task) = self.graph.ready_tasks.pop() {
-            self.start_task(task, state_ref);
+        let mut i = 0;
+        while i < self.graph.ready_tasks.len() {
+            if self.free_slots == 0 {
+                break;
+            }
+            let n_cpus = self.free_resources.n_cpus;
+            let j = self.graph.ready_tasks[i..].iter().position(|task| {
+                n_cpus >= task.get().resources.n_cpus
+            });
+
+            if j.is_none() {
+                break;
+            }
+            let j = j.unwrap();
+            let task = self.graph.ready_tasks.remove(i + j);
+            self.start_task(task.clone(), state_ref);
+            i += j + 1;
+
         }
     }
 
@@ -535,9 +560,13 @@ impl StateRef {
         n_cpus: u32,
         subworkers: HashMap<String, Vec<String>>,
     ) -> Self {
+        let resources = Resources { n_cpus };
+
         Self::wrap(State {
             handle,
-            resources: Resources { n_cpus },
+            free_slots: 4 * n_cpus,
+            resources: resources.clone(),
+            free_resources: resources,
             upstream: None,
             datastores: HashMap::new(),
             updated_objects: Default::default(),
@@ -592,7 +621,9 @@ impl StateRef {
         req.get().set_version(WORKER_PROTOCOL_VERSION);
         req.get().set_control(worker_control);
         listen_address.to_capnp(&mut req.get().get_address().unwrap());
-        self.get().resources.to_capnp(&mut req.get().get_resources().unwrap());
+        self.get().resources.to_capnp(
+            &mut req.get().get_resources().unwrap(),
+        );
 
         let state = self.clone();
         let future = req.send()

@@ -4,9 +4,17 @@ pub struct Resources {
 }
 
 impl Resources {
-
     pub fn cpus(n_cpus: u32) -> Self {
         Resources { n_cpus }
+    }
+
+    pub fn add(&mut self, resources: &Resources) {
+        self.n_cpus += resources.n_cpus;
+    }
+
+    pub fn remove(&mut self, resources: &Resources) {
+        assert!(self.n_cpus >= resources.n_cpus);
+        self.n_cpus -= resources.n_cpus;
     }
 
     pub fn from_capnp(reader: &::capnp_gen::common_capnp::resources::Reader) -> Self {

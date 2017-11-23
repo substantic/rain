@@ -166,12 +166,14 @@ class Session:
         self.client._wait_all(self.session_id)
 
         for task in self.submitted_tasks:
-            if task:
-                task().state = rpc.common.TaskState.finished
+            t = task()
+            if t:
+                t.state = rpc.common.TaskState.finished
 
         for dataobj in self.submitted_dataobjs:
-            if dataobj:
-                dataobj().state = rpc.common.DataObjectState.finished
+            o = dataobj()
+            if o:
+                o.state = rpc.common.DataObjectState.finished
 
     def fetch(self, dataobject):
         return self.client._fetch(dataobject)
