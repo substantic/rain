@@ -16,7 +16,7 @@ cargo:build:
   stage: build
   script:
     - apt-get update
-    - apt-get install -y capnproto
+    - apt-get install -y capnproto libsqlite3-dev
     - cargo install capnpc
     - ./build_capnp.sh
     - cargo build --all-features --release --verbose --jobs 1
@@ -30,7 +30,7 @@ pytest:
   stage: test
   script:
     - apt-get update
-    - apt-get install -y capnproto python3-dev python3-pip
+    - apt-get install -y capnproto python3-dev python3-pip libsqlite3-dev
     - pip3 install --upgrade pip
     - pip3 install pycapnp cloudpickle pytest pytest-timeout
     - RAIN_TEST_BIN=${PWD}/target/release/rain pytest -x -v --timeout=20
@@ -45,7 +45,7 @@ cargo:test:
   stage: test
   script:
     - apt-get update
-    - apt-get install -y capnproto
+    - apt-get install -y capnproto libsqlite3-dev
     - cargo install capnpc
     - ./build_capnp.sh
     - cargo test --all-features
