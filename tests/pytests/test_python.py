@@ -206,3 +206,28 @@ def test_py_ctx_debug(test_env):
         t0.wait()
         t0.update()
         assert t0.get("debug") == "First message\nSecond message\nLast message"
+
+
+def test_py_ctx_set(test_env):
+    @remote()
+    def test(ctx):
+        ctx.set("string", "value")
+        ctx.set("int", 103)
+        ctx.set("float", 77.12)
+        ctx.set("boolTrue", True)
+        ctx.set("boolFalse", False)
+        ctx.set("data", b"ABC")
+        return b"Test"
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t0 = test()
+        s.submit()
+        t0.wait()
+        t0.update()
+        assert t0.get("string") == "value"
+        assert t0.get("int") == 103
+        assert t0.get("float") == 77.12
+        assert t0.get("boolTrue") is True
+        assert t0.get("boolFalse") is False
+        assert t0.get("data") == b"ABC"

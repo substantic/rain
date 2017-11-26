@@ -13,7 +13,7 @@ def load_worker_object(reader):
 
 
 def write_additionals(context, builder):
-    additionals = {}
+    additionals = context.additionals
     if context.debug_messages:
         additionals["debug"] = "\n".join(context.debug_messages)
     additionals_to_capnp(additionals, builder)
@@ -49,7 +49,7 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
                     results[i].type = rpc_common.DataObjectType.blob
                     results[i].storage.memory = data.encode()
                 else:
-                    raise Exception("Invalid result object: {}", repr(data))
+                    raise Exception("Invalid result object: {!r}".format(data))
             task_context._cleanup(task_results)
             write_additionals(task_context, _context.results.taskAdditionals)
             _context.results.ok = True
