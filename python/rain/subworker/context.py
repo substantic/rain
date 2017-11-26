@@ -11,6 +11,7 @@ class Context:
         self.subworker = subworker
         self.id_counter = 0
         self.staged_data = set()
+        self.debug_messages = []
 
     def stage_file(self, path):
         self.id_counter += 1
@@ -20,7 +21,12 @@ class Context:
         self.staged_data.add(data)
         return data
 
-    def cleanup(self, results):
+    def debug(self, message):
+        if not isinstance(message, str):
+            raise Exception("Method 'debug' accepts only strings")
+        self.debug_messages.append(message)
+
+    def _cleanup(self, results):
         for result in results:
             if result in self.staged_data:
                 self.staged_data.remove(result)
@@ -28,6 +34,6 @@ class Context:
         for data in self.staged_data:
             data._remove()
 
-    def cleanup_on_fail(self):
+    def _cleanup_on_fail(self):
         for data in self.staged_data:
             data._remove()

@@ -10,6 +10,7 @@ use worker::data::Data;
 use worker::tasks;
 use worker::rpc::subworker::data_from_capnp;
 use common::convert::ToCapnp;
+use common::Additionals;
 
 pub type TaskFuture = Future<Item = TaskContext, Error = Error>;
 pub type TaskResult = Result<Box<TaskFuture>>;
@@ -104,8 +105,10 @@ impl TaskContext {
             // Task is finished
             future.and_then(|response| {
                 {
-                    let task = self.task.get();
+                    let mut task = self.task.get_mut();
                     let response = response.get()?;
+                    task.new_additionals.update(
+                        Additionals::from_capnp(&response.get_task_additionals()?));
                     let subworker = self.subworker.as_ref().unwrap().get();
                     let work_dir = subworker.work_dir();
                     if response.get_ok() {

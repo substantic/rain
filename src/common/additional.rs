@@ -21,6 +21,12 @@ impl Additionals {
         Default::default()
     }
 
+    pub fn update(&mut self, other: Additionals) {
+        for (key, value) in other.items {
+            self.items.insert(key, value);
+        }
+    }
+
     fn set(&mut self, key: &str, value: Value) {
         if self.items.insert(key.to_string(), value).is_some() {
             warn!("Overwriting additonals: key={}", key);

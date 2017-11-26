@@ -2,6 +2,7 @@ from .rpc import subworker as rpc_subworker
 from rain.client.rpc import common as rpc_common
 from .data import data_from_capnp, Data
 from .context import Context
+from ..common.additionals import additionals_to_capnp
 import traceback
 
 
@@ -9,6 +10,13 @@ def load_worker_object(reader):
     data = data_from_capnp(reader.data)
     data.worker_object_id = (reader.id.sessionId, reader.id.id)
     return data
+
+
+def write_additionals(context, builder):
+    additionals = {}
+    if context.debug_messages:
+        additionals["debug"] = "\n".join(context.debug_messages)
+    additionals_to_capnp(additionals, builder)
 
 
 class ControlImpl(rpc_subworker.SubworkerControl.Server):
@@ -42,10 +50,12 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
                     results[i].storage.memory = data.encode()
                 else:
                     raise Exception("Invalid result object: {}", repr(data))
-            task_context.cleanup(task_results)
+            task_context._cleanup(task_results)
+            write_additionals(task_context, _context.results.taskAdditionals)
             _context.results.ok = True
 
         except Exception:
-            task_context.cleanup_on_fail()
-            _context.results.ok = False
+            task_context._cleanup_on_fail()
             _context.results.errorMessage = traceback.format_exc()
+            write_additionals(task_context, _context.results.taskAdditionals)
+            _context.results.ok = False

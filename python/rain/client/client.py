@@ -3,7 +3,7 @@ from rain.client import rpc
 from rain.client.common import RainException
 from rain.client.task import Task
 from rain.client.data import DataObject
-from . import additionals
+from ..common import additionals
 
 from .session import Session
 

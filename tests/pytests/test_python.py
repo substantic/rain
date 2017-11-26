@@ -189,3 +189,20 @@ def test_py_pass_through(test_env):
         s.submit()
         assert data == t1.out.out1.fetch()
         assert b"Hello!" == t1.out.out2.fetch()
+
+
+def test_py_ctx_debug(test_env):
+    @remote()
+    def test(ctx):
+        ctx.debug("First message")
+        ctx.debug("Second message")
+        ctx.debug("Last message")
+        return b"Result"
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t0 = test()
+        s.submit()
+        t0.wait()
+        t0.update()
+        assert t0.get("debug") == "First message\nSecond message\nLast message"
