@@ -22,6 +22,12 @@ class Output:
             path = label
         self.path = path
 
+    def __repr__(self):
+        if self.path is None:
+            return "<Output {} path={}>".format(self.label, self.path)
+        else:
+            return "<Output {}>".format(self.label)
+
 
 class Program:
 
@@ -87,7 +93,7 @@ class Program:
         inputs = tuple(args[obj.label] for obj in self.inputs)
         # TODO: A proper error if there are too few or too many inputs
 
-        outputs = [Blob(obj.label) for label in self.outputs]
+        outputs = [Blob(output.label) for output in self.outputs]
         return Task("!run",
                     config.to_bytes_packed(),
                     inputs=inputs,
