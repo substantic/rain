@@ -19,3 +19,7 @@ def sleep(timeout, dataobj):
                 struct.pack("<I", time_ms),
                 inputs=(dataobj,),
                 outputs=(dataobj.__class__("output"),))
+
+
+def open(filename):
+    return Task("!open", filename)

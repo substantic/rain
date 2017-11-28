@@ -1,9 +1,10 @@
 
 use std::sync::Arc;
+use std::path::Path;
 
 use super::{TaskContext, TaskResult};
 use worker::state::State;
-use worker::data::{DataBuilder, BlobBuilder};
+use worker::data::{Data, DataBuilder, BlobBuilder};
 use futures::{Future, IntoFuture, future};
 use errors::Result;
 use bytes::{Buf, LittleEndian};
@@ -51,4 +52,23 @@ pub fn task_sleep(context: TaskContext, state: &State) -> TaskResult {
                     }
                     context
                 })))
+}
+
+/// Open external file
+pub fn task_open(context: TaskContext, state: &State) -> TaskResult {
+    context.task.get().check_number_of_args(0)?;
+    Ok(Box::new(future::lazy(move || {
+        {
+            let task = context.task.get();
+            let path = Path::new(::std::str::from_utf8(&task.task_config)?);
+            if !path.is_absolute() {
+                bail!("Path {:?} is not absolute", path);
+            }
+            let target_path = context.state.get().work_dir().new_path_for_dataobject();
+            let data = Data::new_by_fs_copy(&path, target_path)?;
+            let output = context.task.get().output(0);
+            output.get_mut().set_data(Arc::new(data));
+        }
+        Ok(context)
+    })))
 }

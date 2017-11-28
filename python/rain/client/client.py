@@ -63,7 +63,7 @@ class Client:
     def _fetch(self, dataobj):
         if not dataobj._keep:
             raise RainException(
-                "Can't fetch object without keep flag.", dataobj)
+                "Can't fetch object {} without keep flag.".format(dataobj))
         req = self.datastore.createReader_request()
         req.id.id = dataobj.id
         req.id.sessionId = dataobj.session.session_id

@@ -1,4 +1,5 @@
-from rain.client import tasks
+from rain.client import tasks, RainException
+import pytest
 
 
 def test_sleep1(test_env):
@@ -80,3 +81,32 @@ def test_sleep3_last(test_env):
         t3 = tasks.sleep(0.2, t2)
         s.submit()
         test_env.assert_duration(0.4, 0.8, lambda: t3.wait())
+
+
+def test_task_open_not_absolute(test_env):
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = tasks.open("not/absolute/path")
+        s.submit()
+        pytest.raises(RainException, lambda: t1.wait())
+
+
+def test_task_open_not_exists(test_env):
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = tasks.open("/not/exists")
+        s.submit()
+        pytest.raises(RainException, lambda: t1.wait())
+
+
+def test_task_open_ok(test_env):
+    import os.path
+    path = os.path.abspath(__file__)
+    with open(path, "rb") as f:
+        content = f.read()
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = tasks.open(path)
+        t1.out.output.keep()
+        s.submit()
+        assert t1.out.output.fetch() == content

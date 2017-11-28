@@ -13,4 +13,5 @@ def cpus(n_cpus):
     """Create a resource containing only cpus"""
     return Resources(n_cpus=n_cpus)
 
+
 cpu_1 = cpus(1)

@@ -42,6 +42,7 @@ impl TaskContext {
                 "!run" => tasks::run::task_run,
                 "!concat" => tasks::basic::task_concat,
                 "!sleep" => tasks::basic::task_sleep,
+                "!open" => tasks::basic::task_open,
                 task_type => bail!("Unknown task type {}", task_type),
             };
             task_function(self, state)

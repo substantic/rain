@@ -55,16 +55,24 @@ impl Data {
         Ok(Data::new_from_path(DataType::Blob, target_path, size))
     }
 
+    pub fn new_by_fs_copy(
+        source_path: &Path,
+        target_path: PathBuf,
+    ) -> ::std::result::Result<Self, ::std::io::Error> {
+        ::std::fs::copy(source_path, &target_path)?;
+        let metadata = ::std::fs::metadata(&target_path)?;
+        metadata.permissions().set_mode(0o400);
+        let size = metadata.len() as usize;
+        Ok(Data::new_from_path(DataType::Blob, target_path, size))
+    }
+
+
     pub fn storage(&self) -> &Storage {
         &self.storage
     }
 
     pub fn data_type(&self) -> DataType {
         self.data_type
-    }
-
-    pub fn from_file(data_type: DataType, path: &Path) -> Data {
-        unimplemented!()
     }
 
     /// Return size of data in bytes
