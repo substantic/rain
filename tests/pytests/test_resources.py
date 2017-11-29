@@ -50,7 +50,7 @@ def test_number_of_tasks_and_objects(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = tasks.sleep(0.4, "abc123456")
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
         time.sleep(0.2)
 
@@ -68,7 +68,7 @@ def test_number_of_tasks_and_objects(test_env):
         assert workers[0]["tasks"] == []
         assert workers[0]["objects"] == [(1, 11)]
 
-        t1.out.output.unkeep()
+        t1.output.unkeep()
         time.sleep(1.15)
 
         info = test_env.client.get_server_info()

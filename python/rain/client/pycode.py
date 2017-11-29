@@ -16,7 +16,7 @@ def py_obj(obj, label=""):
     return blob(cloudpickle.dumps(obj), label)
 
 
-def remote(outputs=None):
+def remote(outputs=1):
     def make_remote(fn):
         def make_task(*args):
             session = get_active_session()

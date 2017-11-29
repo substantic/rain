@@ -12,9 +12,9 @@ def test_remote_bytes_inout(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = hello("Rain")
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
-        assert b"Rain rocks!" == t1.out.output.fetch()
+        assert b"Rain rocks!" == t1.output.fetch()
 
 
 def test_remote_more_bytes_outputs(test_env):
@@ -27,11 +27,11 @@ def test_remote_more_bytes_outputs(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = test()
-        t1.out.x1.keep()
-        t1.out.x2.keep()
+        t1.outputs["x1"].keep()
+        t1.outputs["x2"].keep()
         s.submit()
-        assert b"One" == t1.out.x1.fetch()
-        assert b"Two" == t1.out.x2.fetch()
+        assert b"One" == t1.outputs["x1"].fetch()
+        assert b"Two" == t1.outputs["x2"].fetch()
 
 
 def test_remote_exception(test_env):
@@ -48,7 +48,7 @@ def test_remote_exception(test_env):
     for i in range(10):
         with test_env.client.new_session() as s:
             t1 = test()
-            t1.out.output.keep()
+            t1.output.keep()
             s.submit()
 
             with pytest.raises(RainException):
@@ -56,7 +56,7 @@ def test_remote_exception(test_env):
             with pytest.raises(RainException):
                 t1.wait()
             with pytest.raises(RainException):
-                t1.out.output.fetch()
+                t1.output.fetch()
 
 
 def test_remote_exception_sleep(test_env):
@@ -70,14 +70,14 @@ def test_remote_exception_sleep(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = test()
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
         with pytest.raises(RainException):
             t1.wait()
         with pytest.raises(RainException):
             t1.wait()
         with pytest.raises(RainException):
-                t1.out.output.fetch()
+                t1.output.fetch()
 
 
 def test_remote_exception_fetch_after_delay(test_env):
@@ -90,13 +90,13 @@ def test_remote_exception_fetch_after_delay(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = test()
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
         time.sleep(0.6)
         with pytest.raises(RainException):
-            t1.out.output.fetch()
+            t1.output.fetch()
         with pytest.raises(RainException):
-            t1.out.output.fetch()
+            t1.output.fetch()
         with pytest.raises(RainException):
             t1.wait()
 
@@ -112,12 +112,12 @@ def test_remote_exception_fetch_immediate(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = test()
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
         with pytest.raises(RainException):
-            t1.out.output.fetch()
+            t1.output.fetch()
         with pytest.raises(RainException):
-            t1.out.output.fetch()
+            t1.output.fetch()
         with pytest.raises(RainException):
             t1.wait()
 
@@ -147,9 +147,9 @@ def test_string_output(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = test()
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
-        assert b"Hello world!" == t1.out.output.fetch()
+        assert b"Hello world!" == t1.output.fetch()
 
 
 def test_py_file_output(test_env):
@@ -166,9 +166,9 @@ def test_py_file_output(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = test()
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
-        assert b"Hello world!" == t1.out.output.fetch()
+        assert b"Hello world!" == t1.output.fetch()
 
 
 def test_py_pass_through(test_env):
@@ -184,11 +184,11 @@ def test_py_pass_through(test_env):
         data = b"ABC" * 10000
         t0 = cat(input1=data)
         t1 = test(t0, "Hello!")
-        t1.out.out1.keep()
-        t1.out.out2.keep()
+        t1.outputs["out1"].keep()
+        t1.outputs["out2"].keep()
         s.submit()
-        assert data == t1.out.out1.fetch()
-        assert b"Hello!" == t1.out.out2.fetch()
+        assert data == t1.outputs["out1"].fetch()
+        assert b"Hello!" == t1.outputs["out2"].fetch()
 
 
 def test_py_ctx_debug(test_env):

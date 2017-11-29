@@ -152,7 +152,7 @@ def test_late_wait_all_failed(test_env):
         args = ("/bin/non-existing-program",)
         program = Program(args, stdout="output")
         t1 = program()
-        t1_output = t1.out.output
+        t1_output = t1.output
         t1_output.keep()
         s.submit()
         time.sleep(0.3)
@@ -169,7 +169,7 @@ def test_early_wait_all_failed_(test_env):
         args = ("/bin/non-existing-program")
         program = Program(args, stdout="output", stdin="input")
         t1 = program(input=t0)
-        t1_output = t1.out.output
+        t1_output = t1.output
         t1_output.keep()
         s.submit()
         with pytest.raises(RainException):
@@ -191,7 +191,7 @@ def test_unkeep_finished(test_env):
     s = client.new_session()
     with s:
         t1 = tasks.concat(("a", "b"))
-        t1_output = t1.out.output
+        t1_output = t1.output
         t1_output.keep()
         t2 = tasks.sleep(0.3, t1)
         with pytest.raises(RainException):
@@ -210,7 +210,7 @@ def test_unkeep_unfinished(test_env):
     s = client.new_session()
     with s:
         t1 = tasks.concat(("a", "b"))
-        t1_output = t1.out.output
+        t1_output = t1.output
         t1_output.keep()
         t2 = tasks.sleep(0.3, t1)
         with pytest.raises(RainException):
@@ -230,7 +230,7 @@ def test_unkeep_failed(test_env):
         args = ("/bin/non-existing-program",)
         program = Program(args, stdout="output")
         t1 = program()
-        t1_output = t1.out.output
+        t1_output = t1.output
         t1_output.keep()
         s.submit()
 
@@ -273,7 +273,7 @@ def test_fetch_removed_object_fails(test_env):
         t1 = tasks.sleep(0.01, "abc123456")
         s.submit()
         with pytest.raises(RainException):
-            t1.out.output.fetch()
+            t1.output.fetch()
         t1.wait()
 
 
@@ -284,12 +284,12 @@ def test_fetch_from_failed_session_immediate(test_env):
     program = Program(args, stdout="output")
     with test_env.client.new_session() as s:
         t1 = program()
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
         with pytest.raises(RainException):
-            t1.out.output.fetch()
+            t1.output.fetch()
         with pytest.raises(RainException):
-            t1.out.output.fetch()
+            t1.output.fetch()
 
 
 def test_update_from_failed_session(test_env):
@@ -299,13 +299,13 @@ def test_update_from_failed_session(test_env):
     program = Program(args, stdout="output")
     with test_env.client.new_session() as s:
         t1 = program()
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
         time.sleep(0.6)
         with pytest.raises(RainException):
             t1.update()
         with pytest.raises(RainException):
-            t1.out.output.update()
+            t1.output.update()
 
 
 @pytest.mark.xfail(reason="Server now do not support waiting on objects")
@@ -315,7 +315,7 @@ def test_dataobj_wait(test_env):
     s = client.new_session()
     with s:
         t1 = tasks.concat(("a", "b"))
-        o1 = t1.out.output
+        o1 = t1.output
         assert t1.state is None
         s.submit()
         assert o1.state == rpc.common.DataObjectState.unfinished

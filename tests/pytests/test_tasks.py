@@ -24,21 +24,18 @@ def test_task_outputs(fake_session):
                            Blob("space inside"),
                            Blob("")))
 
-        assert t1.has_output("a")
-        assert t1.has_output("space inside")
-        assert t1.has_output("")
-        assert not t1.has_output("XXX")
+        assert "a" in t1.outputs
+        assert "space inside" in t1.outputs
+        assert "XXX" not in t1.outputs
 
-        assert isinstance(t1.out["a"], DataObject)
-        assert isinstance(t1.out[""], DataObject)
-        assert isinstance(t1.out["space inside"], DataObject)
-        assert isinstance(t1.out["long_name"], DataObject)
+        assert isinstance(t1.outputs["a"], DataObject)
+        assert isinstance(t1.outputs["space inside"], DataObject)
+        assert isinstance(t1.outputs["long_name"], DataObject)
 
         with pytest.raises(KeyError):
-            t1.out["XXX"]
+            t1.outputs["XXX"]
 
-        assert t1.out["a"] != t1.out[""]
-        assert t1.out["a"] != t1.out["long_name"]
-
-        assert t1.out["a"] == t1.out.a
-        assert t1.out["long_name"] == t1.out.long_name
+        assert t1.outputs["a"] != t1.outputs[3]
+        assert t1.outputs["a"] == t1.outputs[0]
+        assert t1.outputs["a"] != t1.outputs["long_name"]
+        assert t1.outputs[1] == t1.outputs["long_name"]

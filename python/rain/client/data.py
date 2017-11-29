@@ -24,7 +24,7 @@ class DataObject:
     type = None
     # Type of object, this should be set by subclass
 
-    def __init__(self, label, session=None):
+    def __init__(self, label=None, session=None):
         if session is None:
             session = get_active_session()
         self.session = session
@@ -57,7 +57,8 @@ class DataObject:
         out.id.id = self.id
         out.id.sessionId = self.session.session_id
         out.keep = self._keep
-        out.label = self.label
+        if self.label:
+            out.label = self.label
         out.type = common.DataObjectType.blob
 
         if self.data is not None:
@@ -153,8 +154,8 @@ def to_data(obj):
     if isinstance(obj, DataObjectPart):
         return obj
     if isinstance(obj, Task):
-        if len(obj.out) == 1:
-            return tuple(obj.out)[0][1]
+        if len(obj.outputs) == 1:
+            return obj.outputs[0]
         if len(obj.out) == 0:
             raise RainException("{} does not have any output".format(obj))
         else:

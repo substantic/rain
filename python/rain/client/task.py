@@ -30,22 +30,35 @@ class Task:
         self.additionals = None
 
         if outputs is None:
-            self.out = Table({"output": Blob("output", session)})
+            outputs = ()
+        elif isinstance(outputs, int):
+            outputs = tuple(Blob(session=session) for i in range(outputs))
         else:
-            out = {}
-            for obj in outputs:
-                if isinstance(obj, str):
-                    do = Blob(obj, session)
-                else:
-                    do = obj
-                out[do.label] = do
-            self.out = Table(out)
+            outputs = tuple(Blob(obj) if isinstance(obj, str) else obj
+                            for obj in outputs)
+        self.outputs = Table(outputs, {output.label: output
+                                       for output in outputs if output.label})
 
-        if isinstance(inputs, tuple):
-            self.inputs = Table(tuple(to_data(obj) for obj in inputs))
-        else:
-            self.inputs = Table({name: to_data(obj)
-                                 for name, obj in inputs.items()})
+        input_objects = []
+        input_labels = {}
+
+        for input in inputs:
+            if isinstance(input, tuple):
+                assert len(input) == 2
+                input_objects.append(to_data(input[1]))
+                input_labels[input[0]] = input[1]
+            else:
+                input_objects.append(to_data(input))
+
+        self.inputs = Table(input_objects, input_labels)
+
+    @property
+    def output(self):
+        count = len(self.outputs)
+        if count == 0 or count > 1:
+            raise RainException("Task {!r} has no unique output (outputs={})"
+                                .format(self, count))
+        return self.outputs[0]
 
     @property
     def id_pair(self):
@@ -59,24 +72,23 @@ class Task:
             pass
         raise RainException("Additional '{}' not found".format(name))
 
-    def has_output(self, name):
-        return name in self.out
-
     def to_capnp(self, out):
         out.id.id = self.id
         out.id.sessionId = self.session.session_id
+        print(self.inputs)
         out.init("inputs", len(self.inputs))
 
         i = 0
-        for key, dataobj in self.inputs:
+        for key, dataobj in self.inputs.label_pairs():
             out.inputs[i].id.id = dataobj.id
             out.inputs[i].id.sessionId = dataobj.session.session_id
-            out.inputs[i].label = str(key)
+            if key:
+                out.inputs[i].label = key
             i += 1
 
-        out.init("outputs", len(self.out))
+        out.init("outputs", len(self.outputs))
         i = 0
-        for key, dataobj in self.out:
+        for dataobj in self.outputs:
             out.outputs[i].id = dataobj.id
             out.outputs[i].sessionId = dataobj.session.session_id
             i += 1

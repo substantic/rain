@@ -42,12 +42,12 @@ def run_small_gridcat(session):
             t1 = cat(input1=consts[i], input2=consts[j])
             t2 = md5sum(input=t1)
             t3 = take_first(t2)
-            ts.append(t3.out.output)
+            ts.append(t3.output)
     result = md5sum(input=tasks.concat(ts))
-    result.out.output.keep()
+    result.output.keep()
     #  session.pending_graph().write("/home/spirali/tmp/graph.dot")
     session.submit()
-    result.out.output.fetch() == b"0a9612a2e855278d336a9e1a1589478f  -\n"
+    result.output.fetch() == b"0a9612a2e855278d336a9e1a1589478f  -\n"
 
 
 def test_small_gridcat_1(test_env):
@@ -92,8 +92,8 @@ def test_big_diamond(test_env):
             new_layer = []
             for l in layer:
                 task = splitter(l)
-                new_layer.append(task.out.out1)
-                new_layer.append(task.out.out2)
+                new_layer.append(task.outputs["out1"])
+                new_layer.append(task.outputs["out2"])
             layer = new_layer
         layer = [upper(t) for t in layer]
 
@@ -105,9 +105,9 @@ def test_big_diamond(test_env):
         #  s.pending_graph().write("test.dot")
         assert len(layer) == 1
         result = layer[0]
-        result.out.output.keep()
+        result.output.keep()
         s.submit()
-        result = result.out.output.fetch()
+        result = result.output.fetch()
         assert result == data.upper()
 
 
@@ -131,7 +131,7 @@ def test_separated_lines(test_env):
             streams = [op(t) for t in streams]
 
         for t in streams:
-            t.out.output.keep()
+            t.output.keep()
 
         s.submit()
         checkpoint = streams
@@ -140,18 +140,18 @@ def test_separated_lines(test_env):
             streams = [op(t) for t in streams]
 
         for t in streams:
-            t.out.output.keep()
+            t.output.keep()
 
         for i in range(STEPS):
             streams = [op(t) for t in streams]
 
         for t in streams:
-            t.out.output.keep()
+            t.output.keep()
 
         s.submit()
 
-        results1 = [t.out.output.fetch() for t in checkpoint]
-        results2 = [t.out.output.fetch() for t in streams]
+        results1 = [t.output.fetch() for t in checkpoint]
+        results2 = [t.output.fetch() for t in streams]
 
         assert results1 == [d * STEPS + d for d in initial_data]
         assert results2 == [d * STEPS * 3 + d for d in initial_data]

@@ -2,36 +2,33 @@
 
 class Table:
 
-    """Wrapper over dict that allows attribute like acces to keys
-
-    >>> table = Table({"a": 10, "nice name": 11})
-    >>> table["a"]
-    10
-    >>> table["nice name"]
-    11
-    >>> table.a
-    10
+    """Combination of list/dict that enables access
+    by indices, slices and string keys
     """
 
-    def __init__(self, data):
-        if isinstance(data, tuple):
-            self.data = dict(enumerate(data))
-        elif isinstance(data, dict):
-            self.data = data
-            for key in data:
-                if key.isidentifier() and key[0] != "_":
-                    setattr(self, key, data[key])
-        else:
-            raise Exception("Invalid type for data")
+    def __init__(self, items, labels):
+        self.items = tuple(items)
+        self.labels = labels
 
     def __getitem__(self, key):
-        return self.data[key]
+        if isinstance(key, str):
+            return self.labels[key]
+        return self.items[key]
 
     def __iter__(self):
-        return iter(self.data.items())
+        return iter(self.items)
 
     def __len__(self):
-        return len(self.data)
+        return len(self.items)
 
     def __contains__(self, key):
-        return key in self.data
+        return any(key == item.label for item in self.items)
+
+    def label_pairs(self):
+        return ((self.labels.get(item), item) for item in self.items)
+
+    def __repr__(self):
+        return "<Table ({})>".format(",".join("{}:{}".format(label, value)
+                                              if label else str(value)
+                                              for label, value in
+                                              self.label_pairs()))

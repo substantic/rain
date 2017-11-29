@@ -7,11 +7,11 @@ def test_sleep1(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = tasks.sleep(0.3, "abc123456")
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
         test_env.assert_duration(0.2, 0.4, lambda: t1.wait())
         result = test_env.assert_max_duration(0.1,
-                                              lambda: t1.out.output.fetch())
+                                              lambda: t1.output.fetch())
         assert result == b"abc123456"
 
 
@@ -20,10 +20,10 @@ def test_sleep2(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = tasks.sleep(0.3, "abc123456")
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
         result = test_env.assert_duration(0.028, 0.45,
-                                          lambda: t1.out.output.fetch())
+                                          lambda: t1.output.fetch())
         assert result == b"abc123456"
 
 
@@ -32,9 +32,9 @@ def test_concat1(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = tasks.concat(("Hello ", "", "", "world", "!", ""))
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
-        assert t1.out.output.fetch() == b"Hello world!"
+        assert t1.output.fetch() == b"Hello world!"
 
 
 def test_concat2(test_env):
@@ -42,9 +42,9 @@ def test_concat2(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = tasks.concat(())
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
-        assert t1.out.output.fetch() == b""
+        assert t1.output.fetch() == b""
 
 
 def test_concat3(test_env):
@@ -55,9 +55,9 @@ def test_concat3(test_env):
     c = b"c" * 1000
     with test_env.client.new_session() as s:
         t1 = tasks.concat((a, c, b, c, a))
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
-        assert t1.out.output.fetch() == a + c + b + c + a
+        assert t1.output.fetch() == a + c + b + c + a
 
 
 def test_chain_concat(test_env):
@@ -68,9 +68,9 @@ def test_chain_concat(test_env):
         t3 = tasks.concat((t2, "d"))
         t4 = tasks.concat((t3, "e"))
         t5 = tasks.concat((t4, "f"))
-        t5.out.output.keep()
+        t5.output.keep()
         s.submit()
-        assert t5.out.output.fetch() == b"abcdef"
+        assert t5.output.fetch() == b"abcdef"
 
 
 def test_sleep3_last(test_env):
@@ -107,6 +107,6 @@ def test_task_open_ok(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = tasks.open(path)
-        t1.out.output.keep()
+        t1.output.keep()
         s.submit()
-        assert t1.out.output.fetch() == content
+        assert t1.output.fetch() == content

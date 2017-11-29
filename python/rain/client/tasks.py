@@ -6,7 +6,7 @@ import struct
 
 def concat(objs):
     """Creates a task that Concatenate data objects"""
-    return Task("!concat", inputs=tuple(objs))
+    return Task("!concat", inputs=tuple(objs), outputs=1)
 
 
 def sleep(timeout, dataobj):
@@ -22,4 +22,4 @@ def sleep(timeout, dataobj):
 
 
 def open(filename):
-    return Task("!open", filename)
+    return Task("!open", filename, outputs=1)
