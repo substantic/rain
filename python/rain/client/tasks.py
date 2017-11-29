@@ -4,9 +4,9 @@ from .data import to_data
 import struct
 
 
-def concat(*objs):
+def concat(objs):
     """Creates a task that Concatenate data objects"""
-    return Task("!concat", inputs=objs)
+    return Task("!concat", inputs=tuple(objs))
 
 
 def sleep(timeout, dataobj):

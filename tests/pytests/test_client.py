@@ -100,7 +100,7 @@ def test_submit(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat("a", "b")
+        t1 = tasks.concat(("a", "b"))
         t2 = tasks.sleep(1, t1)
         assert s.task_count == 2
         assert s.dataobj_count == 4  # "a", "b", "ab", "ab"
@@ -117,7 +117,7 @@ def test_wait_some(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat("a", "b")
+        t1 = tasks.concat(("a", "b"))
         t2 = tasks.sleep(0.4, t1)
         s.submit()
         finished = s.wait_some((t1,), ())
@@ -135,7 +135,7 @@ def test_wait_all(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat("a", "b")
+        t1 = tasks.concat(("a", "b"))
         t2 = tasks.sleep(0.4, t1)
         s.submit()
         test_env.assert_duration(0.35, 0.48, lambda: s.wait_all())
@@ -190,7 +190,7 @@ def test_unkeep_finished(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat("a", "b")
+        t1 = tasks.concat(("a", "b"))
         t1_output = t1.out.output
         t1_output.keep()
         t2 = tasks.sleep(0.3, t1)
@@ -209,7 +209,7 @@ def test_unkeep_unfinished(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat("a", "b")
+        t1 = tasks.concat(("a", "b"))
         t1_output = t1.out.output
         t1_output.keep()
         t2 = tasks.sleep(0.3, t1)
@@ -247,7 +247,7 @@ def test_update(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat("a", "b")
+        t1 = tasks.concat(("a", "b"))
         s.submit()
         s.update((t1,))
         t1.wait()
@@ -259,7 +259,7 @@ def test_task_wait(test_env):
     client = test_env.client
     s = client.new_session()
     with s.bind_only():
-        t1 = tasks.concat("a", "b")
+        t1 = tasks.concat(("a", "b"))
     assert t1.state is None
     s.submit()
     assert t1.state == rpc.common.TaskState.notAssigned
@@ -314,7 +314,7 @@ def test_dataobj_wait(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat("a", "b")
+        t1 = tasks.concat(("a", "b"))
         o1 = t1.out.output
         assert t1.state is None
         s.submit()
