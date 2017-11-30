@@ -1,100 +1,49 @@
 import shlex
 
-from .data import Blob
-from .task import Task
-from . import rpc
+from .tasks import execute
+from .input import Input, to_input
+from .output import to_output
 
-
-class Input:
-
-    def __init__(self, label, path=None):
-        self.label = label
-        if path is None:
-            path = label
-        self.path = path
-
-
-class Output:
-
-    def __init__(self, label, path=None):
-        self.label = label
-        if path is None:
-            path = label
-        self.path = path
-
-    def __repr__(self):
-        if self.path is None:
-            return "<Output {} path={}>".format(self.label, self.path)
-        else:
-            return "<Output {}>".format(self.label)
+from copy import copy
 
 
 class Program:
 
-    def __init__(self, args, stdout=None, stdin=None, vars=(), io=()):
-        self.inputs = []
-        self.outputs = []
+    def __init__(self, args, stdout=None, stdin=None, inputs=(), outputs=()):
 
-        if stdout is not None:
-            # +out is a name of where stdout is redirected
-            self.outputs.append(Output(stdout, "+out"))
-
-        if stdin is not None:
-            # +in is a name of where stdin is redirected
-            self.inputs.append(Input(stdin, "+in"))
+        def check_arg(obj):
+            if isinstance(obj, Input) and obj.data is not None:
+                raise Exception("Input used in Program cannot have data")
 
         if isinstance(args, str):
-            self.args = tuple(shlex.split(args))
-        else:
-            self.args = tuple(self._process_arg(arg) for arg in args)
+            args = shlex.split(args)
 
-        for obj in io:
-            if isinstance(obj, Input):
-                self.inputs.append(obj)
-            elif isinstance(obj, Output):
-                self.outputs.append(obj)
-            else:
-                raise Exception("Object {!r} is nor intput or output")
+        self.args = tuple(args)
+        if stdin:
+            stdin = to_input(stdin)
+        if stdout:
+            stdout = to_output(stdout)
+        self.stdin = stdin
+        self.stdout = stdout
+        self.inputs = tuple(to_input(obj) for obj in inputs)
+        self.outputs = tuple(to_output(obj) for obj in outputs)
 
-        self.vars = vars
-
-    def _process_arg(self, arg):
-        if isinstance(arg, str):
-            return arg
-        if isinstance(arg, Input):
-            self.inputs.append(arg)
-            return arg.path
-        if isinstance(arg, Output):
-            self.outputs.append(arg)
-            return arg.path
-        raise Exception("Argument {!r} is invalid".format(arg))
+        for obj in args:
+            check_arg(obj)
 
     def __repr__(self):
         return "<Program {}>".format(self.args)
 
-    def __call__(self, **args):
-
-        call_args = self.args
-        for var in self.vars:
-            var_string = "${{{}}}".format(var)
-            call_args = [a.replace(var_string, args[var]) for a in call_args]
-
-        config = rpc.tasks.RunTask.new_message()
-        config.init("args", len(call_args))
-        for i, arg in enumerate(call_args):
-            config.args[i] = arg
-        config.init("inputPaths", len(self.inputs))
-        for i, obj in enumerate(self.inputs):
-            config.inputPaths[i] = obj.path
-        config.init("outputPaths", len(self.outputs))
-        for i, obj in enumerate(self.outputs):
-            config.outputPaths[i] = obj.path
-
-        inputs = tuple(args[obj.label] for obj in self.inputs)
-        # TODO: A proper error if there are too few or too many inputs
-
-        outputs = [Blob(output.label) for output in self.outputs]
-        return Task("!run",
-                    config.to_bytes_packed(),
-                    inputs=inputs,
-                    outputs=outputs)
+    def __call__(self, **kw):
+        def apply_data(obj):
+            if isinstance(obj, Input):
+                new = copy(obj)
+                new.data = kw[obj.label]
+                return new
+            else:
+                return obj
+        return execute([apply_data(obj) for obj in self.args],
+                       stdout=self.stdout,
+                       stdin=apply_data(self.stdin),
+                       inputs=[apply_data(obj) for obj in self.inputs],
+                       outputs=[apply_data(obj) for obj in self.outputs])

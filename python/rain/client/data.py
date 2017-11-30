@@ -156,7 +156,7 @@ def to_data(obj):
     if isinstance(obj, Task):
         if len(obj.outputs) == 1:
             return obj.outputs[0]
-        if len(obj.out) == 0:
+        if len(obj.outputs) == 0:
             raise RainException("{} does not have any output".format(obj))
         else:
             raise RainException("{} returns more outputs".format(obj))

@@ -75,7 +75,6 @@ class Task:
     def to_capnp(self, out):
         out.id.id = self.id
         out.id.sessionId = self.session.session_id
-        print(self.inputs)
         out.init("inputs", len(self.inputs))
 
         i = 0
