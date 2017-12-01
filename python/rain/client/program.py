@@ -9,7 +9,11 @@ from copy import copy
 
 class Program:
 
-    def __init__(self, args, stdout=None, stdin=None, inputs=(), outputs=()):
+    def __init__(self,
+                 args,
+                 stdout=None, stdin=None,
+                 inputs=(), outputs=(),
+                 shell=False):
 
         def check_arg(obj):
             if isinstance(obj, Input) and obj.data is not None:
@@ -22,6 +26,8 @@ class Program:
         if stdin:
             stdin = to_input(stdin)
         if stdout:
+            if stdout is True:
+                stdout = "stdout"
             stdout = to_output(stdout)
         self.stdin = stdin
         self.stdout = stdout
@@ -30,6 +36,8 @@ class Program:
 
         for obj in args:
             check_arg(obj)
+
+        self.shell = shell
 
     def __repr__(self):
         return "<Program {}>".format(self.args)
@@ -46,4 +54,5 @@ class Program:
                        stdout=self.stdout,
                        stdin=apply_data(self.stdin),
                        inputs=[apply_data(obj) for obj in self.inputs],
-                       outputs=[apply_data(obj) for obj in self.outputs])
+                       outputs=[apply_data(obj) for obj in self.outputs],
+                       shell=self.shell)

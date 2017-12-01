@@ -30,7 +30,7 @@ def open(filename):
     return Task("!open", filename, outputs=1)
 
 
-def execute(args, stdout=None, stdin=None, inputs=(), outputs=()):
+def execute(args, stdout=None, stdin=None, inputs=(), outputs=(), shell=False):
 
     ins = []
     outs = []
@@ -71,6 +71,10 @@ def execute(args, stdout=None, stdin=None, inputs=(), outputs=()):
     outs += [to_output(obj) for obj in outputs]
 
     config = rpc.tasks.RunTask.new_message()
+
+    if shell:
+        args = ("/bin/sh", "-c", " ".join(args))
+
     config.init("args", len(args))
     for i, arg in enumerate(args):
         config.args[i] = arg
@@ -83,7 +87,6 @@ def execute(args, stdout=None, stdin=None, inputs=(), outputs=()):
 
     task_inputs = [obj.data for obj in ins]
     task_outputs = [output.make_data_object() for output in outs]
-    print(ins, outs)
     return Task("!run",
                 config.to_bytes_packed(),
                 inputs=task_inputs,

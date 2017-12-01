@@ -1,6 +1,7 @@
 from rain.client import Program, Input, Output, tasks
 from rain.client import RainException
 
+import os
 import pytest
 
 
@@ -160,3 +161,24 @@ def test_program_invalid_filename(test_env):
         t1.output.keep()
         s.submit()
         pytest.raises(RainException, lambda: t1.wait())
+
+
+def test_execute_shell(test_env):
+    test_env.start(1)
+    p1 = Program(("echo", "$HOME"), stdout=True)
+    p2 = Program(("echo", "$HOME"), stdout=True, shell=True)
+
+    with test_env.client.new_session() as s:
+        t1 = tasks.execute(("echo", "$HOME"), stdout=True)
+        t1.output.keep()
+        t2 = tasks.execute(("echo", "$HOME"), stdout=True, shell=True)
+        t2.output.keep()
+        t3 = p1()
+        t3.output.keep()
+        t4 = p2()
+        t4.output.keep()
+        s.submit()
+        assert b"$HOME\n" == t1.output.fetch()
+        assert (os.getenv("HOME") + "\n").encode() == t2.output.fetch()
+        assert b"$HOME\n" == t3.output.fetch()
+        assert (os.getenv("HOME") + "\n").encode() == t4.output.fetch()
