@@ -194,8 +194,6 @@ def test_unkeep_finished(test_env):
         t1_output = t1.output
         t1_output.keep()
         t2 = tasks.sleep(0.3, t1)
-        with pytest.raises(RainException):
-            t1_output.unkeep()
         s.submit()
         t1.wait()
         assert t1_output.is_kept() is True
@@ -213,8 +211,6 @@ def test_unkeep_unfinished(test_env):
         t1_output = t1.output
         t1_output.keep()
         t2 = tasks.sleep(0.3, t1)
-        with pytest.raises(RainException):
-            t1_output.unkeep()
         s.submit()
         assert t1_output.is_kept() is True
         t1_output.unkeep()
@@ -321,3 +317,21 @@ def test_dataobj_wait(test_env):
         assert o1.state == rpc.common.DataObjectState.unfinished
         o1.wait()
         assert o1.state == rpc.common.DataObjectState.finished
+
+
+def test_fetch_outputs(test_env):
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t0 = tasks.execute("ls /", stdout=True)
+        t1 = tasks.execute(("split", "-d", "-n", "l/2", t0),
+                           outputs=["x00", "x01"])
+        t2 = tasks.execute("ls /", stdout=True)
+
+        t2.keep_outputs()
+        t1.keep_outputs()
+        s.submit()
+        a = t2.output.fetch()
+        b = t1.fetch_outputs()
+
+        assert len(a) > 4
+        assert b[0] + b[1] == a

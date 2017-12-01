@@ -39,3 +39,13 @@ def test_task_outputs(fake_session):
         assert t1.outputs["a"] == t1.outputs[0]
         assert t1.outputs["a"] != t1.outputs["long_name"]
         assert t1.outputs[1] == t1.outputs["long_name"]
+
+
+def test_task_keep_outputs(fake_session):
+    with fake_session:
+        t = Task("dummy", outputs=[Blob("a"), Blob("b"), Blob("c")])
+        assert all(not t.is_kept() for t in t.outputs)
+        t.keep_outputs()
+        assert all(t.is_kept() for t in t.outputs)
+        t.unkeep_outputs()
+        assert all(not t.is_kept() for t in t.outputs)

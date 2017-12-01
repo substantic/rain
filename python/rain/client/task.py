@@ -52,6 +52,19 @@ class Task:
 
         self.inputs = Table(input_objects, input_labels)
 
+    def keep_outputs(self):
+        """Keep all outputs of the task"""
+        for output in self.outputs:
+            output.keep()
+
+    def unkeep_outputs(self):
+        """Unkeep all outputs of the task"""
+        self.session.unkeep(self.outputs)
+
+    def fetch_outputs(self):
+        """Fetch all outputs of the task and return it as a list"""
+        return [output.fetch() for output in self.outputs]
+
     @property
     def output(self):
         count = len(self.outputs)

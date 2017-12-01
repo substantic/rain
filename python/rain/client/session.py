@@ -180,16 +180,21 @@ class Session:
 
     def unkeep(self, dataobjects):
         """Remove data objects"""
+        submitted = []
         for dataobj in dataobjects:
             if not dataobj.is_kept():
                 raise RainException("Object {} is not kept".format(dataobj.id))
-            if dataobj.state is None:
-                raise RainException(
-                    "Object {} not submitted".format(dataobj.id))
+            if dataobj.state is not None:
+                submitted.append(dataobj)
+            else:
+                dataobj._keep = False
 
-        self.client._unkeep(dataobjects)
+        if not submitted:
+            return
 
-        for dataobj in dataobjects:
+        self.client._unkeep(submitted)
+
+        for dataobj in submitted:
             dataobj._free()
 
     def update(self, items):
