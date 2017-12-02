@@ -1,6 +1,6 @@
-from rain.client import remote, RainException, Program, Input
+from rain.client import remote, RainException, Program, Input, blob
 import pytest
-
+import pickle
 
 def test_remote_bytes_inout(test_env):
     """Pytask taking and returning bytes"""
@@ -11,7 +11,7 @@ def test_remote_bytes_inout(test_env):
 
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = hello("Rain")
+        t1 = hello(blob("Rain"))
         t1.output.keep()
         s.submit()
         assert b"Rain rocks!" == t1.output.fetch()
@@ -231,3 +231,23 @@ def test_py_ctx_set(test_env):
         assert t0.get("boolTrue") is True
         assert t0.get("boolFalse") is False
         assert t0.get("data") == b"ABC"
+
+def test_remote_complex_args(test_env):
+
+    @remote()
+    def test(ctx, a, b, c={}, d=0, **kwargs):
+        ret = (a, b.to_bytes(), c['a'].to_bytes(), c['b'][3].to_bytes(), d, kwargs['e'](4).to_bytes())
+        return pickle.dumps(ret)
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+
+        bs = [blob(str(i)) for i in range(5)]
+        t0 = test([True], bs[0], {"a": bs[1], "b": bs}, d=42, e=lambda x: bs[x])
+        t0.output.keep()
+        s.submit()
+        d = t0.output.fetch()
+        assert pickle.loads(d) == ([True], b'0', b'1', b'3', 42, b'4')
+
+
+

@@ -2,12 +2,37 @@ import os
 import sys
 import capnp
 import socket
+import pickle
+import cloudpickle
+import contextlib
 
 from .rpc import subworker as rpc_subworker
 from .control import ControlImpl
 from ..common.fs import remove_dir_content
 
 SUBWORKER_PROTOCOL_VERSION = 0
+
+
+# List of input data objects while Py task arguments are unpickled.
+# Not reentrant.
+_global_unpickle_inputs = None
+
+@contextlib.contextmanager
+def _unpickle_inputs_context(inputs):
+    """Context manager to store input data objects while Py task arguments are unpickled.
+    Internal, not thread safe."""
+    global _global_unpickle_inputs
+    assert _global_unpickle_inputs is None
+    _global_unpickle_inputs = inputs
+    yield
+    _global_unpickle_inputs = None
+
+
+def unpickle_input_object(name, index):
+    "Helper to replace encoded input object placeholders with actual loaded blobs/etc"
+    global _global_unpickle_inputs
+    assert _global_unpickle_inputs is not None
+    return _global_unpickle_inputs[index]
 
 
 class Subworker:
@@ -33,9 +58,14 @@ class Subworker:
 
     def run_task(self, context, config, inputs, outputs):
         fn = inputs[0].load(cache=True)
+        cfg = pickle.loads(config)
+        with _unpickle_inputs_context(inputs):
+            args = [cloudpickle.loads(d) for d in cfg["args"]]
+            kwargs = dict((name, cloudpickle.loads(d)) for name, d in cfg["kwargs"].items())
         remove_dir_content(self.task_path)
         os.chdir(self.task_path)
-        result = fn(context, *inputs[1:])
+        result = fn(context, *args, **kwargs)
+        # TODO:(gavento) Handle `cfg['outputs']` and `cfg['pickle_outputs']`
         return self._decode_results(result, outputs)
 
     def _decode_results(self, result, outputs):

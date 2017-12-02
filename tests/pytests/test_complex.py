@@ -87,7 +87,7 @@ def test_big_diamond(test_env):
 
     test_env.start(4)
     with test_env.client.new_session() as s:
-        layer = [data]
+        layer = [blob(data)]
         for i in range(LAYERS):
             new_layer = []
             for l in layer:
@@ -120,12 +120,12 @@ def test_separated_lines(test_env):
 
     N_LINES = 30
     STEPS = 4
-
     initial_data = [chr(ord("A") + i).encode() for i in range(N_LINES)]
-    streams = initial_data
 
     test_env.start(4)
     with test_env.client.new_session() as s:
+
+        streams = [blob(d) for d in initial_data]
 
         for i in range(STEPS):
             streams = [op(t) for t in streams]
