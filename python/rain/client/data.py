@@ -1,9 +1,9 @@
-
 import capnp
 
 from .session import get_active_session
 from .common import RainException
 from .rpc import common
+
 
 class DataObject:
 
@@ -89,7 +89,8 @@ class DataObject:
         return self.type == common.DataObjectType.directory
 
     def __reduce__(self):
-        "Speciaization to replace with InputObjectPlaceholder in Pytho task args"
+        """Speciaization to replace with subworker.unpickle_input_object
+        in Python task args while (cloud)pickling."""
         from . import pycode
         from ..subworker import subworker
         if pycode._global_pickle_inputs is None:
@@ -99,7 +100,8 @@ class DataObject:
         input_name = "{}:{}".format(base_name, counter)
         pycode._global_pickle_inputs[1] += 1
         inputs.append((input_name, self))
-        return (subworker.unpickle_input_object, (input_name, len(inputs) - 1, ))
+        return (subworker.unpickle_input_object,
+                (input_name, len(inputs) - 1, ))
 
 
 class Blob(DataObject):

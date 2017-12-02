@@ -1,6 +1,8 @@
-from rain.client import remote, RainException, Program, Input, blob
+from rain.client import remote, Program, Input, blob
+from rain.client import RainException, RainWarning
 import pytest
 import pickle
+
 
 def test_remote_bytes_inout(test_env):
     """Pytask taking and returning bytes"""
@@ -232,22 +234,50 @@ def test_py_ctx_set(test_env):
         assert t0.get("boolFalse") is False
         assert t0.get("data") == b"ABC"
 
+
 def test_remote_complex_args(test_env):
 
     @remote()
     def test(ctx, a, b, c={}, d=0, **kwargs):
-        ret = (a, b.to_bytes(), c['a'].to_bytes(), c['b'][3].to_bytes(), d, kwargs['e'](4).to_bytes())
+        ret = (a, b.to_bytes(), c['a'].to_bytes(), c['b'][3].to_bytes(),
+               d, kwargs['e'](4).to_bytes())
         return pickle.dumps(ret)
 
     test_env.start(1)
     with test_env.client.new_session() as s:
 
         bs = [blob(str(i)) for i in range(5)]
-        t0 = test([True], bs[0], {"a": bs[1], "b": bs}, d=42, e=lambda x: bs[x])
+        t0 = test([True], bs[0], {"a": bs[1], "b": bs},
+                  d=42, e=lambda x: bs[x])
         t0.output.keep()
         s.submit()
         d = t0.output.fetch()
         assert pickle.loads(d) == ([True], b'0', b'1', b'3', 42, b'4')
 
 
+def test_remote_arg_signature(fake_session):
 
+    @remote()
+    def test(ctx, a, c={}, *args, d): pass
+
+    with fake_session:
+        with pytest.raises(TypeError, match="required argument: 'a'"):
+            test()
+        with pytest.raises(TypeError, match="required argument: 'd'"):
+            test(0, e=0)
+        with pytest.raises(TypeError, match="required argument: 'a'"):
+            test(d=0)
+        test(0, d=True)
+
+
+def test_remote_large_args(fake_session):
+
+    "Reject >1M direct argument to py task, accept <1K argument"
+    @remote()
+    def test(ctx, a): pass
+
+    with fake_session:
+        with pytest.raises(RainWarning,
+                           match='Pickled object arg0 length'):
+            test("X" * 1024 * 1024)
+        test("X" * 1024)

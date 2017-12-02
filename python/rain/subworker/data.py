@@ -53,7 +53,8 @@ class MemoryBlob(Blob):
             builder.storage.memory = self.data
 
     def __repr__(self):
-        return "{}({}: {!r})".format(self.__class__.__name__, len(self.data), self.data[:30])
+        return "{}({}: {!r})".format(self.__class__.__name__,
+                                     len(self.data), self.data[:30])
 
 
 class FileBlob(Blob):
