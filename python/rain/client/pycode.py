@@ -94,8 +94,13 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
             for i, argval in enumerate(args):
                 # Within this session state, the DataObjects are seialized as
                 # InputPlaceholders
-                name = "arg{}".format(i)
-                # TODO: (gavento) construct a better name
+                code = fn.__code__
+                if i < code.co_argcount - 1:
+                    name = code.co_varnames[i + 1]
+                else:
+                    args_name = code.co_varnames[code.co_argcount +
+                                                 code.co_kwonlyargcount]
+                    name = "{}[{}]".format(args_name, i + 1 - code.co_argcount)
                 with _pickle_inputs_context(name, inputs):
                     d = _checked_pickle(argval, name=name)
                     pickled_args.append(d)

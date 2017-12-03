@@ -97,7 +97,7 @@ class DataObject:
             # call normal __reduce__
             return super().__reduce__()
         base_name, counter, inputs = pycode._global_pickle_inputs
-        input_name = "{}:{}".format(base_name, counter)
+        input_name = "{}{{{}}}".format(base_name, counter)
         pycode._global_pickle_inputs[1] += 1
         inputs.append((input_name, self))
         return (subworker.unpickle_input_object,

@@ -243,6 +243,10 @@ def test_remote_complex_args(test_env):
                d, kwargs['e'](4).to_bytes())
         return pickle.dumps(ret)
 
+    @remote()
+    def test2(ctx, a, *args):
+        pass
+
     test_env.start(1)
     with test_env.client.new_session() as s:
 
@@ -253,6 +257,11 @@ def test_remote_complex_args(test_env):
         s.submit()
         d = t0.output.fetch()
         assert pickle.loads(d) == ([True], b'0', b'1', b'3', 42, b'4')
+
+        t2 = test2(*bs)
+        assert t2.inputs[1].label == 'a{0}'
+        assert t2.inputs[2][0] == 'args[0]{0}'
+        assert t2.inputs[3][0] == 'args[1]{0}'
 
 
 def test_remote_arg_signature(fake_session):
