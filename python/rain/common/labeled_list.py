@@ -1,5 +1,4 @@
 
-
 class LabeledList:
     def __init__(self, items=None, labels=None, pairs=None):
         # List of any items
@@ -20,7 +19,7 @@ class LabeledList:
         elif pairs is not None:
             for key, val in pairs:
                 self.append(val, label=key)
-        
+
     def append(self, val, label=None):
         if isinstance(label, int) or isinstance(label, slice):
             raise TypeError("{} labels may not be integers or slices"
@@ -53,9 +52,9 @@ class LabeledList:
     def __setitem__(self, key, val):
         "Sets i-th item to value, resetting any label."
         self.data[key] = val
-        l = self.labels[key]
-        if l is not None:
-            self._index.pop(l)
+        label = self.labels[key]
+        if label is not None:
+            self._index.pop(label)
             self.labels[key] = None
 
     def set(self, idx, val, label=None):
@@ -84,7 +83,7 @@ class LabeledList:
 
     def __eq__(self, other):
         return (isinstance(other, self.__class__) and
-                self.data == other.data and 
+                self.data == other.data and
                 self.labels == other.labels)
 
     def __contains__(self, key):
@@ -92,6 +91,6 @@ class LabeledList:
 
     def __repr__(self):
         cont = ", ".join("{}: {}".format(label, value)
-                if label else str(value)
-                for label, value in self.items())
+                         if label else str(value)
+                         for label, value in self.items())
         return "<{} ({})>".format(self.__class__.__name__, cont)

@@ -1,8 +1,9 @@
 from rain.common import LabeledList
 import pytest
 
+
 def test_labeled_list():
-    l = LabeledList()
+    l = LabeledList()  # noqa
     assert len(l) == 0
     l._check()
     l.append(1, label='a')
@@ -40,7 +41,7 @@ def test_labeled_list():
     assert l.data == [43]
 
     # list constructor
-    l2 = LabeledList([2,3,4])
+    l2 = LabeledList([2, 3, 4])
     assert l2[1] == 3
     assert l2.get_label(0) is None
 
