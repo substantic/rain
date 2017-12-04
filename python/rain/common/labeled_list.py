@@ -1,5 +1,21 @@
+import collections
 
-class LabeledList:
+
+class LabeledList(collections.MutableSequence):
+    """
+    List data structure with additional optional unique labels for items.
+    Supports all list operations except `sort` (in general
+    `collections.MutableSequence`).
+
+    Indexing `l[x]` accepts either an integer, slice or a label.
+    Modifying the sequence using `l[x]=42` clears the label.
+    Use `l.set(x, 42, label='answer')` or `l.set_label(x, 'answer')`.
+
+    Labels may be any hashable objects except `None` (which represents no
+    label) or `int` or `slice` (which are used for array indexing).
+    The labels must be unique.
+    """
+
     def __init__(self, items=None, labels=None, pairs=None):
         # List of any items
         self.data = []
@@ -14,29 +30,33 @@ class LabeledList:
                 for val in items:
                     self.append(val)
             else:
+                assert isinstance(labels, collections.Sequence)
                 for val, label in zip(items, labels):
                     self.append(val, label=label)
         elif pairs is not None:
             for key, val in pairs:
                 self.append(val, label=key)
 
+    def __delitem__(self, idx):
+        self.data.__delitem__(idx)
+        self.labels.__delitem__(idx)
+        self._reindex()
+
+    def insert(self, idx, val, label=None):
+        self.data.insert(idx, val)
+        self.labels.insert(idx, label)
+        self._reindex()
+
     def append(self, val, label=None):
         if isinstance(label, int) or isinstance(label, slice):
             raise TypeError("{} labels may not be integers or slices"
                             .format(self.__class__.__name__))
         if label is not None:
-            if label in self.labels:
+            if label in self._index:
                 raise KeyError("Label {!r} apready present.".format(label))
             self._index[label] = len(self)
         self.data.append(val)
         self.labels.append(label)
-
-    def pop(self):
-        "Remove and return last item from the list (without the label)"
-        if self.labels[-1] is not None:
-            self._index.pop(self.labels[-1])
-        self.labels.pop()
-        return self.data.pop()
 
     def items(self):
         """Return iterator over (label, value) pairs.
@@ -49,15 +69,22 @@ class LabeledList:
             return self.data[key]
         return self.data[self._index[key]]
 
-    def __setitem__(self, key, val):
+    def __setitem__(self, idx, val):
         "Sets i-th item to value, resetting any label."
-        self.data[key] = val
-        label = self.labels[key]
-        if label is not None:
-            self._index.pop(label)
-            self.labels[key] = None
+        if isinstance(idx, int):
+            self.data[idx] = val
+            label = self.labels[idx]
+            if label is not None:
+                del self._index[label]
+            self.labels[idx] = None
+        elif isinstance(idx, slice):
+            copy = list(val)
+            self.data[idx] = copy
+            self.labels[idx] = (None, ) * len(copy)
+            self._reindex()
 
     def set(self, idx, val, label=None):
+        "Assign to the given index, always setting its label to `label`."
         if label in self._index and self._index[label] != idx:
             raise KeyError("Label {!r} apready present.".format(label))
         self[idx] = val
@@ -66,8 +93,15 @@ class LabeledList:
             self._index[label] = idx
 
     def get_label(self, idx):
-        "Return label for given index."
+        "Return the label for given index."
         return self.labels[idx]
+
+    def set_label(self, idx, label):
+        "Set label for given index."
+        if self.labels[idx] is not None:
+            del self._index[self.labels[idx]]
+        self.labels[idx] = label
+        self._index[label] = idx
 
     def __len__(self):
         return len(self.data)
@@ -81,12 +115,23 @@ class LabeledList:
             if label is not None:
                 assert self._index[label] == i
 
+    def _reindex(self):
+        "Recompute `self._index` in time O(n)."
+        self._index = {}
+        for idx, label in enumerate(self.labels):
+            if label is not None:
+                if label in self._index:
+                    raise KeyError("Label {!r} apready present.".format(label))
+                self._index[label] = idx
+
     def __eq__(self, other):
+        "Equality operator, compares both data and labels."
         return (isinstance(other, self.__class__) and
                 self.data == other.data and
                 self.labels == other.labels)
 
     def __contains__(self, key):
+        "Membership test for labels."
         return key in self._index
 
     def __repr__(self):

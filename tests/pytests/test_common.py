@@ -28,17 +28,24 @@ def test_labeled_list():
     assert len(l) == 2
     assert l[0] == 43
     assert l[1] == 2
+    l.set_label(0, 'a')
+    assert l['a'] == 43
+    l.set_label(0, 'aa')
+    with pytest.raises(KeyError):
+        assert l['a'] == 43
 
     # Data without label
     l.append(3)
     l._check()
     assert l.get_label(2) is None
 
-    # Test popping
-    assert l.pop() == 3
+    # Test popping, deleting and inserting
+    assert l.pop(1) == 2
     l._check()
-    assert l.pop() == 2
-    assert l.data == [43]
+    l[1:1] = [42, 42]
+    assert l.data == [43, 42, 42, 3]
+    assert l.get_label(1) is None
+    l._check()
 
     # list constructor
     l2 = LabeledList([2, 3, 4])
