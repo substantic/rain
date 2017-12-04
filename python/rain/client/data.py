@@ -1,4 +1,3 @@
-
 import capnp
 
 from .session import get_active_session
@@ -88,6 +87,21 @@ class DataObject:
 
     def is_directory(self):
         return self.type == common.DataObjectType.directory
+
+    def __reduce__(self):
+        """Speciaization to replace with subworker.unpickle_input_object
+        in Python task args while (cloud)pickling."""
+        from . import pycode
+        from ..subworker import subworker
+        if pycode._global_pickle_inputs is None:
+            # call normal __reduce__
+            return super().__reduce__()
+        base_name, counter, inputs = pycode._global_pickle_inputs
+        input_name = "{}{{{}}}".format(base_name, counter)
+        pycode._global_pickle_inputs[1] += 1
+        inputs.append((input_name, self))
+        return (subworker.unpickle_input_object,
+                (input_name, len(inputs) - 1, ))
 
 
 class Blob(DataObject):

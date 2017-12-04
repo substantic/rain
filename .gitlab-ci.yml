@@ -6,6 +6,7 @@ stages:
 flake8:
   image: rustdocker/rust:stable
   stage: check
+  allow_failure: true
   script:
     - apt-get update
     - apt-get install -y flake8

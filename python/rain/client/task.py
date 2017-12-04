@@ -1,8 +1,7 @@
-
 from .session import get_active_session
 from .data import Blob, to_data
 from .common import RainException
-from .table import Table
+from ..common import LabeledList
 from ..common.resources import cpu_1
 
 
@@ -34,23 +33,19 @@ class Task:
         elif isinstance(outputs, int):
             outputs = tuple(Blob(session=session) for i in range(outputs))
         else:
-            outputs = tuple(Blob(obj) if isinstance(obj, str) else obj
-                            for obj in outputs)
-        self.outputs = Table(outputs, {output.label: output
-                                       for output in outputs if output.label})
+            outputs = tuple(Blob(obj, session=session) if isinstance(obj, str)
+                            else obj for obj in outputs)
+        self.outputs = LabeledList(pairs=((output.label, output)
+                                          for output in outputs))
 
-        input_objects = []
-        input_labels = {}
-
+        input_pairs = []
         for input in inputs:
             if isinstance(input, tuple):
-                assert len(input) == 2
-                input_objects.append(to_data(input[1]))
-                input_labels[input[0]] = input[1]
+                label, inp = input
+                input_pairs.append((label, to_data(inp)))
             else:
-                input_objects.append(to_data(input))
-
-        self.inputs = Table(input_objects, input_labels)
+                input_pairs.append((None, to_data(input)))
+        self.inputs = LabeledList(pairs=input_pairs)
 
     def keep_outputs(self):
         """Keep all outputs of the task"""
@@ -90,20 +85,16 @@ class Task:
         out.id.sessionId = self.session.session_id
         out.init("inputs", len(self.inputs))
 
-        i = 0
-        for key, dataobj in self.inputs.label_pairs():
+        for i, (key, dataobj) in enumerate(self.inputs.items()):
             out.inputs[i].id.id = dataobj.id
             out.inputs[i].id.sessionId = dataobj.session.session_id
             if key:
                 out.inputs[i].label = key
-            i += 1
 
         out.init("outputs", len(self.outputs))
-        i = 0
-        for dataobj in self.outputs:
+        for i, dataobj in enumerate(self.outputs):
             out.outputs[i].id = dataobj.id
             out.outputs[i].sessionId = dataobj.session.session_id
-            i += 1
 
         out.taskType = self.task_type
 
@@ -122,3 +113,13 @@ class Task:
     def __repr__(self):
         return "<Task id={}/{} type={}>".format(
             self.session.session_id, self.id, self.task_type)
+
+    def __reduce__(self):
+        """Speciaization to replace with subworker.unpickle_input_object
+        in Python task args while (cloud)pickling. Raises RainError when
+        using task with `len(outputs) != 1` as a data object."""
+        from . import pycode
+        if pycode._global_pickle_inputs is None:
+            # call normal __reduce__
+            return super().__reduce__()
+        return self.output.__reduce__()
