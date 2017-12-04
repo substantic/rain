@@ -13,7 +13,7 @@ def load_worker_object(reader):
 
 
 def write_additionals(context, builder):
-    additionals = context.additionals
+    additionals = context.attrs
     if context.debug_messages:
         additionals["debug"] = "\n".join(context.debug_messages)
     additionals_to_capnp(additionals, builder)

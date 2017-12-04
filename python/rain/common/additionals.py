@@ -1,6 +1,4 @@
 
-allowed_types = (str, int, float, bool, bytes)
-
 
 def value_from_capnp(item):
     which = item.which()

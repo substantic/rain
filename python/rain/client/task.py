@@ -26,7 +26,7 @@ class Task:
 
         self.task_type = task_type
         self.task_config = task_config
-        self.additionals = None
+        self.attrs = {}
 
         if outputs is None:
             outputs = ()
@@ -71,14 +71,6 @@ class Task:
     @property
     def id_pair(self):
         return (self.id, self.session.session_id)
-
-    def get(self, name):
-        try:
-            if self.additionals:
-                return self.additionals[name]
-        except KeyError:
-            pass
-        raise RainException("Additional '{}' not found".format(name))
 
     def to_capnp(self, out):
         out.id.id = self.id

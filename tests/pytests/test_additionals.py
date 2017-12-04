@@ -1,5 +1,4 @@
-from rain.client import RainException, remote
-import pytest
+from rain.client import remote
 
 
 def test_update_additionals(test_env):
@@ -13,11 +12,8 @@ def test_update_additionals(test_env):
         t1 = test()
         s.submit()
         t1.wait()
-        with pytest.raises(RainException):
-            t1.get("non-existing-key")
-        with pytest.raises(RainException):
-            t1.get("worker")
+        assert "worker" not in t1.attrs
         t1.update()
-        assert t1.get("worker").startswith("127.0.0.1:")
+        assert t1.attrs["worker"].startswith("127.0.0.1:")
         t1.update()
-        assert t1.get("worker").startswith("127.0.0.1:")
+        assert t1.attrs["worker"].startswith("127.0.0.1:")

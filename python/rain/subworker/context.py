@@ -1,7 +1,6 @@
 import shutil
 import os.path
 
-from ..common.additionals import allowed_types
 from .data import FileBlob
 
 
@@ -12,14 +11,7 @@ class Context:
         self.id_counter = 0
         self.staged_data = set()
         self.debug_messages = []
-        self.additionals = {}
-
-    def set(self, key, value):
-        if not isinstance(key, str):
-            raise Exception("Key of additional has to be string")
-        if type(value) not in allowed_types:
-            raise Exception("Invalid value for additional {}", key)
-        self.additionals[key] = value
+        self.attrs = {}
 
     def stage_file(self, path):
         self.id_counter += 1

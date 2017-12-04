@@ -207,18 +207,19 @@ def test_py_ctx_debug(test_env):
         s.submit()
         t0.wait()
         t0.update()
-        assert t0.get("debug") == "First message\nSecond message\nLast message"
+        assert t0.attrs["debug"] == \
+            "First message\nSecond message\nLast message"
 
 
 def test_py_ctx_set(test_env):
     @remote()
     def test(ctx):
-        ctx.set("string", "value")
-        ctx.set("int", 103)
-        ctx.set("float", 77.12)
-        ctx.set("boolTrue", True)
-        ctx.set("boolFalse", False)
-        ctx.set("data", b"ABC")
+        ctx.attrs["string"] = "value"
+        ctx.attrs["int"] = 103
+        ctx.attrs["float"] = 77.12
+        ctx.attrs["boolTrue"] = True
+        ctx.attrs["boolFalse"] = False
+        ctx.attrs["data"] = b"ABC"
         return b"Test"
 
     test_env.start(1)
@@ -227,12 +228,12 @@ def test_py_ctx_set(test_env):
         s.submit()
         t0.wait()
         t0.update()
-        assert t0.get("string") == "value"
-        assert t0.get("int") == 103
-        assert t0.get("float") == 77.12
-        assert t0.get("boolTrue") is True
-        assert t0.get("boolFalse") is False
-        assert t0.get("data") == b"ABC"
+        assert t0.attrs["string"] == "value"
+        assert t0.attrs["int"] == 103
+        assert t0.attrs["float"] == 77.12
+        assert t0.attrs["boolTrue"] is True
+        assert t0.attrs["boolFalse"] is False
+        assert t0.attrs["data"] == b"ABC"
 
 
 def test_remote_complex_args(test_env):

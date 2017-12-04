@@ -170,10 +170,7 @@ class Client:
             task.state = task_update.state
             new_additionals = additionals.additionals_from_capnp(
                 task_update.additionals)
-            if task.additionals is None:
-                task.additionals = new_additionals
-            else:
-                task.additionals.update(new_additionals)
+            task.attrs.update(new_additionals)
 
         for object_update in results.objects:
             dataobj = dataobjs_dict[object_update.id.id]
