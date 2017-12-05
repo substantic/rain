@@ -184,6 +184,8 @@ impl State {
         if new_ready {
             self.need_scheduling();
         }
+
+        self.remove_dataobj_if_not_needed(&dataobject);
     }
 
     /// Send status of updated elements (updated_tasks/updated_objects) and then clear this sets
@@ -389,6 +391,9 @@ impl State {
             for input in &t.inputs {
                 self.remove_consumer(&mut input.object.get_mut(), &task);
             }
+            for output in &t.outputs {
+                self.remove_dataobj_if_not_needed(&output.get());
+            }
             t.set_failed(error.description().to_string());
         }
         let removed = self.graph.tasks.remove(&task.get().id);
@@ -396,12 +401,18 @@ impl State {
         self.updated_tasks.insert(task);
     }
 
+    pub fn remove_dataobj_if_not_needed(&mut self, object: &DataObject) {
+        if !object.assigned && object.consumers.is_empty() {
+            let removed = self.graph.objects.remove(&object.id);
+            assert!(removed.is_some());
+        }
+    }
+
     pub fn remove_consumer(&mut self, object: &mut DataObject, task: &TaskRef) {
         let found = object.consumers.remove(task);
         // We test "found" because of possible multiple occurence of object in inputs
-        if found && !object.assigned && object.consumers.is_empty() {
-            let removed = self.graph.objects.remove(&object.id);
-            assert!(removed.is_some());
+        if found {
+            self.remove_dataobj_if_not_needed(object);
         }
     }
 
