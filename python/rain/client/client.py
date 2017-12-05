@@ -64,6 +64,11 @@ class Client:
         if not dataobj._keep:
             raise RainException(
                 "Can't fetch object {} without keep flag.".format(dataobj))
+
+        if dataobj.state is None:
+            raise RainException(
+                "Object {} is not submitted.".format(dataobj))
+
         req = self.datastore.createReader_request()
         req.id.id = dataobj.id
         req.id.sessionId = dataobj.session.session_id
@@ -86,8 +91,11 @@ class Client:
 
         req.init("taskIds", len(tasks))
         for i in range(len(tasks)):
-            req.taskIds[i].id = tasks[i].id
-            req.taskIds[i].sessionId = tasks[i].session.session_id
+            task = tasks[i]
+            if task.state is None:
+                raise RainException("Task {} is not submitted".format(task))
+            req.taskIds[i].id = task.id
+            req.taskIds[i].sessionId = task.session.session_id
 
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):

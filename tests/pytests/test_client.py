@@ -185,6 +185,27 @@ def test_wait_all_empty(test_env):
         test_env.assert_max_duration(0.1, lambda: s.wait_all())
 
 
+def test_wait_unsubmitted_task(test_env):
+    test_env.start(1)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        t1 = tasks.concat(())
+        with pytest.raises(RainException):
+            t1.wait()
+
+
+def test_fetch_unsubmitted_task(test_env):
+    test_env.start(1)
+    client = test_env.client
+    s = client.new_session()
+    with s:
+        t1 = tasks.concat(())
+        t1.keep_outputs()
+        with pytest.raises(RainException):
+            t1.fetch_outputs()
+
+
 def test_unkeep_finished(test_env):
     test_env.start(1)
     client = test_env.client
