@@ -4,17 +4,24 @@ use std::process::{Command, Stdio};
 use tokio_process::CommandExt;
 use futures::Future;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
+use std::path::Path;
+use std::io::Read;
 
 use super::{TaskContext, TaskResult};
 use worker::state::State;
 use worker::data::{Data, DataType};
 use errors::{Result, Error};
 
-
-
+fn read_stderr(path: &Path) -> Result<String> {
+    // TODO: If the file is too big, truncate the beginning
+    let mut file = File::open(path)?;
+    let mut s = String::new();
+    file.read_to_string(&mut s)?;
+    Ok(s)
+}
 
 pub fn task_run(context: TaskContext, state: &State) -> TaskResult {
-    let (dir, future) = {
+    let (dir, future, stderr_path) = {
         let config = &context.task.get().task_config;
         let mut cursor = ::std::io::Cursor::new(&config);
 
@@ -51,7 +58,8 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult {
         let out_id = File::create(dir.path().join("+out"))
             .expect("File for stdout cannot be opened")
             .into_raw_fd();
-        let err_id = File::create(dir.path().join("+err"))
+        let stderr_path = dir.path().join("+err");
+        let err_id = File::create(&stderr_path)
             .expect("File for stderr cannot be opened")
             .into_raw_fd();
 
@@ -68,15 +76,20 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult {
             .current_dir(dir.path())
             .status_async2(state.handle())?;
 
-        (dir, future)
+        (dir, future, stderr_path)
     };
 
     Ok(Box::new(
         future.map_err(|e| e.into()).and_then(move |status| {
             if !status.success() {
+                let stderr = match read_stderr(&stderr_path) {
+                    Ok(s) => format!("Stderr: {}\n", s),
+                    Err(e) => format!("Stderr could not be obtained: {}",
+                                      ::std::error::Error::description(&e))
+                };
                 match status.code() {
-                    Some(code) => bail!("Program exit with exit code {}", code),
-                    None => bail!("Program terminated by signal"),
+                    Some(code) => bail!("Program exit with exit code {}\n{}", code, stderr),
+                    None => bail!("Program terminated by signal\n{}", stderr),
                 }
             }
             {

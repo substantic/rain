@@ -163,6 +163,27 @@ def test_program_invalid_filename(test_env):
         pytest.raises(RainException, lambda: t1.wait())
 
 
+def test_execute_fail(test_env):
+    """Setting input file for program"""
+    test_env.start(1)
+    args = ("ls", "/non-existing-dir")
+    with test_env.client.new_session() as s:
+        t1 = tasks.execute(args, stdout="output")
+        s.submit()
+        pytest.raises(RainException, lambda: t1.wait())
+
+
+def test_program_fail(test_env):
+    """Setting input file for program"""
+    test_env.start(1)
+    args = ("ls", "/non-existing-dir")
+    program = Program(args, stdout="output")
+    with test_env.client.new_session() as s:
+        t1 = program()
+        s.submit()
+        pytest.raises(RainException, lambda: t1.wait())
+
+
 def test_execute_shell(test_env):
     test_env.start(1)
     p1 = Program(("echo", "$HOME"), stdout=True)
