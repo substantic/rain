@@ -184,8 +184,8 @@ def test_py_pass_through(test_env):
 
     with test_env.client.new_session() as s:
         data = b"ABC" * 10000
-        t0 = cat(input1=data)
-        t1 = test(t0, "Hello!")
+        t0 = cat(input1=blob(data))
+        t1 = test(t0, blob("Hello!"))
         t1.outputs["out1"].keep()
         t1.outputs["out2"].keep()
         s.submit()

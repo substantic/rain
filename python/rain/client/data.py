@@ -176,9 +176,13 @@ def to_data(obj):
             raise RainException("{} returns more outputs".format(obj))
 
     if isinstance(obj, str) or isinstance(obj, bytes):
-        return blob(obj)
+        raise RainException(
+            "Instance of {} cannot be used as an data object\n"
+            "Help: You can wrap it by 'blob' to use it as data object"
+            .format(type(obj)))
 
-    raise RainException("{!r} cannot be used as data object".format(obj))
+    raise RainException("Instance of {!r} cannot be used as data object"
+                        .format(type(obj)))
 
 
 from .task import Task  # noqa

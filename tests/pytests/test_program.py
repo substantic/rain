@@ -1,4 +1,4 @@
-from rain.client import Program, Input, Output, tasks
+from rain.client import Program, Input, Output, tasks, blob
 from rain.client import RainException
 
 import os
@@ -99,7 +99,7 @@ def test_execute_input_file(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = tasks.execute(("/bin/grep", "ab",
-                            Input("in1", data="abc\nNOTHING\nabab")),
+                            Input("in1", data=blob("abc\nNOTHING\nabab"))),
                            stdout="output")
         t1.output.keep()
         s.submit()
@@ -111,7 +111,7 @@ def test_program_input_file(test_env):
     test_env.start(1)
     program = Program(("/bin/grep", "ab", Input("in1")), stdout="output")
     with test_env.client.new_session() as s:
-        t1 = program(in1="abc\nNOTHING\nabab")
+        t1 = program(in1=blob("abc\nNOTHING\nabab"))
         t1.output.keep()
         s.submit()
         assert t1.output.fetch() == b"abc\nabab\n"
@@ -122,7 +122,8 @@ def test_execute_stdin(test_env):
     test_env.start(1)
     args = ("/bin/grep", "ab")
     with test_env.client.new_session() as s:
-        t1 = tasks.execute(args, stdin="abc\nNOTHING\nabab", stdout="output")
+        t1 = tasks.execute(args, stdin=blob("abc\nNOTHING\nabab"),
+                           stdout="output")
         t1.output.keep()
         s.submit()
         assert t1.output.fetch() == b"abc\nabab\n"
@@ -134,7 +135,7 @@ def test_program_stdin(test_env):
     args = ("/bin/grep", "ab")
     program = Program(args, stdin="inp", stdout="output")
     with test_env.client.new_session() as s:
-        t1 = program(inp="abc\nNOTHING\nabab")
+        t1 = program(inp=blob("abc\nNOTHING\nabab"))
         t1.output.keep()
         s.submit()
         assert t1.output.fetch() == b"abc\nabab\n"
