@@ -599,10 +599,11 @@ impl State {
             t.assigned = Some(wref.clone());
             t.state = TaskState::Assigned;
 
+            /*
             for oref in t.outputs.iter() {
                 oref.get_mut().assigned.insert(wref.clone());
                 wref.get_mut().assigned_objects.insert(oref.clone());
-            }
+            }*/
         }
         task.check_consistency_opt().unwrap(); // non-recoverable
     }
