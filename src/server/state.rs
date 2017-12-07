@@ -735,13 +735,14 @@ impl State {
                         }
                     } else {
                         if wref.get().assigned_objects.contains(oref) &&
-                            (!oref.get().is_needed() || oref.get().located.len() > 2 ||
+                            (oref.get().located.len() > 2 ||
                                  !oref.get().located.contains(wref))
                         {
                             self.unassign_object(oref, wref);
                         }
                     }
                 }
+
                 // Note that the object may be already Removed here
                 if oref.get().scheduled.is_empty() &&
                     oref.get().state == DataObjectState::Finished
@@ -819,6 +820,7 @@ impl State {
                             self.purge_object(&input.object);
                         }
                     }
+
                     self.underload_workers.insert(worker.clone());
                 }
                 TaskState::Running => {
@@ -898,7 +900,11 @@ impl State {
                                 cref.get_mut().waiting_for.remove(&oref);
                                 self.update_task_assignment(&cref);
                             }
-                            self.update_object_assignments(&oref, Some(worker));
+                            if oref.get().is_needed() {
+                                self.update_object_assignments(&oref, Some(worker));
+                            } else {
+                                self.purge_object(&oref);
+                            }
                         }
                         DataObjectState::Finished => {
                             // cloning to some other worker done
