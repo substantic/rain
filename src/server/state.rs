@@ -28,6 +28,8 @@ use server::http::RequestHandler;
 use common::logger::logger::Logger;
 use common::logger::sqlite_logger::SQLiteLogger;
 
+const LOGGING_INTERVAL:u64 = 1; // Logging interval in seconds
+
 pub struct State {
     // Contained objects
     pub(super) graph: Graph,
@@ -655,7 +657,7 @@ impl State {
         object.check_consistency_opt().unwrap(); // non-recoverable
         object.get_mut().client_keep = false;
         let needed = object.get().is_needed();
-        if (!needed) {
+        if !needed {
             object.unschedule();
         }
         self.update_object_assignments(object, None);
@@ -1069,7 +1071,6 @@ impl StateRef {
         info!("HTTP server running on address={}", http_address);
 
         // ---- Start logging ----
-        let LOGGING_INTERVAL = 1; // Logging interval in seconds
         let state = self.clone();
         let timer = state.get().timer.clone();
         let interval = timer.interval(Duration::from_secs(LOGGING_INTERVAL));

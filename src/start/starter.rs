@@ -74,7 +74,7 @@ fn read_host_file(path: &Path) -> Result<Vec<String>> {
     for line in file.lines() {
         let line = line?;
         let trimmed_line = line.trim();
-        if (!trimmed_line.is_empty() && !trimmed_line.starts_with("#")) {
+        if !trimmed_line.is_empty() && !trimmed_line.starts_with("#") {
             result.push(trimmed_line.to_string());
         }
     }
@@ -243,13 +243,13 @@ impl Starter {
         // Here we intentionally goes through all processes
         // even we found first non-ready one, since we also
         // want to check that other processes are not terminated
-        for mut process in &mut self.processes {
+        for process in &mut self.processes {
             if !process.check_ready()? {
                 not_ready += 1;
             }
         }
 
-        for mut process in &mut self.remote_processes {
+        for process in &mut self.remote_processes {
             if !process.check_ready()? {
                 not_ready += 1;
             }

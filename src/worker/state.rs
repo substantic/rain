@@ -42,6 +42,8 @@ use errors::{Error, Result};
 
 use WORKER_PROTOCOL_VERSION;
 
+const MONITORING_INTERVAL:u64 = 5; // Monitoring interval in seconds
+
 pub struct State {
     pub(super) graph: Graph,
 
@@ -729,7 +731,6 @@ impl StateRef {
         handle.spawn(future);
 
         // --- Start monitoring ---
-        let MONITORING_INTERVAL = 10; // Monitoring interval in seconds
         let state = self.clone();
         let timer = state.get().timer.clone();
         let interval = timer.interval(Duration::from_secs(MONITORING_INTERVAL));

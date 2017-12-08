@@ -98,7 +98,7 @@ impl worker_control::Server for WorkerControlImpl {
         for co in new_objects.iter() {
             let id = DataObjectId::from_capnp(&co.get_id().unwrap());
 
-            if (state.graph.objects.contains_key(&id)) {
+            if state.graph.objects.contains_key(&id) {
                 // Update remote if not downloaded yet
                 continue;
             }

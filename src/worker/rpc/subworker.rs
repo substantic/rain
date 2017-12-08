@@ -82,10 +82,10 @@ pub fn data_from_capnp(
         ))),
         ::capnp_gen::subworker_capnp::local_data::storage::Path(data) => {
             let source_path = Path::new(data?);
-            if (!source_path.is_absolute()) {
+            if !source_path.is_absolute() {
                 bail!("Path of dataobject is not absolute");
             }
-            if (!source_path.starts_with(subworker_dir)) {
+            if !source_path.starts_with(subworker_dir) {
                 bail!("Path of dataobject is not in subworker dir");
             }
             let target_path = state.work_dir().new_path_for_dataobject();

@@ -232,7 +232,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         Ok(()) => info!("Rain is started."),
         Err(e) => {
             error!("{}", e.description());
-            if (starter.has_processes()) {
+            if starter.has_processes() {
                 info!("Error occurs; clean up started processes ...");
                 starter.kill_all();
             }
