@@ -294,7 +294,7 @@ impl State {
                         sender,
                     ));
                     self.spawn_panic_on_error(
-                        command.status_async(&self.handle).and_then(move |status| {
+                        command.status_async2(&self.handle)?.and_then(move |status| {
                             error!(
                                 "Subworker {} terminated with exit code: {}",
                                 subworker_id,
