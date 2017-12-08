@@ -41,7 +41,7 @@ class MemoryBlob(Blob):
 
     def to_str(self):
         # TODO: Check additionals for encoding
-        self.to_bytes().decode()
+        return self.to_bytes().decode()
 
     def to_capnp(self, builder):
         builder.type = rpc_common.DataObjectType.blob

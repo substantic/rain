@@ -154,6 +154,29 @@ def test_string_output(test_env):
         assert b"Hello world!" == t1.output.fetch()
 
 
+def test_py_same_subworker(test_env):
+
+    @remote()
+    def first(ctx):
+        import os
+        return str(os.getpid())
+
+    @remote()
+    def second(ctx, prev):
+        import os
+        assert prev.to_str() == str(os.getpid())
+        return prev
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t = first()
+        for i in range(30):
+            t = second(t)
+        t.output.keep()
+        s.submit()
+        assert int(t.output.fetch())
+
+
 def test_py_file_output(test_env):
     @remote()
     def test(ctx):
