@@ -134,7 +134,7 @@ impl Monitor {
         let mem_usage = 0;
         let net_stat = self.get_net_stat();
 
-        let mut frame = Frame {
+        let frame = Frame {
             cpu_usage: cpu_usage,
             mem_usage: mem_usage,
             timestamp: timestamp,

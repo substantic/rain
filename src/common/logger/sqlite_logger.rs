@@ -20,7 +20,7 @@ pub struct SQLiteLogger {
 
 impl SQLiteLogger {
     pub fn new() -> Self {
-        let mut conn = Connection::open_in_memory().unwrap_or_else(|e| {
+        let conn = Connection::open_in_memory().unwrap_or_else(|e| {
             panic!("{}", e);
         });
 

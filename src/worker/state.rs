@@ -171,7 +171,7 @@ impl State {
     }
 
     pub fn object_is_finished(&mut self, dataobj: &DataObjectRef) {
-        let mut dataobject = dataobj.get_mut();
+        let dataobject = dataobj.get_mut();
         debug!("Object id={} is finished", dataobject.id);
         self.updated_objects.insert(dataobj.clone());
 

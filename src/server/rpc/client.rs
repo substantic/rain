@@ -213,7 +213,7 @@ impl client_service::Server for ClientServiceImpl {
     ) -> Promise<(), ::capnp::Error> {
 
         // Set error from session to result
-        fn set_error(mut result: &mut ::common_capnp::unit_result::Builder, error: &SessionError) {
+        fn set_error(result: &mut ::common_capnp::unit_result::Builder, error: &SessionError) {
             error.to_capnp(&mut result.borrow().init_error());
         }
 
@@ -309,7 +309,7 @@ impl client_service::Server for ClientServiceImpl {
     fn wait_some(
         &mut self,
         params: client_service::WaitSomeParams,
-        mut results: client_service::WaitSomeResults,
+        results: client_service::WaitSomeResults,
     ) -> Promise<(), ::capnp::Error> {
         let s = self.state.get_mut();
         let params = pry!(params.get());
@@ -418,7 +418,7 @@ impl client_service::Server for ClientServiceImpl {
         {
             let mut obj_updates = results.borrow().init_objects(objects.len() as u32);
             for (i, obj) in objects.iter().enumerate() {
-                let mut update = obj_updates.borrow().get(i as u32);
+                let update = obj_updates.borrow().get(i as u32);
                 let o = obj.get();
                 o.id.to_capnp(&mut update.get_id().unwrap());
             }
