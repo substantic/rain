@@ -9,6 +9,7 @@ use std::path::Path;
 
 use common::id::SubworkerId;
 use common::wrapped::WrappedRcRefCell;
+use common::fs::LogDir;
 use worker::StateRef;
 use worker::fs::workdir::WorkDir;
 use subworker_capnp::subworker_upstream;
@@ -80,12 +81,13 @@ impl SubworkerRef {
 
 pub fn subworker_command(
     work_dir: &WorkDir,
+    log_dir: &LogDir,
     subworker_id: SubworkerId,
     subworker_type: &str,
     program_name: &str,
     program_args: &[String],
 ) -> Result<(Command, ::tempdir::TempDir)> {
-    let (log_path_out, log_path_err) = work_dir.subworker_log_paths(subworker_id);
+    let (log_path_out, log_path_err) = log_dir.subworker_log_paths(subworker_id);
     let subworker_dir = work_dir.make_subworker_work_dir(subworker_id)?;
 
     info!(

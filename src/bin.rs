@@ -58,8 +58,15 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         listen_address
     );
 
+    let log_dir_prefix = Path::new(cmd_args.value_of("LOG_DIR").unwrap_or("/tmp"));
+
+    let log_dir = make_logging_directory(log_dir_prefix, "server-").unwrap_or_else(|e| {
+        error!("{}", e);
+        exit(1);
+    });
+
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
-    let state = server::state::StateRef::new(tokio_core.handle(), listen_address);
+    let state = server::state::StateRef::new(tokio_core.handle(), listen_address, log_dir);
     state.start();
 
     // Create ready file - a file that is created when server is ready
@@ -112,6 +119,43 @@ fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, Str
 }
 
 
+// Creates a logging directory of the following scheme:
+// prefix + "/rain/" + base_name + process_pid + "/logs/"
+// It checks that 'prefix' exists, but not the full path
+fn make_logging_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, String> {
+    if !prefix.exists() {
+        return Err(format!(
+            "Logging directory prefix {:?} does not exists",
+            prefix
+        ));
+    }
+
+    if !prefix.is_dir() {
+        return Err(format!(
+            "Logging directory prefix {:?} is not directory",
+            prefix
+        ));
+    }
+
+    let pid = nix::unistd::getpid();
+    let log_dir = prefix.join("rain").join(format!("{}{}", base_name, pid)).join("logs");
+
+    if log_dir.exists() {
+        return Err(format!("Logging directory {:?} already exists", log_dir));
+    }
+
+    debug!("Creating logging directory {:?}", log_dir);
+    if let Err(e) = std::fs::create_dir_all(log_dir.clone()) {
+        return Err(format!(
+            "Logging directory {:?} cannot by created: {}",
+            log_dir,
+            e.description()
+        ));
+    }
+    Ok(log_dir)
+}
+
+
 fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let ready_file = cmd_args.value_of("READY_FILE");
     let listen_address = parse_listen_arg(cmd_args, DEFAULT_WORKER_PORT);
@@ -156,6 +200,13 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         exit(1);
     });
 
+    let log_dir_prefix = Path::new(cmd_args.value_of("LOG_DIR").unwrap_or("/tmp"));
+
+    let log_dir = make_logging_directory(log_dir_prefix, "worker-").unwrap_or_else(|e| {
+        error!("{}", e);
+        exit(1);
+    });
+
     info!("Starting Rain {} as worker", VERSION);
     info!("Resources: {} cpus", cpus);
     info!("Working directory: {:?}", work_dir);
@@ -180,6 +231,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let state = worker::state::StateRef::new(
         tokio_core.handle(),
         work_dir,
+        log_dir,
         cpus,
         // Python subworker
         subworkers,
@@ -258,6 +310,7 @@ fn main() {
                 "Listening port or port/address/address:port (default 0.0.0.0:7210)")
             (@arg READY_FILE: --ready_file +takes_value
                 "Create a file when server is initialized and ready to accept connections")
+            (@arg LOG_DIR: --logdir +takes_value "Logging directory (default = /tmp)")
             )
         (@subcommand worker =>
             (about: "Start a worker and connect to a given server.")
@@ -268,6 +321,7 @@ fn main() {
             (@arg WORK_DIR: --workdir +takes_value "Working directory (default = /tmp)")
             (@arg READY_FILE: --ready_file +takes_value
                 "Create a file when worker is initialized and connected to server")
+            (@arg LOG_DIR: --logdir +takes_value "Logging directory (default = /tmp)")
             )
         (@subcommand run =>
             (about: "Start server and workers")
@@ -276,6 +330,7 @@ fn main() {
             (@arg WORKER_HOST_FILE: --worker_host_file +takes_value "Path to file with hostnames of workers")
             (@arg WORK_DIR: --workdir +takes_value "Working directory (default = /tmp)")
             (@arg LISTEN_ADDRESS: --listen +takes_value "Server listening address")
+            (@arg LOG_DIR: --logdir +takes_value "Logging directory (default = /tmp)")
             )
         ).get_matches();
 

@@ -3,7 +3,6 @@ pub mod keeppolicy;
 pub mod convert;
 pub mod rpc;
 pub mod wrapped;
-pub mod fs;
 pub mod resources;
 pub mod events;
 pub mod asycinit;
@@ -19,6 +18,7 @@ pub use self::resources::Resources;
 
 pub mod monitor;
 pub mod logger;
+pub mod fs;
 
 pub type FinishHook = oneshot::Sender<()>;
 

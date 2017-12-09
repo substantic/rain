@@ -17,7 +17,6 @@ impl WorkDir {
         ::std::fs::create_dir(path.join("data")).unwrap();
         ::std::fs::create_dir(path.join("tasks")).unwrap();
         ::std::fs::create_dir(path.join("subworkers")).unwrap();
-        ::std::fs::create_dir(path.join("subworkers/logs")).unwrap();
         ::std::fs::create_dir(path.join("subworkers/work")).unwrap();
         WorkDir {
             path,
@@ -28,18 +27,6 @@ impl WorkDir {
     /// Get path to unix socket where worker is listening
     pub fn subworker_listen_path(&self) -> PathBuf {
         self.path.join(Path::new("subworkers/listen"))
-    }
-
-
-    /// Get path to logs for subworker
-    pub fn subworker_log_paths(&self, id: SubworkerId) -> (PathBuf, PathBuf) {
-        let out = self.path.join(Path::new(
-            &format!("subworkers/logs/subworker-{}.out", id),
-        ));
-        let err = self.path.join(Path::new(
-            &format!("subworkers/logs/subworker-{}.err", id),
-        ));
-        (out, err)
     }
 
     /// Create subworker working directory

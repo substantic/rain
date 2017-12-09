@@ -20,6 +20,7 @@ use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
 use common::monitor::{Monitor, Frame};
 use common::Attributes;
+use common::fs::logdir::LogDir;
 
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject, Graph, TaskRef,
                     TaskInput, TaskState, SubworkerRef, subworker_command};
@@ -79,6 +80,8 @@ pub struct State {
 
     /// Path to working directory
     work_dir: WorkDir,
+
+    log_dir: LogDir,
 
     monitor: Monitor,
 
@@ -285,6 +288,7 @@ impl State {
                     let program_name = &args[0];
                     let (mut command, subworker_dir) = subworker_command(
                         &self.work_dir,
+                        &self.log_dir,
                         subworker_id,
                         subworker_type,
                         program_name,
@@ -557,6 +561,7 @@ impl StateRef {
     pub fn new(
         handle: Handle,
         work_dir: PathBuf,
+        log_dir: PathBuf,
         n_cpus: u32,
         subworkers: HashMap<String, Vec<String>>,
     ) -> Self {
@@ -576,6 +581,7 @@ impl StateRef {
                 .num_slots(256)
                 .build(),
             work_dir: WorkDir::new(work_dir),
+            log_dir: LogDir::new(log_dir),
             worker_id: empty_worker_id(),
             graph: Graph::new(),
             need_scheduling: false,

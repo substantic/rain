@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use futures::{Future, Stream};
@@ -59,6 +60,8 @@ pub struct State {
     pub logger: Box<Logger>,
 
     timer: tokio_timer::Timer,
+
+    log_dir: PathBuf,
 }
 
 impl State {
@@ -1031,7 +1034,7 @@ impl ConsistencyCheck for State {
 pub type StateRef = WrappedRcRefCell<State>;
 
 impl StateRef {
-    pub fn new(handle: Handle, listen_address: SocketAddr) -> Self {
+    pub fn new(handle: Handle, listen_address: SocketAddr, log_dir: PathBuf) -> Self {
         let s = Self::wrap(State {
             graph: Default::default(),
             need_scheduling: false,
@@ -1042,11 +1045,12 @@ impl StateRef {
             updates: Default::default(),
             stop_server: false,
             self_ref: None,
-            logger: Box::new(SQLiteLogger::new()),
+            logger: Box::new(SQLiteLogger::new(&log_dir)),
             timer: tokio_timer::wheel()
                 .tick_duration(Duration::from_millis(100))
                 .num_slots(512)
                 .build(),
+            log_dir: log_dir,
         });
         s.get_mut().self_ref = Some(s.clone());
         s
