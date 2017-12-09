@@ -77,7 +77,12 @@ impl worker_control::Server for WorkerControlImpl {
         params: worker_control::StopTasksParams,
         mut _results: worker_control::StopTasksResults,
     ) -> Promise<(), ::capnp::Error> {
-        // TODO: Implement real task stop
+        let params = pry!(params.get());
+        let mut state = self.state.get_mut();
+        for tid in pry!(params.get_tasks()).iter() {
+            let task_id = TaskId::from_capnp(&tid);
+            state.stop_task(&task_id);
+        }
         Promise::ok(())
     }
 

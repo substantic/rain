@@ -1,7 +1,8 @@
 
 use futures::Future;
 
-use worker::graph::{TaskRef, SubworkerRef};
+use std::rc::Rc;
+use worker::graph::{TaskRef, SubworkerRef, TaskState};
 use errors::{Result, Error};
 use worker::state::{StateRef, State};
 use worker::tasks;
@@ -10,76 +11,102 @@ use common::convert::ToCapnp;
 use common::Additionals;
 use common::wrapped::WrappedRcRefCell;
 
-pub type TaskFuture = Future<Item = (), Error = Error>;
-pub type TaskResult = Result<Box<TaskFuture>>;
-
-
 /// Instance represents a running task. It contains resource allocations and
 /// allows to signal finishing of data objects.
 
 pub struct TaskInstance {
-    pub task: TaskRef,
-    pub state: StateRef,
-    pub subworker: Option<SubworkerRef>
+    pub task_ref: TaskRef,
+    pub state_ref: StateRef,
+    //pub subworker: Option<SubworkerRef>
 }
 
-pub type TaskInstanceRef = WrappedRcRefCell<TaskInstance>;
+pub type TaskFuture = Future<Item = (), Error = Error>;
+pub type TaskResult = Result<Box<TaskFuture>>;
 
-impl TaskInstanceRef {
-    pub fn new(task: TaskRef, state: StateRef) -> Self {
-        Self::wrap(TaskInstance {
-            task,
-            state,
-            subworker: None,
-        })
-    }
 
-    /// Start the task -- returns a future that is finished when task is finished
-    pub fn start(&self, state: &mut State) -> TaskResult {
-        let build_in_fn = {
-            let instance = self.get();
-            let task = instance.task.get();
+fn fail_unknown_type(state: &mut State, task_ref: TaskRef) -> TaskResult {
+    bail!("Unknown task type {}", task_ref.get().task_type)
+}
+
+impl TaskInstance {
+
+    pub fn start(state: &mut State, task_ref: TaskRef) {
+        {
+            let mut task = task_ref.get_mut();
+            state.alloc_resources(&task.resources);
+            task.state = TaskState::Running;
+            state.task_updated(&task_ref);
+        }
+
+        let task_fn = {
+            let task = task_ref.get();
             let task_type : &str = task.task_type.as_ref();
-            if task_type.starts_with("!") {
-                // Build-in task
-                Some(match task_type {
-                    "!run" => tasks::run::task_run,
-                    "!concat" => tasks::basic::task_concat,
-                    "!sleep" => tasks::basic::task_sleep,
-                    "!open" => tasks::basic::task_open,
-                    task_type => bail!("Unknown task type {}", task_type),
-                })
-            } else {
-                None
+            // Build-in task
+            match task_type {
+                task_type if !task_type.starts_with("!") => Self::start_task_in_subworker,
+                "!run" => tasks::run::task_run,
+                "!concat" => tasks::basic::task_concat,
+                "!sleep" => tasks::basic::task_sleep,
+                "!open" => tasks::basic::task_open,
+                _ => fail_unknown_type,
             }
         };
 
-        if let Some(task_fn) = build_in_fn {
-            task_fn(self.clone(), state)
-        } else {
-            // Subworker task
-            self.start_task_in_subworker(state)
-        }
+        let future : Box<TaskFuture> = match task_fn(state, task_ref.clone()) {
+            Ok(f) => f,
+            Err(e) => {
+                state.unregister_task(&task_ref);
+                let mut task = task_ref.get_mut();
+                state.free_resources(&task.resources);
+                task.set_failed(e.description().to_string());
+                state.task_updated(&task_ref);
+                return
+            }
+        };
+
+        let instance = Rc::new(TaskInstance {
+            task_ref: task_ref,
+            state_ref: state.self_ref(),
+        });
+
+        state.spawn_panic_on_error(future.then(move |r| {
+            let mut state = instance.state_ref.get_mut();
+            state.task_updated(&instance.task_ref);
+            state.unregister_task(&instance.task_ref);
+            let mut task = instance.task_ref.get_mut();
+            state.free_resources(&task.resources);
+            match r {
+                Ok(()) => {
+                    let all_finished = task.outputs.iter()
+                        .all(|o| o.get().is_finished());
+                    if !all_finished {
+                        task.set_failed("Some of outputs were not produced"
+                                        .to_string());
+                    } else {
+                        for output in &task.outputs {
+                            state.object_is_finished(output);
+                        }
+                        debug!("Task was successfully finished");
+                        task.state = TaskState::Finished;
+                    }
+                },
+                Err(e) => {
+                    task.set_failed(e.description().to_string());
+                }
+            };
+            Ok(())
+        }));
     }
 
-    fn start_task_in_subworker(&self, state: &mut State) -> TaskResult {
-        let instance = self.get();
-        let future = state.get_subworker(
-            &instance.state,
-            instance.task.get().task_type.as_ref(),
-        )?;
-
-        let instance_ref = self.clone();
+    fn start_task_in_subworker(state: &mut State, task_ref: TaskRef) -> TaskResult {
+        let future = state.get_subworker(task_ref.get().task_type.as_ref())?;
+        let state_ref = state.self_ref();
         Ok(Box::new(future.and_then(move |subworker| {
-            instance_ref.get_mut().subworker = Some(subworker.clone());
-
             // Run task in subworker
-            let future = {
                 let mut req = subworker.get().control().run_task_request();
-                let instance = instance_ref.get();
-                let task = instance.task.get();
-                debug!("Starting task id={} in subworker", task.id);
                 {
+                    let task = task_ref.get();
+                    debug!("Starting task id={} in subworker", task.id);
                     // Serialize task
                     let mut param_task = req.get().get_task().unwrap();
                     task.id.to_capnp(&mut param_task.borrow().get_id().unwrap());
@@ -113,32 +140,34 @@ impl TaskInstanceRef {
                         }
                     }
                 }
-                req.send().promise
-            }.map_err::<_, Error>(|e| e.into());
-
-            // Task is finished
-            future.and_then(move |response| {
-                {
-                    let instance = instance_ref.get();
-                    let mut task = instance.task.get_mut();
-                    let response = response.get()?;
-                    task.new_additionals.update(
-                        Additionals::from_capnp(&response.get_task_additionals()?));
-                    let subworker = instance.subworker.as_ref().unwrap().get();
-                    let work_dir = subworker.work_dir();
-                    if response.get_ok() {
-                        debug!("Task id={} finished in subworker", task.id);
-                        for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
-                            let data = data_from_capnp(&instance.state.get(), work_dir, &co)?;
-                            output.get_mut().set_data(data);
-                        }
-                    } else {
-                        debug!("Task id={} failed in subworker", task.id);
-                        bail!(response.get_error_message()?);
-                    }
-                }
-                Ok(())
-            })
+            req.send().promise
+                .map_err::<_, Error>(|e| e.into())
+                .then(move |r| {
+                    let result = match r {
+                        Ok(response) => {
+                            let mut task = task_ref.get_mut();
+                            let response = response.get()?;
+                            task.new_additionals.update(
+                                Additionals::from_capnp(&response.get_task_additionals()?));
+                            let subworker = subworker.get();
+                            let work_dir = subworker.work_dir();
+                            if response.get_ok() {
+                                debug!("Task id={} finished in subworker", task.id);
+                                for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
+                                    let data = data_from_capnp(&state_ref.get(), work_dir, &co)?;
+                                    output.get_mut().set_data(data);
+                                }
+                            } else {
+                                debug!("Task id={} failed in subworker", task.id);
+                                bail!(response.get_error_message()?);
+                            }
+                            Ok(())
+                        },
+                        Err(err) => Err(err.into())
+                    };
+                    state_ref.get_mut().graph.idle_subworkers.push(subworker);
+                    result
+                })
         })))
     }
 }

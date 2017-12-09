@@ -23,7 +23,7 @@ use common::monitor::{Monitor, Frame};
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject, Graph, TaskRef,
                     TaskInput, TaskState, SubworkerRef, subworker_command};
 use worker::data::{DataBuilder};
-use worker::tasks::TaskInstanceRef;
+use worker::tasks::TaskInstance;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
 
@@ -94,6 +94,8 @@ pub struct State {
     // Map from name of subworkers to its arguments
     // e.g. "py" => ["python", "-m", "rain.subworker"]
     subworker_args: HashMap<String, Vec<String>>,
+
+    self_ref: Option<StateRef>,
 }
 
 pub type StateRef = WrappedRcRefCell<State>;
@@ -252,7 +254,9 @@ impl State {
             self.updated_tasks.clear();
         }
 
-        self.spawn_panic_on_error(req.send().promise.map(|_| ()));
+        self.spawn_panic_on_error(req.send().promise
+                                  .map(|_| ())
+                                  .map_err(|e| e.into()));
     }
 
     fn register_subworker(&mut self, name: &str, args: &[&str]) {
@@ -266,7 +270,6 @@ impl State {
 
     pub fn get_subworker(
         &mut self,
-        state_ref: &StateRef,
         subworker_type: &str,
     ) -> Result<Box<Future<Item = SubworkerRef, Error = Error>>> {
         use tokio_process::CommandExt;
@@ -278,7 +281,6 @@ impl State {
                 let subworker_id = self.graph.make_id();
                 if let Some(args) = self.subworker_args.get(subworker_type) {
                     let (sender, receiver) = ::futures::unsync::oneshot::channel();
-                    let state_ref = state_ref.clone();
                     let program_name = &args[0];
                     let (mut command, subworker_dir) = subworker_command(
                         &self.work_dir,
@@ -302,7 +304,7 @@ impl State {
                             );
                             panic!("Subworker terminated; TODO handle this situation");
                             Ok(())
-                        }),
+                        }).map_err(|e| e.into()),
                     );
                     Ok(Box::new(
                         receiver.map_err(|_| "Subwork start cancelled".into()),
@@ -358,13 +360,12 @@ impl State {
         self.datastores.get(worker_id).unwrap().get()
     }
 
-    pub fn spawn_panic_on_error<F, E>(&self, f: F)
+    pub fn spawn_panic_on_error<F>(&self, f: F)
     where
-        F: Future<Item = (), Error = E> + 'static,
-        E: ::std::fmt::Debug,
+        F: Future<Item = (), Error = Error> + 'static
     {
         self.handle.spawn(
-            f.map_err(|e| panic!("Future failed {:?}", e)),
+            f.map_err(|e| panic!("Future failed {:?}", e.description())),
         );
     }
 
@@ -385,24 +386,6 @@ impl State {
         dataobj
     }
 
-    pub fn task_failed(&mut self, task: TaskRef, error: Error) {
-        {
-            let mut t = task.get_mut();
-            self.free_resources.add(&t.resources);
-            self.free_slots += 1;
-            for input in &t.inputs {
-                self.remove_consumer(&mut input.object.get_mut(), &task);
-            }
-            for output in &t.outputs {
-                self.remove_dataobj_if_not_needed(&output.get());
-            }
-            t.set_failed(error.description().to_string());
-        }
-        let removed = self.graph.tasks.remove(&task.get().id);
-        assert!(removed.is_some());
-        self.updated_tasks.insert(task);
-    }
-
     pub fn remove_dataobj_if_not_needed(&mut self, object: &DataObject) {
         if !object.assigned && object.consumers.is_empty() {
             let removed = self.graph.objects.remove(&object.id);
@@ -418,7 +401,69 @@ impl State {
         }
     }
 
-    pub fn start_task(&mut self, task: TaskRef, state_ref: &StateRef) {
+    /// Remove task from graph
+    pub fn unregister_task(&mut self, task_ref: &TaskRef) {
+        let task = task_ref.get_mut();
+        debug!("Unregistering task id = {}", task.id);
+
+        let removed = self.graph.tasks.remove(&task.id);
+        assert!(removed.is_some());
+
+        for input in &task.inputs {
+            let mut obj = input.object.get_mut();
+            self.remove_consumer(&mut obj, &task_ref);
+        }
+
+        for output in &task.outputs {
+            self.remove_dataobj_if_not_needed(&output.get());
+        }
+    }
+
+    /// Remove task from worker, if running it is forced to stop
+    /// If task does not exists, call is silently ignored
+    pub fn stop_task(&mut self, task_id: &TaskId) {
+        let task_ref = match self.graph.tasks.get(task_id) {
+            Some(task_ref) => task_ref.clone(),
+            None => return
+        };
+
+        //self.graph.ready_tasks.remove(&task_ref);
+        //self.unregister_task(&task_ref);
+    }
+
+    #[inline]
+    pub fn task_updated(&mut self, task: &TaskRef) {
+        self.updated_tasks.insert(task.clone());
+    }
+
+    pub fn alloc_resources(&mut self, resources: &Resources) {
+        self.free_resources.remove(resources);
+        assert!(self.free_slots > 0);
+        self.free_slots -= 1;
+    }
+
+    pub fn free_resources(&mut self, resources: &Resources) {
+        self.free_resources.add(resources);
+        self.free_slots += 1;
+        self.need_scheduling();
+    }
+
+    pub fn start_task(&mut self, task_ref: TaskRef) {
+        TaskInstance::start(self, task_ref);
+        /*fn finish_task_instance(state: &mut State, instance: &mut TaskInstanceRef) {
+            let subworker = ::std::mem::replace(&mut instance.get_mut().subworker, None);
+            let instance = instance.get();
+
+            state.updated_tasks.insert(instance.task.clone());
+
+
+            if let Some(sw) = subworker {
+                // Return subworker to idle
+                state.graph.idle_subworkers.push(sw);
+            }
+            state.unregister_task(&instance.task);
+        }
+
         {
             let mut t = task.get_mut();
             t.state = TaskState::Running;
@@ -427,80 +472,59 @@ impl State {
 
         self.updated_tasks.insert(task.clone());
 
-        let state_ref = state_ref.clone();
-        let state_ref2 = state_ref.clone();
-        let task2 = task.clone();
-
-
         self.free_slots -= 1;
         self.free_resources.remove(&task.get().resources);
-        let instance = TaskInstanceRef::new(task, state_ref.clone());
-        let future = instance.start(self);
+        let mut instance_ref = TaskInstanceRef::new(task, state_ref.clone());
+        let future = instance_ref.start(self);
 
         if let Err(e) = future {
-            self.task_failed(task2, e);
+            finish_task_instance(self, &mut instance_ref);
+            {
+                let instance = instance_ref.get();
+                let mut task = instance.task.get_mut();
+                task.set_failed(e.description().to_string());
+            }
             return;
         }
+
+        let state_ref = state_ref.clone();
 
         self.handle.spawn(
             future
                 .unwrap()
-                .and_then(move |()| {
-                    let subworker = ::std::mem::replace(&mut instance.get_mut().subworker, None);
-                    let instance = instance.get_mut();
-                    let mut task = instance.task.get_mut();
-                    task.state = TaskState::Finished;
-                    debug!("Task id={} finished", task.id);
+                .then(move |r| {
+                let mut state = state_ref.get_mut();
+                finish_task_instance(&mut state, &mut instance_ref);
+                let instance = instance_ref.get();
+                let mut task = instance.task.get_mut();
+                match r {
+                    Ok(()) => {
 
-                    let mut state = state_ref.get_mut();
-                    state.free_resources.add(&task.resources);
-                    state.free_slots += 1;
-                    state.need_scheduling();
-                    state.updated_tasks.insert(instance.task.clone());
-
-                    if let Some(sw) = subworker {
-                        // Return subworker to idle
-                        state.graph.idle_subworkers.push(sw);
-                    }
-
-
-
-                    for input in &task.inputs {
-                        let mut obj = input.object.get_mut();
-                        state.remove_consumer(&mut obj, &instance.task);
-                    }
-
-                    for output in &task.outputs {
-                        let obj = output.get();
-                        if !obj.is_finished() {
-                            bail!("Not all outputs produced");
+                        let all_finished = task.outputs.iter()
+                            .all(|o| o.get().is_finished());
+                        if !all_finished {
+                            task.set_failed("Some of outputs were not produced"
+                                            .to_string());
                         }
-                    }
 
-                    for output in &task.outputs {
-                        state.object_is_finished(output);
+                        for output in &task.outputs {
+                            state.object_is_finished(output);
+                        }
+                        debug!("Task was successfully finished");
+                        task.state = TaskState::Finished;
                     }
-                    let removed = state.graph.tasks.remove(&task.id);
-                    assert!(removed.is_some());
-                    Ok(())
-                })
-                .map_err(move |e| {
-                    /*task2.get_mut().set_failed(e.description().to_string());
-            let mut state = state_ref2.get_mut();
-            let removed = state.graph.tasks.remove(&task2.get().id);
-            assert!(removed.is_some());
-            state.updated_tasks.insert(task2);*/
-                    let mut state = state_ref2.get_mut();
-                    state.task_failed(task2, e);
-                    state.need_scheduling();
-                }),
-        );
-    }
+                    Err(e) => {
+                        task.set_failed(e.description().to_string());
+                    }
+                }
+                Ok(())
+            }));*/
+}
 
-    pub fn schedule(&mut self, state_ref: &StateRef) {
-        let mut i = 0;
-        while i < self.graph.ready_tasks.len() {
-            if self.free_slots == 0 {
+pub fn schedule(&mut self, state_ref: &StateRef) {
+    let mut i = 0;
+    while i < self.graph.ready_tasks.len() {
+        if self.free_slots == 0 {
                 break;
             }
             let n_cpus = self.free_resources.n_cpus;
@@ -512,10 +536,9 @@ impl State {
                 break;
             }
             let j = j.unwrap();
-            let task = self.graph.ready_tasks.remove(i + j);
-            self.start_task(task.clone(), state_ref);
+            let task_ref = self.graph.ready_tasks.remove(i + j);
+            self.start_task(task_ref.clone());
             i += j + 1;
-
         }
     }
 
@@ -560,13 +583,18 @@ impl State {
                                  let wrapper = s.datastores.get_mut(&worker_id).unwrap();
                                  wrapper.set_value(datastore);
                             }
-                            s.spawn_panic_on_error(rpc_system);
+                            s.spawn_panic_on_error(rpc_system.map_err(|e| e.into()));
                         }).map_err(|e| e.into()))
         }
     }
 
     pub fn monitor_mut(&mut self) -> &mut Monitor {
         &mut self.monitor
+    }
+
+    #[inline]
+    pub fn self_ref(&self) -> StateRef {
+        self.self_ref.as_ref().unwrap().clone()
     }
 }
 
@@ -579,7 +607,7 @@ impl StateRef {
     ) -> Self {
         let resources = Resources { n_cpus };
 
-        Self::wrap(State {
+        let state = Self::wrap(State {
             handle,
             free_slots: 4 * n_cpus,
             resources: resources.clone(),
@@ -599,7 +627,10 @@ impl StateRef {
             monitor: Monitor::new(),
             initializing_subworkers: Vec::new(),
             subworker_args: subworkers,
-        })
+            self_ref: None,
+        });
+        state.get_mut().self_ref = Some(state.clone());
+        state
     }
 
     // This is called when an incoming connection arrives
@@ -613,7 +644,7 @@ impl StateRef {
             ::worker::rpc::datastore::DataStoreImpl::new(self),
         ).from_server::<::capnp_rpc::Server>();
         let rpc_system = ::common::rpc::new_rpc_system(stream, Some(bootstrap.client));
-        self.get().spawn_panic_on_error(rpc_system);
+        self.get().spawn_panic_on_error(rpc_system.map_err(|e| e.into()));
     }
 
     // This is called when worker connection to server is established

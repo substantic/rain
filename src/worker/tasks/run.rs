@@ -7,7 +7,9 @@ use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 use std::io::Read;
 
-use super::{TaskInstanceRef, TaskResult};
+
+use super::TaskResult;
+use worker::graph::TaskRef;
 use worker::state::State;
 use worker::data::{Data};
 use errors::{Result};
@@ -20,10 +22,11 @@ fn read_stderr(path: &Path) -> Result<String> {
     Ok(s)
 }
 
-pub fn task_run(instance_ref: TaskInstanceRef, state: &State) -> TaskResult {
+pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
+    let state_ref = state.self_ref();
+
     let (dir, future, stderr_path) = {
-        let instance = instance_ref.get();
-        let config = &instance.task.get().task_config;
+        let config = &task_ref.get().task_config;
         let mut cursor = ::std::io::Cursor::new(&config);
 
         let reader = ::capnp::serialize_packed::read_message(
@@ -38,7 +41,7 @@ pub fn task_run(instance_ref: TaskInstanceRef, state: &State) -> TaskResult {
             run_config.get_args()?.iter().collect();
         let args = rargs?;
         let name = args.get(0).ok_or_else(|| "Arguments are empty")?;
-        let task = instance.task.get();
+        let task = task_ref.get();
 
         let dir = state.work_dir().make_task_temp_dir(task.id)?;
 
@@ -94,10 +97,9 @@ pub fn task_run(instance_ref: TaskInstanceRef, state: &State) -> TaskResult {
                 }
             }
             {
-                let instance = instance_ref.get();
-                let state = instance.state.get();
-                let config = &instance.task.get().task_config;
-                let task = instance.task.get();
+                let state = state_ref.get();
+                let task = task_ref.get();
+                let config = &task.task_config;
 
                 let mut cursor = ::std::io::Cursor::new(&config);
                 let reader = ::capnp::serialize_packed::read_message(
