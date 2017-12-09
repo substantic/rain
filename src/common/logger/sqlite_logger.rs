@@ -20,9 +20,7 @@ pub struct SQLiteLogger {
 
 impl SQLiteLogger {
     pub fn new() -> Self {
-        let conn = Connection::open_in_memory().unwrap_or_else(|e| {
-            panic!("{}", e);
-        });
+        let conn = Connection::open_in_memory().unwrap();
 
         conn.execute(
             "CREATE TABLE events (
@@ -31,9 +29,7 @@ impl SQLiteLogger {
                 timestamp TEXT NOT NULL
              )",
             &[],
-        ).unwrap_or_else(|e| {
-                panic!("{}", e);
-            });
+        ).unwrap();
 
         SQLiteLogger {
             events: Vec::new(),
@@ -44,15 +40,11 @@ impl SQLiteLogger {
     fn save_events(&self) -> Result<(), ()> {
         let mut stmt = self.conn
             .prepare("INSERT INTO events (timestamp, event) VALUES (?, ?)")
-            .unwrap_or_else(|e| {
-                panic!("{}", e);
-            });
+            .unwrap();
 
         for e in self.events.iter() {
             stmt.execute(&[&e.timestamp, &serde_json::to_string(&e.event).unwrap()])
-                .unwrap_or_else(|e| {
-                    panic!("{}", e);
-                });
+                .unwrap();
         }
         Ok(())
     }
