@@ -2,17 +2,17 @@
 use std::sync::Arc;
 use std::path::Path;
 
-use super::{TaskContextRef, TaskResult};
+use super::{TaskInstanceRef, TaskResult};
 use worker::state::State;
 use worker::data::{Data, DataBuilder, BlobBuilder};
 use futures::{Future, future};
 use bytes::{Buf, LittleEndian};
 
 /// Task that merge all input blobs and merge them into one blob
-pub fn task_concat(context_ref: TaskContextRef, state: &State) -> TaskResult {
+pub fn task_concat(instance_ref: TaskInstanceRef, state: &State) -> TaskResult {
     let inputs = {
-        let context = context_ref.get();
-        let task = context.task.get();
+        let instance = instance_ref.get();
+        let task = instance.task.get();
         task.inputs()
     };
 
@@ -30,19 +30,19 @@ pub fn task_concat(context_ref: TaskContextRef, state: &State) -> TaskResult {
             builder.write_blob(&input);
         }
         let result = builder.build();
-        let context = context_ref.get();
-        let output = context.task.get().output(0);
+        let instance = instance_ref.get();
+        let output = instance.task.get().output(0);
         output.get_mut().set_data(Arc::new(result));
         Ok(())
     })))
 }
 
 /// Task that returns the input argument after a given number of milliseconds
-pub fn task_sleep(context_ref: TaskContextRef, state: &State) -> TaskResult {
+pub fn task_sleep(instance_ref: TaskInstanceRef, state: &State) -> TaskResult {
     let sleep_ms = {
-        let context = context_ref.get();
-        context.task.get().check_number_of_args(1)?;
-        let task = context.task.get();
+        let instance = instance_ref.get();
+        instance.task.get().check_number_of_args(1)?;
+        let task = instance.task.get();
         ::std::io::Cursor::new(&task.task_config[..]).get_i32::<LittleEndian>()
     };
     debug!("Starting sleep task for {} ms", sleep_ms);
@@ -51,8 +51,8 @@ pub fn task_sleep(context_ref: TaskContextRef, state: &State) -> TaskResult {
                 .map_err(|e| e.into())
                 .map(move |()| {
                     {
-                        let context = context_ref.get();
-                        let task = context.task.get();
+                        let instance = instance_ref.get();
+                        let task = instance.task.get();
                         let output = task.output(0);
                         output.get_mut().set_data(task.input(0));
                     }
@@ -61,23 +61,23 @@ pub fn task_sleep(context_ref: TaskContextRef, state: &State) -> TaskResult {
 }
 
 /// Open external file
-pub fn task_open(context_ref: TaskContextRef, state: &State) -> TaskResult {
+pub fn task_open(instance_ref: TaskInstanceRef, state: &State) -> TaskResult {
     {
-        let context = context_ref.get();
-        let task = context.task.get();
+        let instance = instance_ref.get();
+        let task = instance.task.get();
         task.check_number_of_args(0)?;
     }
     Ok(Box::new(future::lazy(move || {
         {
-            let context = context_ref.get();
-            let task = context.task.get();
+            let instance = instance_ref.get();
+            let task = instance.task.get();
             let path = Path::new(::std::str::from_utf8(&task.task_config)?);
             if !path.is_absolute() {
                 bail!("Path {:?} is not absolute", path);
             }
-            let target_path = context.state.get().work_dir().new_path_for_dataobject();
+            let target_path = instance.state.get().work_dir().new_path_for_dataobject();
             let data = Data::new_by_fs_copy(&path, target_path)?;
-            let output = context.task.get().output(0);
+            let output = instance.task.get().output(0);
             output.get_mut().set_data(Arc::new(data));
         }
         Ok(())

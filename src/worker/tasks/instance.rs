@@ -14,20 +14,20 @@ pub type TaskFuture = Future<Item = (), Error = Error>;
 pub type TaskResult = Result<Box<TaskFuture>>;
 
 
-/// Context represents a running task. It contains resource allocations and
+/// Instance represents a running task. It contains resource allocations and
 /// allows to signal finishing of data objects.
 
-pub struct TaskContext {
+pub struct TaskInstance {
     pub task: TaskRef,
     pub state: StateRef,
-    pub subworker: Option<SubworkerRef>, // TODO: Allocated resources
+    pub subworker: Option<SubworkerRef>
 }
 
-pub type TaskContextRef = WrappedRcRefCell<TaskContext>;
+pub type TaskInstanceRef = WrappedRcRefCell<TaskInstance>;
 
-impl TaskContextRef {
+impl TaskInstanceRef {
     pub fn new(task: TaskRef, state: StateRef) -> Self {
-        Self::wrap(TaskContext {
+        Self::wrap(TaskInstance {
             task,
             state,
             subworker: None,
@@ -37,8 +37,8 @@ impl TaskContextRef {
     /// Start the task -- returns a future that is finished when task is finished
     pub fn start(&self, state: &mut State) -> TaskResult {
         let build_in_fn = {
-            let context = self.get();
-            let task = context.task.get();
+            let instance = self.get();
+            let task = instance.task.get();
             let task_type : &str = task.task_type.as_ref();
             if task_type.starts_with("!") {
                 // Build-in task
@@ -63,21 +63,21 @@ impl TaskContextRef {
     }
 
     fn start_task_in_subworker(&self, state: &mut State) -> TaskResult {
-        let context = self.get();
+        let instance = self.get();
         let future = state.get_subworker(
-            &context.state,
-            context.task.get().task_type.as_ref(),
+            &instance.state,
+            instance.task.get().task_type.as_ref(),
         )?;
 
-        let context_ref = self.clone();
+        let instance_ref = self.clone();
         Ok(Box::new(future.and_then(move |subworker| {
-            context_ref.get_mut().subworker = Some(subworker.clone());
+            instance_ref.get_mut().subworker = Some(subworker.clone());
 
             // Run task in subworker
             let future = {
                 let mut req = subworker.get().control().run_task_request();
-                let context = context_ref.get();
-                let task = context.task.get();
+                let instance = instance_ref.get();
+                let task = instance.task.get();
                 debug!("Starting task id={} in subworker", task.id);
                 {
                     // Serialize task
@@ -119,17 +119,17 @@ impl TaskContextRef {
             // Task is finished
             future.and_then(move |response| {
                 {
-                    let context = context_ref.get();
-                    let mut task = context.task.get_mut();
+                    let instance = instance_ref.get();
+                    let mut task = instance.task.get_mut();
                     let response = response.get()?;
                     task.new_additionals.update(
                         Additionals::from_capnp(&response.get_task_additionals()?));
-                    let subworker = context.subworker.as_ref().unwrap().get();
+                    let subworker = instance.subworker.as_ref().unwrap().get();
                     let work_dir = subworker.work_dir();
                     if response.get_ok() {
                         debug!("Task id={} finished in subworker", task.id);
                         for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
-                            let data = data_from_capnp(&context.state.get(), work_dir, &co)?;
+                            let data = data_from_capnp(&instance.state.get(), work_dir, &co)?;
                             output.get_mut().set_data(data);
                         }
                     } else {

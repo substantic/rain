@@ -23,7 +23,7 @@ use common::monitor::{Monitor, Frame};
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject, Graph, TaskRef,
                     TaskInput, TaskState, SubworkerRef, subworker_command};
 use worker::data::{DataBuilder};
-use worker::tasks::TaskContextRef;
+use worker::tasks::TaskInstanceRef;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
 
@@ -434,8 +434,8 @@ impl State {
 
         self.free_slots -= 1;
         self.free_resources.remove(&task.get().resources);
-        let context = TaskContextRef::new(task, state_ref.clone());
-        let future = context.start(self);
+        let instance = TaskInstanceRef::new(task, state_ref.clone());
+        let future = instance.start(self);
 
         if let Err(e) = future {
             self.task_failed(task2, e);
@@ -446,9 +446,9 @@ impl State {
             future
                 .unwrap()
                 .and_then(move |()| {
-                    let subworker = ::std::mem::replace(&mut context.get_mut().subworker, None);
-                    let context = context.get_mut();
-                    let mut task = context.task.get_mut();
+                    let subworker = ::std::mem::replace(&mut instance.get_mut().subworker, None);
+                    let instance = instance.get_mut();
+                    let mut task = instance.task.get_mut();
                     task.state = TaskState::Finished;
                     debug!("Task id={} finished", task.id);
 
@@ -456,7 +456,7 @@ impl State {
                     state.free_resources.add(&task.resources);
                     state.free_slots += 1;
                     state.need_scheduling();
-                    state.updated_tasks.insert(context.task.clone());
+                    state.updated_tasks.insert(instance.task.clone());
 
                     if let Some(sw) = subworker {
                         // Return subworker to idle
@@ -467,7 +467,7 @@ impl State {
 
                     for input in &task.inputs {
                         let mut obj = input.object.get_mut();
-                        state.remove_consumer(&mut obj, &context.task);
+                        state.remove_consumer(&mut obj, &instance.task);
                     }
 
                     for output in &task.outputs {
