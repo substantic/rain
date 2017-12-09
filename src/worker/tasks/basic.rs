@@ -2,16 +2,19 @@
 use std::sync::Arc;
 use std::path::Path;
 
-use super::{TaskContext, TaskResult};
+use super::{TaskContextRef, TaskResult};
 use worker::state::State;
 use worker::data::{Data, DataBuilder, BlobBuilder};
-use futures::{Future, IntoFuture, future};
-use errors::Result;
+use futures::{Future, future};
 use bytes::{Buf, LittleEndian};
 
 /// Task that merge all input blobs and merge them into one blob
-pub fn task_concat(context: TaskContext, state: &State) -> TaskResult {
-    let inputs = context.task.get().inputs();
+pub fn task_concat(context_ref: TaskContextRef, state: &State) -> TaskResult {
+    let inputs = {
+        let context = context_ref.get();
+        let task = context.task.get();
+        task.inputs()
+    };
 
     for (i, input) in inputs.iter().enumerate() {
         if !input.is_blob() {
@@ -27,16 +30,18 @@ pub fn task_concat(context: TaskContext, state: &State) -> TaskResult {
             builder.write_blob(&input);
         }
         let result = builder.build();
+        let context = context_ref.get();
         let output = context.task.get().output(0);
         output.get_mut().set_data(Arc::new(result));
-        Ok(context)
+        Ok(())
     })))
 }
 
 /// Task that returns the input argument after a given number of milliseconds
-pub fn task_sleep(context: TaskContext, state: &State) -> TaskResult {
-    context.task.get().check_number_of_args(1)?;
+pub fn task_sleep(context_ref: TaskContextRef, state: &State) -> TaskResult {
     let sleep_ms = {
+        let context = context_ref.get();
+        context.task.get().check_number_of_args(1)?;
         let task = context.task.get();
         ::std::io::Cursor::new(&task.task_config[..]).get_i32::<LittleEndian>()
     };
@@ -46,19 +51,25 @@ pub fn task_sleep(context: TaskContext, state: &State) -> TaskResult {
                 .map_err(|e| e.into())
                 .map(move |()| {
                     {
+                        let context = context_ref.get();
                         let task = context.task.get();
                         let output = task.output(0);
                         output.get_mut().set_data(task.input(0));
                     }
-                    context
+                    ()
                 })))
 }
 
 /// Open external file
-pub fn task_open(context: TaskContext, state: &State) -> TaskResult {
-    context.task.get().check_number_of_args(0)?;
+pub fn task_open(context_ref: TaskContextRef, state: &State) -> TaskResult {
+    {
+        let context = context_ref.get();
+        let task = context.task.get();
+        task.check_number_of_args(0)?;
+    }
     Ok(Box::new(future::lazy(move || {
         {
+            let context = context_ref.get();
             let task = context.task.get();
             let path = Path::new(::std::str::from_utf8(&task.task_config)?);
             if !path.is_absolute() {
@@ -69,6 +80,6 @@ pub fn task_open(context: TaskContext, state: &State) -> TaskResult {
             let output = context.task.get().output(0);
             output.get_mut().set_data(Arc::new(data));
         }
-        Ok(context)
+        Ok(())
     })))
 }

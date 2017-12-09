@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 use common::asycinit::AsyncInitWrapper;
 use common::RcSet;
-use common::id::{SId, SubworkerId, SessionId, WorkerId, empty_worker_id, Id, TaskId, DataObjectId};
+use common::id::{SId, SubworkerId, WorkerId, empty_worker_id, TaskId, DataObjectId};
 use common::convert::{ToCapnp, FromCapnp};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
@@ -22,8 +22,8 @@ use common::monitor::{Monitor, Frame};
 
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject, Graph, TaskRef,
                     TaskInput, TaskState, SubworkerRef, subworker_command};
-use worker::data::{DataBuilder, Data, BlobBuilder};
-use worker::tasks::TaskContext;
+use worker::data::{DataBuilder};
+use worker::tasks::TaskContextRef;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
 
@@ -434,7 +434,8 @@ impl State {
 
         self.free_slots -= 1;
         self.free_resources.remove(&task.get().resources);
-        let future = TaskContext::new(task, state_ref.clone()).start(self);
+        let context = TaskContextRef::new(task, state_ref.clone());
+        let future = context.start(self);
 
         if let Err(e) = future {
             self.task_failed(task2, e);
@@ -444,8 +445,9 @@ impl State {
         self.handle.spawn(
             future
                 .unwrap()
-                .and_then(move |mut context| {
-
+                .and_then(move |()| {
+                    let subworker = ::std::mem::replace(&mut context.get_mut().subworker, None);
+                    let context = context.get_mut();
                     let mut task = context.task.get_mut();
                     task.state = TaskState::Finished;
                     debug!("Task id={} finished", task.id);
@@ -456,10 +458,12 @@ impl State {
                     state.need_scheduling();
                     state.updated_tasks.insert(context.task.clone());
 
-                    if let Some(subworker) = ::std::mem::replace(&mut context.subworker, None) {
+                    if let Some(sw) = subworker {
                         // Return subworker to idle
-                        state.graph.idle_subworkers.push(subworker);
+                        state.graph.idle_subworkers.push(sw);
                     }
+
+
 
                     for input in &task.inputs {
                         let mut obj = input.object.get_mut();

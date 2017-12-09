@@ -1,18 +1,16 @@
 
-use std::sync::Arc;
 use futures::Future;
 
-use common::id::TaskId;
-use worker::graph::{TaskRef, DataObjectRef, SubworkerRef};
+use worker::graph::{TaskRef, SubworkerRef};
 use errors::{Result, Error};
 use worker::state::{StateRef, State};
-use worker::data::Data;
 use worker::tasks;
 use worker::rpc::subworker::data_from_capnp;
 use common::convert::ToCapnp;
 use common::Additionals;
+use common::wrapped::WrappedRcRefCell;
 
-pub type TaskFuture = Future<Item = TaskContext, Error = Error>;
+pub type TaskFuture = Future<Item = (), Error = Error>;
 pub type TaskResult = Result<Box<TaskFuture>>;
 
 
@@ -25,46 +23,61 @@ pub struct TaskContext {
     pub subworker: Option<SubworkerRef>, // TODO: Allocated resources
 }
 
-impl TaskContext {
+pub type TaskContextRef = WrappedRcRefCell<TaskContext>;
+
+impl TaskContextRef {
     pub fn new(task: TaskRef, state: StateRef) -> Self {
-        TaskContext {
+        Self::wrap(TaskContext {
             task,
             state,
             subworker: None,
-        }
+        })
     }
 
     /// Start the task -- returns a future that is finished when task is finished
-    pub fn start(self, state: &mut State) -> TaskResult {
-        if self.task.get().task_type.starts_with("!") {
-            // Build-in task
-            let task_function = match self.task.get().task_type.as_ref() {
-                "!run" => tasks::run::task_run,
-                "!concat" => tasks::basic::task_concat,
-                "!sleep" => tasks::basic::task_sleep,
-                "!open" => tasks::basic::task_open,
-                task_type => bail!("Unknown task type {}", task_type),
-            };
-            task_function(self, state)
+    pub fn start(&self, state: &mut State) -> TaskResult {
+        let build_in_fn = {
+            let context = self.get();
+            let task = context.task.get();
+            let task_type : &str = task.task_type.as_ref();
+            if task_type.starts_with("!") {
+                // Build-in task
+                Some(match task_type {
+                    "!run" => tasks::run::task_run,
+                    "!concat" => tasks::basic::task_concat,
+                    "!sleep" => tasks::basic::task_sleep,
+                    "!open" => tasks::basic::task_open,
+                    task_type => bail!("Unknown task type {}", task_type),
+                })
+            } else {
+                None
+            }
+        };
+
+        if let Some(task_fn) = build_in_fn {
+            task_fn(self.clone(), state)
         } else {
             // Subworker task
             self.start_task_in_subworker(state)
         }
     }
 
-    fn start_task_in_subworker(mut self, state: &mut State) -> TaskResult {
+    fn start_task_in_subworker(&self, state: &mut State) -> TaskResult {
+        let context = self.get();
         let future = state.get_subworker(
-            &self.state,
-            self.task.get().task_type.as_ref(),
+            &context.state,
+            context.task.get().task_type.as_ref(),
         )?;
 
-        Ok(Box::new(future.and_then(|subworker| {
-            self.subworker = Some(subworker.clone());
+        let context_ref = self.clone();
+        Ok(Box::new(future.and_then(move |subworker| {
+            context_ref.get_mut().subworker = Some(subworker.clone());
 
             // Run task in subworker
             let future = {
                 let mut req = subworker.get().control().run_task_request();
-                let task = self.task.get();
+                let context = context_ref.get();
+                let task = context.task.get();
                 debug!("Starting task id={} in subworker", task.id);
                 {
                     // Serialize task
@@ -104,18 +117,19 @@ impl TaskContext {
             }.map_err::<_, Error>(|e| e.into());
 
             // Task is finished
-            future.and_then(|response| {
+            future.and_then(move |response| {
                 {
-                    let mut task = self.task.get_mut();
+                    let context = context_ref.get();
+                    let mut task = context.task.get_mut();
                     let response = response.get()?;
                     task.new_additionals.update(
                         Additionals::from_capnp(&response.get_task_additionals()?));
-                    let subworker = self.subworker.as_ref().unwrap().get();
+                    let subworker = context.subworker.as_ref().unwrap().get();
                     let work_dir = subworker.work_dir();
                     if response.get_ok() {
                         debug!("Task id={} finished in subworker", task.id);
                         for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
-                            let data = data_from_capnp(&self.state.get(), work_dir, &co)?;
+                            let data = data_from_capnp(&context.state.get(), work_dir, &co)?;
                             output.get_mut().set_data(data);
                         }
                     } else {
@@ -123,7 +137,7 @@ impl TaskContext {
                         bail!(response.get_error_message()?);
                     }
                 }
-                Ok(self)
+                Ok(())
             })
         })))
     }

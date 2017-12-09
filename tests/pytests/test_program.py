@@ -204,3 +204,20 @@ def test_execute_shell(test_env):
         assert (os.getenv("HOME") + "\n").encode() == t2.output.fetch()
         assert b"$HOME\n" == t3.output.fetch()
         assert (os.getenv("HOME") + "\n").encode() == t4.output.fetch()
+
+
+def test_execute_termination(test_env):
+    test_env.start(1)
+    import time
+
+    with test_env.client.new_session() as s:
+        tasks.execute("sleep 5")
+        s.submit()
+        time.sleep(0.5)
+
+    with test_env.client.new_session() as s:
+        t1 = tasks.concat((blob("a"), blob("b")))
+        t1.keep_outputs()
+        s.submit()
+        r = test_env.assert_max_duration(0.1, lambda: t1.output.fetch())
+        assert "ab" == r

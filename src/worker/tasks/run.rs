@@ -7,10 +7,10 @@ use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 use std::io::Read;
 
-use super::{TaskContext, TaskResult};
+use super::{TaskContextRef, TaskResult};
 use worker::state::State;
-use worker::data::{Data, DataType};
-use errors::{Result, Error};
+use worker::data::{Data};
+use errors::{Result};
 
 fn read_stderr(path: &Path) -> Result<String> {
     // TODO: If the file is too big, truncate the beginning
@@ -20,8 +20,9 @@ fn read_stderr(path: &Path) -> Result<String> {
     Ok(s)
 }
 
-pub fn task_run(context: TaskContext, state: &State) -> TaskResult {
+pub fn task_run(context_ref: TaskContextRef, state: &State) -> TaskResult {
     let (dir, future, stderr_path) = {
+        let context = context_ref.get();
         let config = &context.task.get().task_config;
         let mut cursor = ::std::io::Cursor::new(&config);
 
@@ -93,6 +94,7 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult {
                 }
             }
             {
+                let context = context_ref.get();
                 let state = context.state.get();
                 let config = &context.task.get().task_config;
                 let task = context.task.get();
@@ -115,7 +117,7 @@ pub fn task_run(context: TaskContext, state: &State) -> TaskResult {
                     obj.set_data(Arc::new(data));
                 }
             }
-            Ok(context)
+            Ok(())
         }),
     ))
 }
