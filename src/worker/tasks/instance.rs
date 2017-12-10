@@ -15,8 +15,12 @@ use common::wrapped::WrappedRcRefCell;
 /// allows to signal finishing of data objects.
 
 pub struct TaskInstance {
-    pub task_ref: TaskRef,
-    pub state_ref: StateRef,
+    task_ref: TaskRef,
+    // TODO resources
+
+    // When this sender is triggered, then task is forcefully terminated
+    // When cancel_sender is None, termination is actually running
+    cancel_sender: Option<::futures::unsync::oneshot::Sender<()>>,
     //pub subworker: Option<SubworkerRef>
 }
 
@@ -64,19 +68,30 @@ impl TaskInstance {
             }
         };
 
-        let instance = Rc::new(TaskInstance {
-            task_ref: task_ref,
-            state_ref: state.self_ref(),
-        });
+        let (sender, receiver) = ::futures::unsync::oneshot::channel::<()>();
 
-        state.spawn_panic_on_error(future.then(move |r| {
-            let mut state = instance.state_ref.get_mut();
+        let task_id = task_ref.get().id;
+        let instance = TaskInstance {
+            task_ref: task_ref,
+            cancel_sender: Some(sender),
+        };
+        let state_ref = state.self_ref();
+        state.graph.running_tasks.insert(task_id, instance);
+
+        state.spawn_panic_on_error(future
+                                   .map(|()| true)
+                                   .select(receiver
+                                           .map(|()| false)
+                                           .map_err(|_| unreachable!()))
+                                   .then(move |r| {
+            let mut state = state_ref.get_mut();
+            let instance = state.graph.running_tasks.remove(&task_id).unwrap();
             state.task_updated(&instance.task_ref);
             state.unregister_task(&instance.task_ref);
             let mut task = instance.task_ref.get_mut();
             state.free_resources(&task.resources);
             match r {
-                Ok(()) => {
+                Ok((true, _)) => {
                     let all_finished = task.outputs.iter()
                         .all(|o| o.get().is_finished());
                     if !all_finished {
@@ -90,12 +105,25 @@ impl TaskInstance {
                         task.state = TaskState::Finished;
                     }
                 },
-                Err(e) => {
+                Ok((false, _)) => {
+                    debug!("Task {} was terminated", task.id);
+                    task.set_failed("Task terminated by server".into());
+                },
+                Err((e, _)) => {
                     task.set_failed(e.description().to_string());
                 }
             };
             Ok(())
         }));
+    }
+
+    pub fn stop(&mut self) {
+        let cancel_sender = ::std::mem::replace(&mut self.cancel_sender, None);
+        if let Some(sender) = cancel_sender {
+            sender.send(()).unwrap();
+        } else {
+            debug!("Task stopping is already in progress");
+        }
     }
 
     fn start_task_in_subworker(state: &mut State, task_ref: TaskRef) -> TaskResult {

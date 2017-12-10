@@ -422,13 +422,21 @@ impl State {
     /// Remove task from worker, if running it is forced to stop
     /// If task does not exists, call is silently ignored
     pub fn stop_task(&mut self, task_id: &TaskId) {
+        debug!("Stopping task {}", task_id);
+        if let Some(instance) = self.graph.running_tasks.get_mut(task_id) {
+            instance.stop();
+            return
+        }
+
         let task_ref = match self.graph.tasks.get(task_id) {
             Some(task_ref) => task_ref.clone(),
             None => return
         };
 
-        //self.graph.ready_tasks.remove(&task_ref);
-        //self.unregister_task(&task_ref);
+        if let Some(p) = self.graph.ready_tasks.iter().position(|t| t == &task_ref) {
+            self.graph.ready_tasks.remove(p);
+        }
+        self.unregister_task(&task_ref);
     }
 
     #[inline]

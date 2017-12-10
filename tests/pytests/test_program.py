@@ -206,6 +206,7 @@ def test_execute_shell(test_env):
         assert (os.getenv("HOME") + "\n").encode() == t4.output.fetch()
 
 
+@pytest.mark.xfail(reason="id trashing not implemented")
 def test_execute_termination(test_env):
     test_env.start(1)
     import time
