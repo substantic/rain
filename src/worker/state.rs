@@ -22,7 +22,7 @@ use common::monitor::{Monitor, Frame};
 
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject, Graph, TaskRef,
                     TaskInput, TaskState, SubworkerRef, subworker_command};
-use worker::data::{DataBuilder};
+use worker::data::DataBuilder;
 use worker::tasks::TaskInstance;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
@@ -42,7 +42,7 @@ use errors::{Error, Result};
 
 use WORKER_PROTOCOL_VERSION;
 
-const MONITORING_INTERVAL:u64 = 5; // Monitoring interval in seconds
+const MONITORING_INTERVAL: u64 = 5; // Monitoring interval in seconds
 
 pub struct State {
     pub(super) graph: Graph,
@@ -255,9 +255,7 @@ impl State {
             self.updated_tasks.clear();
         }
 
-        self.spawn_panic_on_error(req.send().promise
-                                  .map(|_| ())
-                                  .map_err(|e| e.into()));
+        self.spawn_panic_on_error(req.send().promise.map(|_| ()).map_err(|e| e.into()));
     }
 
     fn register_subworker(&mut self, name: &str, args: &[&str]) {
@@ -300,22 +298,27 @@ impl State {
                         kill_sender,
                     ));
 
-                    let command_future = command.status_async2(&self.handle)?.and_then(move |status| {
-                        error!(
-                            "Subworker {} terminated with exit code: {}",
-                            subworker_id,
-                            status
-                        );
-                        panic!("Subworker terminated; TODO handle this situation");
-                        Ok(())
-                    }).map_err(|e| e.into());
+                    let command_future = command
+                        .status_async2(&self.handle)?
+                        .and_then(move |status| {
+                            error!(
+                                "Subworker {} terminated with exit code: {}",
+                                subworker_id,
+                                status
+                            );
+                            panic!("Subworker terminated; TODO handle this situation");
+                            Ok(())
+                        })
+                        .map_err(|e| e.into());
 
                     // We do not care how kill switch of activated, so receiving () or CancelError is ok
                     let kill_switch = kill_receiver.then(|_| Ok(()));
 
-                    self.spawn_panic_on_error(command_future.select(kill_switch)
-                                              .map_err(|(e, _)| e)
-                                              .map(|_| ()));
+                    self.spawn_panic_on_error(
+                        command_future.select(kill_switch).map_err(|(e, _)| e).map(
+                            |_| (),
+                        ),
+                    );
 
                     Ok(Box::new(
                         ready_receiver.map_err(|_| "Subwork start cancelled".into()),
@@ -345,13 +348,15 @@ impl State {
 
         info!("Subworker registered (subworker_id={})", subworker_id);
 
-        let (sw, sw_type, work_dir, ready_sender, kill_sender) = self.initializing_subworkers.remove(index);
+        let (sw, sw_type, work_dir, ready_sender, kill_sender) = self.initializing_subworkers
+            .remove(index);
 
         if sw_type != subworker_type {
             bail!("Unexpected type of worker registered");
         }
 
-        let subworker = SubworkerRef::new(subworker_id, subworker_type, control, work_dir, kill_sender);
+        let subworker =
+            SubworkerRef::new(subworker_id, subworker_type, control, work_dir, kill_sender);
 
         let r = self.graph.subworkers.insert(
             subworker_id,
@@ -373,11 +378,11 @@ impl State {
 
     pub fn spawn_panic_on_error<F>(&self, f: F)
     where
-        F: Future<Item = (), Error = Error> + 'static
+        F: Future<Item = (), Error = Error> + 'static,
     {
-        self.handle.spawn(
-            f.map_err(|e| panic!("Future failed {:?}", e.description())),
-        );
+        self.handle.spawn(f.map_err(|e| {
+            panic!("Future failed {:?}", e.description())
+        }));
     }
 
     pub fn add_dataobject(
@@ -435,12 +440,12 @@ impl State {
         debug!("Stopping task {}", task_id);
         if let Some(instance) = self.graph.running_tasks.get_mut(task_id) {
             instance.stop();
-            return
+            return;
         }
 
         let task_ref = match self.graph.tasks.get(task_id) {
             Some(task_ref) => task_ref.clone(),
-            None => return
+            None => return,
         };
 
         if let Some(p) = self.graph.ready_tasks.iter().position(|t| t == &task_ref) {
@@ -474,7 +479,7 @@ impl State {
         let mut i = 0;
         while i < self.graph.ready_tasks.len() {
             if self.free_slots == 0 {
-                    break;
+                break;
             }
             let n_cpus = self.free_resources.n_cpus;
             let j = self.graph.ready_tasks[i..].iter().position(|task| {
@@ -593,7 +598,9 @@ impl StateRef {
             ::worker::rpc::datastore::DataStoreImpl::new(self),
         ).from_server::<::capnp_rpc::Server>();
         let rpc_system = ::common::rpc::new_rpc_system(stream, Some(bootstrap.client));
-        self.get().spawn_panic_on_error(rpc_system.map_err(|e| e.into()));
+        self.get().spawn_panic_on_error(
+            rpc_system.map_err(|e| e.into()),
+        );
     }
 
     // This is called when worker connection to server is established

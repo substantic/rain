@@ -34,15 +34,12 @@ fn fail_unknown_type(state: &mut State, task_ref: TaskRef) -> TaskResult {
 
 /// Reference to subworker. When dropped it calls "kill()" method
 struct KillOnDrop {
-    subworker_ref: Option<SubworkerRef>
+    subworker_ref: Option<SubworkerRef>,
 }
 
 impl KillOnDrop {
-
     pub fn new(subworker_ref: SubworkerRef) -> Self {
-        KillOnDrop {
-            subworker_ref: Some(subworker_ref)
-        }
+        KillOnDrop { subworker_ref: Some(subworker_ref) }
     }
 
     pub fn deactive(&mut self) -> SubworkerRef {
@@ -59,7 +56,6 @@ impl Drop for KillOnDrop {
 }
 
 impl TaskInstance {
-
     pub fn start(state: &mut State, task_ref: TaskRef) {
         {
             let mut task = task_ref.get_mut();
@@ -70,7 +66,7 @@ impl TaskInstance {
 
         let task_fn = {
             let task = task_ref.get();
-            let task_type : &str = task.task_type.as_ref();
+            let task_type: &str = task.task_type.as_ref();
             // Build-in task
             match task_type {
                 task_type if !task_type.starts_with("!") => Self::start_task_in_subworker,
@@ -82,7 +78,7 @@ impl TaskInstance {
             }
         };
 
-        let future : Box<TaskFuture> = match task_fn(state, task_ref.clone()) {
+        let future: Box<TaskFuture> = match task_fn(state, task_ref.clone()) {
             Ok(f) => f,
             Err(e) => {
                 state.unregister_task(&task_ref);
@@ -90,7 +86,7 @@ impl TaskInstance {
                 state.free_resources(&task.resources);
                 task.set_failed(e.description().to_string());
                 state.task_updated(&task_ref);
-                return
+                return;
             }
         };
 
@@ -156,59 +152,59 @@ impl TaskInstance {
         let future = state.get_subworker(task_ref.get().task_type.as_ref())?;
         let state_ref = state.self_ref();
         Ok(Box::new(future.and_then(move |subworker| {
-                // Run task in subworker
+            // Run task in subworker
 
-                // We wrap subworker into special struct that kill subworker when dropped
-                // This is can happen when task is terminated and feature dropped without finishhing
-                let mut sw_wrapper = KillOnDrop::new(subworker.clone());
+            // We wrap subworker into special struct that kill subworker when dropped
+            // This is can happen when task is terminated and feature dropped without finishhing
+            let mut sw_wrapper = KillOnDrop::new(subworker.clone());
 
-                let mut req = subworker.get().control().run_task_request();
+            let mut req = subworker.get().control().run_task_request();
+            {
+                let task = task_ref.get();
+                debug!("Starting task id={} in subworker", task.id);
+                // Serialize task
+                let mut param_task = req.get().get_task().unwrap();
+                task.id.to_capnp(&mut param_task.borrow().get_id().unwrap());
+                param_task.set_task_config(&task.task_config);
+
+                param_task.borrow().init_inputs(task.inputs.len() as u32);
                 {
-                    let task = task_ref.get();
-                    debug!("Starting task id={} in subworker", task.id);
-                    // Serialize task
-                    let mut param_task = req.get().get_task().unwrap();
-                    task.id.to_capnp(&mut param_task.borrow().get_id().unwrap());
-                    param_task.set_task_config(&task.task_config);
-
-                    param_task.borrow().init_inputs(task.inputs.len() as u32);
-                    {
-                        // Serialize inputs of task
-                        let mut p_inputs = param_task.borrow().get_inputs().unwrap();
-                        for (i, input) in task.inputs.iter().enumerate() {
-                            let mut p_input = p_inputs.borrow().get(i as u32);
-                            p_input.set_label(&input.label);
-                            let obj = input.object.get();
-                            obj.data().to_subworker_capnp(
-                                &mut p_input.borrow().get_data().unwrap(),
-                            );
-                            obj.id.to_capnp(&mut p_input.get_id().unwrap());
-                        }
-                    }
-
-
-                    param_task.borrow().init_outputs(task.outputs.len() as u32);
-                    {
-                        // Serialize outputs of task
-                        let mut p_outputs = param_task.get_outputs().unwrap();
-                        for (i, output) in task.outputs.iter().enumerate() {
-                            let mut p_output = p_outputs.borrow().get(i as u32);
-                            let obj = output.get();
-                            p_output.set_label(&obj.label);
-                            obj.id.to_capnp(&mut p_output.get_id().unwrap());
-                        }
+                    // Serialize inputs of task
+                    let mut p_inputs = param_task.borrow().get_inputs().unwrap();
+                    for (i, input) in task.inputs.iter().enumerate() {
+                        let mut p_input = p_inputs.borrow().get(i as u32);
+                        p_input.set_label(&input.label);
+                        let obj = input.object.get();
+                        obj.data().to_subworker_capnp(
+                            &mut p_input.borrow().get_data().unwrap(),
+                        );
+                        obj.id.to_capnp(&mut p_input.get_id().unwrap());
                     }
                 }
-            req.send().promise
-                .map_err::<_, Error>(|e| e.into())
-                .then(move |r| {
+
+
+                param_task.borrow().init_outputs(task.outputs.len() as u32);
+                {
+                    // Serialize outputs of task
+                    let mut p_outputs = param_task.get_outputs().unwrap();
+                    for (i, output) in task.outputs.iter().enumerate() {
+                        let mut p_output = p_outputs.borrow().get(i as u32);
+                        let obj = output.get();
+                        p_output.set_label(&obj.label);
+                        obj.id.to_capnp(&mut p_output.get_id().unwrap());
+                    }
+                }
+            }
+            req.send().promise.map_err::<_, Error>(|e| e.into()).then(
+                move |r| {
                     let subworker_ref = sw_wrapper.deactive();
                     let result = match r {
                         Ok(response) => {
                             let mut task = task_ref.get_mut();
                             let response = response.get()?;
-                            task.new_additionals.update(
-                                Additionals::from_capnp(&response.get_task_additionals()?));
+                            task.new_additionals.update(Additionals::from_capnp(
+                                &response.get_task_additionals()?,
+                            ));
                             let subworker = subworker_ref.get();
                             let work_dir = subworker.work_dir();
                             if response.get_ok() {
@@ -222,12 +218,15 @@ impl TaskInstance {
                                 bail!(response.get_error_message()?);
                             }
                             Ok(())
-                        },
-                        Err(err) => Err(err.into())
+                        }
+                        Err(err) => Err(err.into()),
                     };
-                    state_ref.get_mut().graph.idle_subworkers.push(subworker_ref);
+                    state_ref.get_mut().graph.idle_subworkers.push(
+                        subworker_ref,
+                    );
                     result
-                })
+                },
+            )
         })))
     }
 }

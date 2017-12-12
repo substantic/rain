@@ -2,7 +2,7 @@
 use std::sync::Arc;
 use std::path::Path;
 
-use super::{TaskResult};
+use super::TaskResult;
 use worker::state::State;
 use worker::graph::TaskRef;
 use worker::data::{Data, DataBuilder, BlobBuilder};

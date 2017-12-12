@@ -11,8 +11,8 @@ use std::io::Read;
 use super::TaskResult;
 use worker::graph::TaskRef;
 use worker::state::State;
-use worker::data::{Data};
-use errors::{Result};
+use worker::data::Data;
+use errors::Result;
 
 fn read_stderr(path: &Path) -> Result<String> {
     // TODO: If the file is too big, truncate the beginning
@@ -88,8 +88,12 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
             if !status.success() {
                 let stderr = match read_stderr(&stderr_path) {
                     Ok(s) => format!("Stderr: {}\n", s),
-                    Err(e) => format!("Stderr could not be obtained: {}",
-                                      ::std::error::Error::description(&e))
+                    Err(e) => {
+                        format!(
+                            "Stderr could not be obtained: {}",
+                            ::std::error::Error::description(&e)
+                        )
+                    }
                 };
                 match status.code() {
                     Some(code) => bail!("Program exit with exit code {}\n{}", code, stderr),

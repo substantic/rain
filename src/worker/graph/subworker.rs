@@ -50,7 +50,6 @@ impl Subworker {
 }
 
 impl Subworker {
-
     // Kill subworker, if the process is already killed than nothing happens
     pub fn kill(&mut self) {
         let sender = ::std::mem::replace(&mut self.kill_sender, None);
@@ -73,7 +72,7 @@ impl SubworkerRef {
             subworker_type,
             control,
             work_dir,
-            kill_sender: Some(kill_sender)
+            kill_sender: Some(kill_sender),
         })
     }
 }

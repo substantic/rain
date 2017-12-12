@@ -507,16 +507,20 @@ impl State {
 
             let o2 = object.clone();
             let w2 = wref.clone();
-            self.handle.spawn(req.send().promise.join(clean_id_future).map(|_| ()).map_err(
-                move |e| {
-                    panic!(
-                        "Sending unassign_object {:?} to {:?} failed {:?}",
-                        o2,
-                        w2,
-                        e
-                    )
-                },
-            ));
+            self.handle.spawn(
+                req.send()
+                    .promise
+                    .join(clean_id_future)
+                    .map(|_| ())
+                    .map_err(move |e| {
+                        panic!(
+                            "Sending unassign_object {:?} to {:?} failed {:?}",
+                            o2,
+                            w2,
+                            e
+                        )
+                    }),
+            );
         }
 
         object.get_mut().assigned.remove(wref);
@@ -648,9 +652,11 @@ impl State {
         }).map_err(|e| panic!("Cleaning ignored id failed {:?}", e));
 
         self.handle.spawn(
-            req.send().promise.join(clean_id_future).map(|_| ()).map_err(|e| {
-                panic!("[unassign_task] Send failed {:?}", e)
-            }),
+            req.send()
+                .promise
+                .join(clean_id_future)
+                .map(|_| ())
+                .map_err(|e| panic!("[unassign_task] Send failed {:?}", e)),
         );
 
         task.get_mut().assigned = None;
@@ -756,8 +762,7 @@ impl State {
                         }
                     } else {
                         if wref.get().assigned_objects.contains(oref) &&
-                            (oref.get().located.len() > 2 ||
-                                 !oref.get().located.contains(wref))
+                            (oref.get().located.len() > 2 || !oref.get().located.contains(wref))
                         {
                             self.unassign_object(oref, wref);
                         }
