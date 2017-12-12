@@ -468,82 +468,13 @@ impl State {
 
     pub fn start_task(&mut self, task_ref: TaskRef) {
         TaskInstance::start(self, task_ref);
-        /*fn finish_task_instance(state: &mut State, instance: &mut TaskInstanceRef) {
-            let subworker = ::std::mem::replace(&mut instance.get_mut().subworker, None);
-            let instance = instance.get();
+    }
 
-            state.updated_tasks.insert(instance.task.clone());
-
-
-            if let Some(sw) = subworker {
-                // Return subworker to idle
-                state.graph.idle_subworkers.push(sw);
-            }
-            state.unregister_task(&instance.task);
-        }
-
-        {
-            let mut t = task.get_mut();
-            t.state = TaskState::Running;
-            debug!("Task id={} started", t.id);
-        }
-
-        self.updated_tasks.insert(task.clone());
-
-        self.free_slots -= 1;
-        self.free_resources.remove(&task.get().resources);
-        let mut instance_ref = TaskInstanceRef::new(task, state_ref.clone());
-        let future = instance_ref.start(self);
-
-        if let Err(e) = future {
-            finish_task_instance(self, &mut instance_ref);
-            {
-                let instance = instance_ref.get();
-                let mut task = instance.task.get_mut();
-                task.set_failed(e.description().to_string());
-            }
-            return;
-        }
-
-        let state_ref = state_ref.clone();
-
-        self.handle.spawn(
-            future
-                .unwrap()
-                .then(move |r| {
-                let mut state = state_ref.get_mut();
-                finish_task_instance(&mut state, &mut instance_ref);
-                let instance = instance_ref.get();
-                let mut task = instance.task.get_mut();
-                match r {
-                    Ok(()) => {
-
-                        let all_finished = task.outputs.iter()
-                            .all(|o| o.get().is_finished());
-                        if !all_finished {
-                            task.set_failed("Some of outputs were not produced"
-                                            .to_string());
-                        }
-
-                        for output in &task.outputs {
-                            state.object_is_finished(output);
-                        }
-                        debug!("Task was successfully finished");
-                        task.state = TaskState::Finished;
-                    }
-                    Err(e) => {
-                        task.set_failed(e.description().to_string());
-                    }
-                }
-                Ok(())
-            }));*/
-}
-
-pub fn schedule(&mut self, state_ref: &StateRef) {
-    let mut i = 0;
-    while i < self.graph.ready_tasks.len() {
-        if self.free_slots == 0 {
-                break;
+    pub fn schedule(&mut self, state_ref: &StateRef) {
+        let mut i = 0;
+        while i < self.graph.ready_tasks.len() {
+            if self.free_slots == 0 {
+                    break;
             }
             let n_cpus = self.free_resources.n_cpus;
             let j = self.graph.ready_tasks[i..].iter().position(|task| {
