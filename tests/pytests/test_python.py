@@ -239,7 +239,7 @@ def test_python_termination(test_env):
         t1 = test2()
         t1.keep_outputs()
         s.submit()
-        r = test_env.assert_max_duration(0.15, lambda: t1.output.fetch())
+        r = test_env.assert_max_duration(0.30, lambda: t1.output.fetch())
         assert b"ab" == r
 
 
