@@ -206,7 +206,6 @@ def test_execute_shell(test_env):
         assert (os.getenv("HOME") + "\n").encode() == t4.output.fetch()
 
 
-@pytest.mark.xfail(reason="id trashing not implemented")
 def test_execute_termination(test_env):
     test_env.start(1)
     import time
@@ -221,4 +220,4 @@ def test_execute_termination(test_env):
         t1.keep_outputs()
         s.submit()
         r = test_env.assert_max_duration(0.1, lambda: t1.output.fetch())
-        assert "ab" == r
+        assert b"ab" == r

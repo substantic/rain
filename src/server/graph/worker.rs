@@ -1,5 +1,6 @@
 use futures::unsync::oneshot::Sender;
 use std::net::SocketAddr;
+use std::collections::HashSet;
 use std::fmt;
 
 use futures::Future;
@@ -8,7 +9,7 @@ use errors::Error;
 use common::asycinit::AsyncInitWrapper;
 use common::wrapped::WrappedRcRefCell;
 use common::{RcSet, ConsistencyCheck};
-use common::id::WorkerId;
+use common::id::{TaskId, DataObjectId, WorkerId};
 use common::resources::Resources;
 use super::{TaskRef, DataObjectRef, Graph};
 use errors::Result;
@@ -17,6 +18,12 @@ use errors::Result;
 pub struct Worker {
     /// Unique ID, here the registration socket address.
     id: WorkerId,
+
+    /// IDs of tasks comming from this worker should be ignored by this worker
+    pub(in super::super) ignored_tasks: HashSet<TaskId>,
+
+    /// IDs of dataobjects comming from this worker should be ignored by this worker
+    pub(in super::super) ignored_objects: HashSet<DataObjectId>,
 
     /// Assigned tasks. The task state is stored in the `Task`.
     pub(in super::super) assigned_tasks: RcSet<TaskRef>,
@@ -46,7 +53,6 @@ pub struct Worker {
 
     datastore: Option<AsyncInitWrapper<::datastore_capnp::data_store::Client>>,
 
-    // Resources. TODO: Extract resources into separate struct
     resources: Resources,
     free_resources: Resources,
 }
@@ -95,6 +101,16 @@ impl Worker {
                 .map_err(|e| e.into()),
         )
     }
+
+    #[inline]
+    pub fn is_task_ignored(&self, task_id: &TaskId) -> bool {
+        self.ignored_tasks.contains(task_id)
+    }
+
+    #[inline]
+    pub fn is_object_ignored(&self, object_id: &DataObjectId) -> bool {
+        self.ignored_objects.contains(object_id)
+    }
 }
 
 
@@ -106,6 +122,8 @@ impl WorkerRef {
     ) -> Self {
         WorkerRef::wrap(Worker {
             id: address,
+            ignored_objects: Default::default(),
+            ignored_tasks: Default::default(),
             assigned_tasks: Default::default(),
             scheduled_tasks: Default::default(),
             error: None,

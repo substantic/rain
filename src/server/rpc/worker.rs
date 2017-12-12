@@ -56,21 +56,32 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
         // TODO: Reserve vectors
         // For some reason collect over iterator do not work here !?
         let mut obj_updates = Vec::new();
-        for obj_update in pry!(update.get_objects()).iter() {
-            let id = DataObjectId::from_capnp(&pry!(obj_update.get_id()));
-            let object = pry!(state.object_by_id(id));
-            let size = obj_update.get_size() as usize;
-            let additionals = Default::default(); // TODO: Additionals
-            obj_updates.push((object, pry!(obj_update.get_state()), size, additionals));
-        }
-
         // For some reason collect over iterator do not work here !?
         let mut task_updates = Vec::new();
-        for task_update in pry!(update.get_tasks()).iter() {
-            let id = TaskId::from_capnp(&pry!(task_update.get_id()));
-            let task = pry!(state.task_by_id(id));
-            let additionals = Additionals::from_capnp(&task_update.get_additionals().unwrap());
-            task_updates.push((task, pry!(task_update.get_state()), additionals));
+
+        {
+            let worker = self.worker.get();
+
+            for obj_update in pry!(update.get_objects()).iter() {
+                let id = DataObjectId::from_capnp(&pry!(obj_update.get_id()));
+                if worker.is_object_ignored(&id) {
+                    continue;
+                }
+                let object = pry!(state.object_by_id(id));
+                let size = obj_update.get_size() as usize;
+                let additionals = Default::default(); // TODO: Additionals
+                obj_updates.push((object, pry!(obj_update.get_state()), size, additionals));
+            }
+
+            for task_update in pry!(update.get_tasks()).iter() {
+                let id = TaskId::from_capnp(&pry!(task_update.get_id()));
+                if worker.is_task_ignored(&id) {
+                    continue;
+                }
+                let task = pry!(state.task_by_id(id));
+                let additionals = Additionals::from_capnp(&task_update.get_additionals().unwrap());
+                task_updates.push((task, pry!(task_update.get_state()), additionals));
+            }
         }
 
         state.updates_from_worker(&self.worker, obj_updates, task_updates);

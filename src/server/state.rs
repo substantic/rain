@@ -28,7 +28,10 @@ use server::http::RequestHandler;
 use common::logger::logger::Logger;
 use common::logger::sqlite_logger::SQLiteLogger;
 
-const LOGGING_INTERVAL:u64 = 1; // Logging interval in seconds
+const LOGGING_INTERVAL: u64 = 1; // Logging interval in seconds
+
+/// How long should be ID from worker ignored when it is task/object is unassigned
+const IGNORE_ID_TIME_SECONDS: u64 = 30;
 
 pub struct State {
     // Contained objects
@@ -494,9 +497,17 @@ impl State {
         }
 
         {
+            let object_id = object.get().id;
+            wref.get_mut().ignored_objects.insert(object_id);
+            let wref2 = wref.clone();
+            let duration = ::std::time::Duration::from_secs(IGNORE_ID_TIME_SECONDS);
+            let clean_id_future = self.timer.sleep(duration).map(move |()| {
+                wref2.get_mut().ignored_objects.remove(&object_id);
+            }).map_err(|e| panic!("Cleaning ignored id failed {}", e));
+
             let o2 = object.clone();
             let w2 = wref.clone();
-            self.handle.spawn(req.send().promise.map(|_| ()).map_err(
+            self.handle.spawn(req.send().promise.join(clean_id_future).map(|_| ()).map_err(
                 move |e| {
                     panic!(
                         "Sending unassign_object {:?} to {:?} failed {:?}",
@@ -628,8 +639,16 @@ impl State {
             task.get_id().to_capnp(ct);
         }
 
+        let task_id = task.get().id;
+        wref.get_mut().ignored_tasks.insert(task_id);
+        let wref2 = wref.clone();
+        let duration = ::std::time::Duration::from_secs(IGNORE_ID_TIME_SECONDS);
+        let clean_id_future = self.timer.sleep(duration).map(move |()| {
+            wref2.get_mut().ignored_tasks.remove(&task_id);
+        }).map_err(|e| panic!("Cleaning ignored id failed {:?}", e));
+
         self.handle.spawn(
-            req.send().promise.map(|_| ()).map_err(|e| {
+            req.send().promise.join(clean_id_future).map(|_| ()).map_err(|e| {
                 panic!("[unassign_task] Send failed {:?}", e)
             }),
         );
@@ -1028,7 +1047,7 @@ impl StateRef {
             logger: Box::new(SQLiteLogger::new()),
             timer: tokio_timer::wheel()
                 .tick_duration(Duration::from_millis(100))
-                .num_slots(256)
+                .num_slots(512)
                 .build(),
         });
         s.get_mut().self_ref = Some(s.clone());
