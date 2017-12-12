@@ -22,6 +22,7 @@ pub struct Subworker {
     subworker_type: String,
     control: ::subworker_capnp::subworker_control::Client,
     work_dir: ::tempdir::TempDir,
+    kill_sender: Option<::futures::unsync::oneshot::Sender<()>>,
 }
 
 pub type SubworkerRef = WrappedRcRefCell<Subworker>;
@@ -48,18 +49,31 @@ impl Subworker {
     }
 }
 
+impl Subworker {
+
+    // Kill subworker, if the process is already killed than nothing happens
+    pub fn kill(&mut self) {
+        let sender = ::std::mem::replace(&mut self.kill_sender, None);
+        if let Some(s) = sender {
+            s.send(()).unwrap();
+        }
+    }
+}
+
 impl SubworkerRef {
     pub fn new(
         subworker_id: SubworkerId,
         subworker_type: String,
         control: ::subworker_capnp::subworker_control::Client,
         work_dir: ::tempdir::TempDir,
+        kill_sender: ::futures::unsync::oneshot::Sender<()>,
     ) -> Self {
         Self::wrap(Subworker {
             subworker_id,
             subworker_type,
             control,
             work_dir,
+            kill_sender: Some(kill_sender)
         })
     }
 }

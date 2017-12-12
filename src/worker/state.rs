@@ -88,7 +88,8 @@ pub struct State {
         (SubworkerId,
          String, // type (e.g. "py")
          ::tempdir::TempDir, // working dir
-         ::futures::unsync::oneshot::Sender<SubworkerRef>),
+         ::futures::unsync::oneshot::Sender<SubworkerRef>, // when finished
+         ::futures::unsync::oneshot::Sender<()>), // kill switch of worker
     >,
 
     // Map from name of subworkers to its arguments
@@ -280,7 +281,8 @@ impl State {
             None => {
                 let subworker_id = self.graph.make_id();
                 if let Some(args) = self.subworker_args.get(subworker_type) {
-                    let (sender, receiver) = ::futures::unsync::oneshot::channel();
+                    let (ready_sender, ready_receiver) = ::futures::unsync::oneshot::channel();
+                    let (kill_sender, kill_receiver) = ::futures::unsync::oneshot::channel();
                     let program_name = &args[0];
                     let (mut command, subworker_dir) = subworker_command(
                         &self.work_dir,
@@ -289,25 +291,34 @@ impl State {
                         program_name,
                         &args[1..],
                     )?;
+
                     self.initializing_subworkers.push((
                         subworker_id,
                         subworker_type.to_string(),
                         subworker_dir,
-                        sender,
+                        ready_sender,
+                        kill_sender,
                     ));
-                    self.spawn_panic_on_error(
-                        command.status_async2(&self.handle)?.and_then(move |status| {
-                            error!(
-                                "Subworker {} terminated with exit code: {}",
-                                subworker_id,
-                                status
-                            );
-                            panic!("Subworker terminated; TODO handle this situation");
-                            Ok(())
-                        }).map_err(|e| e.into()),
-                    );
+
+                    let command_future = command.status_async2(&self.handle)?.and_then(move |status| {
+                        error!(
+                            "Subworker {} terminated with exit code: {}",
+                            subworker_id,
+                            status
+                        );
+                        panic!("Subworker terminated; TODO handle this situation");
+                        Ok(())
+                    }).map_err(|e| e.into());
+
+                    // We do not care how kill switch of activated, so receiving () or CancelError is ok
+                    let kill_switch = kill_receiver.then(|_| Ok(()));
+
+                    self.spawn_panic_on_error(command_future.select(kill_switch)
+                                              .map_err(|(e, _)| e)
+                                              .map(|_| ()));
+
                     Ok(Box::new(
-                        receiver.map_err(|_| "Subwork start cancelled".into()),
+                        ready_receiver.map_err(|_| "Subwork start cancelled".into()),
                     ))
                 } else {
                     bail!("Unknown subworker")
@@ -329,18 +340,18 @@ impl State {
     ) -> Result<()> {
         let index = self.initializing_subworkers
             .iter()
-            .position(|&(id, _, _, _)| id == subworker_id)
+            .position(|&(id, _, _, _, _)| id == subworker_id)
             .ok_or("Subworker registered under unexpected id")?;
 
         info!("Subworker registered (subworker_id={})", subworker_id);
 
-        let (sw, sw_type, work_dir, sender) = self.initializing_subworkers.remove(index);
+        let (sw, sw_type, work_dir, ready_sender, kill_sender) = self.initializing_subworkers.remove(index);
 
         if sw_type != subworker_type {
             bail!("Unexpected type of worker registered");
         }
 
-        let subworker = SubworkerRef::new(subworker_id, subworker_type, control, work_dir);
+        let subworker = SubworkerRef::new(subworker_id, subworker_type, control, work_dir, kill_sender);
 
         let r = self.graph.subworkers.insert(
             subworker_id,
@@ -348,7 +359,7 @@ impl State {
         );
         assert!(r.is_none());
 
-        if let Err(subworker) = sender.send(subworker) {
+        if let Err(subworker) = ready_sender.send(subworker) {
             debug!("Failed to inform about new subworker");
             self.graph.idle_subworkers.push(subworker);
         }
@@ -388,8 +399,7 @@ impl State {
 
     pub fn remove_dataobj_if_not_needed(&mut self, object: &DataObject) {
         if !object.assigned && object.consumers.is_empty() {
-            let removed = self.graph.objects.remove(&object.id);
-            assert!(removed.is_some());
+            self.graph.objects.remove(&object.id);
         }
     }
 

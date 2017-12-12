@@ -216,6 +216,33 @@ def test_py_pass_through(test_env):
         assert b"Hello!" == t1.outputs["out2"].fetch()
 
 
+def test_python_termination(test_env):
+
+    @remote()
+    def test1(ctx):
+        import time
+        time.sleep(5)
+
+    @remote()
+    def test2(ctx):
+        return b"ab"
+
+    test_env.start(1)
+    import time
+
+    with test_env.client.new_session() as s:
+        test1()
+        s.submit()
+        time.sleep(0.5)
+
+    with test_env.client.new_session() as s:
+        t1 = test2()
+        t1.keep_outputs()
+        s.submit()
+        r = test_env.assert_max_duration(0.15, lambda: t1.output.fetch())
+        assert b"ab" == r
+
+
 def test_py_ctx_debug(test_env):
     @remote()
     def test(ctx):

@@ -32,6 +32,32 @@ fn fail_unknown_type(state: &mut State, task_ref: TaskRef) -> TaskResult {
     bail!("Unknown task type {}", task_ref.get().task_type)
 }
 
+/// Reference to subworker. When dropped it calls "kill()" method
+struct KillOnDrop {
+    subworker_ref: Option<SubworkerRef>
+}
+
+impl KillOnDrop {
+
+    pub fn new(subworker_ref: SubworkerRef) -> Self {
+        KillOnDrop {
+            subworker_ref: Some(subworker_ref)
+        }
+    }
+
+    pub fn deactive(&mut self) -> SubworkerRef {
+        ::std::mem::replace(&mut self.subworker_ref, None).unwrap()
+    }
+}
+
+impl Drop for KillOnDrop {
+    fn drop(&mut self) {
+        if let Some(ref sw) = self.subworker_ref {
+            sw.get_mut().kill();
+        }
+    }
+}
+
 impl TaskInstance {
 
     pub fn start(state: &mut State, task_ref: TaskRef) {
@@ -130,7 +156,12 @@ impl TaskInstance {
         let future = state.get_subworker(task_ref.get().task_type.as_ref())?;
         let state_ref = state.self_ref();
         Ok(Box::new(future.and_then(move |subworker| {
-            // Run task in subworker
+                // Run task in subworker
+
+                // We wrap subworker into special struct that kill subworker when dropped
+                // This is can happen when task is terminated and feature dropped without finishhing
+                let mut sw_wrapper = KillOnDrop::new(subworker.clone());
+
                 let mut req = subworker.get().control().run_task_request();
                 {
                     let task = task_ref.get();
@@ -171,13 +202,14 @@ impl TaskInstance {
             req.send().promise
                 .map_err::<_, Error>(|e| e.into())
                 .then(move |r| {
+                    let subworker_ref = sw_wrapper.deactive();
                     let result = match r {
                         Ok(response) => {
                             let mut task = task_ref.get_mut();
                             let response = response.get()?;
                             task.new_additionals.update(
                                 Additionals::from_capnp(&response.get_task_additionals()?));
-                            let subworker = subworker.get();
+                            let subworker = subworker_ref.get();
                             let work_dir = subworker.work_dir();
                             if response.get_ok() {
                                 debug!("Task id={} finished in subworker", task.id);
@@ -193,7 +225,7 @@ impl TaskInstance {
                         },
                         Err(err) => Err(err.into())
                     };
-                    state_ref.get_mut().graph.idle_subworkers.push(subworker);
+                    state_ref.get_mut().graph.idle_subworkers.push(subworker_ref);
                     result
                 })
         })))
