@@ -22,7 +22,7 @@ class Task:
         if session is None:
             session = get_active_session()
         self.session = session
-        self.id = session.register_task(self)
+        self.id = session._register_task(self)
 
         self.task_type = task_type
         self.task_config = task_config

@@ -28,7 +28,7 @@ class DataObject:
             session = get_active_session()
         self.session = session
         self.label = label
-        self.id = session.register_dataobj(self)
+        self.id = session._register_dataobj(self)
 
     @property
     def id_pair(self):

@@ -22,23 +22,21 @@ def check_result(result):
 class Client:
 
     def __init__(self, address, port):
-        self.submit_id = 0
-        self.handles = {}
-        self.rpc_client = capnp.TwoPartyClient("{}:{}".format(address, port))
+        self._rpc_client = capnp.TwoPartyClient("{}:{}".format(address, port))
 
-        bootstrap = self.rpc_client.bootstrap().cast_as(
+        bootstrap = self._rpc_client.bootstrap().cast_as(
             rpc.server.ServerBootstrap)
         registration = bootstrap.registerAsClient(CLIENT_PROTOCOL_VERSION)
-        self.service = registration.wait().service
-        self.datastore = self.service.getDataStore().wait().store
+        self._service = registration.wait().service
+        self._datastore = self._service.getDataStore().wait().store
 
     def new_session(self):
-        session_id = self.service.newSession().wait().sessionId
+        session_id = self._service.newSession().wait().sessionId
         return Session(self, session_id)
 
     def get_server_info(self):
         """ Returns basic server info """
-        info = self.service.getServerInfo().wait()
+        info = self._service.getServerInfo().wait()
         return {
             "workers": [{"tasks": [(t.sessionId, t.id) for t in w.tasks],
                          "objects": [(o.sessionId, o.id) for o in w.objects]}
@@ -46,7 +44,7 @@ class Client:
         }
 
     def _submit(self, tasks, dataobjs):
-        req = self.service.submit_request()
+        req = self._service.submit_request()
 
         # Serialize tasks
         req.init("tasks", len(tasks))
@@ -69,7 +67,7 @@ class Client:
             raise RainException(
                 "Object {} is not submitted.".format(dataobj))
 
-        req = self.datastore.createReader_request()
+        req = self._datastore.createReader_request()
         req.id.id = dataobj.id
         req.id.sessionId = dataobj.session.session_id
         req.offset = 0
@@ -87,7 +85,7 @@ class Client:
         return b"".join(data)
 
     def _wait(self, tasks, dataobjs):
-        req = self.service.wait_request()
+        req = self._service.wait_request()
 
         req.init("taskIds", len(tasks))
         for i in range(len(tasks)):
@@ -106,10 +104,10 @@ class Client:
         check_result(result)
 
     def _close_session(self, session):
-        self.service.closeSession(session.session_id).wait()
+        self._service.closeSession(session.session_id).wait()
 
     def _wait_some(self, tasks, dataobjs):
-        req = self.service.waitSome_request()
+        req = self._service.waitSome_request()
 
         tasks_dict = {}
         req.init("taskIds", len(tasks))
@@ -134,7 +132,7 @@ class Client:
         return finished_tasks, finished_dataobjs
 
     def _wait_all(self, session_id):
-        req = self.service.wait_request()
+        req = self._service.wait_request()
         req.init("taskIds", 1)
         req.taskIds[0].id = rpc.common.allTasksId
         req.taskIds[0].sessionId = session_id
@@ -142,7 +140,7 @@ class Client:
         check_result(result)
 
     def _unkeep(self, dataobjs):
-        req = self.service.unkeep_request()
+        req = self._service.unkeep_request()
 
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
@@ -157,7 +155,7 @@ class Client:
         self._get_state(tasks, dataobjects)
 
     def _get_state(self, tasks, dataobjs):
-        req = self.service.getState_request()
+        req = self._service.getState_request()
 
         req.init("taskIds", len(tasks))
         for i in range(len(tasks)):

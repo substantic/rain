@@ -78,12 +78,12 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
 
         def make_task(*args, **kwargs):
             session = get_active_session()
-            fn_blob = session.static_data.get(fn)
+            fn_blob = session._static_data.get(fn)
             if fn_blob is None:
                 d = _checked_pickle(fn, fn.__name__)
                 fn_blob = blob(d, fn.__name__)
                 fn_blob.keep()
-                session.static_data[fn] = fn_blob
+                session._static_data[fn] = fn_blob
             inputs = [fn_blob]
             sig = inspect.signature(fn)
             # Check the parameter compatibility for fn

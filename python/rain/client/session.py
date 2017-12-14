@@ -53,32 +53,35 @@ class SessionBinder:
 class Session:
 
     def __init__(self, client, session_id):
-        self.active = True
+        self.active = True  # True if a session is live in server
         self.client = client
         self.session_id = session_id
-        self.tasks = []
-        self.dataobjs = []
-        self.id_counter = 9
-        self.submitted_tasks = []
-        self.submitted_dataobjs = []
+
+        self._tasks = []  # Unsubmitted task
+        self._dataobjs = []  # Unsubmitted objects
+        self._id_counter = 9
+        self._submitted_tasks = []
+        self._submitted_dataobjs = []
 
         # Cache for not submited constants: bytes/str -> DataObject
         # It is cleared on submit
         # TODO: It is not now implemented
-        self.const_cache = {}
+        self._const_cache = {}
 
         # Static data serves for internal usage of client.
         # It is not directly available to user
         # It is used to store e.g. for serialized Python objects
-        self.static_data = {}
+        self._static_data = {}
 
     @property
     def task_count(self):
-        return len(self.tasks)
+        """The number of unsubmitted task"""
+        return len(self._tasks)
 
     @property
     def dataobj_count(self):
-        return len(self.dataobjs)
+        """The number of unsubmitted objects"""
+        return len(self._dataobjs)
 
     def __enter__(self):
         global_session_push(self)
@@ -93,8 +96,13 @@ class Session:
         return "<Session session_id={}>".format(self.session_id)
 
     def close(self):
+        """Closes session; all tasks are stopped, all objects freed"""
         if self.active and self.client:
             self.client._close_session(self)
+        self._tasks = []
+        self._dataobjs = []
+        self._submitted_dataobjs = []
+        self._submitted_dataobjs = []
         self.active = False
 
     def bind_only(self):
@@ -112,31 +120,31 @@ class Session:
         """
         return SessionBinder(self)
 
-    def register_task(self, task):
+    def _register_task(self, task):
         """Register task into session; returns assigned id"""
         assert task.session == self and task.id is None
-        self.tasks.append(task)
-        self.id_counter += 1
-        return self.id_counter
+        self._tasks.append(task)
+        self._id_counter += 1
+        return self._id_counter
 
-    def register_dataobj(self, dataobj):
+    def _register_dataobj(self, dataobj):
         """Register data object into session; returns assigned id"""
         assert dataobj.session == self and dataobj.id is None
-        self.dataobjs.append(dataobj)
-        self.id_counter += 1
-        return self.id_counter
+        self._dataobjs.append(dataobj)
+        self._id_counter += 1
+        return self._id_counter
 
     def submit(self):
         """"Submit all registered objects"""
-        self.client._submit(self.tasks, self.dataobjs)
-        for task in self.tasks:
+        self.client._submit(self._tasks, self._dataobjs)
+        for task in self._tasks:
             task.state = rpc.common.TaskState.notAssigned
-            self.submitted_tasks.append(weakref.ref(task))
-        for dataobj in self.dataobjs:
+            self._submitted_tasks.append(weakref.ref(task))
+        for dataobj in self._dataobjs:
             dataobj.state = rpc.common.DataObjectState.unfinished
-            self.submitted_dataobjs.append(weakref.ref(dataobj))
-        self.tasks = []
-        self.dataobjs = []
+            self._submitted_dataobjs.append(weakref.ref(dataobj))
+        self._tasks = []
+        self._dataobjs = []
 
     def wait(self, tasks, dataobjs):
         """Wait until specified tasks/dataobjects are finished"""
@@ -165,12 +173,12 @@ class Session:
         """Wait until all submitted tasks are finished"""
         self.client._wait_all(self.session_id)
 
-        for task in self.submitted_tasks:
+        for task in self._submitted_tasks:
             t = task()
             if t:
                 t.state = rpc.common.TaskState.finished
 
-        for dataobj in self.submitted_dataobjs:
+        for dataobj in self._submitted_dataobjs:
             o = dataobj()
             if o:
                 o.state = rpc.common.DataObjectState.finished
@@ -203,14 +211,14 @@ class Session:
     def pending_graph(self):
         """ Create a graph of tasks and objects that were not submitted """
         g = graph.Graph()
-        for o in self.dataobjs:
+        for o in self._dataobjs:
             node = g.node(o)
             node.label = o.id_pair
             node.shape = "box"
             if o.is_kept():
                 node.fillcolor = "gray"
 
-        for t in self.tasks:
+        for t in self._tasks:
             node = g.node(t)
             node.label = "{}\n{}".format(t.id_pair, t.task_type)
             node.shape = "oval"
