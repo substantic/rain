@@ -3,7 +3,7 @@ from rain.client import rpc
 from rain.client.common import RainException
 from rain.client.task import Task
 from rain.client.data import DataObject
-from ..common import additionals
+from ..common import attributes
 
 from .session import Session
 
@@ -191,9 +191,9 @@ class Client:
 
         for task_update, task in zip(results.tasks, tasks):
             task.state = task_update.state
-            new_additionals = additionals.additionals_from_capnp(
-                task_update.additionals)
-            task.attrs.update(new_additionals)
+            new_attributes = attributes.attributes_from_capnp(
+                task_update.attributes)
+            task.attributes.update(new_attributes)
 
         for object_update in results.objects:
             dataobj = dataobjs_dict[object_update.id.id]

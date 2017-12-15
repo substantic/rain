@@ -26,7 +26,7 @@ class Task:
 
         self.task_type = task_type
         self.task_config = task_config
-        self.attrs = {}
+        self.attributes = {}
 
         if outputs is None:
             outputs = ()

@@ -243,11 +243,11 @@ impl State {
                     _ => panic!("Invalid state"),
                 });
 
-                if !task.new_additionals.is_empty() {
-                    task.new_additionals.to_capnp(&mut ct.borrow()
-                        .get_additionals()
+                if !task.new_attributes.is_empty() {
+                    task.new_attributes.to_capnp(&mut ct.borrow()
+                        .get_attributes()
                         .unwrap());
-                    task.new_additionals.clear();
+                    task.new_attributes.clear();
                 }
                 task.id.to_capnp(&mut ct.get_id().unwrap());
             }

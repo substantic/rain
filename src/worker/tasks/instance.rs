@@ -8,8 +8,6 @@ use worker::state::{StateRef, State};
 use worker::tasks;
 use worker::rpc::subworker::data_from_capnp;
 use common::convert::ToCapnp;
-use common::Additionals;
-use common::wrapped::WrappedRcRefCell;
 
 /// Instance represents a running task. It contains resource allocations and
 /// allows to signal finishing of data objects.
@@ -27,6 +25,10 @@ pub struct TaskInstance {
 pub type TaskFuture = Future<Item = (), Error = Error>;
 pub type TaskResult = Result<Box<TaskFuture>>;
 
+#[derive(Serialize, Deserialize)]
+struct AttributeInfo {
+    worker: String,
+}
 
 fn fail_unknown_type(state: &mut State, task_ref: TaskRef) -> TaskResult {
     bail!("Unknown task type {}", task_ref.get().task_type)
@@ -112,6 +114,12 @@ impl TaskInstance {
             state.unregister_task(&instance.task_ref);
             let mut task = instance.task_ref.get_mut();
             state.free_resources(&task.resources);
+
+            let info = AttributeInfo {
+                worker: format!("{}", state.worker_id()),
+            };
+            task.new_attributes.set("info", info);
+
             match r {
                 Ok((true, _)) => {
                     let all_finished = task.outputs.iter()
@@ -202,9 +210,9 @@ impl TaskInstance {
                         Ok(response) => {
                             let mut task = task_ref.get_mut();
                             let response = response.get()?;
-                            task.new_additionals.update(Additionals::from_capnp(
-                                &response.get_task_additionals()?,
-                            ));
+                            task.new_attributes.update_from_capnp(
+                                &response.get_task_attributes()?
+                            );
                             let subworker = subworker_ref.get();
                             let work_dir = subworker.work_dir();
                             if response.get_ok() {

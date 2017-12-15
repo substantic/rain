@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use common::id::TaskId;
 use super::{DataObjectRef, Graph};
-use common::{Additionals, RcSet};
+use common::{RcSet, Attributes};
 use std::iter::FromIterator;
 
 use std::io::Bytes;
@@ -57,7 +57,7 @@ pub struct Task {
 
     pub(in super::super) resources: Resources,
 
-    pub(in super::super) new_additionals: Additionals,
+    pub(in super::super) new_attributes: Attributes,
 }
 
 impl Task {
@@ -108,7 +108,7 @@ impl Task {
         warn!("Task {} failed: {}", self.id, error_message);
         assert_ne!(self.state, TaskState::Failed);
         self.state = TaskState::Failed;
-        self.new_additionals.set_str("error", error_message);
+        self.new_attributes.set("error", error_message).unwrap();
     }
 }
 
@@ -141,7 +141,7 @@ impl TaskRef {
             task_config,
             state: TaskState::Assigned,
             resources: resources,
-            new_additionals: Additionals::new(),
+            new_attributes: Attributes::new(),
         });
 
         for input in &task.get().inputs {

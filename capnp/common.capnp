@@ -64,22 +64,12 @@ enum DataObjectType {
     # may be started even the stream is not fully constructed
 }
 
-struct Additionals {
-    # Additonal data - stats, plugin data, user data, ...
-    # TODO: Specify in an extensible way.
-    # TODO: Consider embedding CBOR, MSGPACK, ... as Data.
-
+struct Attributes {
     items @0 :List(Item);
 
     struct Item {
         key @0 :Text;
-        value :union {
-            int @1 :Int64;
-            float @2 :Float64;
-            str @3 :Text;
-            bool @4 :Bool;
-            data @5 :Data;
-        }
+        value @1: Text;
     }
 }
 

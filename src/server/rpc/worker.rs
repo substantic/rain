@@ -1,5 +1,5 @@
 use common::convert::FromCapnp;
-use common::Additionals;
+use common::Attributes;
 use common::id::{DataObjectId, TaskId};
 use server::state::StateRef;
 use server::graph::{WorkerRef, Worker, DataObjectState};
@@ -69,8 +69,8 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
                 }
                 let object = pry!(state.object_by_id(id));
                 let size = obj_update.get_size() as usize;
-                let additionals = Default::default(); // TODO: Additionals
-                obj_updates.push((object, pry!(obj_update.get_state()), size, additionals));
+                let attributes = Default::default(); // TODO: Handle attributes
+                obj_updates.push((object, pry!(obj_update.get_state()), size, attributes));
             }
 
             for task_update in pry!(update.get_tasks()).iter() {
@@ -79,8 +79,9 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
                     continue;
                 }
                 let task = pry!(state.task_by_id(id));
-                let additionals = Additionals::from_capnp(&task_update.get_additionals().unwrap());
-                task_updates.push((task, pry!(task_update.get_state()), additionals));
+
+                let attributes = Attributes::from_capnp(&task_update.get_attributes().unwrap());
+                task_updates.push((task, pry!(task_update.get_state()), attributes));
             }
         }
 

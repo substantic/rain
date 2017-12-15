@@ -6,8 +6,8 @@ use errors::Error;
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
-use common::{RcSet, Additionals, FinishHook, ConsistencyCheck};
-use super::{TaskRef, WorkerRef, SessionRef, Graph, TaskState};
+use common::{Attributes, RcSet, FinishHook, ConsistencyCheck};
+use super::{TaskRef, WorkerRef, SessionRef, TaskState};
 pub use common_capnp::{DataObjectState, DataObjectType};
 use errors::Result;
 
@@ -61,8 +61,8 @@ pub struct DataObject {
     /// by the server (for any reason thinkable).
     pub(in super::super) data: Option<Vec<u8>>,
 
-    /// Additional attributes (WIP)
-    pub(in super::super) additionals: Additionals,
+    /// Attributes
+    pub(in super::super) attributes: Attributes,
 }
 
 impl DataObject {
@@ -74,7 +74,6 @@ impl DataObject {
         self.size.map(|s| builder.set_size(s as i64));
         builder.set_label(&self.label);
         builder.set_state(self.state);
-        // TODO: Additionals
     }
 
     /// Inform observers that task is finished
@@ -129,7 +128,7 @@ impl DataObjectRef {
         client_keep: bool,
         label: String,
         data: Option<Vec<u8>>,
-        additionals: Additionals,
+        attributes: Attributes,
     ) -> Self {
         assert_eq!(id.get_session_id(), session.get_id());
         let s = DataObjectRef::wrap(DataObject {
@@ -152,7 +151,7 @@ impl DataObjectRef {
             finish_hooks: Vec::new(),
             size: data.as_ref().map(|v| v.len()),
             data: data,
-            additionals: additionals,
+            attributes: attributes,
         });
         // add to session
         session.get_mut().objects.insert(s.clone());

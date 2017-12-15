@@ -3,7 +3,7 @@
 using import "common.capnp".TaskId;
 using import "common.capnp".WorkerId;
 using import "common.capnp".DataObjectId;
-using import "common.capnp".Additionals;
+using import "common.capnp".Attributes;
 using import "common.capnp".SessionId;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
@@ -39,7 +39,7 @@ interface ClientService {
 
     unkeep @4 (objectIds :List(DataObjectId)) -> UnitResult;
     # Removed "keep" flag from data objects
-    # It is an error if called for non-keep object 
+    # It is an error if called for non-keep object
     # allDataObjectsId is allowed
 
     wait @5 (taskIds :List(TaskId), objectIds: List(DataObjectId)) -> UnitResult;
@@ -78,14 +78,14 @@ struct Update {
     struct TaskUpdate {
         id @0 :TaskId;
         state @1 :TaskState;
-        additionals @2 :Additionals;
+        attributes @2 :Attributes;
     }
 
     struct DataObjectUpdate {
         id @0 :DataObjectId;
         state @1 :DataObjectState;
         size @2 :UInt64;
-        additionals @3 :Additionals;
+        attributes @3 :Attributes;
         # Only valid when the state is `finished` and `removed`, otherwise should be 0.
     }
 }
@@ -96,7 +96,7 @@ struct Task {
     outputs @2 :List(DataObjectId);
     taskType @3 :Text;
     taskConfig @4 :Data;
-    additionals @5 :Additionals;
+    attributes @5 :Attributes;
 
     resources @6 :Resources;
 
@@ -115,5 +115,5 @@ struct DataObject {
     data @2 :Data;
     type @3 :DataObjectType;
     label @4 :Text;
-    additionals @5: Additionals;
+    attributes @5: Attributes;
 }

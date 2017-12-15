@@ -1,7 +1,7 @@
 from rain.client import remote
 
 
-def test_update_additionals(test_env):
+def test_update_attributes(test_env):
 
     @remote()
     def test(ctx):
@@ -12,8 +12,8 @@ def test_update_additionals(test_env):
         t1 = test()
         s.submit()
         t1.wait()
-        assert "worker" not in t1.attrs
+        assert "info" not in t1.attributes
         t1.update()
-        assert t1.attrs["worker"].startswith("127.0.0.1:")
+        assert t1.attributes["info"]["worker"].startswith("127.0.0.1:")
         t1.update()
-        assert t1.attrs["worker"].startswith("127.0.0.1:")
+        assert t1.attributes["info"]["worker"].startswith("127.0.0.1:")

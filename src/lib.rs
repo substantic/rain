@@ -69,6 +69,7 @@ pub mod errors {
             Timer(::tokio_timer::TimerError);
             SessionErr(::server::graph::SessionError);
             Utf8Err(::std::str::Utf8Error);
+            Json(::serde_json::Error);
         }
     }
     // Explicit alias just to make the IDEs happier

@@ -3,7 +3,7 @@
 using import "common.capnp".DataObjectId;
 using import "common.capnp".TaskId;
 using import "common.capnp".DataObjectType;
-using import "common.capnp".Additionals;
+using import "common.capnp".Attributes;
 
 interface SubworkerControl {
     # This object serves also as bootstrap
@@ -12,7 +12,7 @@ interface SubworkerControl {
         data: List(LocalData),
         ok :Bool,
         errorMessage: Text,
-        taskAdditionals: Additionals);
+        taskAttributes: Attributes);
     # Run the task, returns when task is finished
     # Flag "ok" indicates that task was finished without error
     # If "ok" if False then errorMessage is filled

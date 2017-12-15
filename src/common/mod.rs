@@ -7,13 +7,14 @@ pub mod fs;
 pub mod resources;
 pub mod events;
 pub mod asycinit;
-pub mod additional;
+pub mod attributes;
+
 
 use std::collections::HashSet;
 use futures::unsync::oneshot;
 
 pub type RcSet<T> = HashSet<T>;
-pub use self::additional::Additionals;
+pub use self::attributes::Attributes;
 pub use self::resources::Resources;
 
 pub mod monitor;

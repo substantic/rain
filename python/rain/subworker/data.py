@@ -40,7 +40,7 @@ class MemoryBlob(Blob):
         return self.data
 
     def to_str(self):
-        # TODO: Check additionals for encoding
+        # TODO: Check attributes for encoding
         return self.to_bytes().decode()
 
     def to_capnp(self, builder):
@@ -67,7 +67,7 @@ class FileBlob(Blob):
             return f.read()
 
     def to_str(self):
-        # TODO: Check additionals for encoding
+        # TODO: Check attributes for encoding
         with open(self.filename, "r") as f:
             return f.read()
 

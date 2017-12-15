@@ -1,7 +1,5 @@
 use capnp::capability::Promise;
 use std::net::SocketAddr;
-use std::iter::FromIterator;
-use std::collections::HashSet;
 use futures::{Future, future};
 
 use common::resources::Resources;
@@ -11,7 +9,7 @@ use client_capnp::client_service;
 use server::state::StateRef;
 use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef, TaskInput, SessionError};
 use errors::{Result, ResultExt, ErrorKind, Error};
-use common::Additionals;
+use common::Attributes;
 use common::RcSet;
 use server::rpc::ClientDataStoreImpl;
 
@@ -129,7 +127,7 @@ impl client_service::Server for ClientServiceImpl {
                 } else {
                     None
                 };
-                let additionals = Additionals::new(); // TODO: decode additional
+                let attributes = Attributes::new(); // TODO: decode attributes
                 let o = s.add_object(
                     &session,
                     id,
@@ -137,7 +135,7 @@ impl client_service::Server for ClientServiceImpl {
                     co.get_keep(),
                     co.get_label()?.to_string(),
                     data,
-                    additionals,
+                    attributes,
                 )?;
                 created_objects.push(o);
             }
@@ -145,7 +143,7 @@ impl client_service::Server for ClientServiceImpl {
             for ct in tasks.iter() {
                 let id = TaskId::from_capnp(&ct.get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
-                let additionals = Additionals::new(); // TODO: decode additional
+                let attributes = Attributes::new(); // TODO: decode attribute
                 let resources = Resources::from_capnp(&ct.get_resources().unwrap());
                 let mut inputs = Vec::<TaskInput>::new();
                 for ci in ct.get_inputs()?.iter() {
@@ -166,7 +164,7 @@ impl client_service::Server for ClientServiceImpl {
                     outputs,
                     ct.get_task_type()?.to_string(),
                     ct.get_task_config()?.into(),
-                    additionals,
+                    attributes,
                     resources,
                 )?;
                 created_tasks.push(t);
@@ -409,8 +407,8 @@ impl client_service::Server for ClientServiceImpl {
                 let mut update = task_updates.borrow().get(i as u32);
                 let t = task.get();
                 t.id.to_capnp(&mut update.borrow().get_id().unwrap());
-                t.additionals.to_capnp(
-                    &mut update.get_additionals().unwrap(),
+                t.attributes.to_capnp(
+                    &mut update.get_attributes().unwrap(),
                 );
             }
         }
