@@ -1,4 +1,4 @@
-    use std::net::SocketAddr;
+use std::net::SocketAddr;
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -859,7 +859,7 @@ impl State {
                         worker,
                         attributes
                     );
-                    let error_message : String = attributes.get("error").unwrap_or_else(|e| {
+                    let error_message: String = attributes.get("error").unwrap_or_else(|e| {
                         warn!("Cannot decode error message");
                         "Cannot decode error message".to_string()
                     });

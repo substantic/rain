@@ -11,7 +11,6 @@ class Context:
         self.id_counter = 0
         self.staged_data = set()
         self.debug_messages = []
-        self.attrs = {}
         self.attributes = {}
 
     def stage_file(self, path):

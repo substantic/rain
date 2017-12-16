@@ -1,6 +1,7 @@
 
 use std::sync::Arc;
 
+use common::Attributes;
 use common::Resources;
 use common::RcSet;
 use common::keeppolicy;
@@ -144,6 +145,7 @@ impl worker_control::Server for WorkerControlImpl {
             let task_type = ct.get_task_type().unwrap();
             let task_config = ct.get_task_config().unwrap();
             let resources = Resources::from_capnp(&ct.get_resources().unwrap());
+            let attributes = Attributes::from_capnp(&ct.get_attributes().unwrap());
 
             let inputs: Vec<_> = ct.get_inputs()
                 .unwrap()
@@ -173,6 +175,7 @@ impl worker_control::Server for WorkerControlImpl {
                 resources,
                 task_type.into(),
                 task_config.into(),
+                attributes,
             );
 
             debug!("Received Task {:?}", task.get());

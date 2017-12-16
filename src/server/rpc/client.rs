@@ -143,7 +143,7 @@ impl client_service::Server for ClientServiceImpl {
             for ct in tasks.iter() {
                 let id = TaskId::from_capnp(&ct.get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
-                let attributes = Attributes::new(); // TODO: decode attribute
+                let attributes = Attributes::from_capnp(&ct.get_attributes().unwrap());
                 let resources = Resources::from_capnp(&ct.get_resources().unwrap());
                 let mut inputs = Vec::<TaskInput>::new();
                 for ci in ct.get_inputs()?.iter() {
@@ -407,9 +407,7 @@ impl client_service::Server for ClientServiceImpl {
                 let mut update = task_updates.borrow().get(i as u32);
                 let t = task.get();
                 t.id.to_capnp(&mut update.borrow().get_id().unwrap());
-                t.attributes.to_capnp(
-                    &mut update.get_attributes().unwrap(),
-                );
+                t.attributes.to_capnp(&mut update.get_attributes().unwrap());
             }
         }
 

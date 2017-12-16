@@ -19,6 +19,7 @@ use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
 use common::monitor::{Monitor, Frame};
+use common::Attributes;
 
 use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject, Graph, TaskRef,
                     TaskInput, TaskState, SubworkerRef, subworker_command};
@@ -143,6 +144,7 @@ impl State {
         resources: Resources,
         procedure_key: String,
         procedure_config: Vec<u8>,
+        attributes: Attributes,
     ) -> TaskRef {
         let task = TaskRef::new(
             &mut self.graph,
@@ -152,6 +154,7 @@ impl State {
             resources,
             procedure_key,
             procedure_config,
+            attributes,
         );
         if task.get().is_ready() {
             self.graph.ready_tasks.push(task.clone());

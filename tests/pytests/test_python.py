@@ -265,6 +265,9 @@ def test_py_ctx_debug(test_env):
 def test_py_ctx_set_attributes(test_env):
     @remote()
     def test(ctx):
+        assert ctx.attributes["in_string"] == "value"
+        assert ctx.attributes["in_complex"] == {"abc": 1200, "xyz": 321.12}
+
         ctx.attributes["string"] = "value"
         ctx.attributes["int"] = 103
         ctx.attributes["float"] = 77.12
@@ -276,6 +279,8 @@ def test_py_ctx_set_attributes(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t0 = test()
+        t0.attributes["in_string"] = "value"
+        t0.attributes["in_complex"] = {"abc": 1200, "xyz": 321.12}
         s.submit()
         t0.wait()
         t0.update()

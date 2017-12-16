@@ -14,15 +14,26 @@ impl Attributes {
         Default::default()
     }
 
-    pub fn get<'a, D>(&'a self, key: &str) -> Result<D> where D: ::serde::de::Deserialize<'a> {
+    pub fn get<'a, D>(&'a self, key: &str) -> Result<D>
+    where
+        D: ::serde::de::Deserialize<'a>,
+    {
         match self.items.get(key) {
-            Some(ref value) => { ::serde_json::from_str(value).map_err(|e| e.into()) }
-            None => { bail!("Key not found in attributes"); }
+            Some(ref value) => ::serde_json::from_str(value).map_err(|e| e.into()),
+            None => {
+                bail!("Key not found in attributes");
+            }
         }
     }
 
-    pub fn set<S>(&mut self, key: &str, value: S) -> Result<()> where S: ::serde::ser::Serialize {
-        self.items.insert(key.to_string(), ::serde_json::to_string(&value)?);
+    pub fn set<S>(&mut self, key: &str, value: S) -> Result<()>
+    where
+        S: ::serde::ser::Serialize,
+    {
+        self.items.insert(
+            key.to_string(),
+            ::serde_json::to_string(&value)?,
+        );
         Ok(())
     }
 

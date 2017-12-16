@@ -42,6 +42,7 @@ struct Task {
     outputs @2 :List(OutDataObject);
 
     taskConfig @3 :Data;
+    attributes @4 :Attributes;
 
     struct InDataObject {
         id @0 :DataObjectId;

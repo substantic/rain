@@ -57,6 +57,8 @@ pub struct Task {
 
     pub(in super::super) resources: Resources,
 
+    pub(in super::super) attributes: Attributes,
+
     pub(in super::super) new_attributes: Attributes,
 }
 
@@ -123,6 +125,7 @@ impl TaskRef {
         resources: Resources,
         task_type: String,
         task_config: Vec<u8>,
+        attributes: Attributes,
     ) -> Self {
         debug!("New task id={} type={}", id, task_type);
 
@@ -141,6 +144,7 @@ impl TaskRef {
             task_config,
             state: TaskState::Assigned,
             resources: resources,
+            attributes: attributes,
             new_attributes: Attributes::new(),
         });
 

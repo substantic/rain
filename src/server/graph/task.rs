@@ -94,6 +94,11 @@ impl Task {
             &mut builder.borrow().get_resources().unwrap(),
         );
 
+        self.attributes.to_capnp(&mut builder
+            .borrow()
+            .get_attributes()
+            .unwrap());
+
         builder.set_task_type(&self.task_type);
         builder.set_task_config(&self.task_config);
     }

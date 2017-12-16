@@ -2,7 +2,7 @@ from .rpc import subworker as rpc_subworker
 from rain.client.rpc import common as rpc_common
 from .data import data_from_capnp, Data
 from .context import Context
-from ..common.attributes import attributes_to_capnp
+from ..common.attributes import attributes_to_capnp, attributes_from_capnp
 import traceback
 
 
@@ -31,6 +31,9 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
 
             outputs = [reader.label
                        for reader in params.task.outputs]
+
+            task_context.attributes = attributes_from_capnp(
+                params.task.attributes)
 
             task_results = self.subworker.run_task(
                 task_context, params.task.taskConfig, inputs, outputs)

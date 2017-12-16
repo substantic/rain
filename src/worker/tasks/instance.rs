@@ -175,6 +175,11 @@ impl TaskInstance {
                 task.id.to_capnp(&mut param_task.borrow().get_id().unwrap());
                 param_task.set_task_config(&task.task_config);
 
+                task.attributes.to_capnp(&mut param_task
+                    .borrow()
+                    .get_attributes()
+                    .unwrap());
+
                 param_task.borrow().init_inputs(task.inputs.len() as u32);
                 {
                     // Serialize inputs of task
@@ -211,7 +216,7 @@ impl TaskInstance {
                             let mut task = task_ref.get_mut();
                             let response = response.get()?;
                             task.new_attributes.update_from_capnp(
-                                &response.get_task_attributes()?
+                                &response.get_task_attributes()?,
                             );
                             let subworker = subworker_ref.get();
                             let work_dir = subworker.work_dir();

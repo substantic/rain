@@ -3,6 +3,7 @@ from .data import Blob, to_data
 from .common import RainException
 from ..common import LabeledList
 from ..common.resources import cpu_1
+from ..common.attributes import attributes_to_capnp
 
 
 class Task:
@@ -95,6 +96,7 @@ class Task:
 
         self.resources.to_capnp(out.resources)
         out.taskType = self.task_type
+        attributes_to_capnp(self.attributes, out.attributes)
 
     def wait(self):
         self.session.wait((self,), ())
