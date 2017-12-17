@@ -20,6 +20,10 @@ def check_result(result):
 
 
 class Client:
+    """
+    A client connection object. Can hold multiple
+    :py:class:`Session`\ s.
+    """
 
     def __init__(self, address, port):
         self._rpc_client = capnp.TwoPartyClient("{}:{}".format(address, port))
@@ -31,11 +35,24 @@ class Client:
         self._datastore = self._service.getDataStore().wait().store
 
     def new_session(self):
+        """
+        Creates a new session.
+        
+        Note the session is destroyed server-side when the client disconnects.
+
+        Returns:
+            :class:`Session`: A new session
+        """
         session_id = self._service.newSession().wait().sessionId
         return Session(self, session_id)
 
     def get_server_info(self):
-        """ Returns basic server info """
+        """
+        Returns basic server info. Unstable.
+
+        Returns:
+            dict: A JSON-like dictionary.
+        """
         info = self._service.getServerInfo().wait()
         return {
             "workers": [{"tasks": [(t.sessionId, t.id) for t in w.tasks],

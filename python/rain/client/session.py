@@ -51,6 +51,23 @@ class SessionBinder:
 
 
 class Session:
+    """
+    A container for one task graph. 
+
+    Do not create directly, rather using :func:`Client.new_session`.
+    When used as a context manager, all new objects and tasks are created
+    within the session. Note the session is closed afterwards.
+
+    >>> with client.new_session() as s:
+    ...     bl = blob("Hello rain!") 
+    ...     tsk = tasks.sleep(1.0, bl)
+    ...     tsk.output.keep()
+    ...     s.submit()
+    ...     print(tsk.output.fetch()) # waits for completion
+    
+    Currently, the graph and objects are alive on the server only as long as
+    the `Session` exists.
+    """
 
     def __init__(self, client, session_id):
         self.active = True  # True if a session is live in server
@@ -113,7 +130,7 @@ class Session:
         ...     doSometing()
 
         binds the session, but do not close it at the end.
-        Except closing it the same as
+        Except for skipping closing the session, it is the same as
 
         >>> with session as s:
         ...     doSometing()
