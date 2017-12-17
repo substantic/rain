@@ -144,7 +144,7 @@ impl client_service::Server for ClientServiceImpl {
                 let id = TaskId::from_capnp(&ct.get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
                 let attributes = Attributes::from_capnp(&ct.get_attributes().unwrap());
-                let resources = Resources::from_capnp(&ct.get_resources().unwrap());
+                let resources : Resources = attributes.get("resources")?;
                 let mut inputs = Vec::<TaskInput>::new();
                 for ci in ct.get_inputs()?.iter() {
                     inputs.push(TaskInput {

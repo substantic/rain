@@ -103,7 +103,6 @@ struct Task {
 
     attributes @4: Attributes;
 
-    resources @5: Resources;
     # Number of request CPUs; will be replaced by more sophisticated
     # resource requests
 

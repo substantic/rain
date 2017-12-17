@@ -482,9 +482,9 @@ impl State {
             if self.free_slots == 0 {
                 break;
             }
-            let n_cpus = self.free_resources.n_cpus;
+            let n_cpus = self.free_resources.cpus;
             let j = self.graph.ready_tasks[i..].iter().position(|task| {
-                n_cpus >= task.get().resources.n_cpus
+                n_cpus >= task.get().resources.cpus
             });
 
             if j.is_none() {
@@ -560,7 +560,7 @@ impl StateRef {
         n_cpus: u32,
         subworkers: HashMap<String, Vec<String>>,
     ) -> Self {
-        let resources = Resources { n_cpus };
+        let resources = Resources { cpus: n_cpus };
 
         let state = Self::wrap(State {
             handle,

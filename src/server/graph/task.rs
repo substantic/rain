@@ -87,10 +87,6 @@ impl Task {
             }
         }
 
-        self.resources.to_capnp(
-            &mut builder.borrow().get_resources().unwrap(),
-        );
-
         self.attributes.to_capnp(&mut builder
             .borrow()
             .get_attributes()

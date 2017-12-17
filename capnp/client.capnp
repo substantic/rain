@@ -96,7 +96,6 @@ struct Task {
     outputs @2 :List(DataObjectId);
     taskType @3 :Text;
     attributes @4 :Attributes;
-    resources @5 :Resources;
 
     struct InDataObject {
         id @0 :DataObjectId;

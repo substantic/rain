@@ -93,9 +93,8 @@ class Task:
             out.outputs[i].sessionId = dataobj.session.session_id
 
         out.taskType = self.task_type
-
-        self.resources.to_capnp(out.resources)
         out.taskType = self.task_type
+        self.attributes["resources"] = {"cpus": self.resources.n_cpus}
         attributes_to_capnp(self.attributes, out.attributes)
 
     def wait(self):

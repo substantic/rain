@@ -39,7 +39,7 @@ impl worker_control::Server for WorkerControlImpl {
         mut results: worker_control::GetWorkerResourcesResults,
     ) -> Promise<(), ::capnp::Error> {
         results.get().set_n_cpus(
-            self.state.get().get_resources().n_cpus,
+            self.state.get().get_resources().cpus,
         );
         Promise::ok(())
     }
@@ -143,8 +143,8 @@ impl worker_control::Server for WorkerControlImpl {
         for ct in new_tasks.iter() {
             let id = TaskId::from_capnp(&ct.get_id().unwrap());
             let task_type = ct.get_task_type().unwrap();
-            let resources = Resources::from_capnp(&ct.get_resources().unwrap());
             let attributes = Attributes::from_capnp(&ct.get_attributes().unwrap());
+            let resources: Resources = attributes.get("resources").unwrap();
 
             let inputs: Vec<_> = ct.get_inputs()
                 .unwrap()
