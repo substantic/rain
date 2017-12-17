@@ -173,7 +173,6 @@ impl TaskInstance {
                 // Serialize task
                 let mut param_task = req.get().get_task().unwrap();
                 task.id.to_capnp(&mut param_task.borrow().get_id().unwrap());
-                param_task.set_task_config(&task.task_config);
 
                 task.attributes.to_capnp(&mut param_task
                     .borrow()

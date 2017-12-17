@@ -101,11 +101,9 @@ struct Task {
 
     taskType @3 :Text;
 
-    taskConfig @4 :Data;
+    attributes @4: Attributes;
 
-    attributes @5: Attributes;
-
-    resources @6: Resources;
+    resources @5: Resources;
     # Number of request CPUs; will be replaced by more sophisticated
     # resource requests
 

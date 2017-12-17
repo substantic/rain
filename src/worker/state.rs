@@ -142,8 +142,7 @@ impl State {
         inputs: Vec<TaskInput>,
         outputs: Vec<DataObjectRef>,
         resources: Resources,
-        procedure_key: String,
-        procedure_config: Vec<u8>,
+        task_type: String,
         attributes: Attributes,
     ) -> TaskRef {
         let task = TaskRef::new(
@@ -152,8 +151,7 @@ impl State {
             inputs,
             outputs,
             resources,
-            procedure_key,
-            procedure_config,
+            task_type,
             attributes,
         );
         if task.get().is_ready() {

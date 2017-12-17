@@ -4,9 +4,7 @@ from .input import Input, to_input_with_data
 from .output import Output, to_output
 from .data import DataObject
 
-import struct
 import shlex
-from . import rpc
 
 
 def concat(objs):
@@ -21,13 +19,13 @@ def sleep(timeout, dataobj):
     time_ms = int(timeout * 1000)
     dataobj = to_data(dataobj)
     return Task("!sleep",
-                struct.pack("<I", time_ms),
+                time_ms,
                 inputs=(dataobj,),
                 outputs=(dataobj.__class__("output"),))
 
 
 def open(filename):
-    return Task("!open", filename, outputs=1)
+    return Task("!open", {"path": filename}, outputs=1)
 
 
 def execute(args, stdout=None, stdin=None, inputs=(), outputs=(), shell=False):
@@ -70,24 +68,16 @@ def execute(args, stdout=None, stdin=None, inputs=(), outputs=(), shell=False):
     ins += [to_input_with_data(obj) for obj in inputs]
     outs += [to_output(obj) for obj in outputs]
 
-    config = rpc.tasks.RunTask.new_message()
-
     if shell:
         args = ("/bin/sh", "-c", " ".join(args))
-
-    config.init("args", len(args))
-    for i, arg in enumerate(args):
-        config.args[i] = arg
-    config.init("inputPaths", len(ins))
-    for i, obj in enumerate(ins):
-        config.inputPaths[i] = obj.path
-    config.init("outputPaths", len(outs))
-    for i, obj in enumerate(outs):
-        config.outputPaths[i] = obj.path
 
     task_inputs = [obj.data for obj in ins]
     task_outputs = [output.make_data_object() for output in outs]
     return Task("!run",
-                config.to_bytes_packed(),
+                {
+                    "args": args,
+                    "in_paths": [obj.path for obj in ins],
+                    "out_paths": [obj.path for obj in outs],
+                },
                 inputs=task_inputs,
                 outputs=task_outputs)

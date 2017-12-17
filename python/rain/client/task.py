@@ -13,10 +13,11 @@ class Task:
     state = None
     id = None
     resources = cpu_1
+    config = None
 
     def __init__(self,
                  task_type,
-                 task_config=None,
+                 config=None,
                  inputs=(),
                  outputs=None,
                  session=None):
@@ -26,8 +27,10 @@ class Task:
         self.id = session._register_task(self)
 
         self.task_type = task_type
-        self.task_config = task_config
         self.attributes = {}
+
+        if config is not None:
+            self.attributes["config"] = config
 
         if outputs is None:
             outputs = ()
@@ -90,9 +93,6 @@ class Task:
             out.outputs[i].sessionId = dataobj.session.session_id
 
         out.taskType = self.task_type
-
-        if self.task_config:  # We need this since, task_config may be None
-            out.taskConfig = self.task_config
 
         self.resources.to_capnp(out.resources)
         out.taskType = self.task_type

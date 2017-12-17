@@ -53,7 +53,6 @@ pub struct Task {
     pub(in super::super) state: TaskState,
 
     pub(in super::super) task_type: String,
-    pub(in super::super) task_config: Vec<u8>,
 
     pub(in super::super) resources: Resources,
 
@@ -124,7 +123,6 @@ impl TaskRef {
         outputs: Vec<DataObjectRef>,
         resources: Resources,
         task_type: String,
-        task_config: Vec<u8>,
         attributes: Attributes,
     ) -> Self {
         debug!("New task id={} type={}", id, task_type);
@@ -141,7 +139,6 @@ impl TaskRef {
             outputs,
             waiting_for,
             task_type,
-            task_config,
             state: TaskState::Assigned,
             resources: resources,
             attributes: attributes,

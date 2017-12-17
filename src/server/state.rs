@@ -270,7 +270,6 @@ impl State {
         inputs: Vec<TaskInput>,
         outputs: Vec<DataObjectRef>,
         task_type: String,
-        task_config: Vec<u8>,
         attributes: Attributes,
         resources: Resources,
     ) -> Result<TaskRef> {
@@ -283,7 +282,6 @@ impl State {
             inputs,
             outputs,
             task_type,
-            task_config,
             attributes,
             resources,
         )?;

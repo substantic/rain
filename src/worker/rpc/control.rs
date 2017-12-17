@@ -143,7 +143,6 @@ impl worker_control::Server for WorkerControlImpl {
         for ct in new_tasks.iter() {
             let id = TaskId::from_capnp(&ct.get_id().unwrap());
             let task_type = ct.get_task_type().unwrap();
-            let task_config = ct.get_task_config().unwrap();
             let resources = Resources::from_capnp(&ct.get_resources().unwrap());
             let attributes = Attributes::from_capnp(&ct.get_attributes().unwrap());
 
@@ -174,7 +173,6 @@ impl worker_control::Server for WorkerControlImpl {
                 outputs,
                 resources,
                 task_type.into(),
-                task_config.into(),
                 attributes,
             );
 

@@ -163,7 +163,6 @@ impl client_service::Server for ClientServiceImpl {
                     inputs,
                     outputs,
                     ct.get_task_type()?.to_string(),
-                    ct.get_task_config()?.into(),
                     attributes,
                     resources,
                 )?;

@@ -2,7 +2,7 @@ import os
 import sys
 import capnp
 import socket
-import pickle
+import base64
 import cloudpickle
 import contextlib
 
@@ -60,12 +60,13 @@ class Subworker:
         register.control = control
         register.send().wait()
 
-    def run_task(self, context, config, inputs, outputs):
+    def run_task(self, context, inputs, outputs):
         fn = inputs[0].load(cache=True)
-        cfg = pickle.loads(config)
+        cfg = context.attributes["config"]
         with _unpickle_inputs_context(inputs):
-            args = [cloudpickle.loads(d) for d in cfg["args"]]
-            kwargs = dict((name, cloudpickle.loads(d))
+            args = [cloudpickle.loads(base64.b64decode(d))
+                    for d in cfg["args"]]
+            kwargs = dict((name, cloudpickle.loads(base64.b64decode(d)))
                           for name, d in cfg["kwargs"].items())
         remove_dir_content(self.task_path)
         os.chdir(self.task_path)

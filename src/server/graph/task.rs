@@ -53,9 +53,6 @@ pub struct Task {
     // TODO: specify task types or make a better type ID system
     pub(in super::super) task_type: String,
 
-    /// Task configuration - task type dependent
-    pub(in super::super) task_config: Vec<u8>,
-
     /// Hooks executed when the task is finished
     pub(in super::super) finish_hooks: Vec<FinishHook>,
 
@@ -100,7 +97,6 @@ impl Task {
             .unwrap());
 
         builder.set_task_type(&self.task_type);
-        builder.set_task_config(&self.task_config);
     }
 
     #[inline]
@@ -153,7 +149,6 @@ impl TaskRef {
         inputs: Vec<TaskInput>,
         outputs: Vec<DataObjectRef>,
         task_type: String,
-        task_config: Vec<u8>,
         attributes: Attributes,
         resources: Resources,
     ) -> Result<Self> {
@@ -245,7 +240,6 @@ impl TaskRef {
             scheduled: None,
             session: session.clone(),
             task_type: task_type,
-            task_config: task_config,
             finish_hooks: Default::default(),
             attributes: attributes,
             resources: resources,

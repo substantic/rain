@@ -1,7 +1,7 @@
 
 use std::collections::HashMap;
 use errors::Result;
-
+use std::error::Error;
 
 #[derive(Default, Debug)]
 pub struct Attributes {
@@ -19,7 +19,8 @@ impl Attributes {
         D: ::serde::de::Deserialize<'a>,
     {
         match self.items.get(key) {
-            Some(ref value) => ::serde_json::from_str(value).map_err(|e| e.into()),
+            Some(ref value) => ::serde_json::from_str(value)
+                .map_err(|e| format!("Error in parsing attribute '{}': {}", key, e.description()).into()),
             None => {
                 bail!("Key not found in attributes");
             }

@@ -36,7 +36,7 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
                 params.task.attributes)
 
             task_results = self.subworker.run_task(
-                task_context, params.task.taskConfig, inputs, outputs)
+                task_context, inputs, outputs)
 
             results = _context.results.init("data", len(task_results))
             for i, data in enumerate(task_results):

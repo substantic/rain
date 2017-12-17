@@ -8,7 +8,6 @@ fn main() {
         .file("capnp/datastore.capnp")
         .file("capnp/worker.capnp")
         .file("capnp/subworker.capnp")
-        .file("capnp/tasks.capnp")
         .run()
         .expect("schema compiler command");
 }

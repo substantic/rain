@@ -3,6 +3,7 @@ import inspect
 import pickle
 import contextlib
 import time
+import base64
 from collections import OrderedDict
 
 from .task import Task
@@ -59,6 +60,11 @@ Consider using a blob() for the data."
     return p
 
 
+def _checked_pickle_to_string(d, name=None):
+    """Same as _changed_pickle but encodes result to base64 string"""
+    return base64.b64encode(_checked_pickle(d, name)).decode("ascii")
+
+
 # TODO: (gavento): Deprecate or upgrade to complex args (as wrapper for remote)
 def py_call(fn, inputs):
     return Task("py", inputs)
@@ -102,7 +108,7 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
                                                  code.co_kwonlyargcount]
                     name = "{}[{}]".format(args_name, i + 1 - code.co_argcount)
                 with _pickle_inputs_context(name, inputs):
-                    d = _checked_pickle(argval, name=name)
+                    d = _checked_pickle_to_string(argval, name=name)
                     pickled_args.append(d)
             # Pickle positional args
             pickled_kwargs = OrderedDict()
@@ -110,7 +116,7 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
                 # Within this session state, the DataObjects are seialized as
                 # InputPlaceholders
                 with _pickle_inputs_context(name, inputs):
-                    d = _checked_pickle(argval)
+                    d = _checked_pickle_to_string(argval)
                     pickled_kwargs[name] = d
             task_config = {
                 'args': pickled_args,
@@ -118,7 +124,7 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
                 'auto_load': auto_load,
                 'outputs': outputs,
             }
-            return Task("py", pickle.dumps(task_config), inputs, outputs)
+            return Task("py", task_config, inputs, outputs)
 
         if not inspect.isfunction(fn):
             raise RainException(

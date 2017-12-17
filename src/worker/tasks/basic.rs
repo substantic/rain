@@ -39,13 +39,13 @@ pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {
 
 /// Task that returns the input argument after a given number of milliseconds
 pub fn task_sleep(state: &mut State, task_ref: TaskRef) -> TaskResult {
-    let sleep_ms = {
+    let sleep_ms: u64 = {
         let task = task_ref.get();
         task.check_number_of_args(1)?;
-        ::std::io::Cursor::new(&task.task_config[..]).get_i32::<LittleEndian>()
+        task.attributes.get("config")?
     };
     debug!("Starting sleep task for {} ms", sleep_ms);
-    let duration = ::std::time::Duration::from_millis(sleep_ms as u64);
+    let duration = ::std::time::Duration::from_millis(sleep_ms);
     Ok(Box::new(state.timer().sleep(duration)
                 .map_err(|e| e.into())
                 .map(move |()| {
@@ -58,6 +58,11 @@ pub fn task_sleep(state: &mut State, task_ref: TaskRef) -> TaskResult {
                 })))
 }
 
+#[derive(Serialize, Deserialize)]
+struct OpenConfig {
+    path: String,
+}
+
 /// Open external file
 pub fn task_open(state: &mut State, task_ref: TaskRef) -> TaskResult {
     {
@@ -68,7 +73,8 @@ pub fn task_open(state: &mut State, task_ref: TaskRef) -> TaskResult {
     Ok(Box::new(future::lazy(move || {
         {
             let task = task_ref.get();
-            let path = Path::new(::std::str::from_utf8(&task.task_config)?);
+            let config: OpenConfig = task.attributes.get("config")?;
+            let path = Path::new(&config.path);
             if !path.is_absolute() {
                 bail!("Path {:?} is not absolute", path);
             }

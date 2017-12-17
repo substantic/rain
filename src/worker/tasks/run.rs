@@ -22,25 +22,20 @@ fn read_stderr(path: &Path) -> Result<String> {
     Ok(s)
 }
 
+#[derive(Serialize, Deserialize)]
+struct RunConfig {
+    pub args: Vec<String>,
+    pub in_paths: Vec<String>,
+    pub out_paths: Vec<String>,
+}
+
 pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
     let state_ref = state.self_ref();
+    let config: RunConfig = task_ref.get().attributes.get("config")?;
 
     let (dir, future, stderr_path) = {
-        let config = &task_ref.get().task_config;
-        let mut cursor = ::std::io::Cursor::new(&config);
-
-        let reader = ::capnp::serialize_packed::read_message(
-            &mut cursor,
-            ::capnp::message::ReaderOptions::new(),
-        )?;
-
-        let run_config = reader.get_root::<::tasks_capnp::run_task::Reader>()?;
-
         // Parse arguments
-        let rargs: ::std::result::Result<Vec<_>, ::capnp::Error> =
-            run_config.get_args()?.iter().collect();
-        let args = rargs?;
-        let name = args.get(0).ok_or_else(|| "Arguments are empty")?;
+        let name = config.args.get(0).ok_or_else(|| "Arguments are empty")?;
         let task = task_ref.get();
 
         let dir = state.work_dir().make_task_temp_dir(task.id)?;
@@ -48,8 +43,7 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
         // Map inputs
         let mut in_io = Stdio::null();
 
-        for (path, input) in run_config.get_input_paths()?.iter().zip(&task.inputs) {
-            let path = path?;
+        for (path, input) in config.in_paths.iter().zip(&task.inputs) {
             let obj = input.object.get();
             obj.data().map_to_path(&dir.path().join(path))?;
             if path == "+in" {
@@ -73,7 +67,7 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
         debug!("Starting command: {}", name);
 
         let future = Command::new(&name)
-            .args(&args[1..])
+            .args(&config.args[1..])
             .stdin(in_io)
             .stdout(out_io)
             .stderr(err_io)
@@ -103,17 +97,9 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
             {
                 let state = state_ref.get();
                 let task = task_ref.get();
-                let config = &task.task_config;
 
-                let mut cursor = ::std::io::Cursor::new(&config);
-                let reader = ::capnp::serialize_packed::read_message(
-                    &mut cursor,
-                    ::capnp::message::ReaderOptions::new(),
-                )?;
-                let run_config = reader.get_root::<::tasks_capnp::run_task::Reader>()?;
-
-                for (path, dataobj) in run_config.get_output_paths()?.iter().zip(&task.outputs) {
-                    let path = dir.path().join(path?);
+                for (path, dataobj) in config.out_paths.iter().zip(&task.outputs) {
+                    let path = dir.path().join(path);
                     if !path.is_file() {
                         bail!("Output '{}' not found");
                     }

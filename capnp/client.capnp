@@ -95,10 +95,8 @@ struct Task {
     inputs @1 :List(InDataObject);
     outputs @2 :List(DataObjectId);
     taskType @3 :Text;
-    taskConfig @4 :Data;
-    attributes @5 :Attributes;
-
-    resources @6 :Resources;
+    attributes @4 :Attributes;
+    resources @5 :Resources;
 
     struct InDataObject {
         id @0 :DataObjectId;
