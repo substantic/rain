@@ -35,6 +35,7 @@ mod tests {
     use common::id::{SId, TaskId, SessionId, ClientId, DataObjectId, WorkerId};
     use common::resources::Resources;
     use common::keeppolicy;
+    use common::attributes::Attributes;
 
     fn create_test_graph(
         workers: usize,
@@ -48,7 +49,7 @@ mod tests {
             let w = WorkerRef::new(
                 format!("0.0.0.{}:67", wi + 1).parse().unwrap(),
                 None,
-                Resources { n_cpus: 8 },
+                Resources { cpus: 8 },
             );
         }
         for ci in 0..clients {
@@ -86,8 +87,7 @@ mod tests {
                         inputs,
                         outputs,
                         "TType".to_string(),
-                        Vec::new(),
-                        Default::default(),
+                        Attributes::new(),
                         Resources::cpus(1),
                     ).unwrap();
                 }
