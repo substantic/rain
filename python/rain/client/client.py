@@ -37,7 +37,7 @@ class Client:
     def new_session(self):
         """
         Creates a new session.
-        
+
         Note the session is destroyed server-side when the client disconnects.
 
         Returns:

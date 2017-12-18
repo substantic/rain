@@ -163,4 +163,3 @@ texinfo_documents = [
 
 nitpicky = True
 napoleon_use_rtype = False
-
