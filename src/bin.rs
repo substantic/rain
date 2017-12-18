@@ -20,6 +20,7 @@ use std::collections::HashMap;
 
 use librain::{server, worker, VERSION};
 use clap::ArgMatches;
+use librain::errors::Result;
 
 use std::net::{SocketAddr, IpAddr, Ipv4Addr, ToSocketAddrs};
 
@@ -85,16 +86,16 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 // Creates a working directory of the following scheme prefix + "/rain/" + base_name + process_pid
 // It checks that 'prefix' exists, but not the full path
-fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, String> {
+fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf> {
     if !prefix.exists() {
-        return Err(format!(
+        bail!(format!(
             "Working directory prefix {:?} does not exists",
             prefix
         ));
     }
 
     if !prefix.is_dir() {
-        return Err(format!(
+        bail!(format!(
             "Working directory prefix {:?} is not directory",
             prefix
         ));
@@ -104,12 +105,12 @@ fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, Str
     let work_dir = prefix.join("rain").join(format!("{}{}", base_name, pid));
 
     if work_dir.exists() {
-        return Err(format!("Working directory {:?} already exists", work_dir));
+        bail!(format!("Working directory {:?} already exists", work_dir));
     }
 
     debug!("Creating working directory {:?}", work_dir);
     if let Err(e) = std::fs::create_dir_all(work_dir.clone()) {
-        return Err(format!(
+        bail!(format!(
             "Working directory {:?} cannot by created: {}",
             work_dir,
             e.description()
@@ -122,16 +123,16 @@ fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, Str
 // Creates a logging directory of the following scheme:
 // prefix + "/rain/" + base_name + process_pid + "/logs/"
 // It checks that 'prefix' exists, but not the full path
-fn make_logging_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, String> {
+fn make_logging_directory(prefix: &Path, base_name: &str) -> Result<PathBuf> {
     if !prefix.exists() {
-        return Err(format!(
+        bail!(format!(
             "Logging directory prefix {:?} does not exists",
             prefix
         ));
     }
 
     if !prefix.is_dir() {
-        return Err(format!(
+        bail!(format!(
             "Logging directory prefix {:?} is not directory",
             prefix
         ));
@@ -141,12 +142,12 @@ fn make_logging_directory(prefix: &Path, base_name: &str) -> Result<PathBuf, Str
     let log_dir = prefix.join("rain").join(format!("{}{}", base_name, pid)).join("logs");
 
     if log_dir.exists() {
-        return Err(format!("Logging directory {:?} already exists", log_dir));
+        bail!(format!("Logging directory {:?} already exists", log_dir));
     }
 
     debug!("Creating logging directory {:?}", log_dir);
     if let Err(e) = std::fs::create_dir_all(log_dir.clone()) {
-        return Err(format!(
+        bail!(format!(
             "Logging directory {:?} cannot by created: {}",
             log_dir,
             e.description()
