@@ -13,6 +13,7 @@ extern crate error_chain;
 
 pub mod start;
 
+use nix::unistd::{gethostname, getpid};
 use std::process::exit;
 use std::path::{Path, PathBuf};
 use std::error::Error;
@@ -62,7 +63,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let log_dir_prefix = Path::new(cmd_args.value_of("LOG_DIR").unwrap_or("/tmp"));
 
-    let log_dir = make_logging_directory(log_dir_prefix, "server-").unwrap_or_else(|e| {
+    let log_dir = make_logging_directory(log_dir_prefix, "server").unwrap_or_else(|e| {
         error!("{}", e);
         exit(1);
     });
@@ -85,7 +86,8 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 }
 
 
-// Creates a working directory of the following scheme prefix + "/rain/" + base_name + process_pid
+// Creates a working directory of the following scheme
+// prefix + "/rain/" + <base_name>-<hostname>-<process_pid>
 // It checks that 'prefix' exists, but not the full path
 fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf> {
     if !prefix.exists() {
@@ -102,8 +104,12 @@ fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf> {
         ));
     }
 
-    let pid = nix::unistd::getpid();
-    let work_dir = prefix.join("rain").join(format!("{}{}", base_name, pid));
+    let pid = getpid();
+    let mut buf = [0u8; 256];
+    let hostname = gethostname(&mut buf).unwrap().to_str().unwrap();
+    let work_dir = prefix
+        .join("rain")
+        .join(format!("{}-{}-{}", base_name, hostname, pid));
 
     if work_dir.exists() {
         bail!(format!("Working directory {:?} already exists", work_dir));
@@ -122,7 +128,7 @@ fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf> {
 
 
 // Creates a logging directory of the following scheme:
-// prefix + "/rain/" + base_name + process_pid + "/logs/"
+// prefix + "/rain/" + <base_name>-<hostname>-<process_pid> + "/logs/"
 // It checks that 'prefix' exists, but not the full path
 fn make_logging_directory(prefix: &Path, base_name: &str) -> Result<PathBuf> {
     if !prefix.exists() {
@@ -139,10 +145,12 @@ fn make_logging_directory(prefix: &Path, base_name: &str) -> Result<PathBuf> {
         ));
     }
 
-    let pid = nix::unistd::getpid();
+    let pid = getpid();
+    let mut buf = [0u8; 256];
+    let hostname = gethostname(&mut buf).unwrap().to_str().unwrap();
     let log_dir = prefix
         .join("rain")
-        .join(format!("{}{}", base_name, pid))
+        .join(format!("{}-{}-{}", base_name, hostname, pid))
         .join("logs");
 
     if log_dir.exists() {
@@ -215,14 +223,14 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let work_dir_prefix = Path::new(cmd_args.value_of("WORK_DIR").unwrap_or("/tmp"));
 
-    let work_dir = make_working_directory(work_dir_prefix, "worker-").unwrap_or_else(|e| {
+    let work_dir = make_working_directory(work_dir_prefix, "worker").unwrap_or_else(|e| {
         error!("{}", e);
         exit(1);
     });
 
     let log_dir_prefix = Path::new(cmd_args.value_of("LOG_DIR").unwrap_or("/tmp"));
 
-    let log_dir = make_logging_directory(log_dir_prefix, "worker-").unwrap_or_else(|e| {
+    let log_dir = make_logging_directory(log_dir_prefix, "worker").unwrap_or_else(|e| {
         error!("{}", e);
         exit(1);
     });
