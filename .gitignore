@@ -7,3 +7,4 @@ __pycache__
 tests/pytests/work
 src/capnp_gen/*_capnp.rs
 *.pyc
+guide-build

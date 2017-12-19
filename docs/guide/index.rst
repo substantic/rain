@@ -12,6 +12,7 @@ Welcome to Rain's documentation!
    overview
    concepts
    python_api         
+   args
 
 Indices and tables
 ==================
