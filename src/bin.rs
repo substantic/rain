@@ -185,17 +185,32 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         }
     };
 
-    let cpus = if cmd_args.is_present("CPUS") {
-        value_t_or_exit!(cmd_args, "CPUS", u32)
-    } else {
+    fn detect_cpus() -> i32 {
         debug!("Detecting number of cpus");
         let cpus = num_cpus::get();
         if cpus < 1 {
-            error!("Autodetection of CPUs failed. Use --cpus argument.");
+            error!("Autodetection of CPUs failed. Use --cpus with a positive argument.");
             exit(1);
         }
-        cpus as u32
+        cpus as i32
+    }
+
+    let cpus = if cmd_args.is_present("CPUS") {
+        let value = value_t_or_exit!(cmd_args, "CPUS", i32);
+        if value < 0 {
+            let cpus = detect_cpus();
+            if cpus <= -value {
+                error!("{} cpus detected and {} is subtracted via --cpus. No cpus left.", cpus, -value);
+                exit(1);
+            }
+            detect_cpus() + value
+        } else {
+            value
+        }
+    } else {
+        detect_cpus()
     };
+    assert!(cpus >= 0);
 
     let work_dir_prefix = Path::new(cmd_args.value_of("WORK_DIR").unwrap_or("/tmp"));
 
@@ -236,7 +251,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         tokio_core.handle(),
         work_dir,
         log_dir,
-        cpus,
+        cpus as u32,
         // Python subworker
         subworkers,
     );
