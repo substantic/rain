@@ -19,7 +19,7 @@ use std::io::Write;
 use std::collections::HashMap;
 
 use librain::{server, worker, VERSION};
-use clap::ArgMatches;
+use clap::{Arg, ArgMatches, App, SubCommand};
 use librain::errors::Result;
 
 use std::net::{SocketAddr, IpAddr, Ipv4Addr, ToSocketAddrs};
@@ -139,7 +139,10 @@ fn make_logging_directory(prefix: &Path, base_name: &str) -> Result<PathBuf> {
     }
 
     let pid = nix::unistd::getpid();
-    let log_dir = prefix.join("rain").join(format!("{}{}", base_name, pid)).join("logs");
+    let log_dir = prefix
+        .join("rain")
+        .join(format!("{}{}", base_name, pid))
+        .join("logs");
 
     if log_dir.exists() {
         bail!(format!("Logging directory {:?} already exists", log_dir));
@@ -301,41 +304,80 @@ fn main() {
     }
     env_logger::init().unwrap();
 
-    let args: ArgMatches = clap_app!(Rain =>
-        (version: VERSION)
-        (about: "Task-based workflow manager and executor (server and worker binary).")
-        //(@arg debug: --debug "Enables debug mode (not much effect now - use RUST_LOG)")
-        (@subcommand server =>
-            (about: "Start a server, waiting for workers and clients.")
-            (@arg LISTEN_ADDRESS: -l --listen +takes_value
-                "Listening port or port/address/address:port (default 0.0.0.0:7210)")
-            (@arg READY_FILE: --ready_file +takes_value
-                "Create a file when server is initialized and ready to accept connections")
-            (@arg LOG_DIR: --logdir +takes_value "Logging directory (default = /tmp)")
-            )
-        (@subcommand worker =>
-            (about: "Start a worker and connect to a given server.")
-            (@arg SERVER_ADDRESS: +required "Server address ADDR[:PORT] (default port is 7210)")
-            (@arg LISTEN_ADDRESS: -l --listen +takes_value
-                "Listening port/address/address:port (default = 0.0.0.0:autoassign)")
-            (@arg CPUS: --cpus +takes_value "Number of cpus (default = autoassign)")
-            (@arg WORK_DIR: --workdir +takes_value "Working directory (default = /tmp)")
-            (@arg READY_FILE: --ready_file +takes_value
-                "Create a file when worker is initialized and connected to server")
-            (@arg LOG_DIR: --logdir +takes_value "Logging directory (default = /tmp)")
-            )
-        (@subcommand run =>
-            (about: "Start server and workers")
-            (@arg LOCAL_WORKERS: --local_workers +takes_value "Number of local workers (default = 0)")
-            (@arg AUTOCONF: --autoconf +takes_value "Automatic configuration (possible values: pbs)")
-            (@arg WORKER_HOST_FILE: --worker_host_file +takes_value "Path to file with hostnames of workers")
-            (@arg WORK_DIR: --workdir +takes_value "Working directory (default = /tmp)")
-            (@arg LISTEN_ADDRESS: --listen +takes_value "Server listening address")
-            (@arg LOG_DIR: --logdir +takes_value "Logging directory (default = /tmp)")
-            )
-        ).get_matches();
+    // We do not use clap macro to built argument,
+    // since it cannot handle "-" in name of long arguments
 
-    //let debug = args.is_present("debug");
+    let args = App::new("Rain")
+        .version(VERSION)
+        .about("Task-based workflow manager and executor")
+        .subcommand( // ---- SERVER ----
+            SubCommand::with_name("server")
+                .about("Rain server")
+                .arg(Arg::with_name("LISTEN_ADDRESS")
+                    .short("l")
+                    .long("--listen")
+                    .help("Listening port/address/address:port (default 0.0.0.0:7210)")
+                    .takes_value(true))
+                .arg(Arg::with_name("LOG_DIR")
+                    .long("--logdir")
+                    .help("Logging directory (default = /tmp)")
+                    .takes_value(true))
+                .arg(Arg::with_name("READY_FILE")
+                    .long("--ready-file")
+                    .help("Create a file when server is initialized and ready to accept connections")
+                    .takes_value(true)))
+        .subcommand( // ---- WORKER ----
+            SubCommand::with_name("worker")
+                .about("Rain worker")
+                .arg(Arg::with_name("SERVER_ADDRESS")
+                    .help("Listening address: port/address/address:port (default 0.0.0.0:7210)")
+                    .required(true))
+                .arg(Arg::with_name("LISTEN_ADDRESS")
+                    .short("l")
+                    .long("--listen")
+                    .help("Listening port/address/address:port (default = 0.0.0.0:auto)")
+                    .takes_value(true))
+                .arg(Arg::with_name("CPUS")
+                    .long("--cpus")
+                    .help("Number of cpus (default = auto)")
+                    .takes_value(true))
+                .arg(Arg::with_name("WORK_DIR")
+                    .long("--workdir")
+                    .help("Workding directory (default = /tmp)")
+                    .takes_value(true))
+                .arg(Arg::with_name("LOG_DIR")
+                    .long("--logdir")
+                    .help("Logging directory (default = /tmp)")
+                    .takes_value(true))
+                .arg(Arg::with_name("READY_FILE")
+                    .long("--ready-file")
+                    .help("Create a file when worker is initialized and connected to the server")
+                    .takes_value(true)))
+        .subcommand( // ---- RUN ----
+            SubCommand::with_name("run")
+                .about("Start server & workers at once")
+                .arg(Arg::with_name("LOCAL_WORKERS")
+                    .long("--local-workers")
+                    .help("Number of local workers (default = 0)")
+                    .takes_value(true))
+                .arg(Arg::with_name("AUTOCONF")
+                    .long("--autoconf")
+                    .help("Automatic configuration - possible values: pbs")
+                    .takes_value(true))
+                .arg(Arg::with_name("LISTEN_ADDRESS")
+                    .short("l")
+                    .long("--listen")
+                    .help("Server listening port/address/address:port (default = 0.0.0.0:auto)")
+                    .takes_value(true))
+                .arg(Arg::with_name("WORK_DIR")
+                    .long("--workdir")
+                    .help("Workding directory for workers (default = /tmp)")
+                    .takes_value(true))
+            .arg(Arg::with_name("LOG_DIR")
+                    .long("--logdir")
+                    .help("Logging directory for workers & server (default = /tmp)")
+                    .takes_value(true)))
+        .get_matches();
 
     match args.subcommand() {
         ("server", Some(ref cmd_args)) => run_server(&args, cmd_args),

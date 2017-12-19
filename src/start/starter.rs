@@ -161,7 +161,7 @@ impl Starter {
                 .arg("server")
                 .arg("--listen")
                 .arg(&server_address)
-                .arg("--ready_file")
+                .arg("--ready-file")
                 .arg(&ready_file),
         )?;
         info!("Server pid = {}", process.id());
@@ -217,7 +217,7 @@ impl Starter {
                 Command::new(&rain)
                     .arg("worker")
                     .arg(&server_address)
-                    .arg("--ready_file")
+                    .arg("--ready-file")
                     .arg(&ready_file),
             )?;
         }
