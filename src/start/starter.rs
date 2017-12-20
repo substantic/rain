@@ -15,7 +15,7 @@ use std::fs::File;
 
 pub struct StarterConfig {
     /// Number of local worker that will be spawned
-    pub n_local_workers: u32,
+    pub local_workers: Vec<Option<u32>>,
 
     /// Listening address of server
     pub server_listen_address: SocketAddr,
@@ -27,9 +27,9 @@ pub struct StarterConfig {
 }
 
 impl StarterConfig {
-    pub fn new(local_workers: u32, server_listen_address: SocketAddr, log_dir: &Path) -> Self {
+    pub fn new(local_workers: Vec<Option<u32>>, server_listen_address: SocketAddr, log_dir: &Path) -> Self {
         Self {
-            n_local_workers: local_workers,
+            local_workers: local_workers,
             server_listen_address,
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
             worker_host_file: None,
@@ -97,7 +97,7 @@ impl Starter {
     /// Main method of starter that launch everything
     pub fn start(&mut self) -> Result<()> {
 
-        if self.config.n_local_workers != 0 && self.config.worker_host_file.is_some() {
+        if !self.config.local_workers.is_empty() && self.config.worker_host_file.is_some() {
             bail!("Cannot combine remote & local workers");
         }
 
@@ -107,14 +107,14 @@ impl Starter {
             Vec::new()
         };
 
-        if self.config.n_local_workers == 0 && worker_hosts.is_empty() {
+        if self.config.local_workers.is_empty() && worker_hosts.is_empty() {
             bail!("No workers are specified.");
         }
 
         self.start_server()?;
         self.busy_wait_for_ready()?;
 
-        if self.config.n_local_workers > 0 {
+        if !self.config.local_workers.is_empty() {
             self.start_local_workers()?;
         }
         if !worker_hosts.is_empty() {
@@ -206,19 +206,25 @@ impl Starter {
     }
 
     fn start_local_workers(&mut self) -> Result<()> {
-        info!("Starting {} local workers", self.config.n_local_workers);
+        info!("Starting {} local worker(s)", self.config.local_workers.len());
         let server_address = self.server_address();
         let rain = self.local_rain_program();
-        for i in 0..self.config.n_local_workers {
+        let workers: Vec<_> = self.config.local_workers.iter().map(|x| x.clone()).enumerate().collect();
+        for (i, resource) in workers {
             let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
+            let mut cmd = Command::new(&rain);
+                cmd.arg("worker")
+                   .arg(&server_address)
+                   .arg("--ready-file")
+                   .arg(&ready_file);
+                if let Some(cpus) = resource {
+                    cmd.arg("--cpus");
+                    cmd.arg(cpus.to_string());
+                }
             let process = self.spawn_process(
                 &format!("worker-{}", i),
                 &ready_file,
-                Command::new(&rain)
-                    .arg("worker")
-                    .arg(&server_address)
-                    .arg("--ready-file")
-                    .arg(&ready_file),
+                &mut cmd
             )?;
         }
         Ok(())

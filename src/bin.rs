@@ -7,6 +7,7 @@ extern crate tokio_core;
 extern crate env_logger;
 extern crate num_cpus;
 extern crate nix;
+extern crate serde_json;
 #[macro_use]
 extern crate error_chain;
 
@@ -266,15 +267,38 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 
 fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let local_workers = if cmd_args.is_present("LOCAL_WORKERS") {
-        value_t_or_exit!(cmd_args, "LOCAL_WORKERS", u32)
-    } else {
-        0u32
-    };
     let listen_address = parse_listen_arg(cmd_args, DEFAULT_SERVER_PORT);
     let log_dir = ::std::env::current_dir().unwrap();
 
     info!("Log directory: {}", log_dir.to_str().unwrap());
+
+    let mut local_workers = Vec::new();
+
+    if cmd_args.is_present("SIMPLE") && cmd_args.is_present("LOCAL_WORKERS") {
+        error!("--simple and --local-workers are mutually exclusive");
+        exit(1);
+    }
+    /*    let local_workers = if cmd_args.is_present("LOCAL_WORKERS") {
+        value_t_or_exit!(cmd_args, "LOCAL_WORKERS", u32)
+    } else {
+        0u32
+    };*/
+    if cmd_args.is_present("SIMPLE") {
+        local_workers.push(None);
+    }
+
+    if let Some(workers) = cmd_args.value_of("LOCAL_WORKERS") {
+        local_workers = match ::serde_json::from_str(workers) {
+            Ok(cpus) => {
+                let cpus: Vec<u32> = cpus;
+                cpus.iter().map(|x| Some(*x)).collect()
+            }
+            Err(e) => {
+                error!("Invalid format for --local-workers");
+                exit(1);
+            }
+        }
+    }
 
     let mut config = start::starter::StarterConfig::new(local_workers, listen_address, &log_dir);
 
@@ -371,9 +395,12 @@ fn main() {
         .subcommand( // ---- RUN ----
             SubCommand::with_name("run")
                 .about("Start server & workers at once")
+                .arg(Arg::with_name("SIMPLE")
+                    .long("--simple")
+                    .help("Start server and one local worker"))
                 .arg(Arg::with_name("LOCAL_WORKERS")
                     .long("--local-workers")
-                    .help("Number of local workers (default = 0)")
+                    .help("Specify local workers (e.g. --local-workers=[4,4])")
                     .takes_value(true))
                 .arg(Arg::with_name("AUTOCONF")
                     .long("--autoconf")
