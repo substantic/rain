@@ -1,7 +1,7 @@
 Overview
 ********
 
-**Rain** is a Rain is a framework for running distributed computations.
+**Rain** is a framework for running distributed computations.
 
    * Rain provides Python interface, where tasks and their interconnections is
      defined.

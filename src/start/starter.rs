@@ -188,7 +188,7 @@ impl Starter {
                 Readiness::WaitingForReadyFile(ready_file.to_path_buf()),
             );
             let command = format!(
-                "{rain} worker {server_address} --ready_file {ready_file:?}",
+                "{rain} worker {server_address} --ready-file {ready_file:?}",
                 rain = rain,
                 server_address = server_address,
                 ready_file = ready_file
