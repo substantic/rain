@@ -24,15 +24,21 @@ pub struct StarterConfig {
     pub log_dir: PathBuf,
 
     pub worker_host_file: Option<PathBuf>,
+
+    pub reserve_cpu_on_server: bool,
 }
 
 impl StarterConfig {
-    pub fn new(local_workers: Vec<Option<u32>>, server_listen_address: SocketAddr, log_dir: &Path) -> Self {
+    pub fn new(local_workers: Vec<Option<u32>>,
+               server_listen_address: SocketAddr,
+               log_dir: &Path,
+               reserve_cpu_on_server: bool) -> Self {
         Self {
             local_workers: local_workers,
             server_listen_address,
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
             worker_host_file: None,
+            reserve_cpu_on_server,
         }
     }
 
@@ -60,6 +66,9 @@ pub struct Starter {
 
     /// Spawned and running processes
     remote_processes: Vec<RemoteProcess>,
+
+    /// PID of server
+    server_pid: u32,
 }
 
 fn read_host_file(path: &Path) -> Result<Vec<String>> {
@@ -87,6 +96,7 @@ impl Starter {
             config: config,
             processes: Vec::new(),
             remote_processes: Vec::new(),
+            server_pid: 0,
         }
     }
 
@@ -154,17 +164,21 @@ impl Starter {
         let rain = self.local_rain_program();
         let server_address = format!("{}", self.config.server_listen_address);
         info!("Starting local server ({})", server_address);
-        let process = self.spawn_process(
-            "server",
-            &ready_file,
-            Command::new(rain)
-                .arg("server")
-                .arg("--listen")
-                .arg(&server_address)
-                .arg("--ready-file")
-                .arg(&ready_file),
-        )?;
-        info!("Server pid = {}", process.id());
+        self.server_pid = {
+            let process = self.spawn_process(
+                "server",
+                &ready_file,
+                Command::new(rain)
+                    .arg("server")
+                    .arg("--listen")
+                    .arg(&server_address)
+                    .arg("--ready-file")
+                    .arg(&ready_file),
+            )?;
+            let server_pid = process.id();
+            info!("Server pid = {}", server_pid);
+            server_pid
+        };
         Ok(())
     }
 
@@ -187,12 +201,28 @@ impl Starter {
                 host,
                 Readiness::WaitingForReadyFile(ready_file.to_path_buf()),
             );
-            let command = format!(
-                "{rain} worker {server_address} --ready-file {ready_file:?}",
-                rain = rain,
-                server_address = server_address,
-                ready_file = ready_file
-            );
+            let command = if self.config.reserve_cpu_on_server {
+                format!(
+                    "if (ps --pid {server_pid} | grep rain); then \n\
+                    CPUS=-1 \n\
+                    else \n\
+                    CPUS=detect \n\
+                    fi \n\
+                    {rain} worker {server_address} --cpus=$CPUS --ready-file {ready_file:?}",
+                    rain = rain,
+                    server_address = server_address,
+                    ready_file = ready_file,
+                    server_pid = self.server_pid,
+                )
+            } else {
+                format!(
+                    "{rain} worker {server_address} --ready-file {ready_file:?}",
+                    rain = rain,
+                    server_address = server_address,
+                    ready_file = ready_file
+                )
+
+            };
             process.start(&command, &dir, &self.config.log_dir)?;
             self.remote_processes.push(process);
         }

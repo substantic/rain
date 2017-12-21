@@ -42,6 +42,19 @@ machine), then you can simple run::
 
 It executes worker on each node allocated by PBS scheduler.
 
+.. note::
+
+   We recommended to reserve one CPU for server unless you have long runnig
+   tasks. This reservation can be done through cgroups, or CPU pinning.
+
+   Another option (with less isolation) is to use option ``-S``::
+
+     $ rain run -S --worker-host-file=my_hosts
+
+   If a remote machine is actually localhost (and therefore runs Rain server)
+   then ``--cpus=-1`` argument is used for the worker on that machine, i.e. the
+   worker will consider one cpu less on that machine.
+
 
 Starting worker manually
 ------------------------
@@ -61,8 +74,15 @@ Synopsis
 
 ::
 
-  rain run [--simple | --autoconf=CONF | --local-workers | --worker-host-file=FILE]
-           [--listen=LISTEN_ADDRESS] [--logdir=DIR] [--workdir=DIR]
+  rain run --simple [--listen=LISTEN_ADDRESS]
+           [--logdir=DIR] [--workdir=DIR]
+  rain run --autoconf=CONF [--listen=LISTEN_ADDRESS]
+           [--logdir=DIR] [--workdir=DIR]
+  rain run --local-workers [--listen=LISTEN_ADDRESS]
+           [--logdir=DIR] [--workdir=DIR]
+  rain run --worker-host-file=FILE [-S] [--listen=LISTEN_ADDRESS]
+           [--logdir=DIR] [--workdir=DIR]
+
   rain server [--listen=LISTEN_ADDRESS] [--logdir=DIR]
               [--ready-file=<FILE>]
   rain worker [--cpus=N] [--workdir=DIR] [--logdir=DIR]
@@ -101,6 +121,14 @@ ready and terminates.
   * Rain is installed in the same directory as on the machine
     from which that ``rain run`` is executed.
 
+**-S**
+  Serves for reserving a CPU on server node. If remote worker
+  detects that it is running on the same machine as server then it
+  is executed with ``--cpus=-1``.
+
+  The detection is based on checking if the server PID exists on the remote
+  machine and program name is "rain".
+
 **--listen=(PORT|ADDRESS|ADDRESS:PORT)**
   Set listening address of server. Default is 0.0.0.0:7210.
 
@@ -138,13 +166,14 @@ Runs Rain worker.
   used.
 
 **--cpus=N**
-  Set a number of cpus available to the worker.
+  Set a number of cpus available to the worker (default: 'detect')
 
-  * If not specified then the all cores in the machine is used.
+  * If 'detect' is used then the all cores in the machine is used.
   * If a positive number is used then value is used as the number of available
     cpus.
-  * If a negative number -X is used then X subtracted from all available cores,
-    and resulting number is used as the number of available cpus.
+  * If a negative number -X is used then the number of cores is detected and X
+    is subtracted from this number, the resulting number is used as the number
+    of available cpus.
 
 **--listen=(PORT|ADDRESS|ADDRESS:PORT)**
   Set listening address of worker for worker-to-worker connections. When port is

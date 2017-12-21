@@ -196,7 +196,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         cpus as i32
     }
 
-    let cpus = if cmd_args.is_present("CPUS") {
+    let cpus = if cmd_args.value_of("CPUS") != Some("detect") {
         let value = value_t_or_exit!(cmd_args, "CPUS", i32);
         if value < 0 {
             let cpus = detect_cpus();
@@ -293,14 +293,15 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
                 let cpus: Vec<u32> = cpus;
                 cpus.iter().map(|x| Some(*x)).collect()
             }
-            Err(e) => {
+            Err(_) => {
                 error!("Invalid format for --local-workers");
                 exit(1);
             }
         }
     }
 
-    let mut config = start::starter::StarterConfig::new(local_workers, listen_address, &log_dir);
+    let mut config = start::starter::StarterConfig::new(
+        local_workers, listen_address, &log_dir, cmd_args.is_present("RCOS"));
 
     config.worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(
         |s| PathBuf::from(s),
@@ -379,9 +380,9 @@ fn main() {
                     .takes_value(true))
                 .arg(Arg::with_name("CPUS")
                     .long("--cpus")
-                    .help("Number of cpus (default = auto)")
+                    .help("Number of cpus or 'detect' (default = detect)")
                     .value_name("N")
-                    .takes_value(true))
+                    .default_value("auto"))
                 .arg(Arg::with_name("WORK_DIR")
                     .long("--workdir")
                     .help("Workding directory (default = /tmp)")
@@ -416,7 +417,10 @@ fn main() {
                     .long("--autoconf")
                     .help("Automatic configuration - possible values: pbs")
                     .possible_value("pbs")
-                    .takes_value(true))
+                     .takes_value(true))
+                .arg(Arg::with_name("RCOS") // RCOS = Reserve CPUs on Server
+                     .short("-S")
+                     .help("Reserve a CPU on server machine"))
                 .arg(Arg::with_name("LISTEN_ADDRESS")
                     .short("l")
                     .value_name("ADDRESS")
