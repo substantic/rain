@@ -25,6 +25,8 @@ cargo:build:
     paths:
       - target
     expire_in: 6h
+  only:
+    - master
 
 pytest:
   image: rustdocker/rust:stable
@@ -40,7 +42,9 @@ pytest:
     paths:
       - tests/pytests/work
     expire_in: 1d
-    
+  only:
+    - master
+
 cargo:test:
   image: rustdocker/rust:stable
   stage: test
@@ -50,3 +54,5 @@ cargo:test:
     - cargo install capnpc
     - ./build_capnp.sh
     - cargo test --all-features
+  only:
+    - master
