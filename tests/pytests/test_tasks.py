@@ -1,6 +1,6 @@
 
 from rain.client import Task
-from rain.client.data import DataObject, Blob
+from rain.client.data import DataObject
 
 
 import pytest
@@ -19,10 +19,10 @@ def test_task_construction(fake_session):
 def test_task_outputs(fake_session):
     with fake_session:
         t1 = Task("dummy",
-                  outputs=(Blob("a"),
-                           Blob("long_name"),
-                           Blob("space inside"),
-                           Blob("")))
+                  outputs=(DataObject("a"),
+                           DataObject("long_name"),
+                           DataObject("space inside"),
+                           DataObject("")))
 
         assert "a" in t1.outputs
         assert "space inside" in t1.outputs
@@ -43,7 +43,8 @@ def test_task_outputs(fake_session):
 
 def test_task_keep_outputs(fake_session):
     with fake_session:
-        t = Task("dummy", outputs=[Blob("a"), Blob("b"), Blob("c")])
+        t = Task("dummy", outputs=[
+            DataObject("a"), DataObject("b"), DataObject("c")])
         assert all(not t.is_kept() for t in t.outputs)
         t.keep_outputs()
         assert all(t.is_kept() for t in t.outputs)

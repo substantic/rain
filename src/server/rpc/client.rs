@@ -131,7 +131,6 @@ impl client_service::Server for ClientServiceImpl {
                 let o = s.add_object(
                     &session,
                     id,
-                    co.get_type().map_err(|_| "reading TaskType")?,
                     co.get_keep(),
                     co.get_label()?.to_string(),
                     data,

@@ -7,7 +7,6 @@ using import "common.capnp".Attributes;
 using import "common.capnp".SessionId;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
-using import "common.capnp".DataObjectType;
 using import "common.capnp".UnitResult;
 using import "common.capnp".Resources;
 using import "datastore.capnp".DataStore;
@@ -104,13 +103,11 @@ struct Task {
     }
 }
 
-
 struct DataObject {
     id @0 :DataObjectId;
     keep @1 :Bool;
-    hasData @6 :Bool;
-    data @2 :Data;
-    type @3 :DataObjectType;
+    hasData @2 :Bool;
+    data @3 :Data;
     label @4 :Text;
     attributes @5: Attributes;
 }

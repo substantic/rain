@@ -2,7 +2,6 @@
 
 using import "common.capnp".DataObjectId;
 using import "common.capnp".TaskId;
-using import "common.capnp".DataObjectType;
 using import "common.capnp".Attributes;
 
 interface SubworkerControl {
@@ -51,14 +50,13 @@ struct Task {
 
     struct OutDataObject {
         id @0 :DataObjectId;
-        type @1 :DataObjectType;
-        label @2 :Text;
+        label @1 :Text;
     }
 }
 
 struct LocalData {
 
-    type @0 :DataObjectType;
+    attributes @0 :Attributes;    
 
     storage :union {
         cache @1 :Void;
@@ -77,6 +75,4 @@ struct LocalData {
         # This is used when subworker returns object to worker
         # we have just returned one of inputs
     }
-
-    attributes @6 :Attributes;
 }

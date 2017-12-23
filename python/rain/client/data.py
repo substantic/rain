@@ -2,7 +2,6 @@ import capnp
 
 from .session import get_active_session
 from .common import RainException
-from .rpc import common
 from ..common.attributes import attributes_to_capnp
 
 
@@ -21,15 +20,13 @@ class DataObject:
     # or by fetching from server)
     data = None
 
-    type = None
-    # Type of object, this should be set by subclass
-
-    def __init__(self, label=None, session=None):
+    def __init__(self, label=None, session=None, content_type=None):
         if session is None:
             session = get_active_session()
         self.session = session
         self.label = label
         self.id = session._register_dataobj(self)
+        self.content_type = content_type
         self.attributes = {}
 
     @property
@@ -60,7 +57,6 @@ class DataObject:
         out.keep = self._keep
         if self.label:
             out.label = self.label
-        out.type = common.DataObjectType.blob
 
         if self.data is not None:
             out.hasData = True
@@ -87,10 +83,10 @@ class DataObject:
                 pass
 
     def is_blob(self):
-        return self.type == common.DataObjectType.blob
+        return self.content_type != "dir"
 
     def is_directory(self):
-        return self.type == common.DataObjectType.directory
+        return self.content_type == "dir"
 
     def __reduce__(self):
         """Speciaization to replace with subworker.unpickle_input_object
@@ -107,50 +103,12 @@ class DataObject:
         return (subworker.unpickle_input_object,
                 (input_name, len(inputs) - 1, ))
 
-
-class Blob(DataObject):
-
-    type = common.DataObjectType.blob
-
     def __repr__(self):
-        return "<Blob {} {}/{}>".format(
+        return "<Do {} {}/{}>".format(
             self.label, self.session.session_id, self.id)
 
 
-class Directory(DataObject):
-
-    type = common.DataObjectType.directory
-
-    def get_blob(self, path):
-        return DataObjectPart(self, path, common.DataObjectType.blob)
-
-    def get_directory(self, path):
-        return DataObjectPart(self, path, common.DataObjectType.directory)
-
-    def fetch_listing(self):
-        """Returns a list of nodes in directory"""
-        raise Exception("Not implemented")
-
-    def __repr__(self):
-        return "<Directory {}/{}>".format(self.session.session_id, self.id)
-
-
-class DataObjectPart:
-
-    def __init__(self, dataobject, path, type):
-        self.dataobject = dataobject
-        self.path = path
-        self.type = type
-
-    def make_dataobject(self):
-        """Return DataObject created from DataObject part"""
-        raise Exception("TODO")
-
-    def fetch(self):
-        raise Exception("TODO")
-
-
-def blob(value, label=""):
+def blob(value, label="const", content_type=None):
     """Create a constant data object"""
 
     if isinstance(value, str):
@@ -159,17 +117,14 @@ def blob(value, label=""):
         raise RainException(
             "Invalid blob type (only str or bytes are allowed)")
 
-    dataobj = Blob(label)
+    dataobj = DataObject(label, content_type=content_type)
     dataobj.data = value
-    dataobj.label = "const"
     return dataobj
 
 
 def to_data(obj):
     """Convert an object to DataObject/DataObjectPart"""
     if isinstance(obj, DataObject):
-        return obj
-    if isinstance(obj, DataObjectPart):
         return obj
     if isinstance(obj, Task):
         if len(obj.outputs) == 1:

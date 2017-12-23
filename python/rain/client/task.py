@@ -1,5 +1,5 @@
 from .session import get_active_session
-from .data import Blob, to_data
+from .data import DataObject, to_data
 from .common import RainException
 from ..common import LabeledList
 from ..common.resources import cpu_1
@@ -35,10 +35,13 @@ class Task:
         if outputs is None:
             outputs = ()
         elif isinstance(outputs, int):
-            outputs = tuple(Blob(session=session) for i in range(outputs))
+            outputs = tuple(DataObject(session=session)
+                            for i in range(outputs))
         else:
-            outputs = tuple(Blob(obj, session=session) if isinstance(obj, str)
+            outputs = tuple(DataObject(obj, session=session)
+                            if isinstance(obj, str)
                             else obj for obj in outputs)
+
         self.outputs = LabeledList(pairs=((output.label, output)
                                           for output in outputs))
 

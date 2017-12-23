@@ -1,5 +1,4 @@
 from .rpc import subworker as rpc_subworker
-from rain.client.rpc import common as rpc_common
 from .data import data_from_capnp, Data
 from .context import Context
 from ..common.attributes import attributes_to_capnp, attributes_from_capnp
@@ -43,10 +42,8 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
                 if isinstance(data, Data):
                     data.to_capnp(results[i])
                 elif isinstance(data, bytes):
-                    results[i].type = rpc_common.DataObjectType.blob
                     results[i].storage.memory = data
                 elif isinstance(data, str):
-                    results[i].type = rpc_common.DataObjectType.blob
                     results[i].storage.memory = data.encode()
                 else:
                     raise Exception("Invalid result object: {!r}".format(data))

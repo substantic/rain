@@ -6,7 +6,7 @@ use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::{RcSet, Attributes, FinishHook, ConsistencyCheck};
 use common::id::{TaskId, SId};
-use super::{DataObjectRef, WorkerRef, SessionRef, Graph, DataObjectState, DataObjectType};
+use super::{DataObjectRef, WorkerRef, SessionRef, Graph, DataObjectState};
 pub use common_capnp::TaskState;
 use errors::{Result, Error};
 
@@ -161,40 +161,10 @@ impl TaskRef {
                     );
                 }
                 DataObjectState::Finished => {
-                    if inobj.object_type == DataObjectType::Stream {
-                        bail!(
-                            "Can't create Task {} with done input stream {}",
-                            id,
-                            inobj.id
-                        );
-                    }
-                    // Finished objects are assigned and located somewhere
                 }
                 DataObjectState::Unfinished => {
-                    if inobj.object_type == DataObjectType::Stream {
-                        if let Some(ref prod) = inobj.producer {
-                            if prod.get().state != TaskState::NotAssigned &&
-                                prod.get().state != TaskState::Ready
-                            {
-                                bail!(
-                                    "Can't create Task {} with running input stream {}",
-                                    id,
-                                    inobj.id
-                                );
-                            }
-                        }
-                    }
                     waiting.insert(i.object.clone());
                 }
-            }
-            if inobj.object_type == DataObjectType::Stream &&
-                inobj.state != DataObjectState::Unfinished
-            {
-                bail!(
-                    "Can't create Task {} with active input stream object {}",
-                    id,
-                    inobj.id
-                );
             }
             if inobj.id.get_session_id() != id.get_session_id() {
                 bail!(

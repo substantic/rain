@@ -110,7 +110,6 @@ impl worker_control::Server for WorkerControlImpl {
             }
 
             let placement = WorkerId::from_capnp(&co.get_placement().unwrap());
-            let object_type = co.get_type().unwrap();
             let (object_state, is_remote) = if placement == *state.worker_id() {
                 (DataObjectState::Assigned, false)
             } else {
@@ -129,7 +128,7 @@ impl worker_control::Server for WorkerControlImpl {
             let attributes = Attributes::from_capnp(&co.get_attributes().unwrap());
             let dataobject =
                 state.add_dataobject(
-                    id, object_state, object_type, assigned, size, label, attributes);
+                    id, object_state, assigned, size, label, attributes);
 
             debug!(
                 "Received DataObject {:?}, is_remote: {}",

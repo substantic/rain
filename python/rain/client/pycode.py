@@ -7,7 +7,7 @@ import base64
 from collections import OrderedDict
 
 from .task import Task
-from .data import blob, DataObject, DataObjectPart
+from .data import blob, DataObject
 from .session import get_active_session
 from .common import RainException, RainWarning
 
@@ -72,8 +72,6 @@ def py_call(fn, inputs):
 
 def py_obj(obj, label=""):
     if isinstance(obj, DataObject):
-        return obj
-    if isinstance(obj, DataObjectPart):
         return obj
     return blob(cloudpickle.dumps(obj), label)
 

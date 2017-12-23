@@ -4,7 +4,7 @@ use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::{Attributes, RcSet};
 use super::{TaskRef, Graph};
-use worker::data::{Data, DataType};
+use worker::data::{Data};
 use worker::fs::workdir::WorkDir;
 
 use std::net::SocketAddr;
@@ -14,7 +14,6 @@ use std::sync::Arc;
 use std::path::Path;
 use std::fmt;
 
-pub use common_capnp::DataObjectType;
 
 #[derive(Debug)]
 pub enum DataObjectState {
@@ -42,8 +41,6 @@ pub struct DataObject {
     // producer: Option<Task>,
     /// Consumer set, e.g. to notify of completion.
     pub(in super::super) consumers: RcSet<TaskRef>,
-
-    pub(in super::super) obj_type: DataObjectType,
 
     pub(in super::super) assigned: bool,
 
@@ -104,7 +101,6 @@ impl DataObjectRef {
         graph: &mut Graph,
         id: DataObjectId,
         state: DataObjectState,
-        obj_type: DataObjectType,
         assigned: bool,
         size: Option<usize>,
         label: String,
@@ -120,7 +116,6 @@ impl DataObjectRef {
                     state,
                     size,
                     assigned,
-                    obj_type,
                     consumers: Default::default(),
                     label,
                     attributes,
@@ -136,7 +131,6 @@ impl DataObjectRef {
                     // TODO: If object is remote and not finished and new remote obtained,
                     // then update remote
                     assert!(obj.id == id);
-                    assert!(obj.obj_type == obj_type);
                 }
                 dataobj
             }

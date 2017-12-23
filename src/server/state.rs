@@ -14,7 +14,7 @@ use common::RcSet;
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
 use common::rpc::new_rpc_system;
 use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef, ClientRef,
-                    DataObjectState, DataObjectType, TaskState, TaskInput, SessionError};
+                    DataObjectState, TaskState, TaskInput, SessionError};
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{Scheduler, RandomScheduler, UpdatedIn, UpdatedOut};
 use common::convert::ToCapnp;
@@ -222,7 +222,6 @@ impl State {
         &mut self,
         session: &SessionRef,
         id: DataObjectId,
-        object_type: DataObjectType,
         client_keep: bool,
         label: String,
         data: Option<Vec<u8>>,
@@ -234,7 +233,6 @@ impl State {
         let oref = DataObjectRef::new(
             session,
             id,
-            object_type,
             client_keep,
             label,
             data,

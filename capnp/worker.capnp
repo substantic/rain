@@ -9,7 +9,6 @@ using import "common.capnp".DataObjectId;
 using import "common.capnp".Attributes;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
-using import "common.capnp".DataObjectType;
 using import "common.capnp".Resources;
 using import "monitor.capnp".MonitoringFrames;
 
@@ -122,18 +121,16 @@ struct DataObject {
     placement @1 :WorkerId;
     # If equal to local worker id, then local, otherwise remote.
 
-    type @2 :DataObjectType;
-
-    size @3 :Int64 = -1;
+    size @2 :Int64 = -1;
     # In bytes, positive if known.
 
-    state @4 :DataObjectState;
+    state @3 :DataObjectState;
     # Current object state. All input objects (external or local) should be `finished` or
     # `running` (when streaming), output objects `assigned`.
 
-    assigned @5 :Bool;
+    assigned @4 :Bool;
 
-    label @6 :Text;
+    label @5 :Text;
 
-    attributes @7 :Attributes;
+    attributes @6 :Attributes;
 }

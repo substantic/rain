@@ -8,7 +8,7 @@ use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
 use common::{Attributes, RcSet, FinishHook, ConsistencyCheck};
 use super::{TaskRef, WorkerRef, SessionRef, TaskState};
-pub use common_capnp::{DataObjectState, DataObjectType};
+pub use common_capnp::{DataObjectState};
 use errors::Result;
 
 #[derive(Debug)]
@@ -25,9 +25,6 @@ pub struct DataObject {
 
     /// Current state.
     pub(in super::super) state: DataObjectState,
-
-    /// The type of this object.
-    pub(in super::super) object_type: DataObjectType,
 
     /// Consumer set, e.g. to notify of completion.
     pub(in super::super) consumers: RcSet<TaskRef>,
@@ -71,7 +68,6 @@ impl DataObject {
     pub fn to_worker_capnp(&self, builder: &mut ::worker_capnp::data_object::Builder) {
         self.id.to_capnp(&mut builder.borrow().get_id().unwrap());
         self.attributes.to_capnp(&mut builder.borrow().get_attributes().unwrap());
-        builder.set_type(self.object_type);
         self.size.map(|s| builder.set_size(s as i64));
         builder.set_label(&self.label);
         builder.set_state(self.state);
@@ -125,7 +121,6 @@ impl DataObjectRef {
     pub fn new(
         session: &SessionRef,
         id: DataObjectId,
-        object_type: DataObjectType,
         client_keep: bool,
         label: String,
         data: Option<Vec<u8>>,
@@ -141,7 +136,6 @@ impl DataObjectRef {
             } else {
                 DataObjectState::Finished
             },
-            object_type: object_type,
             consumers: Default::default(),
             need_by: Default::default(),
             scheduled: Default::default(),
@@ -326,20 +320,6 @@ impl fmt::Debug for DataObjectState {
                 DataObjectState::Unfinished => "Unfinished",
                 DataObjectState::Finished => "Finished",
                 DataObjectState::Removed => "Removed",
-            }
-        )
-    }
-}
-
-impl fmt::Debug for DataObjectType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match *self {
-                DataObjectType::Blob => "Blob",
-                DataObjectType::Directory => "Directory",
-                DataObjectType::Stream => "Stream",
             }
         )
     }

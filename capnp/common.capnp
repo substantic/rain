@@ -51,19 +51,6 @@ enum DataObjectState {
     removed @2;
 }
 
-enum DataObjectType {
-    blob @0;
-    # Data object is plain data
-
-    directory @1;
-    # Data object is a tree of structure where leafs are blobs
-
-    stream @2;
-    # Data object is stream; stream continously creates data, hence
-    # the is not known in advance. Task that depends on task
-    # may be started even the stream is not fully constructed
-}
-
 struct Attributes {
     items @0 :List(Item);
 

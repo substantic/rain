@@ -22,7 +22,7 @@ use common::monitor::{Monitor, Frame};
 use common::Attributes;
 use common::fs::logdir::LogDir;
 
-use worker::graph::{DataObjectRef, DataObjectType, DataObjectState, DataObject, Graph, TaskRef,
+use worker::graph::{DataObjectRef, DataObjectState, DataObject, Graph, TaskRef,
                     TaskInput, TaskState, SubworkerRef, subworker_command};
 use worker::data::DataBuilder;
 use worker::tasks::TaskInstance;
@@ -401,7 +401,6 @@ impl State {
         &mut self,
         id: DataObjectId,
         state: DataObjectState,
-        obj_type: DataObjectType,
         assigned: bool,
         size: Option<usize>,
         label: String,
@@ -409,7 +408,7 @@ impl State {
     ) -> DataObjectRef {
         let dataobj =
             DataObjectRef::new(
-                &mut self.graph, id, state, obj_type, assigned, size, label, attributes);
+                &mut self.graph, id, state, assigned, size, label, attributes);
         /*if dataobj.remote().is_some() {
             self.fetch_dataobject(&dataobj)
         }*/

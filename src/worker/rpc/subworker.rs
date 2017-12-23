@@ -6,7 +6,7 @@ use common::id::DataObjectId;
 use common::convert::FromCapnp;
 use worker::{StateRef, State};
 use worker::graph::SubworkerRef;
-use worker::data::{Data, DataType, Storage};
+use worker::data::{Data, Storage};
 use worker::fs::workdir::WorkDir;
 use subworker_capnp::subworker_upstream;
 use futures::Future;
@@ -71,11 +71,8 @@ pub fn data_from_capnp(
     subworker_dir: &Path,
     reader: &::capnp_gen::subworker_capnp::local_data::Reader,
 ) -> Result<Arc<Data>> {
-    let data_type = reader.get_type()?;
-    assert!(data_type == ::capnp_gen::common_capnp::DataObjectType::Blob);
     match reader.get_storage().which()? {
         ::capnp_gen::subworker_capnp::local_data::storage::Memory(data) => Ok(Arc::new(Data::new(
-            DataType::Blob,
             Storage::Memory(
                 data?.into(),
             ),

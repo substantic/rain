@@ -17,29 +17,20 @@ pub enum Storage {
     Path(DataOnFs),
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum DataType {
-    Blob,
-    Directory,
-    Stream,
-}
-
 #[derive(Debug)]
 pub struct Data {
-    data_type: DataType,
     storage: Storage,
 }
 
 
 impl Data {
     /// Create Data from vector
-    pub fn new(data_type: DataType, storage: Storage) -> Data {
-        Data { data_type, storage }
+    pub fn new(storage: Storage) -> Data {
+        Data { storage }
     }
 
-    pub fn new_from_path(data_type: DataType, path: PathBuf, size: usize) -> Data {
+    pub fn new_from_path(path: PathBuf, size: usize) -> Data {
         Data {
-            data_type,
             storage: Storage::Path(DataOnFs { path, size }),
         }
     }
@@ -52,7 +43,7 @@ impl Data {
         let metadata = ::std::fs::metadata(&target_path)?;
         metadata.permissions().set_mode(0o400);
         let size = metadata.len() as usize;
-        Ok(Data::new_from_path(DataType::Blob, target_path, size))
+        Ok(Data::new_from_path(target_path, size))
     }
 
     pub fn new_by_fs_copy(
@@ -63,16 +54,12 @@ impl Data {
         let metadata = ::std::fs::metadata(&target_path)?;
         metadata.permissions().set_mode(0o400);
         let size = metadata.len() as usize;
-        Ok(Data::new_from_path(DataType::Blob, target_path, size))
+        Ok(Data::new_from_path(target_path, size))
     }
 
 
     pub fn storage(&self) -> &Storage {
         &self.storage
-    }
-
-    pub fn data_type(&self) -> DataType {
-        self.data_type
     }
 
     /// Return size of data in bytes
@@ -105,20 +92,14 @@ impl Data {
 
     #[inline]
     pub fn is_blob(&self) -> bool {
-        match self.data_type {
-            DataType::Blob => true,
-            _ => false,
-        }
+        // TODO: Directories        
+        true
     }
 
     pub fn to_subworker_capnp(
         &self,
         builder: &mut ::capnp_gen::subworker_capnp::local_data::Builder,
     ) {
-        if self.data_type != DataType::Blob {
-            unimplemented!();
-        }
-        builder.set_type(::capnp_gen::common_capnp::DataObjectType::Blob);
         match self.storage {
             Storage::Memory(ref data) => builder.borrow().get_storage().set_memory(&data),
             Storage::Path(ref data) => {

@@ -1,5 +1,5 @@
 
-from .data import Blob
+from .data import DataObject
 
 
 class Output:
@@ -14,7 +14,7 @@ class Output:
         self.path = path
 
     def make_data_object(self):
-        return Blob(self.label)
+        return DataObject(self.label)
 
     def __repr__(self):
         if self.path is None:

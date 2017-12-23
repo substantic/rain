@@ -1,7 +1,6 @@
 
 import cloudpickle
 import os
-from rain.client.rpc import common as rpc_common
 from ..common.attributes import attributes_from_capnp
 from ..common.attributes import attributes_to_capnp
 
@@ -50,7 +49,6 @@ class MemoryBlob(Blob):
         return self.to_bytes().decode()
 
     def to_capnp(self, builder):
-        builder.type = rpc_common.DataObjectType.blob
         if self.worker_object_id:
             builder.storage.init("inWorker")
             builder.storage.inWorker.sessionId = self.worker_object_id[0]
@@ -80,7 +78,6 @@ class FileBlob(Blob):
             return f.read()
 
     def to_capnp(self, builder):
-        builder.type = rpc_common.DataObjectType.blob
         if self.worker_object_id:
             builder.storage.init("inWorker")
             builder.storage.inWorker.sessionId = self.worker_object_id[0]

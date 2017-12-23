@@ -1,6 +1,6 @@
 
 use std::fs::File;
-use super::data::{Data, Storage, DataType};
+use super::data::{Data, Storage};
 use errors::Result;
 
 /// Trait for building Data from data stream
@@ -44,7 +44,6 @@ impl DataBuilder for BlobBuilder {
 
     fn build(&mut self) -> Data {
         Data::new(
-            DataType::Blob,
             Storage::Memory(::std::mem::replace(&mut self.buffer, Vec::new())),
         )
     }
