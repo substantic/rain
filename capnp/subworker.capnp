@@ -77,4 +77,6 @@ struct LocalData {
         # This is used when subworker returns object to worker
         # we have just returned one of inputs
     }
+
+    attributes @6 :Attributes;
 }

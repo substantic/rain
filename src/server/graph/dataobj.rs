@@ -70,6 +70,7 @@ impl DataObject {
     /// It does not fill `placement` and `assigned`, that must be done by caller
     pub fn to_worker_capnp(&self, builder: &mut ::worker_capnp::data_object::Builder) {
         self.id.to_capnp(&mut builder.borrow().get_id().unwrap());
+        self.attributes.to_capnp(&mut builder.borrow().get_attributes().unwrap());
         builder.set_type(self.object_type);
         self.size.map(|s| builder.set_size(s as i64));
         builder.set_label(&self.label);

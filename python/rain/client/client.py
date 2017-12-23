@@ -199,6 +199,8 @@ class Client:
             dataobj = dataobjs_dict[object_update.id.id]
             dataobj.state = object_update.state
             dataobj.size = object_update.size
+            dataobj.attributes = attributes.attributes_from_capnp(
+                object_update.attributes)
 
 
 def split_items(items):

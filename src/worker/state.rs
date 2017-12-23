@@ -216,7 +216,7 @@ impl State {
 
             for (i, object) in self.updated_objects.iter().enumerate() {
                 let mut co = req_objs.borrow().get(i as u32);
-                let object = object.get();
+                let mut object = object.get_mut();
 
                 if object.is_finished() {
                     co.set_state(::common_capnp::DataObjectState::Finished);
@@ -224,6 +224,13 @@ impl State {
                 } else {
                     // TODO: Handle failure state
                     panic!("Updating non finished object");
+                }
+
+                if !object.new_attributes.is_empty() {
+                    object.new_attributes.to_capnp(&mut co.borrow()
+                        .get_attributes()
+                        .unwrap());
+                    object.new_attributes.clear();
                 }
                 object.id.to_capnp(&mut co.get_id().unwrap());
             }
@@ -398,9 +405,11 @@ impl State {
         assigned: bool,
         size: Option<usize>,
         label: String,
+        attributes: Attributes,
     ) -> DataObjectRef {
         let dataobj =
-            DataObjectRef::new(&mut self.graph, id, state, obj_type, assigned, size, label);
+            DataObjectRef::new(
+                &mut self.graph, id, state, obj_type, assigned, size, label, attributes);
         /*if dataobj.remote().is_some() {
             self.fetch_dataobject(&dataobj)
         }*/

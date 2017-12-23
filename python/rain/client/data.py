@@ -3,6 +3,7 @@ import capnp
 from .session import get_active_session
 from .common import RainException
 from .rpc import common
+from ..common.attributes import attributes_to_capnp
 
 
 class DataObject:
@@ -29,6 +30,7 @@ class DataObject:
         self.session = session
         self.label = label
         self.id = session._register_dataobj(self)
+        self.attributes = {}
 
     @property
     def id_pair(self):
@@ -63,6 +65,8 @@ class DataObject:
         if self.data is not None:
             out.hasData = True
             out.data = self.data
+
+        attributes_to_capnp(self.attributes, out.attributes)
 
     def wait(self):
         self.session.wait((), (self,))

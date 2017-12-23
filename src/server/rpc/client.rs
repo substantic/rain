@@ -120,14 +120,14 @@ impl client_service::Server for ClientServiceImpl {
         let res: Result<()> = (|| {
             // first create the objects
             for co in objects.iter() {
-                let id = DataObjectId::from_capnp(&co.get_id()?);
+                let id = DataObjectId::from_capnp(&co.borrow().get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
                 let data = if co.get_has_data() {
                     Some(co.get_data()?.into())
                 } else {
                     None
                 };
-                let attributes = Attributes::new(); // TODO: decode attributes
+                let attributes = Attributes::from_capnp(&co.get_attributes()?);
                 let o = s.add_object(
                     &session,
                     id,
@@ -413,8 +413,9 @@ impl client_service::Server for ClientServiceImpl {
         {
             let mut obj_updates = results.borrow().init_objects(objects.len() as u32);
             for (i, obj) in objects.iter().enumerate() {
-                let update = obj_updates.borrow().get(i as u32);
+                let mut update = obj_updates.borrow().get(i as u32);
                 let o = obj.get();
+                o.attributes.to_capnp(&mut update.borrow().get_attributes().unwrap());
                 o.id.to_capnp(&mut update.get_id().unwrap());
             }
         }

@@ -126,8 +126,10 @@ impl worker_control::Server for WorkerControlImpl {
             let label = pry!(co.get_label()).to_string();
 
             let assigned = co.get_assigned();
+            let attributes = Attributes::from_capnp(&co.get_attributes().unwrap());
             let dataobject =
-                state.add_dataobject(id, object_state, object_type, assigned, size, label);
+                state.add_dataobject(
+                    id, object_state, object_type, assigned, size, label, attributes);
 
             debug!(
                 "Received DataObject {:?}, is_remote: {}",

@@ -7,6 +7,7 @@ use errors::{Result, Error};
 use worker::state::{StateRef, State};
 use worker::tasks;
 use worker::rpc::subworker::data_from_capnp;
+use common::Attributes;
 use common::convert::ToCapnp;
 
 /// Instance represents a running task. It contains resource allocations and
@@ -187,9 +188,12 @@ impl TaskInstance {
                         let mut p_input = p_inputs.borrow().get(i as u32);
                         p_input.set_label(&input.label);
                         let obj = input.object.get();
-                        obj.data().to_subworker_capnp(
-                            &mut p_input.borrow().get_data().unwrap(),
-                        );
+                        {
+                            let mut p_data = p_input.borrow().get_data().unwrap();
+                            obj.data().to_subworker_capnp(&mut p_data.borrow());
+                            obj.attributes.to_capnp(&mut p_data.borrow()
+                                                    .get_attributes().unwrap());
+                        }
                         obj.id.to_capnp(&mut p_input.get_id().unwrap());
                     }
                 }
@@ -223,7 +227,11 @@ impl TaskInstance {
                                 debug!("Task id={} finished in subworker", task.id);
                                 for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
                                     let data = data_from_capnp(&state_ref.get(), work_dir, &co)?;
-                                    output.get_mut().set_data(data);
+                                    let attributes = Attributes::from_capnp(&co.get_attributes().unwrap());
+
+                                    let mut o = output.get_mut();
+                                    o.set_attributes(attributes);
+                                    o.set_data(data);
                                 }
                             } else {
                                 debug!("Task id={} failed in subworker", task.id);

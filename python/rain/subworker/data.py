@@ -2,15 +2,20 @@
 import cloudpickle
 import os
 from rain.client.rpc import common as rpc_common
+from ..common.attributes import attributes_from_capnp
+from ..common.attributes import attributes_to_capnp
 
 
 def data_from_capnp(reader):
     which = reader.storage.which()
     if which == "memory":
-        return MemoryBlob(reader.storage.memory)
-    if which == "path":
-        return FileBlob(reader.storage.path)
-    raise Exception("Invalid storage type")
+        result = MemoryBlob(reader.storage.memory)
+    elif which == "path":
+        result = FileBlob(reader.storage.path)
+    else:
+        raise Exception("Invalid storage type")
+    result.attributes = attributes_from_capnp(reader.attributes)
+    return result
 
 
 class Data:
@@ -35,6 +40,7 @@ class MemoryBlob(Blob):
 
     def __init__(self, data):
         self.data = bytes(data)
+        self.attributes = {}
 
     def to_bytes(self):
         return self.data
@@ -51,6 +57,7 @@ class MemoryBlob(Blob):
             builder.storage.inWorker.id = self.worker_object_id[1]
         else:
             builder.storage.memory = self.data
+        attributes_to_capnp(self.attributes, builder.attributes)
 
     def __repr__(self):
         return "{}({}: {!r})".format(self.__class__.__name__,
@@ -61,6 +68,7 @@ class FileBlob(Blob):
 
     def __init__(self, filename):
         self.filename = filename
+        self.attributes = {}
 
     def to_bytes(self):
         with open(self.filename, "rb") as f:
@@ -79,6 +87,7 @@ class FileBlob(Blob):
             builder.storage.inWorker.id = self.worker_object_id[1]
         else:
             builder.storage.path = self.filename
+        attributes_to_capnp(self.attributes, builder.attributes)
 
     def _remove(self):
         os.unlink(self.filename)

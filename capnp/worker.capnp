@@ -40,6 +40,7 @@ struct WorkerStateUpdate {
         id @0 :DataObjectId;
         state @1 :DataObjectState;
         size @2 :UInt64;
+        attributes @3 :Attributes;
         # Only valid when the state is `finished` and `removed`, otherwise should be 0.
     }
 }

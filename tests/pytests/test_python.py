@@ -264,7 +264,9 @@ def test_py_ctx_debug(test_env):
 
 def test_py_ctx_set_attributes(test_env):
     @remote()
-    def test(ctx):
+    def test(ctx, a):
+        assert a.attributes["first"] == "first value"
+        assert a.attributes["second"] == {"integer": 12, "list": [1, 2, 3]}
         assert ctx.attributes["in_string"] == "value"
         assert ctx.attributes["in_complex"] == {"abc": 1200, "xyz": 321.12}
 
@@ -274,11 +276,16 @@ def test_py_ctx_set_attributes(test_env):
         ctx.attributes["boolTrue"] = True
         ctx.attributes["boolFalse"] = False
         ctx.attributes["dict"] = {"abc": 1, "xyz": "zzz"}
-        return b"Test"
+
+        a.attributes["new"] = ["a", 10, "b"]
+        return a
 
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t0 = test()
+        d0 = blob("data")
+        d0.attributes["first"] = "first value"
+        d0.attributes["second"] = {"integer": 12, "list": [1, 2, 3]}
+        t0 = test(d0)
         t0.attributes["in_string"] = "value"
         t0.attributes["in_complex"] = {"abc": 1200, "xyz": 321.12}
         s.submit()
@@ -290,6 +297,12 @@ def test_py_ctx_set_attributes(test_env):
         assert t0.attributes["boolTrue"] is True
         assert t0.attributes["boolFalse"] is False
         assert t0.attributes["dict"] == {"abc": 1, "xyz": "zzz"}
+
+        o = t0.output
+        o.update()
+        assert o.attributes["first"] == "first value"
+        assert o.attributes["second"] == {"integer": 12, "list": [1, 2, 3]}
+        assert o.attributes["new"] == ["a", 10, "b"]
 
 
 def test_remote_complex_args(test_env):

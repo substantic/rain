@@ -69,7 +69,7 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
                 }
                 let object = pry!(state.object_by_id(id));
                 let size = obj_update.get_size() as usize;
-                let attributes = Default::default(); // TODO: Handle attributes
+                let attributes = Attributes::from_capnp(&obj_update.get_attributes().unwrap());
                 obj_updates.push((object, pry!(obj_update.get_state()), size, attributes));
             }
 

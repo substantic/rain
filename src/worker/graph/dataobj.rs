@@ -2,7 +2,7 @@
 use common::id::{DataObjectId, WorkerId};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
-use common::RcSet;
+use common::{Attributes, RcSet};
 use super::{TaskRef, Graph};
 use worker::data::{Data, DataType};
 use worker::fs::workdir::WorkDir;
@@ -53,15 +53,25 @@ pub struct DataObject {
     /// Label may be the role that the output has in the `producer`, or it may be
     /// the name of the initial uploaded object.
     pub(in super::super) label: String,
+
+    pub(in super::super) attributes: Attributes,
+
+    pub(in super::super) new_attributes: Attributes,
 }
 
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
 impl DataObject {
+
     pub fn set_data(&mut self, data: Arc<Data>) {
         assert!(!self.is_finished());
         self.size = Some(data.size());
         self.state = DataObjectState::Finished(data);
+    }
+
+    pub fn set_attributes(&mut self, attributes: Attributes) {
+        // TODO Check content type
+        self.new_attributes = attributes;
     }
 
     #[inline]
@@ -98,6 +108,7 @@ impl DataObjectRef {
         assigned: bool,
         size: Option<usize>,
         label: String,
+        attributes: Attributes,
     ) -> Self {
 
         debug!("New object id={}", id);
@@ -112,6 +123,8 @@ impl DataObjectRef {
                     obj_type,
                     consumers: Default::default(),
                     label,
+                    attributes,
+                    new_attributes: Attributes::new(),
                 });
                 e.insert(dataobj.clone());
                 dataobj
