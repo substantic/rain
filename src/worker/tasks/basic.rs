@@ -5,7 +5,7 @@ use std::path::Path;
 use super::TaskResult;
 use worker::state::State;
 use worker::graph::TaskRef;
-use worker::data::{Data, DataBuilder, BlobBuilder};
+use worker::data::{Data, DataBuilder};
 use futures::{Future, future};
 use bytes::{Buf, LittleEndian};
 
@@ -25,7 +25,7 @@ pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {
 
     Ok(Box::new(future::lazy(move || {
         let result_size: usize = inputs.iter().map(|d| d.size()).sum();
-        let mut builder = BlobBuilder::new();
+        let mut builder = DataBuilder::new();
         builder.set_size(result_size);
         for input in inputs {
             builder.write_blob(&input);

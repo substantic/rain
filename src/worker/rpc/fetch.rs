@@ -3,7 +3,7 @@ use futures::{Future, future};
 
 use common::convert::ToCapnp;
 use worker::graph::DataObjectRef;
-use worker::data::{DataBuilder, Data, BlobBuilder};
+use worker::data::{DataBuilder, Data};
 use errors::{ErrorKind, Error};
 
 
@@ -44,7 +44,7 @@ pub fn fetch_from_datastore(
                 let reader = response.get_reader().unwrap();
                 let fetch_size;
 
-                let mut builder = BlobBuilder::new();
+                let mut builder = DataBuilder::new();
                 // TODO: If size is too big, do not download everything at once
                 if size == -1 {
                     // TODO: Do some benchmark for this constant
