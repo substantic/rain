@@ -1,5 +1,5 @@
 from .rpc import subworker as rpc_subworker
-from .data import data_from_capnp, Data
+from .data import data_from_capnp, DataInstance
 from .context import Context
 from ..common.attributes import attributes_to_capnp, attributes_from_capnp
 import traceback
@@ -39,7 +39,7 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
 
             results = _context.results.init("data", len(task_results))
             for i, data in enumerate(task_results):
-                if isinstance(data, Data):
+                if isinstance(data, DataInstance):
                     data.to_capnp(results[i])
                 elif isinstance(data, bytes):
                     results[i].storage.memory = data

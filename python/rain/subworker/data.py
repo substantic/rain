@@ -7,84 +7,76 @@ from ..common.attributes import attributes_to_capnp
 
 def data_from_capnp(reader):
     which = reader.storage.which()
+    data = None
+    path = None
     if which == "memory":
-        result = MemoryBlob(reader.storage.memory)
+        data = reader.storage.memory
     elif which == "path":
-        result = FileBlob(reader.storage.path)
+        path = reader.storage.path
     else:
         raise Exception("Invalid storage type")
-    result.attributes = attributes_from_capnp(reader.attributes)
-    return result
+    instance = DataInstance(data, path)
+    instance.attributes = attributes_from_capnp(reader.attributes)
+    return instance
 
 
-class Data:
+class DataInstance:
+
+    # Cache for python deseriazed version of the object
     load_cache = None
 
     # Contains object id if the object is known to worker
     worker_object_id = None
 
+    path = None
+    data = None
 
-class Blob(Data):
+    def __init__(self, data=None, path=None):
+        assert data is not None or path is not None
+        if data is not None:
+            self.data = bytes(data)
+        if path is not None:
+            self.path = path
+        self.attributes = {}
 
     def load(self, cache=False):
-        if self.load_cache is not None:
+        """Load object according content type"""
+        if self.load_cache is not None and cache:
             return self.load_cache
         obj = cloudpickle.loads(self.to_bytes())
         if cache:
             self.load_cache = obj
         return obj
 
-
-class MemoryBlob(Blob):
-
-    def __init__(self, data):
-        self.data = bytes(data)
-        self.attributes = {}
-
     def to_bytes(self):
-        return self.data
+        if self.data is not None:
+            return self.data
+        else:
+            with open(self.path, "rb") as f:
+                return f.read()
 
     def to_str(self):
         # TODO: Check attributes for encoding
-        return self.to_bytes().decode()
+        if self.data is not None:
+            return self.to_bytes().decode()
+        else:
+            with open(self.path, "r") as f:
+                return f.read()
 
     def to_capnp(self, builder):
         if self.worker_object_id:
             builder.storage.init("inWorker")
             builder.storage.inWorker.sessionId = self.worker_object_id[0]
             builder.storage.inWorker.id = self.worker_object_id[1]
+        elif self.path:
+            builder.storage.path = self.path
         else:
             builder.storage.memory = self.data
         attributes_to_capnp(self.attributes, builder.attributes)
 
     def __repr__(self):
-        return "{}({}: {!r})".format(self.__class__.__name__,
-                                     len(self.data), self.data[:30])
-
-
-class FileBlob(Blob):
-
-    def __init__(self, filename):
-        self.filename = filename
-        self.attributes = {}
-
-    def to_bytes(self):
-        with open(self.filename, "rb") as f:
-            return f.read()
-
-    def to_str(self):
-        # TODO: Check attributes for encoding
-        with open(self.filename, "r") as f:
-            return f.read()
-
-    def to_capnp(self, builder):
-        if self.worker_object_id:
-            builder.storage.init("inWorker")
-            builder.storage.inWorker.sessionId = self.worker_object_id[0]
-            builder.storage.inWorker.id = self.worker_object_id[1]
-        else:
-            builder.storage.path = self.filename
-        attributes_to_capnp(self.attributes, builder.attributes)
+        return "<DataInstance>"
 
     def _remove(self):
-        os.unlink(self.filename)
+        assert self.path
+        os.unlink(self.path)

@@ -1,7 +1,7 @@
 import shutil
 import os.path
 
-from .data import FileBlob
+from .data import DataInstance
 
 
 class Context:
@@ -17,7 +17,7 @@ class Context:
         self.id_counter += 1
         target = os.path.join(self.subworker.stage_path, str(self.id_counter))
         shutil.move(path, target)
-        data = FileBlob(target)
+        data = DataInstance(path=target)
         self.staged_data.add(data)
         return data
 
