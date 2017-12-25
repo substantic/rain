@@ -26,8 +26,13 @@ class DataObject:
         self.session = session
         self.label = label
         self.id = session._register_dataobj(self)
-        self.content_type = content_type
-        self.attributes = {}
+        self.attributes = {
+            "config": {"content_type": content_type}
+        }
+
+    @property
+    def content_type(self):
+        return self.attributes["config"]["content_type"]
 
     @property
     def id_pair(self):
