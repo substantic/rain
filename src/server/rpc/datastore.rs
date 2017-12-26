@@ -5,7 +5,7 @@ use common::convert::FromCapnp;
 use common::id::DataObjectId;
 use common::id::SId;
 
-use server::graph::{DataObjectRef, DataObjectState};
+use server::graph::{WorkerRef, DataObjectRef, DataObjectState};
 use datastore_capnp::{reader, data_store, read_reply};
 use server::state::StateRef;
 
@@ -108,12 +108,13 @@ impl data_store::Server for ClientDataStoreImpl {
 
 // Datastore provided for workers
 pub struct WorkerDataStoreImpl {
-    state: StateRef,
+    state_ref: StateRef,
+    worker_ref: WorkerRef,
 }
 
 impl WorkerDataStoreImpl {
-    pub fn new(state: &StateRef) -> Self {
-        Self { state: state.clone() }
+    pub fn new(state: &StateRef, worker_ref: &WorkerRef) -> Self {
+        Self { state_ref: state.clone(), worker_ref: worker_ref.clone()  }
     }
 }
 
@@ -126,7 +127,13 @@ impl data_store::Server for WorkerDataStoreImpl {
     ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let id = DataObjectId::from_capnp(&pry!(params.get_id()));
-        let object = if let Ok(o) = self.state.get().object_by_id(id) {
+
+        if self.worker_ref.get().is_object_ignored(&id) {
+            results.get().set_ignored(());
+            return Promise::ok(());
+        }
+
+        let object = if let Ok(o) = self.state_ref.get().object_by_id(id) {
             o
         } else {
             results.get().set_removed(());

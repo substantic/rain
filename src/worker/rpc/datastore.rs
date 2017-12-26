@@ -31,7 +31,15 @@ impl data_store::Server for DataStoreImpl {
     ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let id = DataObjectId::from_capnp(&pry!(params.get_id()));
-        let object = pry!(self.state.get().object_by_id(id));
+        let object = match self.state.get().object_by_id(id) {
+            Ok(o) => o,
+            Err(_) => {
+                debug!("Worker responding 'not here' for id={}", id);
+                let mut results = results.get();
+                results.set_not_here(());
+                return Promise::ok(())
+            }
+        };
         let size = object.get().size.map(|s| s as i64).unwrap_or(-1i64);
 
         let offset = params.get_offset();

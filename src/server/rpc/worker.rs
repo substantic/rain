@@ -39,7 +39,7 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
     ) -> Promise<(), ::capnp::Error> {
         debug!("server data store requested from worker");
         let datastore = ::datastore_capnp::data_store::ToClient::new(
-            WorkerDataStoreImpl::new(&self.state),
+            WorkerDataStoreImpl::new(&self.state, &self.worker),
         ).from_server::<::capnp_rpc::Server>();
         results.get().set_store(datastore);
         Promise::ok(())

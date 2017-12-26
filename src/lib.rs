@@ -71,6 +71,12 @@ pub mod errors {
             Utf8Err(::std::str::Utf8Error);
             Json(::serde_json::Error);
         }
+
+        errors {
+            Ignored {
+                description("Request asked for ignored id")
+            }
+        }
     }
     // Explicit alias just to make the IDEs happier
     pub type Result<T> = ::std::result::Result<T, Error>;

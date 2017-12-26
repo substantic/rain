@@ -24,7 +24,7 @@ use common::fs::logdir::LogDir;
 
 use worker::graph::{DataObjectRef, DataObjectState, DataObject, Graph, TaskRef,
                     TaskInput, TaskState, SubworkerRef, subworker_command};
-use worker::data::DataBuilder;
+use worker::data::{DataBuilder, Data};
 use worker::tasks::TaskInstance;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
@@ -40,7 +40,7 @@ use tokio_timer;
 use tokio_uds::{UnixListener, UnixStream};
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use capnp::capability::Promise;
-use errors::{Error, Result};
+use errors::{ErrorKind, Error, Result};
 
 use WORKER_PROTOCOL_VERSION;
 
@@ -415,6 +415,71 @@ impl State {
         dataobj
     }
 
+    /// n_redirects is a protection against ifinite loop of redirections
+    pub fn fetch_from_datastore(&mut self, worker_id: &WorkerId, dataobj_id: DataObjectId, n_redirects: i32) -> Box<Future<Item = Data, Error = Error>>
+    {
+        if n_redirects > 32 {
+            panic!("Too many redirections; dataobj_id={}", dataobj_id);
+        }
+        let state_ref = self.self_ref();
+        let worker_id = worker_id.clone();
+        Box::new(self.wait_for_datastore(&worker_id).and_then(move |()| {
+            let is_server = worker_id.ip().is_unspecified();
+            let mut req = {
+                let state = state_ref.get();
+                let datastore = state.get_datastore(&worker_id);
+                datastore.create_reader_request()
+            };
+            {
+                let mut params = req.get();
+                params.set_offset(0);
+                dataobj_id.to_capnp(&mut params.get_id().unwrap());
+            }
+
+            req.send()
+                .promise
+                .map_err(|e| Error::with_chain(e, "Send failed"))
+                .and_then(move |r| {
+                    let response = r.get().unwrap();
+                    let mut state = state_ref.get_mut();
+                    match response.which().unwrap() {
+                        ::datastore_capnp::reader_response::Which::Ok(()) => {
+                            let size = response.get_size();
+                            let reader = response.get_reader().unwrap();
+                            ::worker::rpc::fetch::fetch_from_reader(
+                                reader,
+                                if size == -1 { None } else { Some(size as usize) })
+                        },
+                        ::datastore_capnp::reader_response::Which::Redirect(w) => {
+                            assert!(is_server);
+                            let worker_id = WorkerId::from_capnp(&w.unwrap());
+                            debug!("Datastore redirection; id={}, worker={}",
+                                   dataobj_id, worker_id);
+                            state.fetch_from_datastore(
+                                &worker_id, dataobj_id, n_redirects + 1)
+                        },
+                        ::datastore_capnp::reader_response::Which::NotHere(()) => {
+                            assert!(!is_server);
+                            debug!("Datastore redirection to server; id={}",
+                                   dataobj_id);
+                            // Ask for server for placing of data object
+                            let worker_id = empty_worker_id();
+                            state.fetch_from_datastore(
+                                &worker_id, dataobj_id, n_redirects + 1)
+                        },
+                        ::datastore_capnp::reader_response::Which::Ignored(()) => {
+                            assert!(is_server);
+                            debug!("Datastore ignore occured; id={}",
+                                   dataobj_id);
+                            Box::new(Err(Error::from(ErrorKind::Ignored)).into_future())
+                        },
+                        _ => panic!("Invalid reposponse from datastore"),
+                    }
+                })
+        }))
+    }
+
+
     pub fn remove_dataobj_if_not_needed(&mut self, object: &DataObject) {
         if !object.assigned && object.consumers.is_empty() {
             self.graph.objects.remove(&object.id);
@@ -511,7 +576,6 @@ impl State {
 
     pub fn wait_for_datastore(
         &mut self,
-        state: &StateRef,
         worker_id: &WorkerId,
     ) -> Box<Future<Item = (), Error = Error>> {
         if let Some(ref mut wrapper) = self.datastores.get_mut(worker_id) {
@@ -521,7 +585,7 @@ impl State {
         let wrapper = AsyncInitWrapper::new();
         self.datastores.insert(worker_id.clone(), wrapper);
 
-        let state = state.clone();
+        let state = self.self_ref();
         let worker_id = worker_id.clone();
 
         if worker_id.ip().is_unspecified() {

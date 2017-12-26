@@ -410,7 +410,7 @@ impl client_service::Server for ClientServiceImpl {
         }
 
         {
-            let mut obj_updates = results.borrow().init_objects(objects.len() as u32);
+           let mut obj_updates = results.borrow().init_objects(objects.len() as u32);
             for (i, obj) in objects.iter().enumerate() {
                 let mut update = obj_updates.borrow().get(i as u32);
                 let o = obj.get();

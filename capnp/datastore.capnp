@@ -60,6 +60,13 @@ struct ReaderResponse {
         # object)
 
         error @6 :Error;
+        # Only as response for client
+
+        ignored @7 :Void;
+        # Only from server to worker. It is returned when "id" is ignored on server.
+        # This can happend when server closes a session, but the worker have not yer received
+        # the message about it. The best response of the worker is just the ignore 
+        # the response and wait for messages that brings deletion of dataobject
     }
 
 }

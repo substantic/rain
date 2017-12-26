@@ -13,7 +13,8 @@ use worker_capnp::worker_control;
 use capnp::capability::Promise;
 use std::process::exit;
 use futures::future::Future;
-use super::fetch::fetch_from_datastore;
+use errors::{ErrorKind, Error};
+
 
 pub struct WorkerControlImpl {
     state: StateRef,
@@ -187,31 +188,17 @@ impl worker_control::Server for WorkerControlImpl {
             let worker_id = object.get().remote().unwrap();
             let object_id = object.get().id;
 
-            let state_ref1 = self.state.clone();
-            let state_ref2 = self.state.clone();
+            let state_ref = self.state.clone();
             let object_ref = object.clone();
-            let future = state.wait_for_datastore(&self.state, &worker_id).and_then(move |()| {
-                    // Ask for data
-                    let state = state_ref1.get();
-                    let datastore = state.get_datastore(&worker_id);
-                    fetch_from_datastore(&object, datastore)
-                }).map(move |data| {
-                    // Data obtained
-                    let mut state = state_ref2.get_mut();
-                    object_ref.get_mut().set_data(Arc::new(data));
-                    state.object_is_finished(&object_ref);
-                });
+            let future = state.fetch_from_datastore(&worker_id, object_id, 0).map(move |data| {
+                object_ref.get_mut().set_data(Arc::new(data));
+                state_ref.get_mut().object_is_finished(&object_ref);
+            });
             state.handle().spawn(future.map_err(move |e| {
-                // This can be an error or maybe just race condition
-                // when session is closed and object was not found,
-                // we are not just logging do nothing, but TODO: we should be informing server
-                warn!(
-                    "Fetching dataobject id={} from worker={} failed {:?}",
-                    object_id,
-                    worker_id,
-                    e
-                );
-                ()
+                match e {
+                    Error(ErrorKind::Ignored, _) => { /* do nothing, it is safe */ }
+                    e => panic!("Fetch dataobject failed {:?}", e)
+                }
             }));
         }
         state.need_scheduling();
