@@ -30,8 +30,7 @@ impl Graph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::{ClientRef, SessionRef, Graph, TaskRef, WorkerRef, DataObjectRef,
-                       DataObjectType, TaskInput};
+    use super::super::{ClientRef, SessionRef, Graph, TaskRef, WorkerRef, DataObjectRef, TaskInput};
     use common::id::{SId, TaskId, SessionId, ClientId, DataObjectId, WorkerId};
     use common::resources::Resources;
     use common::keeppolicy;
@@ -61,7 +60,6 @@ mod tests {
                     let o = DataObjectRef::new(
                         &s,
                         DataObjectId::new(s.get_id(), oi as i32),
-                        DataObjectType::Blob,
                         Default::default(),
                         "label".to_string(),
                         None,
