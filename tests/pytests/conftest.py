@@ -95,23 +95,36 @@ class TestEnv(Env):
                 port = self.default_listen_port
         self.running_port = port
 
+        server_ready_file = os.path.join(WORK_DIR, "server-ready")
+
         # Start SERVER
-        args = (RAIN_BIN, "server", "--listen", str(addr))
+        args = (RAIN_BIN, "server",
+                "--ready-file", server_ready_file,
+                "--listen", str(addr))
         server = self.start_process("server", args, env=env)
-        time.sleep(0.1)
-        if server.poll():
-            raise Exception("Server is not running")
+
+        while not os.path.isfile(server_ready_file):
+            time.sleep(0.03)
+            self.check_running_processes()
 
         # Start WORKERS
         workers = []
-        args = (RAIN_BIN,
-                "worker", "127.0.0.1:" + str(port),
-                "--cpus", str(n_cpus),
-                "--workdir", WORK_DIR)
+
+        worker_ready_files = []
         for i in range(n_workers):
             name = "worker{}".format(i)
+            ready_file = os.path.join(WORK_DIR, name + "-ready")
+            worker_ready_files.append(ready_file)
+            args = (RAIN_BIN,
+                    "worker", "127.0.0.1:" + str(port),
+                    "--ready-file", ready_file,
+                    "--cpus", str(n_cpus),
+                    "--workdir", WORK_DIR)
             workers.append(self.start_process(name, args, env=env))
-        time.sleep(0.2)
+
+        while not all(os.path.isfile(f) for f in worker_ready_files):
+            time.sleep(0.03)
+            self.check_running_processes()
 
         self.server = server
         self.workers = workers
