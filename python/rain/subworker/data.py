@@ -3,6 +3,7 @@ import cloudpickle
 import os
 from ..common.attributes import attributes_from_capnp
 from ..common.attributes import attributes_to_capnp
+from ..common import packing
 
 
 def data_from_capnp(reader):
@@ -15,12 +16,18 @@ def data_from_capnp(reader):
         path = reader.storage.path
     else:
         raise Exception("Invalid storage type")
-    instance = DataInstance(data, path)
-    instance.attributes = attributes_from_capnp(reader.attributes)
+    attributes = attributes_from_capnp(reader.attributes)
+    instance = DataInstance(data, path, attributes=attributes)
     return instance
 
 
 class DataInstance:
+    """
+    Instance od Data object in subworker.
+
+    The user should not create manually create this object,
+    but always use method on context
+    """
 
     # Cache for python deseriazed version of the object
     load_cache = None
@@ -31,19 +38,39 @@ class DataInstance:
     path = None
     data = None
 
-    def __init__(self, data=None, path=None):
+    def __init__(self,
+                 data=None,
+                 path=None,
+                 content_type=None,
+                 attributes=None):
         assert data is not None or path is not None
         if data is not None:
             self.data = bytes(data)
         if path is not None:
             self.path = path
-        self.attributes = {}
+        if attributes is None:
+            attributes = {}
+        self.attributes = attributes
+        if content_type is not None:
+            attributes["config"] = {"content_type": content_type}
+
+    @property
+    def content_type(self):
+        config = self.attributes.get("config")
+        if config:
+            return config.get("content_type")
+        else:
+            return None
 
     def load(self, cache=False):
         """Load object according content type"""
         if self.load_cache is not None and cache:
             return self.load_cache
-        obj = cloudpickle.loads(self.to_bytes())
+        if self.data:
+            obj = packing.load_mem(self.data, self.content_type)
+        else:
+            with open(self.path) as f:
+                obj = packing.load_file(f, self.content_type)
         if cache:
             self.load_cache = obj
         return obj

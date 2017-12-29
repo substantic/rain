@@ -85,7 +85,7 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
             fn_blob = session._static_data.get(fn)
             if fn_blob is None:
                 d = _checked_pickle(fn, fn.__name__)
-                fn_blob = blob(d, fn.__name__)
+                fn_blob = blob(d, fn.__name__, content_type="py")
                 fn_blob.keep()
                 session._static_data[fn] = fn_blob
             inputs = [fn_blob]

@@ -262,6 +262,26 @@ def test_py_ctx_debug(test_env):
             "First message\nSecond message\nLast message"
 
 
+def test_py_loadsave(test_env):
+
+    @remote()
+    def test(ctx, a):
+        assert a.load() == [10, 20]
+        o = ctx.dump(["a", 1], content_type="json")
+        assert o.load() == ["a", 1]
+
+        return ctx.dump(["a", 1], content_type="json")
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        a = blob("[10, 20]", content_type="json")
+        b = test(a)
+        b.output.keep()
+        s.submit()
+        s.wait_all()
+        assert b.output.fetch() == b'["a", 1]'
+
+
 def test_py_ctx_set_attributes(test_env):
     @remote()
     def test(ctx, a):
