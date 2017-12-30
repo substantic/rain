@@ -28,6 +28,10 @@ def open(filename):
     return Task("!open", {"path": filename}, outputs=1)
 
 
+def export(dataobj, filename):
+    return Task("!export", {"path": filename}, inputs=(dataobj,))
+
+
 def execute(args, stdout=None, stdin=None, inputs=(), outputs=(), shell=False):
 
     ins = []

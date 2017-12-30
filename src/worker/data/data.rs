@@ -90,6 +90,22 @@ impl Data {
         Ok(())
     }
 
+    /// Export data object on a given path
+    pub fn export_to_path(&self, path: &Path) -> Result<()> {
+        use std::io::Write;
+
+        match self.storage {
+            Storage::Memory(ref data) => {
+                let mut file = ::std::fs::File::create(path)?;
+                file.write_all(data)?;
+            }
+            Storage::Path(ref data) => {
+                ::std::fs::copy(&data.path, path)?;
+            }
+        };
+        Ok(())
+    }
+
     #[inline]
     pub fn is_blob(&self) -> bool {
         // TODO: Directories        

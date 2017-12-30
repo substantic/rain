@@ -65,6 +65,10 @@ class TestEnv(Env):
         self.workers = []
         self.do_final_check = True
 
+    @property
+    def work_dir(self):
+        return WORK_DIR
+
     def no_final_check(self):
         self.do_final_check = False
 

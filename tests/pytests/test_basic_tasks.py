@@ -111,3 +111,21 @@ def test_task_open_ok(test_env):
         t1.output.keep()
         s.submit()
         assert t1.output.fetch() == content
+
+
+def test_task_export(test_env):
+    import os.path
+    test1 = os.path.join(test_env.work_dir, "TEST1")
+    test2 = os.path.join(test_env.work_dir, "TEST2")
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        a = blob("Hello ")
+        b = blob("World!")
+        tasks.export(tasks.concat((a, b)), test1)
+        tasks.export(tasks.execute("ls /", stdout="output"), test2)
+        s.submit()
+        s.wait_all()
+        with open(test1) as f:
+            assert f.read() == "Hello World!"
+        with open(test2) as f:
+            assert "bin" in f.read()

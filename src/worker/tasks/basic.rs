@@ -58,7 +58,7 @@ pub fn task_sleep(state: &mut State, task_ref: TaskRef) -> TaskResult {
                 })))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct OpenConfig {
     path: String,
 }
@@ -84,5 +84,30 @@ pub fn task_open(state: &mut State, task_ref: TaskRef) -> TaskResult {
             output.get_mut().set_data(Arc::new(data));
         }
         Ok(())
+    })))
+}
+
+
+#[derive(Deserialize)]
+struct ExportConfig {
+    path: String,
+}
+
+
+/// Export internal file to external file system
+pub fn task_export(_: &mut State, task_ref: TaskRef) -> TaskResult {
+    {
+        let task = task_ref.get();
+        task.check_number_of_args(1)?;
+    }
+    Ok(Box::new(future::lazy(move || {
+        let task = task_ref.get();
+        let config: ExportConfig = task.attributes.get("config")?;
+        let path = Path::new(&config.path);
+        if !path.is_absolute() {
+            bail!("Path {:?} is not absolute", path);
+        }
+        let input = task.input(0);
+        input.export_to_path(path)
     })))
 }

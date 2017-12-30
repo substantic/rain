@@ -77,6 +77,7 @@ impl TaskInstance {
                 "!concat" => tasks::basic::task_concat,
                 "!sleep" => tasks::basic::task_sleep,
                 "!open" => tasks::basic::task_open,
+                "!export" => tasks::basic::task_export,
                 _ => fail_unknown_type,
             }
         };
