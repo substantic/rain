@@ -42,7 +42,7 @@ This section shows how to start server and one local worker, and execute simple
   scenarios there is "rain run" to do it for you. The following command stars
   server and one local worker::
 
-  $ rain run --local_worker=1
+  $ rain run --simple
 
 - Running "Hello World" example. The following program creates a task that joins
   two strings.::
@@ -55,7 +55,7 @@ This section shows how to start server and one local worker, and execute simple
     # Create a new session
     with client.new_session() as session:  
 
-        # Create task
+        # Create task (and two data objects)
         task = tasks.concat(blob("Hello "), blob("world!"))
 
         # Mark that the output should be kept after submit

@@ -1,6 +1,11 @@
 Concepts
 ********
 
+
+
+.. figure:: imgs/arch.svg
+   :alt: Connection between basic compoenents of Rain
+
 Client
 ======
 

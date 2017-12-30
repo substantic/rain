@@ -11,7 +11,15 @@ Welcome to Rain's documentation!
    
    overview
    concepts
-   python_api         
+   roadmap
+   session
+   tasks
+   basic_tasks
+   execute_task
+   python_tasks
+   errors
+   directories
+   python_api
    args
 
 Indices and tables
