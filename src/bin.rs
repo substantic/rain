@@ -390,7 +390,7 @@ fn main() {
                     .long("--cpus")
                     .help("Number of cpus or 'detect' (default = detect)")
                     .value_name("N")
-                    .default_value("auto"))
+                    .default_value("detect"))
                 .arg(Arg::with_name("WORK_DIR")
                     .long("--workdir")
                     .help("Workding directory (default = /tmp)")
