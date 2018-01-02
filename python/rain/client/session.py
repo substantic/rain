@@ -225,20 +225,30 @@ class Session:
     def update(self, items):
         self.client.update(items)
 
-    def pending_graph(self):
+    def make_graph(self, show_ids=True):
         """ Create a graph of tasks and objects that were not submitted """
-        g = graph.Graph()
-        for o in self._dataobjs:
+
+        def add_obj(o):
+            if o is None:
+                return
             node = g.node(o)
             node.label = o.id_pair
             node.shape = "box"
+            node.color = "none"
+            node.fillcolor = "#0088aa"
+            node.fillcolor = "#44ccff"
             if o.is_kept():
-                node.fillcolor = "gray"
+                node.fillcolor = "#44ccff"
+                node.color = "black"
 
-        for t in self._tasks:
+        def add_task(t):
+            if t is None:
+                return
             node = g.node(t)
             node.label = "{}\n{}".format(t.id_pair, t.task_type)
             node.shape = "oval"
+            node.fillcolor = "#0088aa"
+            node.color = "none"
             for i, (key, o) in enumerate(t.inputs.items()):
                 if key is None:
                     label = str(i)
@@ -252,6 +262,21 @@ class Session:
                 else:
                     label = "{}: {}".format(i, key)
                 node.add_arc(g.node(o), label)
+
+        g = graph.Graph()
+
+        for o in self._dataobjs:
+            add_obj(o)
+
+        for o in self._submitted_dataobjs:
+            add_obj(o())
+
+        for t in self._tasks:
+            add_task(t)
+
+        for t in self._submitted_tasks:
+            add_task(t())
+
         return g
 
 
