@@ -16,36 +16,22 @@ Overview
      cluster.
 
 
-Install and requirements
-========================
-
-
-Installation binaries
----------------------
-
-TODO
-
-
-Built from sources
-------------------
-
-TODO
-
-
 Hello world
 ===========
 
 This section shows how to start server and one local worker, and execute simple
 "Hello world" program.
 
-- Start infrastructure. You can do start and workers manually, but for standard
-  scenarios there is "rain run" to do it for you. The following command stars
-  server and one local worker::
+- **Start infrastructure.** You can do start and workers manually, but for
+  standard scenarios there is "rain run" to do it for you. The following command
+  stars server and one local worker (Starting Rain infrastructure for
+  distributed computations is described in :ref:`program-rain`.)::
 
   $ rain run --simple
 
-- Running "Hello World" example. The following program creates a task that joins
-  two strings.::
+- **Running "Hello World" example.** The following Python program creates a task
+  that joins two strings (This example is more explained in Section
+  :ref:`tasks-and-objs`.)::
 
     from rain.client import Client, tasks, blob
 

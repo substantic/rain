@@ -114,7 +114,7 @@ class DataObject:
 
 
 def blob(value, label="const", content_type=None):
-    """Create a constant data object"""
+    """Creates a data object with accompanying data"""
 
     if isinstance(value, str):
         value = bytes(value, "utf-8")

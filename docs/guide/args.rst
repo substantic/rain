@@ -1,12 +1,16 @@
+.. _program-rain:
 
-Program *rain*
-**************
+Starting program *rain*
+***********************
 
 Program *rain* contains core infrastructure of rain: server and worker. It also
-known how to start infrastructure for common usages.
+known how to start infrastructure for common usages. This section is divided
+into two parts: how to start Rain infrastructure for common cases and full list
+of arguments.
 
-Examples
-========
+
+Starting rain in examples
+=========================
 
 Starting local workers
 ----------------------

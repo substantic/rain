@@ -1,3 +1,4 @@
+.. _tasks-and-objs:
 
 Tasks & Data Objects
 ********************
@@ -14,18 +15,19 @@ some outputs. Tasks are executed on computational nodes (computers where Rain
 workers are running). Tasks are defined as external programs, python functions,
 and there are build-in tasks.
 
-**Data objects** are objects that are read and created by tasks. They are
-generic data blobs with accompanying metadata. It is upto tasks to interprep
-content of data objects.
+**Data objects** are objects that are read and created by tasks. Data objects
+are immutable, once they are created thay cannot be changed. They are generic
+data blobs with accompanying metadata. It is upto tasks to interprep data object
+contents.
 
 
 Submission
 ==========
 
-Client composes graph of tasks and objects within the currenlty active session.
-We call this graph as **task graph**. The composed graph is sent to server via
-``submit()`` method on session. Let us repeat the example from the previous
-section::
+The client composes graph of tasks and objects within the currently active
+session. We call this graph as **task graph**. The composed graph is sent to the
+server via ``submit()`` method on session. Let us repeat the example from the
+previous section::
 
   from rain.client import Client, tasks, blob
 
@@ -39,20 +41,20 @@ section::
       session.submit()      # Send the created graph into the server
       session.wait_all()    # Wait until all running tasks are not finished      
 
-
-The graph submitted to graph looks as follows:
+Call :func:`rain.client.blob` creates a data object with a content defined by
+the client, that is takes as the first argument; allowed types are ``bytes`` or
+``str``. Data are uploaded together during the submission as a part of task
+graph. Task created by :func:`rain.client.tasks.concat` takes arbitrary blobs
+and creates a new data object by concatenating the inputs. Therefore the graph
+contains three data objects and one task. The graph submitted to the server
+looks as follows:
 
 .. figure:: imgs/helloworld.svg
    :alt: Example of task graph
 
-The example contains one task and three data objects. The used task creates a
-new data object that is created by concatenation of inputs. Two input data
-objets are uploaded into the server when task graph is submitted. The third data
-object is the product of the task.
-
-The call of method ``submit()`` is terminated as far as the task graph submitted
-to the server. The method ``wait_all()`` waits until all submitted tasks is not
-finished. Server starts to schedule tasks as soon as there are free resources.
+The call of method ``submit()`` is finished as far as the task graph submitted
+to the server. The method ``wait_all()`` waits until all submitted tasks are not
+finished.
 
 
 Fetching data objects
@@ -83,23 +85,23 @@ output of task ``t``::
 By default, Rain automatically removes data objects when there is no unfinished
 tasks that needs it as an input. Method ``keep()`` sets a flag to a given object
 that tells the server to keep the object until the client does not explicitly
-frees it. Object is freed when the session is closed or when ``unkeep()`` method
-called.
+frees it. An object is freed when the session is closed or when ``unkeep()``
+method is called. Method ``keep()`` may be called only before the submit. Method
+``unkeep()`` may be called on any "kept" object any time.
 
 Kept objects can be fetched to the client by method ``fetch()``. If the object
 is not finished yet, the method blocks until the object is not finished. Note
-that we did not use ``wait_all()`` this time.
+that because of that, we did not use ``wait_all()`` in this example.
 
 
 More complex plans
 ==================
 
-Naturally, an output of a task may be used as an input for other. This is
+Naturally, an output of a task may be used as an input for another task. This is
 demonstrated by the following example. In the example, we use ``tasks.sleep(T,
-O)`` that createsa a task that takes an arbitrary data object ``O`` and waits
-for ``T`` seconds and then returns ``O`` as its output. The task is usually not
-much usefull, but it good for testing purposes::
-
+O)`` that creates a task taking an arbitrary data object ``O`` and waits for
+``T`` seconds and then returns ``O`` as its output. This task is usually not
+much useful, but it good for testing purposes::
 
   from rain.client import Client, tasks, blob
 
@@ -125,6 +127,10 @@ as an input for another task. In our example, we can define ``t2`` as follows::
 This shorten way is used in the rest of the text.
 
 
+Labels
+======
+
+
 More outputs
 ============
 
@@ -144,9 +150,95 @@ Resources
 Waiting on tasks and objects
 ============================
 
+So far, we have use waiting for all tasks in a session via ``wait_all()`` or we
+fetch (and potentially wait for) a kept object. Rain offers additional options
+for waiting on tasks and objects.
+
+
+Waiting on single object and tasks
+----------------------------------
+
+The simplest one is waiting on a single task, if ``t`` is a submitted task, we
+can wait for it by calling method ``wait()``::
+
+
+  with client.new_session() as session:
+      a = blob("Hello world")
+      t1 = tasks.sleep(1.0, a)
+      t2 = tasks.sleep(2.0, a)
+      session.submit()
+
+      t1.wait()  # This blocks until t1 is not finished, independantly on t2
+ 
+This call blocks the client until the task is not finished. In the same way,
+we can wait for a single data object::
+
+   with client.new_session() as session:
+      a = blob("Hello world")
+      t1 = tasks.sleep(1.0, a)
+      t2 = tasks.sleep(2.0, a)
+      session.submit()
+
+      t1.output.wait()
+
+Since the object is created in the same time as task is finished, it behaves
+exactly as example above. Note that in the case of ``wait()`` (unlike
+``fetch()``), object does not have to be marked as "kept".
+
+
+Waiting for more tasks and objects
+----------------------------------
+
+For waiting on more objects, there is call session method
+``wait(tasks_and_objects)``. It takes a collection of tasks and objects and
+blocks until all of them are not finished. The example shows waiting for two
+tasks explicitly::
+
+   with client.new_session() as session:
+      a = blob("Hello world")
+      t1 = tasks.sleep(1.0, a)
+      t2 = tasks.sleep(2.0, a)
+      session.submit()
+
+      session.wait([t1, t2])
+
+
+Wait until some of task/data object are not finished
+------------------------------------------------------
+
+TODO: session.wait_some(...)
+
+
 
 More submits
 ============
+
+The task graph does not have to be submmited at once, but more submmits may
+occur during in during lifetime of a session. Data object from previous submits
+may be used in during the construction of new submit, the only condition is that
+they have to be "kept".
+
+::
+
+   with client.new_session() as session:
+      a = blob("Hello world")
+      t1 = tasks.sleep(1.0, a)
+      t1.output.keep()
+
+      session.submit()  # First submit
+
+      t2 = tasks.sleep(1.0, t1.output)
+
+      session.submit()  # Second submit
+      session.wait_all()  # Wait until everything is finished
+
+      t3 = tasks.sleep(1.0, t1.output)
+
+      session.submit()  # This submit
+      session.wait_all()  # Wait again until everything is finished
+
+Note: Method ``wait_all()`` waits until all currently running task are not finished,
+regardless in which submit they arrived to the server.
 
 
 More terminology
