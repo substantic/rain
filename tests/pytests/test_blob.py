@@ -1,4 +1,5 @@
 from rain.client import blob, RainException
+import rain
 import pytest
 import json
 import pickle
@@ -13,12 +14,13 @@ def test_blob_construction(fake_session):
         assert b1.session == session
         assert b1.id != b2.id
 
-        obj = [1, {'a': (4, 5)}]
+        obj = [1, {'a': [4, 5]}]
         b3 = blob(obj, encode='pickle')
         assert pickle.loads(b3.data) == obj
 
         b4 = blob(obj, encode='json')
-        assert json.loads(b4.data)
+        assert json.loads(b4.data.decode()) == obj
+        assert rain.common.content_type.decode_value(b4.data, "json") == obj
 
         txt = "asžčďďŠ"
         b5 = blob(txt, encode='text:latin2')
