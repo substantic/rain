@@ -9,7 +9,7 @@ from collections import OrderedDict
 from .task import Task
 from .data import blob, DataObject
 from .session import get_active_session
-from .common import RainException, RainWarning
+from ..common import RainException, RainWarning
 
 
 PICKLE_ARG_SIZE_LIMIT = 256 * 1024

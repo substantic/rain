@@ -1,7 +1,7 @@
 import capnp
 
 from .session import get_active_session
-from .common import RainException
+from ..common import RainException
 from ..common.attributes import attributes_to_capnp
 from ..common.content_type import merge_content_types, check_content_type, encode_value
 

@@ -15,7 +15,7 @@ get_active_session()
 import weakref
 
 from rain.client import rpc
-from .common import RainException
+from ..common import RainException
 from . import graph
 
 _global_sessions = []

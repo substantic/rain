@@ -1,6 +1,6 @@
 from .session import get_active_session
 from .data import DataObject, to_data
-from .common import RainException
+from ..common import RainException
 from ..common import LabeledList
 from ..common.resources import cpu_1
 from ..common.attributes import attributes_to_capnp

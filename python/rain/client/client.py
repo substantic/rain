@@ -1,6 +1,6 @@
 import capnp
 from rain.client import rpc
-from rain.client.common import RainException
+from rain.common import RainException
 from rain.client.task import Task
 from rain.client.data import DataObject
 from ..common import attributes
