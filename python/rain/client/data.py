@@ -3,6 +3,7 @@ import capnp
 from .session import get_active_session
 from .common import RainException
 from ..common.attributes import attributes_to_capnp
+from ..common.content_type import merge_content_types, check_content_type, encode_value
 
 
 class DataObject:
@@ -113,14 +114,30 @@ class DataObject:
             self.label, self.session.session_id, self.id)
 
 
-def blob(value, label="const", content_type=None):
-    """Create a constant data object"""
+def blob(value, label="const", content_type=None, encode=None):
+    """
+    Create a constant data object.
+    
+    Given `value` may be either `bytes` or any object to be encoded with
+    `encoding` content type. Strings are encoded with utf-8 by default.
+    Specify at most one of `content_type` and `encode`.
+    """
 
-    if isinstance(value, str):
-        value = bytes(value, "utf-8")
-    elif not isinstance(value, bytes):
+    if content_type is not None:
+        assert encode is None, "Specify only one of content_type and encode"
+        assert isinstance(value, bytes), "content_type only allowed for `bytes`"
+        
+    if encode is None and isinstance(value, str):
+        encode = "text:utf-8"
+
+    if encode is not None:
+        check_content_type(encode)
+        value = encode_value(value, content_type=encode)
+        content_type = merge_content_types(content_type, encode)
+
+    if not isinstance(value, bytes):
         raise RainException(
-            "Invalid blob type (only str or bytes are allowed)")
+            "Invalid blob type (only str or bytes are allowed without `encode`)")
 
     dataobj = DataObject(label, content_type=content_type)
     dataobj.data = value
@@ -137,11 +154,11 @@ def to_data(obj):
         if len(obj.outputs) == 0:
             raise RainException("{} does not have any output".format(obj))
         else:
-            raise RainException("{} returns more outputs".format(obj))
+            raise RainException("{} returns multiple outputs".format(obj))
 
     if isinstance(obj, str) or isinstance(obj, bytes):
         raise RainException(
-            "Instance of {} cannot be used as an data object\n"
+            "Instance of {!r} cannot be used as an data object\n"
             "Help: You can wrap it by 'blob' to use it as data object"
             .format(type(obj)))
 
