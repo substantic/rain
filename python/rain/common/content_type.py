@@ -69,3 +69,15 @@ def decode_value(data, content_type):
     else:
         raise RainException("Decoding from {:r} unsupported"
                             .format(content_type))
+
+
+class EncodedBytes(bytes):
+    "Bytes type with `load` method (with given content_type)"
+
+    def __init__(self, data, content_type):
+        super().__init__(data)
+        self.content_type = content_type
+
+    def load(self):
+        return decode_value(self, self.content_type)
+
