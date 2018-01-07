@@ -144,6 +144,16 @@ def blob(value, label="const", content_type=None, encode=None):
     return dataobj
 
 
+def pickled(val, label="pickle"):
+    """
+    Create a data object with pickled `val`.
+
+    A shorthand for `blob(val, ancode='pickle')`.
+    The default label is "pickle".
+    """
+    return blob(val, encode='pickle', label=label)
+
+
 def to_data(obj):
     """Convert an object to DataObject/DataObjectPart"""
     if isinstance(obj, DataObject):

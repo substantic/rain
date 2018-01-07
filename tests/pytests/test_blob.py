@@ -1,4 +1,4 @@
-from rain.client import blob, RainException
+from rain.client import blob, RainException, pickled
 import rain
 import pytest
 import json
@@ -17,6 +17,10 @@ def test_blob_construction(fake_session):
         obj = [1, {'a': [4, 5]}]
         b3 = blob(obj, encode='pickle')
         assert pickle.loads(b3.data) == obj
+
+        b3b = pickled(obj)
+        assert b3.data == b3b.data
+        assert b3.content_type == 'pickle'
 
         b4 = blob(obj, encode='json')
         assert json.loads(b4.data.decode()) == obj
