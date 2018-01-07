@@ -25,7 +25,7 @@ class DataInstance:
     """
     Instance od Data object in subworker.
 
-    The user should not create manually create this object,
+    The user should not manually create this object,
     but always use method on context
     """
 
