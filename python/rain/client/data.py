@@ -3,7 +3,8 @@ import capnp
 from .session import get_active_session
 from ..common import RainException
 from ..common.attributes import attributes_to_capnp
-from ..common.content_type import merge_content_types, check_content_type, encode_value
+from ..common.content_type import (check_content_type, encode_value,
+                                   EncodedBytes)
 
 
 class DataObject:
@@ -66,7 +67,10 @@ class DataObject:
 
         if self.data is not None:
             out.hasData = True
-            out.data = self.data
+            if isinstance(self.data, EncodedBytes):
+                out.data = bytes(self.data)
+            else:
+                out.data = self.data
 
         attributes_to_capnp(self.attributes, out.attributes)
 
@@ -117,7 +121,7 @@ class DataObject:
 def blob(value, label="const", content_type=None, encode=None):
     """
     Create a constant data object.
-    
+
     Given `value` may be either `bytes` or any object to be encoded with
     `encoding` content type. Strings are encoded with utf-8 by default.
     Specify at most one of `content_type` and `encode`.
@@ -126,14 +130,15 @@ def blob(value, label="const", content_type=None, encode=None):
     if content_type is not None:
         assert encode is None, "Specify only one of content_type and encode"
         assert isinstance(value, bytes), "content_type only allowed for `bytes`"
-        
+
     if encode is None and isinstance(value, str):
         encode = "text:utf-8"
+        assert content_type is None, "content_type not allowed for `str`"
 
     if encode is not None:
         check_content_type(encode)
         value = encode_value(value, content_type=encode)
-        content_type = merge_content_types(content_type, encode)
+        content_type = encode
 
     if not isinstance(value, bytes):
         raise RainException(

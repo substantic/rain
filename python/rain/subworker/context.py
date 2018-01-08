@@ -2,7 +2,8 @@ import shutil
 import os.path
 
 from .data import DataInstance
-from ..common import packing
+from ..common import RainException
+from ..common.content_type import (check_content_type, encode_value)
 
 
 class Context:
@@ -31,12 +32,28 @@ class Context:
         self._staged_paths.add(data)
         return data
 
-    def blob(self, data=None, content_type=None):
-        return DataInstance(data, content_type=content_type)
+    def blob(self, value, content_type=None, encode=None):
+        if content_type is not None:
+            assert encode is None, "Specify only one of `content_type` and `encode`"
+            assert isinstance(value, bytes), "`content_type` only allowed for `bytes`"
 
-    def dump(self, obj, content_type="py"):
-        return self.blob(packing.dump_mem(obj, content_type),
-                         content_type=content_type)
+        if encode is None and isinstance(value, str):
+            encode = "text:utf-8"
+            assert content_type is None, "content_type not allowed for `str`"
+
+        if encode is not None:
+            check_content_type(encode)
+            value = encode_value(value, content_type=encode)
+            content_type = encode
+
+        if not isinstance(value, bytes):
+            raise RainException(
+              "Invalid blob type (only str or bytes allowed without `encode`)")
+
+        return DataInstance(value, content_type=content_type)
+
+    def pickled(self, obj, content_type="pickle"):
+        return self.blob(obj, encode="pickle")
 
     def debug(self, message):
         if not isinstance(message, str):
