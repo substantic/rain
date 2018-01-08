@@ -1,4 +1,4 @@
-from rain.client import remote, Program, Input, blob
+from rain.client import remote, Program, Input, Output, blob
 from rain.client import RainException, RainWarning
 import pytest
 import pickle
@@ -383,3 +383,67 @@ def test_remote_large_args(fake_session):
                            match='Pickled object a length'):
             test("X" * 1024 * 1024)
         test("X" * 1024)
+
+
+def test_output_detailed_specs(test_env):
+    "Tests specifying content types for outputs and dynamic content types."
+
+    obj = {1: 2, 3: [4, 5]}
+    obj2 = [1.0, 2.0, True]
+
+    @remote(outputs=[Output(encode='pickle', label='test_pickle', size_hint=0.1),
+                     Output(content_type='text:latin2'),
+                     "out_c", "out_d"])
+    def test1(ctx):
+        return (obj, b'\xe1\xb9\xef\xeb', pickle.dumps(obj2),
+                ctx.blob("[42.0]", content_type='json'))
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = test1(outputs=[Output(),
+                            Output(),
+                            Output(content_type='pickle'),
+                            Output()])
+        t1.keep_outputs()
+        s.submit()
+        (a, b, c, d) = t1.fetch_outputs()
+        assert a.load() == obj
+        assert b.load() == 'ášďë'
+        assert b == b'\xe1\xb9\xef\xeb'
+        assert c.load() == obj2
+        assert t1.outputs.out_c.fetch().load == obj2
+        assert d == b"[42.0]"
+        with pytest.raises():
+            assert d.content_type == 'json'
+            assert d.load() == [42.0]
+
+
+def test_output_specs_num(test_env):
+    @remote(outputs=3)
+    def test1(ctx):
+        return (b'HW', b'\xe1\xb9\xef\xeb', pickle.dumps([2.0, 3.0]))
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = test1(outputs=[Output(),
+                            Output(content_type='text:latin2'),
+                            Output(content_type='pickle')])
+        t1.keep_outputs()
+        s.submit()
+        (a, b, c) = t1.fetch_outputs()
+        assert b.load() == 'ášďë'
+        assert c.load() == [2.0, 3.0]
+
+
+def test_auto_load_and_encode(test_env):
+
+    @remote(auto_load=True, auto_encode='pickle')
+    def test_add(ctx, a, b):
+        return {'msg': a[0] + b + a[1]}
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t1 = test_add()
+        t1.keep_outputs(["H", "d"], "ello worl")
+        s.submit()
+        assert t1.output.fetch().load()['msg'] == "Hello world"

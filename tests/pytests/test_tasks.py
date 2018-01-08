@@ -1,7 +1,7 @@
 
 from rain.client import Task
 from rain.client.data import DataObject
-
+from rain.client.output import Output
 
 import pytest
 
@@ -19,10 +19,10 @@ def test_task_construction(fake_session):
 def test_task_outputs(fake_session):
     with fake_session:
         t1 = Task("dummy",
-                  outputs=(DataObject("a"),
-                           DataObject("long_name"),
-                           DataObject("space inside"),
-                           DataObject("")))
+                  outputs=(Output("a", size_hint=1.0, content_type="text"),
+                           Output("long_name"),
+                           Output("space inside"),
+                           Output("")))
 
         assert "a" in t1.outputs
         assert "space inside" in t1.outputs
@@ -31,6 +31,8 @@ def test_task_outputs(fake_session):
         assert isinstance(t1.outputs["a"], DataObject)
         assert isinstance(t1.outputs["space inside"], DataObject)
         assert isinstance(t1.outputs["long_name"], DataObject)
+        assert t1.outputs.a.content_type == "text"
+        assert t1.outputs.long_name.content_type is None
 
         with pytest.raises(KeyError):
             t1.outputs["XXX"]
@@ -44,7 +46,7 @@ def test_task_outputs(fake_session):
 def test_task_keep_outputs(fake_session):
     with fake_session:
         t = Task("dummy", outputs=[
-            DataObject("a"), DataObject("b"), DataObject("c")])
+            Output("a"), Output("b"), Output("c")])
         assert all(not t.is_kept() for t in t.outputs)
         t.keep_outputs()
         assert all(t.is_kept() for t in t.outputs)

@@ -1,8 +1,9 @@
-from rain.client import Program, Input, Output, tasks, blob
+from rain.client import Program, Input, Output, tasks, blob, pickled
 from rain.client import RainException
 
 import os
 import pytest
+import pickle
 
 
 def test_execute_positional_input(test_env):
@@ -221,3 +222,67 @@ def test_execute_termination(test_env):
         s.submit()
         r = test_env.assert_max_duration(0.2, lambda: t1.output.fetch())
         assert b"ab" == r
+
+
+def test_program_outputs(test_env):
+    "Specify program content type on spec and instantiation."
+    obj = ["1", 2.0, {'a': 42}]
+    program1 = Program(["cat", Input()], stdout="o")
+    program2 = Program(["cat", Input(content_type='pickle')],
+                       stdout=Output(content_type='pickle'))
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        # No content-type
+        t1a = program1(pickled(obj))
+        t1a.output.keep()
+        # Static content-type by instantiation
+        t1b = program1(pickled(obj), output=Output(content_type='pickle'))
+        t1b.output.keep()
+        # Static content-type by Program spec
+        t2 = program2(pickled(obj))
+        t2.output.keep()
+
+        s.submit()
+        assert t1a.output.content_type == ''
+        with pytest.raises(RainException):
+            assert t1a.output.fetch().load() == obj
+        assert t1a.output.fetch() == pickle.dumps(obj)
+
+        assert t1b.output.fetch().load() == obj
+
+        assert t2.output.fetch().load() == obj
+
+
+def test_execute_outputs(test_env):
+    "Specify program content type on spec and instantiation."
+    obj = ["1", 2.0, {'a': 42}]
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+
+        # No content type
+        t1a = tasks.execute(["cat", Input("somefile", data=pickled(obj))],
+                            stdout=Output())
+        t1a.output.keep()
+        # Static content-type by instantiation
+        t1b = tasks.execute(["cat", Input("somefile", data=pickled(obj))],
+                            stdout=Output(content_type='pickle'))
+        t1b.output.keep()
+        # Stdin specification
+        t1c = tasks.execute("cat",
+                            stdin=Input("somefile", data=pickled(obj)),
+                            stdout=Output(content_type='pickle'))
+        t1c.output.keep()
+        # Auto input naming
+        t1d = tasks.execute(["cat", Input(pickled(obj))],
+                            stdout=Output(content_type='pickle'))
+        t1d.output.keep()
+
+        s.submit()
+        assert t1b.output.fetch().load() == obj
+        assert t1c.output.fetch().load() == obj
+        assert t1d.output.fetch().load() == obj
+        assert t1a.output.content_type == ''
+        with pytest.raises(RainException):
+            t1a.output.fetch().load()
