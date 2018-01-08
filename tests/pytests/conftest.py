@@ -107,9 +107,14 @@ class TestEnv(Env):
                 "--listen", str(addr))
         server = self.start_process("server", args, env=env)
 
+        it = 0
         while not os.path.isfile(server_ready_file):
-            time.sleep(0.03)
+            time.sleep(0.05)
             self.check_running_processes()
+            it += 1
+            if it > 40:
+                raise Exception("Server not started after 2 s (watching {!r})"
+                                .format(server_ready_file))
 
         # Start WORKERS
         workers = []
@@ -126,9 +131,13 @@ class TestEnv(Env):
                     "--workdir", WORK_DIR)
             workers.append(self.start_process(name, args, env=env))
 
+        it = 0
         while not all(os.path.isfile(f) for f in worker_ready_files):
-            time.sleep(0.03)
+            time.sleep(0.05)
             self.check_running_processes()
+            it += 1
+            if it > 40:
+                raise Exception("Workers not started after 2 s")
 
         self.server = server
         self.workers = workers
