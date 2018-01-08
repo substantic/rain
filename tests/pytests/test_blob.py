@@ -17,6 +17,7 @@ def test_blob_construction(fake_session):
         obj = [1, {'a': [4, 5]}]
         b3 = blob(obj, encode='pickle')
         assert pickle.loads(b3.data) == obj
+        assert b3.data.load() == obj
         assert b3.content_type == 'pickle'
 
         b3b = pickled(obj)
@@ -26,6 +27,7 @@ def test_blob_construction(fake_session):
         b4 = blob(obj, encode='json')
         assert json.loads(b4.data.decode()) == obj
         assert rain.common.content_type.decode_value(b4.data, "json") == obj
+        assert b4.data.load() == obj
 
         txt = "asžčďďŠ"
         b5 = blob(txt, encode='text:latin2')

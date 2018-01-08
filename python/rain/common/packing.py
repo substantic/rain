@@ -2,6 +2,7 @@
 import pickle
 import json
 
+# TODO(gavento): remove and consolidate to content_type
 
 def find_packer(content_type):
     """Returns (packer, is_binary) where 'packer' is object with methods

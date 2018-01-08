@@ -26,29 +26,38 @@ def merge_content_types(name_a, name_b):
 
 
 def encode_value(val, content_type):
+    "Encodes given python object with `content_type`, returning `EncodedBytes`."
     check_content_type(content_type)
 
     if content_type == "pickle":
-        return pickle.dumps(val)
+        d = pickle.dumps(val)
     elif content_type == "json":
         import json
-        return json.dumps(val).encode("utf-8")
+        d = json.dumps(val).encode("utf-8")
     elif content_type == "cbor":
         import cbor
-        return cbor.dumps(val)
+        d = cbor.dumps(val)
     elif content_type.startswith("text"):
         assert isinstance(val, str)
         if content_type == "text":
             enc = "utf-8"
         else:
             enc = content_type.split(":", maxsplit=1)[1]
-        return val.encode(enc)
+        d = val.encode(enc)
     else:
         raise RainException("Encoding into {:r} unsupported"
                             .format(content_type))
 
+    return EncodedBytes(d, content_type=content_type)
+
 
 def decode_value(data, content_type):
+    """
+    Decodes given `bytes` into python object with `content_type`.
+
+    Also accepts `EncodedBytes` but still requires `content_type`,
+    use `EncodedBytes.load()` for a shorthand.
+    """
     check_content_type(content_type)
     assert isinstance(data, bytes)
 
@@ -65,7 +74,7 @@ def decode_value(data, content_type):
             enc = "utf-8"
         else:
             enc = content_type.split(":", maxsplit=1)[1]
-        return data.encode(enc)
+        return data.decode(enc)
     else:
         raise RainException("Decoding from {:r} unsupported"
                             .format(content_type))
@@ -74,9 +83,10 @@ def decode_value(data, content_type):
 class EncodedBytes(bytes):
     "Bytes type with `load` method (with given content_type)"
 
-    def __init__(self, data, content_type):
-        super().__init__(data)
-        self.content_type = content_type
+    def __new__(cls, data, content_type=None):
+        b = bytes.__new__(cls, data)
+        b.content_type = content_type
+        return b
 
     def load(self):
         return decode_value(self, self.content_type)
