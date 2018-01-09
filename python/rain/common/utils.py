@@ -6,7 +6,7 @@ def clever_pickle(obj, protocol=None):
     """
     Pickle `obj` with `pickle` if possible without global symbols, then with `cloudpickle`.
 
-    If `obj` contains no functions, class types, modules or labdas, `pickle.dumps` 
+    If `obj` contains no functions, class types, modules or labdas, `pickle.dumps`
     quickly serializes it. Global function/class symbols are disabled by temporarily
     clearing `globals()`. If `pickle` fails, `cloudpickle` is used instead.
     """
@@ -23,7 +23,7 @@ def clever_pickle(obj, protocol=None):
 def format_size(size_bytes):
     """
     Format size in bytes approximately as kB/MB/GB/...
-    
+
     >>> format_size(2094521)
     2.1 MB
     """

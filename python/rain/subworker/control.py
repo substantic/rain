@@ -1,13 +1,13 @@
 from .rpc import subworker as rpc_subworker
-from .data import data_from_capnp, DataInstance
+from ..common.data_instance import DataInstance
 from .context import Context
 from ..common.attributes import attributes_to_capnp, attributes_from_capnp
 import traceback
 
 
 def load_worker_object(reader):
-    data = data_from_capnp(reader.data)
-    data.worker_object_id = (reader.id.sessionId, reader.id.id)
+    data = DataInstance._from_capnp(reader.data)
+    data._object_id = (reader.id.sessionId, reader.id.id)
     return data
 
 

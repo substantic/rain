@@ -1,7 +1,7 @@
 import shutil
 import os.path
 
-from .data import DataInstance
+from ..common.data_instance import DataInstance
 from ..common import RainException
 from ..common.content_type import (check_content_type, encode_value)
 

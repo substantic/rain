@@ -1,13 +1,11 @@
-import cloudpickle
 import inspect
-import pickle
 import contextlib
 import time
 import base64
 from collections import OrderedDict
 
 from .task import Task
-from .data import blob, DataObject
+from .data import blob
 from .session import get_active_session
 from ..common import RainException, RainWarning, utils
 
@@ -61,12 +59,6 @@ def _checked_pickle_to_string(d, name=None):
 # TODO: (gavento): Deprecate or upgrade to complex args (as wrapper for remote)
 def py_call(fn, inputs):
     return Task("py", inputs)
-
-
-def py_obj(obj, label=""):
-    if isinstance(obj, DataObject):
-        return obj
-    return blob(cloudpickle.dumps(obj), label)
 
 
 def remote(outputs=1, auto_load=None, pickle_outputs=False):

@@ -9,7 +9,7 @@ def test_remote_bytes_inout(test_env):
 
     @remote()
     def hello(ctx, data):
-        return data.to_bytes() + b" rocks!"
+        return data.get_bytes() + b" rocks!"
 
     test_env.start(1)
     with test_env.client.new_session() as s:
@@ -331,8 +331,8 @@ def test_remote_complex_args(test_env):
 
     @remote()
     def test(ctx, a, b, c={}, d=0, **kwargs):
-        ret = (a, b.to_bytes(), c['a'].to_bytes(), c['b'][3].to_bytes(),
-               d, kwargs['e'](4).to_bytes())
+        ret = (a, b.get_bytes(), c['a'].get_bytes(), c['b'][3].get_bytes(),
+               d, kwargs['e'](4).get_bytes())
         return pickle.dumps(ret)
 
     @remote()
