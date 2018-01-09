@@ -1,5 +1,5 @@
-from . import RainException
-import pickle
+from . import RainException, utils
+import cloudpickle
 
 
 def check_content_type(name):

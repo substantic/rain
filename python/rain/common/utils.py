@@ -1,30 +1,5 @@
-import contextlib
 import cloudpickle
-
-
-@contextlib.contextmanager
-def empty_globals():
-    """
-    Context manager that runs the contained block with almost empty globals.
-
-    Only `__builtins__` and `__builtin__` are left. The globals are restored
-    at exit and exceptions. Any modification of the globals inside the block
-    are forgotten. The original stored globals are yielded as the manager.
-
-    >>> with empty_globals() as g:
-    >>>     assert len(globals()) == 2
-    >>>     assert '__name__' in g
-    """
-
-    g = dict(globals())           
-    globals().clear()
-    globals()['__builtins__'] = g['__builtins__']
-    globals()['__builtin__'] = g['__builtin__']
-    try:
-        yield g
-    finally:
-        globals().clear()
-        globals().update(g)
+from .empty_globals import empty_globals
 
 
 def clever_pickle(obj, protocol=None):
@@ -35,9 +10,9 @@ def clever_pickle(obj, protocol=None):
     quickly serializes it. Global function/class symbols are disabled by temporarily
     clearing `globals()`. If `pickle` fails, `cloudpickle` is used instead.
     """
+    import pickle  # noqa
     try:
         with empty_globals():
-            import pickle  # local symbol
             return pickle.dumps(obj, protocol=protocol)
     except pickle.PicklingError:
         return cloudpickle.dumps(obj, protocol=protocol)
