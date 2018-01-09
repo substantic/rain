@@ -3,7 +3,7 @@ import pickle
 
 
 def check_content_type(name):
-    if name in set([None, "", "pickle", "json", "dir", "text", "cbor",
+    if name in set([None, "pickle", "json", "dir", "text", "cbor",
                     "protobuf"]):
         return True
     if (name.startswith("text:") or
@@ -11,7 +11,7 @@ def check_content_type(name):
        name.startswith("mime:") or
        name.startswith("protobuf:")):
         return True
-    raise ValueError("Content type '{!r}' is not recognized".format(name))
+    raise ValueError("Content type {!r} is not recognized".format(name))
 
 
 def merge_content_types(name_a, name_b):
@@ -21,7 +21,9 @@ def merge_content_types(name_a, name_b):
     """
     check_content_type(name_a)
     check_content_type(name_b)
-    if name_a is None or name_b.startswith(name_a):
+    if name_a is None and name_b is None:
+        return None
+    if name_a is None or (name_b is not None and name_b.startswith(name_a)):
         return name_b
     if name_b is None or name_a.startswith(name_b):
         return name_a
@@ -32,9 +34,8 @@ def merge_content_types(name_a, name_b):
 def encode_value(val, content_type):
     "Encodes given python object with `content_type`. Returns `EncodedBytes`."
     check_content_type(content_type)
-    if not isinstance(content_type, str):
-        raise RainException("can't encode content_type {!r}"
-                            .format(type(content_type)))
+    if content_type is None:
+        raise RainException("can't encode None content_type")
 
     if content_type == "pickle":
         d = utils.clever_pickle(val)
@@ -68,9 +69,8 @@ def decode_value(data, content_type):
     use `EncodedBytes.load()` for a shorthand.
     """
     check_content_type(content_type)
-    if not isinstance(content_type, str):
-        raise RainException("can't encode content_type {!r}"
-                            .format(type(content_type)))
+    if content_type is None:
+        raise RainException("can't decode None content_type")
     if not isinstance(data, bytes):
         raise RainException("can only decode `bytes` values")
 
