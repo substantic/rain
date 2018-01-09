@@ -123,6 +123,7 @@ class TestEnv(Env):
                     "worker", "127.0.0.1:" + str(port),
                     "--ready-file", ready_file,
                     "--cpus", str(n_cpus),
+                    "--logdir", WORK_DIR,
                     "--workdir", WORK_DIR)
             workers.append(self.start_process(name, args, env=env))
 
