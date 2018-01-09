@@ -9,7 +9,7 @@ from collections import OrderedDict
 from .task import Task
 from .data import blob, DataObject
 from .session import get_active_session
-from ..common import RainException, RainWarning
+from ..common import RainException, RainWarning, utils
 
 
 PICKLE_ARG_SIZE_LIMIT = 256 * 1024
@@ -36,27 +36,20 @@ def _pickle_inputs_context(name, inputs):
 
 
 def _checked_pickle(d, name=None):
-    """Perform fast pickle.dumps or (for cmplex objects)
+    """Perform fast pickle.dumps or (for complex objects)
     cloudpickle.dumps and issue a warning if the result is
     unexpectedly big (PICKLE_ARG_SIZE_LIMIT) or it takes too
     long (PICKLE_ARG_TIME_LIMIT)."""
     t0 = time.clock()
-    try:
-        p = pickle.dumps(d)
-    except pickle.PicklingError:
-        p = cloudpickle.dumps(d)
-    except AttributeError:
-        p = cloudpickle.dumps(d)
+    p = utils.clever_pickle(d)
     if len(p) > PICKLE_ARG_SIZE_LIMIT:
-        raise RainWarning(
-            "Pickled object {} length {} > PICKLE_ARG_SIZE_LIMIT={}. \
-Consider using a blob() for the data."
-            .format(name or '<unknown>', len(d), PICKLE_ARG_SIZE_LIMIT))
+        raise RainWarning("Pickled object {} length {} > PICKLE_ARG_SIZE_LIMIT={}. " +
+                          "Consider using a blob() for the data."
+                          .format(name or '<unknown>', len(d), PICKLE_ARG_SIZE_LIMIT))
     if time.clock() - t0 > PICKLE_ARG_TIME_LIMIT:
-        raise RainWarning(
-            "Pickling object {} took {} s > PICKLE_ARG_TIME_LIMIT={}. \
-Consider using a blob() for the data."
-            .format(name or '<unknown>', len(d), PICKLE_ARG_TIME_LIMIT))
+        raise RainWarning("Pickling object {} took {} s > PICKLE_ARG_TIME_LIMIT={}. " +
+                          "Consider using a blob() for the data."
+                          .format(name or '<unknown>', len(d), PICKLE_ARG_TIME_LIMIT))
     return p
 
 
@@ -85,7 +78,7 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
             fn_blob = session._static_data.get(fn)
             if fn_blob is None:
                 d = _checked_pickle(fn, fn.__name__)
-                fn_blob = blob(d, fn.__name__, content_type="py")
+                fn_blob = blob(d, fn.__name__, content_type="pickle")
                 fn_blob.keep()
                 session._static_data[fn] = fn_blob
             inputs = [fn_blob]

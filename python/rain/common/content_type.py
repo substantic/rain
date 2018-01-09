@@ -37,7 +37,7 @@ def encode_value(val, content_type):
                             .format(type(content_type)))
 
     if content_type == "pickle":
-        d = pickle.dumps(val)
+        d = utils.clever_pickle(val)
     elif content_type == "json":
         import json
         d = json.dumps(val).encode("utf-8")
@@ -75,7 +75,7 @@ def decode_value(data, content_type):
         raise RainException("can only decode `bytes` values")
 
     if content_type == "pickle":
-        return pickle.loads(data)
+        return cloudpickle.loads(data)
     elif content_type == "json":
         import json
         return json.loads(data.decode("utf-8"))
