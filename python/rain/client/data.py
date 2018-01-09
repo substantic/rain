@@ -128,12 +128,15 @@ def blob(value, label="const", content_type=None, encode=None):
     """
 
     if content_type is not None:
-        assert encode is None, "Specify only one of content_type and encode"
-        assert isinstance(value, bytes), "content_type only allowed for `bytes`"
+        if encode is not None:
+            raise RainException("Specify only one of content_type and encode")
+        if not isinstance(value, bytes):
+            raise RainException("content_type only allowed for `bytes`")
 
     if encode is None and isinstance(value, str):
         encode = "text:utf-8"
-        assert content_type is None, "content_type not allowed for `str`"
+        if content_type is not None:
+            raise RainException("content_type not allowed for `str`, use `encode=...`")
 
     if encode is not None:
         check_content_type(encode)

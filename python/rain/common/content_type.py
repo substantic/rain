@@ -11,7 +11,7 @@ def check_content_type(name):
        name.startswith("mime:") or
        name.startswith("protobuf:")):
         return True
-    raise ValueError("Content type '{:r}' is not recognized".format(name))
+    raise ValueError("Content type '{!r}' is not recognized".format(name))
 
 
 def merge_content_types(name_a, name_b):
@@ -25,14 +25,16 @@ def merge_content_types(name_a, name_b):
         return name_b
     if name_b is None or name_a.startswith(name_b):
         return name_a
-    raise RainException("Incompatible content types: {:r} and {:r}"
+    raise RainException("Incompatible content types: {!r} and {!r}"
                         .format(name_a, name_b))
 
 
 def encode_value(val, content_type):
     "Encodes given python object with `content_type`. Returns `EncodedBytes`."
     check_content_type(content_type)
-    assert isinstance(content_type, str), "can't encode content_type `None`"
+    if not isinstance(content_type, str):
+        raise RainException("can't encode content_type {!r}"
+                            .format(type(content_type)))
 
     if content_type == "pickle":
         d = pickle.dumps(val)
@@ -43,14 +45,16 @@ def encode_value(val, content_type):
         import cbor
         d = cbor.dumps(val)
     elif content_type.startswith("text"):
-        assert isinstance(val, str)
+        if not isinstance(val, str):
+            raise RainException("Encoding {!r} can only encode `str` objects."
+                                .format(content_type))
         if content_type == "text":
             enc = "utf-8"
         else:
             enc = content_type.split(":", maxsplit=1)[1]
         d = val.encode(enc)
     else:
-        raise RainException("Encoding into {:r} unsupported"
+        raise RainException("Encoding into {!r} unsupported"
                             .format(content_type))
 
     return EncodedBytes(d, content_type=content_type)
@@ -64,8 +68,11 @@ def decode_value(data, content_type):
     use `EncodedBytes.load()` for a shorthand.
     """
     check_content_type(content_type)
-    assert isinstance(data, bytes)
-    assert isinstance(content_type, str), "can't encode content_type `None`"
+    if not isinstance(content_type, str):
+        raise RainException("can't encode content_type {!r}"
+                            .format(type(content_type)))
+    if not isinstance(data, bytes):
+        raise RainException("can only decode `bytes` values")
 
     if content_type == "pickle":
         return pickle.loads(data)
@@ -82,7 +89,7 @@ def decode_value(data, content_type):
             enc = content_type.split(":", maxsplit=1)[1]
         return data.decode(enc)
     else:
-        raise RainException("Decoding from {:r} unsupported"
+        raise RainException("Decoding from {!r} unsupported"
                             .format(content_type))
 
 
