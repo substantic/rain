@@ -112,8 +112,8 @@ class TestEnv(Env):
             time.sleep(0.05)
             self.check_running_processes()
             it += 1
-            if it > 40:
-                raise Exception("Server not started after 2 s (watching {!r})"
+            if it > 100:
+                raise Exception("Server not started after 5 s (watching {!r})"
                                 .format(server_ready_file))
 
         # Start WORKERS
@@ -136,8 +136,8 @@ class TestEnv(Env):
             time.sleep(0.05)
             self.check_running_processes()
             it += 1
-            if it > 40:
-                raise Exception("Workers not started after 2 s")
+            if it > 100:
+                raise Exception("Workers not started after 5 s")
 
         self.server = server
         self.workers = workers

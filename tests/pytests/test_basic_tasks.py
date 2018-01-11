@@ -10,7 +10,7 @@ def test_sleep1(test_env):
         t1.output.keep()
         s.submit()
         test_env.assert_duration(0.2, 0.4, lambda: t1.wait())
-        result = test_env.assert_max_duration(0.1,
+        result = test_env.assert_max_duration(0.2,
                                               lambda: t1.output.fetch())
         assert result == b"abc123456"
 
