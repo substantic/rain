@@ -239,6 +239,10 @@ impl TaskRef {
             if inner.state == TaskState::Ready {
                 assert!(w.get_mut().scheduled_ready_tasks.remove(&self));
             }
+
+            if inner.state != TaskState::NotAssigned {
+                w.get_mut().active_resources -= inner.resources.cpus();
+            }
         }
         inner.scheduled = None;
     }

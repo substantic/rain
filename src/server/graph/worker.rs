@@ -38,6 +38,10 @@ pub struct Worker {
     /// `assigned_tasks`, subset of `scheduled_tasks`.
     pub(in super::super) scheduled_ready_tasks: RcSet<TaskRef>,
 
+    // The sum of resources of scheduled tasks that may run (or are running)
+    // (TODO: Generalize for Resource not only cpus)
+    pub(in super::super) active_resources: u32,
+
     /// Obects fully located on the worker.
     pub(in super::super) located_objects: RcSet<DataObjectRef>,
 
@@ -53,8 +57,7 @@ pub struct Worker {
 
     datastore: Option<AsyncInitWrapper<::datastore_capnp::data_store::Client>>,
 
-    resources: Resources,
-    free_resources: Resources,
+    pub(in super::super) resources: Resources,
 }
 
 pub type WorkerRef = WrappedRcRefCell<Worker>;
@@ -132,8 +135,8 @@ impl WorkerRef {
             assigned_objects: Default::default(),
             scheduled_objects: Default::default(),
             control: control,
-            resources: resources.clone(),
-            free_resources: resources,
+            active_resources: 0,
+            resources: resources,
             datastore: None,
         })
     }
@@ -149,6 +152,11 @@ impl ConsistencyCheck for WorkerRef {
     /// may be slow.
     fn check_consistency(&self) -> Result<()> {
         let s = self.get();
+
+        if s.scheduled_tasks.is_empty() && s.active_resources != 0 {
+            bail!("Invalid active resources: active_resources = {}", s.active_resources);
+        }
+
         // refs
         for oref in s.located_objects.iter() {
             if !oref.get().located.contains(self) {
@@ -202,7 +210,6 @@ impl fmt::Debug for Worker {
             .field("located", &self.located_objects)
             .field("assigned", &self.assigned_objects)
             .field("resources", &self.resources)
-            .field("free_resources", &self.free_resources)
             .finish()
     }
 }

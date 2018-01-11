@@ -3,6 +3,7 @@ use std::clone::Clone;
 use super::graph::{DataObjectRef, TaskRef, WorkerRef, Graph, TaskState};
 use common::id::SId;
 use common::RcSet;
+use server::graph::SessionRef;
 
 #[derive(Default, Clone, Debug)]
 pub struct UpdatedOut {
@@ -33,12 +34,24 @@ impl UpdatedIn {
         self.tasks.is_empty() && self.objects.is_empty() && self.new_tasks.is_empty() &&
             self.new_objects.is_empty()
     }
+
+    pub fn clear(&mut self) {
+        self.new_tasks = Default::default();
+        self.new_objects = Default::default();
+        self.tasks.clear();
+        self.objects.clear();
+    }
+
+    pub fn remove_task(&mut self, task_ref: &TaskRef) {
+        self.new_tasks.remove(task_ref);
+        self.tasks.remove(task_ref);
+    }
 }
 
 /// Scheduler interface. The Extra types are the types of a scheduler-specific attribute
 /// `s` in each node for any use by the scheduler.
 // TODO: Possibly add as template parameter and add the extras to the graph objects.
-pub trait Scheduler {
+/*pub trait Scheduler {
     type TaskExtra;
     type DataObjectExtra;
     type WorkerExtra;
@@ -46,21 +59,131 @@ pub trait Scheduler {
     type ClientExtra;
 
     fn schedule(&mut self, graph: &mut Graph, updated: &UpdatedIn) -> UpdatedOut;
-}
+}*/
 
 #[derive(Default, Clone, Debug)]
-pub struct RandomScheduler {}
+pub struct ReactiveScheduler {
+    ready_tasks: RcSet<TaskRef>,
+}
 
-impl Scheduler for RandomScheduler {
-    type TaskExtra = ();
+struct WorkerDescriptor {
+    used_cpus: u32,
+    max_cpus: u32,
+}
+
+impl ReactiveScheduler {
+    /*type TaskExtra = ();
     type DataObjectExtra = ();
     type WorkerExtra = ();
     type SessionExtra = ();
-    type ClientExtra = ();
+    type ClientExtra = ();*/
 
-    fn schedule(&mut self, graph: &mut Graph, updated: &UpdatedIn) -> UpdatedOut {
+    fn pick_best(&self, graph: &mut Graph) -> Option<(TaskRef, WorkerRef)> {
+        let mut best_worker = None;
+        let mut best_score = 0;
+        let mut best_task = None;
+
+        let n_workers = graph.workers.len() as i64;
+
+        for tref in &self.ready_tasks {
+            let t = tref.get();
+            let mut total_size = 0;
+            for input in &t.inputs {
+                let o = input.object.get();
+                total_size += o.size.unwrap() * o.scheduled.len();
+            }
+            let neg_avg_size = -(total_size as i64) / n_workers;
+            //debug!("!!! {} AVG SIZE {}", t.id, -neg_avg_size);
+
+            for (_, wref) in &graph.workers {
+                let w = wref.get();
+                if t.resources.cpus() + w.active_resources <= w.resources.cpus() &&
+                   t.resources.is_subset_of(&w.resources) {
+                    let mut score = neg_avg_size;
+                    for input in &t.inputs {
+                        let o = input.object.get();
+                        if o.scheduled.contains(wref) {
+                            score += o.size.unwrap() as i64;
+                        }
+                    }
+                    if best_score < score || best_worker.is_none() {
+                        best_score = score;
+                        best_worker = Some(wref.clone());
+                        best_task = Some(tref.clone());
+                    }
+                }
+            }
+        }
+        if let Some(wref) = best_worker {
+            Some((best_task.unwrap(), wref))
+        } else {
+            None
+        }
+    }
+
+    pub fn clear_session(&mut self, session: &SessionRef)
+    {
+        let s = session.get();
+        for tref in &s.tasks {
+            self.ready_tasks.remove(&tref);
+        }
+    }
+
+    pub fn schedule(&mut self, graph: &mut Graph, updated: &UpdatedIn) -> UpdatedOut {
+        for tref in &updated.new_tasks {
+            let mut t = tref.get_mut();
+            if t.state == TaskState::Ready {
+                debug!("Scheduler: New ready task {}", t.id);
+                let r = self.ready_tasks.insert(tref.clone());
+                assert!(r);
+            }
+        }
+
+        for tref in &updated.tasks {
+            let mut t = tref.get_mut();
+            if t.state == TaskState::Ready {
+                debug!("Scheduler: New ready task {}", t.id);
+                let r = self.ready_tasks.insert(tref.clone());
+                assert!(r);
+            }
+        }
+
+        debug!("Scheduler started");
+
         let mut up_out: UpdatedOut = Default::default();
-        if graph.workers.is_empty() {
+        while let Some((tref, wref)) = self.pick_best(graph) {
+            {
+                let mut w = wref.get_mut();
+                let mut t = tref.get_mut();
+
+                assert!(t.state == TaskState::Ready);
+                w.active_resources += t.resources.cpus();
+                w.scheduled_tasks.insert(tref.clone());
+
+                // Scheduler "picks" only ready tasks, so we do need to test readiness of task
+                w.scheduled_ready_tasks.insert(tref.clone());
+
+                t.scheduled = Some(wref.clone());
+
+                debug!("Scheduler: {} -> {}", t.id, w.id());
+                for oref in &t.outputs {
+
+                    w.scheduled_objects.insert(oref.clone());
+                    oref.get_mut().scheduled.insert(wref.clone());
+
+                    up_out
+                        .objects
+                        .entry(wref.clone())
+                        .or_insert(Default::default())
+                        .insert(oref.clone());
+                }
+            }
+            self.ready_tasks.remove(&tref);
+            up_out.tasks.insert(tref);
+        }
+        up_out
+
+        /*if graph.workers.is_empty() {
             warn!("Scheduler is running with empty workers -- not doing anything.");
             return up_out;
         }
@@ -95,9 +218,9 @@ impl Scheduler for RandomScheduler {
                     .or_insert(Default::default())
                     .insert(oref.clone());
             }
-        }
+        }*/
 
-        up_out
+
     }
 }
 
