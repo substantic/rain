@@ -1,5 +1,18 @@
 import cloudpickle
-from .empty_globals import empty_globals
+import pickle
+
+
+_limited_pickle_code = compile("pickle.dumps(obj, protocol=p)",
+                               "utils.py",
+                               "eval")
+
+
+def limited_pickle(obj, protocol=None):
+    """
+    pickle.dumps limited to builtin types: no global objects are allowed.
+    """
+    loc = {'pickle': pickle, 'obj': obj, 'p': protocol}
+    return eval(_limited_pickle_code, {}, loc)
 
 
 def clever_pickle(obj, protocol=None):
@@ -12,8 +25,7 @@ def clever_pickle(obj, protocol=None):
     """
     import pickle  # noqa
     try:
-        with empty_globals():
-            return pickle.dumps(obj, protocol=protocol)
+        return limited_pickle(obj, protocol=protocol)
     except pickle.PicklingError:
         return cloudpickle.dumps(obj, protocol=protocol)
     except AttributeError:
