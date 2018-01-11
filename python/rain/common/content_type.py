@@ -1,10 +1,11 @@
-from . import RainException, utils
+from . import RainException
 import cloudpickle
+import pickle
 
 
 def check_content_type(name):
-    if name in set([None, "pickle", "json", "dir", "text", "cbor",
-                    "protobuf"]):
+    if name in [None, "pickle", "json", "dir", "text", "cbor",
+                "protobuf", "cloudpickle"]:
         return True
     if (name.startswith("text:") or
        name.startswith("user:") or
@@ -27,6 +28,9 @@ def merge_content_types(name_a, name_b):
         return name_b
     if name_b is None or name_a.startswith(name_b):
         return name_a
+    # Special case of pickle/cloudpickle
+    if sorted([name_a, name_b]) == ["cloudpickle", "pickle"]:
+        return "cloudpickle"
     raise RainException("Incompatible content types: {!r} and {!r}"
                         .format(name_a, name_b))
 
@@ -38,7 +42,9 @@ def encode_value(val, content_type):
         raise RainException("can't encode None content_type")
 
     if content_type == "pickle":
-        d = utils.clever_pickle(val)
+        d = pickle.dumps(val)
+    elif content_type == "cloudpickle":
+        d = cloudpickle.dumps(val)
     elif content_type == "json":
         import json
         d = json.dumps(val).encode("utf-8")
@@ -75,6 +81,9 @@ def decode_value(data, content_type):
         raise RainException("can only decode `bytes` values")
 
     if content_type == "pickle":
+        # NOTE: Should we use cloudpickle.loads even for pickle data?
+        return pickle.loads(data)
+    elif content_type == "cloudpickle":
         return cloudpickle.loads(data)
     elif content_type == "json":
         import json

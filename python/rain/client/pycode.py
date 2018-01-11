@@ -2,12 +2,13 @@ import inspect
 import contextlib
 import time
 import base64
+import cloudpickle
 from collections import OrderedDict
 
 from .task import Task
 from .data import blob
 from .session import get_active_session
-from ..common import RainException, RainWarning, utils
+from ..common import RainException, RainWarning
 
 
 PICKLE_ARG_SIZE_LIMIT = 256 * 1024
@@ -33,13 +34,12 @@ def _pickle_inputs_context(name, inputs):
         _global_pickle_inputs = None
 
 
-def _checked_pickle(d, name=None):
-    """Perform fast pickle.dumps or (for complex objects)
-    cloudpickle.dumps and issue a warning if the result is
+def _checked_cloudpickle(d, name=None):
+    """Perform cloudpickle.dumps and issue a warning if the result is
     unexpectedly big (PICKLE_ARG_SIZE_LIMIT) or it takes too
     long (PICKLE_ARG_TIME_LIMIT)."""
     t0 = time.clock()
-    p = utils.clever_pickle(d)
+    p = cloudpickle.dumps(d)
     if len(p) > PICKLE_ARG_SIZE_LIMIT:
         raise RainWarning("Pickled object {} length {} > PICKLE_ARG_SIZE_LIMIT={}. " +
                           "Consider using a blob() for the data."
@@ -51,14 +51,9 @@ def _checked_pickle(d, name=None):
     return p
 
 
-def _checked_pickle_to_string(d, name=None):
+def _checked_cloudpickle_to_string(d, name=None):
     """Same as _changed_pickle but encodes result to base64 string"""
-    return base64.b64encode(_checked_pickle(d, name)).decode("ascii")
-
-
-# TODO: (gavento): Deprecate or upgrade to complex args (as wrapper for remote)
-def py_call(fn, inputs):
-    return Task("py", inputs)
+    return base64.b64encode(_checked_cloudpickle(d, name)).decode("ascii")
 
 
 def remote(outputs=1, auto_load=None, pickle_outputs=False):
@@ -69,8 +64,8 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
             session = get_active_session()
             fn_blob = session._static_data.get(fn)
             if fn_blob is None:
-                d = _checked_pickle(fn, fn.__name__)
-                fn_blob = blob(d, fn.__name__, content_type="pickle")
+                d = _checked_cloudpickle(fn, fn.__name__)
+                fn_blob = blob(d, fn.__name__, content_type="cloudpickle")
                 fn_blob.keep()
                 session._static_data[fn] = fn_blob
             inputs = [fn_blob]
@@ -91,7 +86,7 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
                                                  code.co_kwonlyargcount]
                     name = "{}[{}]".format(args_name, i + 1 - code.co_argcount)
                 with _pickle_inputs_context(name, inputs):
-                    d = _checked_pickle_to_string(argval, name=name)
+                    d = _checked_cloudpickle_to_string(argval, name=name)
                     pickled_args.append(d)
             # Pickle positional args
             pickled_kwargs = OrderedDict()
@@ -99,7 +94,7 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
                 # Within this session state, the DataObjects are seialized as
                 # InputPlaceholders
                 with _pickle_inputs_context(name, inputs):
-                    d = _checked_pickle_to_string(argval)
+                    d = _checked_cloudpickle_to_string(argval)
                     pickled_kwargs[name] = d
             task_config = {
                 'args': pickled_args,
