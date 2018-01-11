@@ -4,7 +4,7 @@ import os
 from .attributes import attributes_from_capnp
 from .attributes import attributes_to_capnp
 from .content_type import decode_value, merge_content_types
-from . import RainException
+from .errors import RainException
 from .utils import format_size
 
 

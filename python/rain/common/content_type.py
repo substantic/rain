@@ -1,4 +1,4 @@
-from . import RainException
+from .errors import RainException
 import cloudpickle
 import pickle
 
