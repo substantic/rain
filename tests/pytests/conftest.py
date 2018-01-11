@@ -105,7 +105,8 @@ class TestEnv(Env):
         args = (RAIN_BIN, "server",
                 "--ready-file", server_ready_file,
                 "--listen", str(addr))
-        server = self.start_process("server", args, env=env)
+        self.server = self.start_process("server", args, env=env)
+        assert self.server is not None
 
         it = 0
         while not os.path.isfile(server_ready_file):
@@ -117,7 +118,7 @@ class TestEnv(Env):
                                 .format(server_ready_file))
 
         # Start WORKERS
-        workers = []
+        self.workers = []
 
         worker_ready_files = []
         for i in range(n_workers):
@@ -129,7 +130,7 @@ class TestEnv(Env):
                     "--ready-file", ready_file,
                     "--cpus", str(n_cpus),
                     "--workdir", WORK_DIR)
-            workers.append(self.start_process(name, args, env=env))
+            self.workers.append(self.start_process(name, args, env=env))
 
         it = 0
         while not all(os.path.isfile(f) for f in worker_ready_files):
@@ -139,22 +140,20 @@ class TestEnv(Env):
             if it > 100:
                 raise Exception("Workers not started after 5 s")
 
-        self.server = server
-        self.workers = workers
-
         self.check_running_processes()
 
     def check_running_processes(self):
         """Checks that everything is still running"""
         for i, worker in enumerate(self.workers):
-            if worker.poll():
+            if worker.poll() is not None:
                 self.workers = []
                 raise Exception(
                     "Worker {0} crashed "
                     "(log in {1}/worker{0}.out; "
                     "Note: If you are running more tests, "
                     "log may be overridden or deleted)".format(i, WORK_DIR))
-        if self.server and self.server.poll():
+
+        if self.server and self.server.poll() is not None:
             self.server = None
             raise Exception(
                 "Server crashed (log in {}/server.out; "
