@@ -58,18 +58,19 @@ class DataInstance:
         if data_object is not None:
             # At client
             assert attributes is None
-            assert content_type is None
             assert object_id is None
             self._data_object = data_object
             self.attributes = data_object.attributes
-            self._object_id = data_object.id_pair()
+            self._object_id = data_object.id_pair
             assert "content_type" in self.attributes["config"]
         else:
+            # At subworker
             self._object_id = object_id
             self.attributes = attributes if attributes is not None else {}
             self.attributes.setdefault("config", {})
-            self.attributes["config"]["content_type"] = merge_content_types(
-                self.attributes["config"].get("content_type"), content_type)
+
+        self.attributes["config"]["content_type"] = merge_content_types(
+            self.attributes["config"].get("content_type"), content_type)
 
     @property
     def content_type(self):
@@ -110,10 +111,10 @@ class DataInstance:
             builder.storage.init("inWorker")
             builder.storage.inWorker.sessionId = self._object_id[0]
             builder.storage.inWorker.id = self._object_id[1]
-        elif self.path:
-            builder.storage.path = self.path
+        elif self._path:
+            builder.storage.path = self._path
         else:
-            builder.storage.memory = self.data
+            builder.storage.memory = self._data
         attributes_to_capnp(self.attributes, builder.attributes)
 
     @classmethod

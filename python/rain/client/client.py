@@ -3,8 +3,7 @@ from rain.client import rpc
 from rain.common import RainException
 from rain.client.task import Task
 from rain.client.data import DataObject
-from ..common import attributes
-from ..common.content_type import EncodedBytes
+from ..common import attributes, DataInstance
 
 from .session import Session
 
@@ -100,8 +99,13 @@ class Client:
             r = reader.read(FETCH_SIZE).wait()
             data.append(r.data)
             eof = r.status == "eof"
+        bytedata = b"".join(data)
         # TODO(gavento): use the server-returned content_type
-        return EncodedBytes(b"".join(data), dataobj.content_type)
+        dynamic_type = None
+        return DataInstance(data=bytedata,
+                            data_object=dataobj,
+                            content_type=dynamic_type)
+
 
     def _wait(self, tasks, dataobjs):
         req = self._service.wait_request()

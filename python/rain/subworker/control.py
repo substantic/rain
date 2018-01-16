@@ -40,7 +40,7 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
             results = _context.results.init("data", len(task_results))
             for i, data in enumerate(task_results):
                 if isinstance(data, DataInstance):
-                    data.to_capnp(results[i])
+                    data._to_capnp(results[i])
                 elif isinstance(data, bytes):
                     results[i].storage.memory = data
                 elif isinstance(data, str):

@@ -5,7 +5,8 @@ class Input:
 
     data = None
 
-    def __init__(self, label=None, path=None, data=None):
+    def __init__(self, label=None, path=None, data=None, content_type=None, load=None):
+
         if label is not None and not isinstance(label, str):
             raise Exception("Label has to be string, not {!r}".format(label))
         self.label = label
@@ -17,6 +18,8 @@ class Input:
         self.path = path
         if data is not None:
             self.data = to_data(data)
+        self.content_type = content_type
+        self.load = load
 
     def __repr__(self):
         args = []

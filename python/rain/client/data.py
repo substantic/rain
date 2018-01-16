@@ -3,8 +3,7 @@ import capnp
 from .session import get_active_session
 from ..common import RainException
 from ..common.attributes import attributes_to_capnp
-from ..common.content_type import (check_content_type, encode_value,
-                                   EncodedBytes)
+from ..common.content_type import check_content_type, encode_value
 
 
 class DataObject:
@@ -67,10 +66,7 @@ class DataObject:
 
         if self.data is not None:
             out.hasData = True
-            if isinstance(self.data, EncodedBytes):
-                out.data = bytes(self.data)
-            else:
-                out.data = self.data
+            out.data = self.data
 
         attributes_to_capnp(self.attributes, out.attributes)
 
@@ -166,6 +162,7 @@ def to_data(obj):
     """Convert an object to DataObject/DataObjectPart"""
     if isinstance(obj, DataObject):
         return obj
+    from .task import Task
     if isinstance(obj, Task):
         if len(obj.outputs) == 1:
             return obj.outputs[0]
@@ -176,12 +173,11 @@ def to_data(obj):
 
     if isinstance(obj, str) or isinstance(obj, bytes):
         raise RainException(
-            "Instance of {!r} cannot be used as an data object\n"
-            "Help: You can wrap it by 'blob' to use it as data object"
+            "Instance of {!r} cannot be used as a data object.\n"
+            "Hint: Wrap it with `blob` to use it as data object."
             .format(type(obj)))
 
-    raise RainException("Instance of {!r} cannot be used as data object"
-                        .format(type(obj)))
-
-
-from .task import Task  # noqa
+    raise RainException(
+            "Instance of {!r} cannot be used as a data object.\n"
+            "Hint: Wrap it with `pickled` or `blob(encode=...)` to use it as a data object."
+            .format(type(obj)))

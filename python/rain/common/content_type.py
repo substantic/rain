@@ -35,8 +35,21 @@ def merge_content_types(name_a, name_b):
                         .format(name_a, name_b))
 
 
+def is_type_instance(t, ctype):
+    "Return whether content type `t` is a subtype of `ctype`."
+    check_content_type(t)
+    check_content_type(ctype)
+    if ctype is None or t == ctype:
+        return True
+    if t is not None and t.startswith(ctype):
+        return True
+    if t == 'pickle' and ctype == 'cloudpickle':
+        return True
+    return False
+        
+
 def encode_value(val, content_type):
-    "Encodes given python object with `content_type`. Returns `EncodedBytes`."
+    "Encodes given python object with `content_type`. Returns `bytes`."
     check_content_type(content_type)
     if content_type is None:
         raise RainException("can't encode None content_type")
@@ -64,15 +77,13 @@ def encode_value(val, content_type):
         raise RainException("Encoding into {!r} unsupported"
                             .format(content_type))
 
-    return EncodedBytes(d, content_type=content_type)
+    assert isinstance(d, bytes)
+    return d
 
 
 def decode_value(data, content_type):
     """
     Decodes given `bytes` into python object with `content_type`.
-
-    Also accepts `EncodedBytes` but still requires `content_type`,
-    use `EncodedBytes.load()` for a shorthand.
     """
     check_content_type(content_type)
     if content_type is None:
@@ -100,15 +111,3 @@ def decode_value(data, content_type):
     else:
         raise RainException("Decoding from {!r} unsupported"
                             .format(content_type))
-
-
-class EncodedBytes(bytes):
-    "Bytes type with `load` method (with given content_type)"
-
-    def __new__(cls, data, content_type=None):
-        b = bytes.__new__(cls, data)
-        b.content_type = content_type
-        return b
-
-    def load(self):
-        return decode_value(self, self.content_type)

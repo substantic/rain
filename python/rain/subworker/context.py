@@ -50,7 +50,7 @@ class Context:
             raise RainException(
               "Invalid blob type (only str or bytes allowed without `encode`)")
 
-        return DataInstance(value, content_type=content_type)
+        return DataInstance(data=value, content_type=content_type)
 
     def pickled(self, obj, content_type="pickle"):
         return self.blob(obj, encode="pickle")

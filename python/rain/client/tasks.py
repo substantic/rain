@@ -76,7 +76,7 @@ def execute(args, stdout=None, stdin=None, inputs=(), outputs=(), shell=False):
         args = ("/bin/sh", "-c", " ".join(args))
 
     task_inputs = [obj.data for obj in ins]
-    task_outputs = [output.make_data_object() for output in outs]
+    task_outputs = [output.create_data_object() for output in outs]
     return Task("!run",
                 {
                     "args": args,

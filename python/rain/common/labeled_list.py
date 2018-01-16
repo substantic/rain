@@ -24,7 +24,10 @@ class LabeledList(collections.MutableSequence):
         # Dictionary label -> position in self.items
         self._index = {}
 
-        if items is not None:
+        if isinstance(items, LabeledList):
+            for l, i in items.items():
+                self.append(i, label=l)
+        elif items is not None:
             assert pairs is None
             if labels is None:
                 for val in items:
@@ -98,6 +101,8 @@ class LabeledList(collections.MutableSequence):
 
     def set_label(self, idx, label):
         "Set label for given index."
+        if label in self._index and self._index[label] != idx:
+            raise KeyError("Label {!r} apready present.".format(label))
         if self.labels[idx] is not None:
             del self._index[self.labels[idx]]
         self.labels[idx] = label
