@@ -20,7 +20,7 @@ impl Attributes {
     {
         match self.items.get(key) {
             Some(ref value) => ::serde_json::from_str(value)
-                .map_err(|e| format!("Error in parsing attribute '{}': {}", key, e.description()).into()),
+                .map_err(|e| format!("Error in parsing attribute '{}': {} (data {:?})", key, e.description(), &value).into()),
             None => {
                 bail!("Key not found in attributes");
             }
