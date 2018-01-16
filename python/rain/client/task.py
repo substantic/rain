@@ -1,9 +1,171 @@
 from .session import get_active_session
 from .data import DataObject, to_data
 from ..common import RainException
+from .output import Output
+from .input import Input
+from ..common.content_type import is_type_instance, merge_content_types
 from ..common import LabeledList
 from ..common.resources import cpu_1
 from ..common.attributes import attributes_to_capnp
+
+import collections
+
+
+class TaskBuilder:
+    """
+    A base class for Task builders (tasks.*, Program, @remote).
+
+    Provides input and output specification, checking and instantiation.
+    """
+
+    # Required / default inputs; LabeledList of `Input`s
+    inputs = ()
+    # An `Input` instance if additional inputs are allowed (as a template)
+    more_inputs = None
+    # Required / default outputs; LabeledList of `Output`s
+    outputs = ()
+    # An `Output` instance if additional outputs are allowed (as a template)
+    more_outputs = None
+
+    def __init__(self, inputs=(), more_inputs=False, outputs=1, more_outputs=False):
+
+        if isinstance(inputs, int):
+            self.inputs = LabeledList(input() for i in range(inputs))
+        elif isinstance(inputs, LabeledList):
+            self.inputs = inputs
+        elif isinstance(inputs, collections.Sequence):
+            self.inputs = LabeledList(inputs)
+        else:
+            raise TypeError("expected int, LabeledList or a sequence " +
+                            "for `inputs`, got {:r}".format(type(inputs)))
+
+        for i, (label, input) in enumerate(self.inputs.items()):
+            if isinstance(input, str):
+                self.inputs.set(i, Input(input), label=input)
+            elif not isinstance(input, Input):
+                raise TypeError("Only string labels and `Input` accepted in input list.")
+
+        if more_inputs is not None:
+            if more_inputs is True:
+                more_inputs = Input()
+            if not isinstance(more_inputs, Input):
+                raise TypeError("None, True or Input accepted for more_inputs.")
+        self.more_inputs = more_inputs
+
+        if isinstance(outputs, int):
+            self.outputs = LabeledList(Output() for i in range(outputs))
+        elif isinstance(outputs, LabeledList):
+            self.outputs = outputs
+        elif isinstance(outputs, collections.Sequence):
+            self.outputs = LabeledList(outputs)
+        else:
+            raise TypeError("expected int, LabeledList or a sequence " +
+                            "for `outputs`, got {:r}".format(type(outputs)))
+
+        for i, (label, output) in enumerate(self.outputs.items()):
+            if isinstance(output, str):
+                self.outputs.set(i, Output(output), label=output)
+            elif not isinstance(output, Output):
+                raise TypeError("Only string labels and `Output` accepted in output list.")
+
+        if more_outputs is not None:
+            if more_outputs is True:
+                more_outputs = Output()
+            if not isinstance(more_outputs, Output):
+                raise TypeError("None, True or Output accepted for more_outputs.")
+        self.more_outputs = more_outputs
+
+    def create_inputs(self, inputs):
+        """
+        Create input instances with the `DataObject`s and `Input`s given and return a `LabeledList`.
+
+        The types are checked, labels are obtained from the `given` labels, `Input` labels,
+        `DataObject` labels, prototype `Input` labels or just numbered as `"in{}"` (in that order).
+        """
+
+        if inputs is None:
+            inputs = LabeledList()
+        if len(inputs) < len(self.inputs):
+            raise ValueError("Only {} of expected {} inputs provided."
+                             .format(len(inputs), len(self.inputs)))
+        if len(inputs) > len(self.inputs) and self.more_inputs is None:
+            raise ValueError("Too many inputs provided {}, expected {}."
+                             .format(len(inputs), len(self.inputs)))
+
+        res = LabeledList()
+        for i, (label, input) in enumerate(inputs.items()):
+            if isinstance(input, Input):
+                if not isinstance(input.data, DataObject):
+                    raise TypeError("All inputs must be, or have DataObject instances.")
+                do = input.data
+                if label is None:
+                    label = input.label
+            elif isinstance(input, DataObject):
+                do = input
+            else:
+                raise TypeError("Only Input and DataObject instances accepted in input list.")
+            if label is None:
+                label = do.label
+            if i < len(self.inputs):
+                proto = self.inputs[i]
+                if label is None:
+                    label = proto.label
+            else:
+                proto = self.more_inputs
+            if label is None:
+                label = "in{}".format(i)
+            if not is_type_instance(do.content_type, proto.content_type):
+                raise RainException("Input {!r} type {!r} is not a subtype of expected {!r}"
+                                    .format(label, do.content_type, proto.content_type))
+            res.append(do, label=label)
+
+        return res
+
+    def create_outputs(self, outputs=None, output=None, session=None):
+        """
+        Create new output `DataObject`s for `Output`s given.
+        
+        Returns a tuple of `LabeledList`s `(outputs, data_objects)`.
+        If both `output=None` and `outputs=None`, creates builder prototype outputs.
+        """
+
+        if output is not None:
+            if outputs is not None:
+                raise ValueError("Both `output` and `outputs` not allowed.")
+            outputs = (output,)
+
+        if outputs is None:
+            outputs = LabeledList(self.outputs)
+        if not isinstance(outputs, LabeledList):
+            if not isinstance(outputs, collections.Sequence):
+                raise TypeError("`outputs` must be None or a sequence type.")
+            outputs = LabeledList(outputs)
+
+        if len(outputs) < len(self.outputs):
+            raise ValueError("Only {} of expected {} outputs provided."
+                             .format(len(outputs), len(self.outputs)))
+        if len(outputs) > len(self.outputs) and self.more_outputs is None:
+            raise ValueError("Too many outputs provided {}, expected {}."
+                             .format(len(outputs), len(self.outputs)))
+
+        res_do = LabeledList()
+        res_out = LabeledList()
+        for i, (label, out) in enumerate(outputs.items()):
+            if i < len(self.outputs):
+                proto = self.outputs[i]
+            else:
+                proto = self.more_outputs
+            if isinstance(out, str):
+                out = Output(label=out)
+            if not isinstance(out, Output):
+                raise TypeError("Only `Output` oad `str` instances accepted in output list.")
+            out_merged = out.merge_with_prototype(proto)
+            if out_merged.label is None:
+                out_merged.label = "out{}".format(i)
+            do = out_merged.create_data_object(session=session)
+            res_do.append(do, label=do.label)
+            res_out.append(out_merged, label=do.label)
+        return (res_out, res_do)
 
 
 class Task:
@@ -14,6 +176,7 @@ class Task:
     id = None
     resources = cpu_1
     config = None
+
 
     def __init__(self,
                  task_type,
