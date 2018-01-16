@@ -69,7 +69,14 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     });
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
-    let state = server::state::StateRef::new(tokio_core.handle(), listen_address, log_dir);
+
+    let test_mode = ::std::env::var("RAIN_TEST_MODE").map(|s| s == "1").unwrap_or(false);
+
+    if test_mode {
+        info!("Testing mode enabled");
+    }
+
+    let state = server::state::StateRef::new(tokio_core.handle(), listen_address, log_dir, test_mode);
     state.start();
 
     // Create ready file - a file that is created when server is ready

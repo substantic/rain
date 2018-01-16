@@ -93,9 +93,10 @@ impl ReactiveScheduler {
 
             for (_, wref) in &graph.workers {
                 let w = wref.get();
-                if t.resources.cpus() + w.active_resources <= w.resources.cpus() &&
+                let cpus = t.resources.cpus();
+                if cpus + w.active_resources <= w.resources.cpus() &&
                    t.resources.is_subset_of(&w.resources) {
-                    let mut score = neg_avg_size;
+                    let mut score = neg_avg_size + cpus as i64 * 5000i64;
                     for input in &t.inputs {
                         let o = input.object.get();
                         if o.scheduled.contains(wref) {
@@ -220,8 +221,10 @@ impl ReactiveScheduler {
     }
 }
 
+/*
 fn random_worker(g: &mut Graph, seed: usize) -> WorkerRef {
     let ws: Vec<_> = g.workers.values().collect();
     assert!(ws.len() > 0);
     ws[seed % ws.len()].clone()
 }
+*/

@@ -165,7 +165,7 @@ pub struct LocalReaderImpl {
 
 impl LocalReaderImpl {
     pub fn new(object: DataObjectRef, offset: usize) -> Self {
-        let size = object.get().size.unwrap();
+        let size = object.get().data.as_ref().unwrap().len();
         Self {
             object,
             offset,

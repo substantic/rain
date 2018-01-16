@@ -24,6 +24,7 @@ use common::{ConsistencyCheck, Attributes};
 
 use hyper::server::Http;
 use server::http::RequestHandler;
+use server::testmode;
 
 use common::logger::logger::Logger;
 use common::logger::sqlite_logger::SQLiteLogger;
@@ -48,12 +49,15 @@ pub struct State {
 
     stop_server: bool,
 
-    updates: UpdatedIn,
+    pub(super) updates: UpdatedIn,
 
     /// Workers that will checked by reactor in the next turn()
     underload_workers: RcSet<WorkerRef>,
 
     scheduler: ReactiveScheduler,
+
+    // If testing_mode is true, then __test attributes are interpreted
+    test_mode: bool,
 
     self_ref: Option<StateRef>,
 
@@ -996,6 +1000,10 @@ impl State {
     pub fn run_scheduler(&mut self) {
         debug!("Running scheduler");
 
+        if self.test_mode {
+            testmode::test_scheduler(self);
+        }
+
         // Run scheduler and reset updated objects.
         let changed = self.scheduler.schedule(&mut self.graph, &self.updates);
         self.updates.clear();
@@ -1045,10 +1053,11 @@ impl ConsistencyCheck for State {
 pub type StateRef = WrappedRcRefCell<State>;
 
 impl StateRef {
-    pub fn new(handle: Handle, listen_address: SocketAddr, log_dir: PathBuf) -> Self {
+    pub fn new(handle: Handle, listen_address: SocketAddr, log_dir: PathBuf, test_mode: bool) -> Self {
         let s = Self::wrap(State {
             graph: Default::default(),
             need_scheduling: false,
+            test_mode: test_mode,
             listen_address: listen_address,
             handle: handle,
             scheduler: Default::default(),
