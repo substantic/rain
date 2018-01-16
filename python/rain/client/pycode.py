@@ -56,7 +56,109 @@ def _checked_cloudpickle_to_string(d, name=None):
     return base64.b64encode(_checked_cloudpickle(d, name)).decode("ascii")
 
 
-def remote(outputs=1, auto_load=None, pickle_outputs=False):
+def remote(*, outputs=1,
+           inputs=(),
+           args=None,
+           kwargs=None,
+           auto_load=None,
+           auto_encode=None):
+    "Decorator for :py:class:`Remote`, see the documentation there."
+    def make_remote(fn):
+        if not inspect.isfunction(fn):
+            raise RainException(
+                "remote() arg {!r} is not a function".format(fn))
+        return Remote(fn,
+                      outputs=outputs,
+                      inputs=inputs,
+                      args=args,
+                      kwargs=kwargs,
+                      auto_load=auto_load,
+                      auto_encode=auto_encode)
+    return make_remote
+
+
+class Remote(TaskBuilder):
+    def __init__(self,
+                 fn, *,
+                 inputs=(),
+                 args=None,
+                 kwargs=None,
+                 outputs=1,
+                 auto_load=None,
+                 auto_encode=None):
+        if 'return' in fn.__annotations__:
+            assert outputs == 1
+            outputs = fn.__annotations__['return']
+        super().__init__(inputs=(), more_inputs=Input(), outputs=outputs, more_outputs=None)
+        self.fn = fn
+        self.auto_encode = auto_encode
+        self.auto_load = auto_load
+
+    def __call__(self, *args, output=None, outputs=None, session=None, **kwargs):
+        # TODO(gavento): Use Input()s arguments
+        if session is None:
+            session = get_active_session()
+
+        # cache the code in a static blob
+        fn_blob = session._static_data.get(self.fn)
+        if fn_blob is None:
+            d = _checked_cloudpickle(self.fn, self.fn.__name__)
+            fn_blob = blob(d, self.fn.__name__, content_type="cloudpickle")
+            fn_blob.keep()
+            session._static_data[self.fn] = fn_blob
+
+        inputs = [fn_blob]
+
+        # Check the parameter compatibility for fn
+        # Note that the first arg is the context
+        sig = inspect.signature(self.fn)
+        sig.bind(None, *args, **kwargs)
+
+        # Pickle positional args
+        pickled_args = []
+        for i, argval in enumerate(args):
+            # Within this session state, the DataObjects are seialized as
+            # subworker.unpickle_input_object call
+            code = self.fn.__code__
+            if i < code.co_argcount - 1:
+                name = code.co_varnames[i + 1]
+            else:
+                args_name = code.co_varnames[code.co_argcount +
+                                             code.co_kwonlyargcount]
+                name = "{}[{}]".format(args_name, i + 1 - code.co_argcount)
+            with _pickle_inputs_context(name, inputs):
+                d = _checked_cloudpickle_to_string(argval, name=name)
+                pickled_args.append(d)
+
+        # Pickle keyword args
+        pickled_kwargs = OrderedDict()
+        for name, argval in kwargs.items():
+            # Within this session state, the DataObjects are seialized as
+            # subworker.unpickle_input_object call
+            with _pickle_inputs_context(name, inputs):
+                d = _checked_cloudpickle_to_string(argval)
+                pickled_kwargs[name] = d
+
+        # create list of Output objects and DO instances
+        outs, out_dos = self.create_outputs(output=output,
+                                            outputs=outputs,
+                                            session=session)
+        for o in outs:
+            if o.encode is None or o.encode == "":
+                o.encode = self.auto_encode
+
+        task_config = {
+            'args': pickled_args,
+            'kwargs': pickled_kwargs,
+            'auto_load': self.auto_load,
+            'outputs': [o.to_json() for o in outs],
+        }
+
+        return Task("py", task_config, inputs, out_dos)
+
+
+''' 
+def remote(outputs=1, auto_load=None, auto_encode=None):
     # TODO: (gavento) use pickle_outputs and outputs spec
     def make_remote(fn):
 
@@ -109,3 +211,4 @@ def remote(outputs=1, auto_load=None, pickle_outputs=False):
                 "remote() arg {!r} is not a function".format(fn))
         return make_task
     return make_remote
+ '''
