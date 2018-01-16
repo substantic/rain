@@ -65,3 +65,6 @@ def test_labeled_list():
 
     assert l3 == l4
     assert l3 != [2, 3, 4]
+
+    # copy constructor
+    assert l3 == LabeledList(l3)

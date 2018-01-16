@@ -17,7 +17,7 @@ def test_remote_bytes_inout(test_env):
         t1 = hello(blob("Rain"))
         t1.output.keep()
         s.submit()
-        assert b"Rain rocks!" == t1.output.fetch()
+        assert b"Rain rocks!" == t1.output.fetch().get_bytes()
 
 
 def test_remote_more_bytes_outputs(test_env):
@@ -33,8 +33,8 @@ def test_remote_more_bytes_outputs(test_env):
         t1.outputs["x1"].keep()
         t1.outputs["x2"].keep()
         s.submit()
-        assert b"One" == t1.outputs["x1"].fetch()
-        assert b"Two" == t1.outputs["x2"].fetch()
+        assert b"One" == t1.outputs["x1"].fetch().get_bytes()
+        assert b"Two" == t1.outputs["x2"].fetch().get_bytes()
 
 
 def test_remote_exception(test_env):
@@ -54,11 +54,11 @@ def test_remote_exception(test_env):
             t1.output.keep()
             s.submit()
 
-            with pytest.raises(RainException):
+            with pytest.raises(RainException, match='Hello'):
                 t1.wait()
-            with pytest.raises(RainException):
+            with pytest.raises(RainException, match='Hello'):
                 t1.wait()
-            with pytest.raises(RainException):
+            with pytest.raises(RainException, match='Hello'):
                 t1.output.fetch()
 
 
@@ -75,12 +75,12 @@ def test_remote_exception_sleep(test_env):
         t1 = test()
         t1.output.keep()
         s.submit()
-        with pytest.raises(RainException):
+        with pytest.raises(RainException, match='Hello'):
             t1.wait()
-        with pytest.raises(RainException):
+        with pytest.raises(RainException, match='Hello'):
             t1.wait()
-        with pytest.raises(RainException):
-                t1.output.fetch()
+        with pytest.raises(RainException, match='Hello'):
+            t1.output.fetch()
 
 
 def test_remote_exception_fetch_after_delay(test_env):
@@ -96,11 +96,11 @@ def test_remote_exception_fetch_after_delay(test_env):
         t1.output.keep()
         s.submit()
         time.sleep(0.6)
-        with pytest.raises(RainException):
+        with pytest.raises(RainException, match='Hello'):
             t1.output.fetch()
-        with pytest.raises(RainException):
+        with pytest.raises(RainException, match='Hello'):
             t1.output.fetch()
-        with pytest.raises(RainException):
+        with pytest.raises(RainException, match='Hello'):
             t1.wait()
 
 
@@ -117,11 +117,11 @@ def test_remote_exception_fetch_immediate(test_env):
         t1 = test()
         t1.output.keep()
         s.submit()
-        with pytest.raises(RainException):
+        with pytest.raises(RainException, match='Hello'):
             t1.output.fetch()
-        with pytest.raises(RainException):
+        with pytest.raises(RainException, match='Hello'):
             t1.output.fetch()
-        with pytest.raises(RainException):
+        with pytest.raises(RainException, match='Hello'):
             t1.wait()
 
 
@@ -152,7 +152,7 @@ def test_string_output(test_env):
         t1 = test()
         t1.output.keep()
         s.submit()
-        assert b"Hello world!" == t1.output.fetch()
+        assert b"Hello world!" == t1.output.fetch().get_bytes()
 
 
 def test_py_same_subworker(test_env):
@@ -165,7 +165,7 @@ def test_py_same_subworker(test_env):
     @remote()
     def second(ctx, prev):
         import os
-        assert prev.to_str() == str(os.getpid())
+        assert prev.get_bytes().decode() == str(os.getpid())
         return prev
 
     test_env.start(1)
@@ -175,7 +175,7 @@ def test_py_same_subworker(test_env):
             t = second(t)
         t.output.keep()
         s.submit()
-        assert int(t.output.fetch())
+        assert int(t.output.fetch().get_bytes())
 
 
 def test_py_file_output(test_env):
@@ -194,7 +194,7 @@ def test_py_file_output(test_env):
         t1 = test()
         t1.output.keep()
         s.submit()
-        assert b"Hello world!" == t1.output.fetch()
+        assert b"Hello world!" == t1.output.fetch().get_bytes()
 
 
 def test_py_pass_through(test_env):
@@ -213,8 +213,8 @@ def test_py_pass_through(test_env):
         t1.outputs["out1"].keep()
         t1.outputs["out2"].keep()
         s.submit()
-        assert data == t1.outputs["out1"].fetch()
-        assert b"Hello!" == t1.outputs["out2"].fetch()
+        assert data == t1.outputs["out1"].fetch().get_bytes()
+        assert b"Hello!" == t1.outputs["out2"].fetch().get_bytes()
 
 
 def test_python_termination(test_env):
@@ -241,7 +241,7 @@ def test_python_termination(test_env):
         t1.keep_outputs()
         s.submit()
         r = test_env.assert_max_duration(0.30, lambda: t1.output.fetch())
-        assert b"ab" == r
+        assert b"ab" == r.get_bytes()
 
 
 @pytest.mark.xfail(reason="not functional now")
@@ -280,7 +280,7 @@ def test_py_loadsave(test_env):
         b.output.keep()
         s.submit()
         s.wait_all()
-        assert b.output.fetch() == b'["a", 1]'
+        assert b.output.fetch().get_bytes() == b'["a", 1]'
         # TODO(gavento): implement dynamic data object types
         # assert b.output.fetch().load() == ["a", 1]
 
@@ -348,7 +348,7 @@ def test_remote_complex_args(test_env):
                   d=42, e=lambda x: bs[x])
         t0.output.keep()
         s.submit()
-        d = t0.output.fetch()
+        d = t0.output.fetch().get_bytes()
         assert pickle.loads(d) == ([True], b'0', b'1', b'3', 42, b'4')
 
         # TODO: Test labeling with LabeledList
@@ -529,7 +529,7 @@ def test_auto_load_and_encode(test_env):
 
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = test_add()
-        t1.keep_outputs(["H", "d"], "ello worl")
+        t1 = test_add(["H", "d"], "ello worl")
+        t1.keep_outputs()
         s.submit()
         assert t1.output.fetch().load()['msg'] == "Hello world"

@@ -12,7 +12,7 @@ def test_sleep1(test_env):
         test_env.assert_duration(0.2, 0.4, lambda: t1.wait())
         result = test_env.assert_max_duration(0.2,
                                               lambda: t1.output.fetch())
-        assert result == b"abc123456"
+        assert result.get_bytes() == b"abc123456"
 
 
 def test_sleep2(test_env):
@@ -24,7 +24,7 @@ def test_sleep2(test_env):
         s.submit()
         result = test_env.assert_duration(0.028, 0.45,
                                           lambda: t1.output.fetch())
-        assert result == b"abc123456"
+        assert result.get_bytes() == b"abc123456"
 
 
 def test_concat1(test_env):
@@ -35,7 +35,7 @@ def test_concat1(test_env):
                            for x in ("Hello ", "", "", "world", "!", "")])
         t1.output.keep()
         s.submit()
-        assert t1.output.fetch() == b"Hello world!"
+        assert t1.output.fetch().get_bytes() == b"Hello world!"
 
 
 def test_concat2(test_env):
@@ -45,11 +45,11 @@ def test_concat2(test_env):
         t1 = tasks.concat(())
         t1.output.keep()
         s.submit()
-        assert t1.output.fetch() == b""
+        assert t1.output.fetch().get_bytes() == b""
 
 
 def test_concat3(test_env):
-    """Merge empty large blobs"""
+    """Merge large blobs"""
     test_env.start(1)
     a = b"a123" * 1000000
     b = b"b43" * 2500000
@@ -58,7 +58,7 @@ def test_concat3(test_env):
         t1 = tasks.concat((blob(a), blob(c), blob(b), blob(c), blob(a)))
         t1.output.keep()
         s.submit()
-        assert t1.output.fetch() == a + c + b + c + a
+        assert t1.output.fetch().get_bytes() == a + c + b + c + a
 
 
 def test_chain_concat(test_env):
@@ -71,7 +71,7 @@ def test_chain_concat(test_env):
         t5 = tasks.concat((t4, blob("f")))
         t5.output.keep()
         s.submit()
-        assert t5.output.fetch() == b"abcdef"
+        assert t5.output.fetch().get_bytes() == b"abcdef"
 
 
 def test_sleep3_last(test_env):
@@ -110,7 +110,7 @@ def test_task_open_ok(test_env):
         t1 = tasks.open(path)
         t1.output.keep()
         s.submit()
-        assert t1.output.fetch() == content
+        assert t1.output.fetch().get_bytes() == content
 
 
 def test_task_export(test_env):

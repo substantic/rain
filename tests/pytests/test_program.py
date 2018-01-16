@@ -233,12 +233,15 @@ def test_program_outputs(test_env):
 
     test_env.start(1)
     with test_env.client.new_session() as s:
-        # No content-type
+        # Dynamic content-type, forgotten by cat
         t1a = program1(pickled(obj))
         t1a.output.keep()
         # Static content-type by instantiation
         t1b = program1(pickled(obj), output=Output(content_type='pickle'))
         t1b.output.keep()
+        # No content type
+        t1c = program1(blob(pickle.dumps(obj)))
+        t1c.output.keep()
         # Static content-type by Program spec
         t2 = program2(pickled(obj))
         t2.output.keep()
@@ -250,6 +253,11 @@ def test_program_outputs(test_env):
         assert t1a.output.fetch() == pickle.dumps(obj)
 
         assert t1b.output.fetch().load() == obj
+
+        assert t1c.output.content_type == ''
+        with pytest.raises(RainException):
+            t1c.output.fetch().load()
+        assert t1a.output.fetch() == pickle.dumps(obj)
 
         assert t2.output.fetch().load() == obj
 
@@ -270,7 +278,7 @@ def test_execute_outputs(test_env):
                             stdout=Output(content_type='pickle'))
         t1b.output.keep()
         # Stdin specification
-        t1c = tasks.execute("cat",
+        t1c = tasks.execute(["cat"],
                             stdin=Input("somefile", data=pickled(obj)),
                             stdout=Output(content_type='pickle'))
         t1c.output.keep()
