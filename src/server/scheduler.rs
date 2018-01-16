@@ -66,10 +66,6 @@ pub struct ReactiveScheduler {
     ready_tasks: RcSet<TaskRef>,
 }
 
-struct WorkerDescriptor {
-    used_cpus: u32,
-    max_cpus: u32,
-}
 
 impl ReactiveScheduler {
     /*type TaskExtra = ();

@@ -58,7 +58,7 @@ class TestEnv(Env):
     def __init__(self):
         Env.__init__(self)
         self._client = None
-        self.n_workers = None
+        self.worker_defs = None
         self.id_counter = 1
 
         self.server = None
@@ -72,12 +72,15 @@ class TestEnv(Env):
     def no_final_check(self):
         self.do_final_check = False
 
-    def start(self, n_workers=1, n_cpus=1, listen_addr=None, listen_port=None):
+    def start(self,
+              n_workers=None,
+              n_cpus=1,
+              listen_addr=None,
+              listen_port=None,
+              worker_defs=None):
         """
         Start infrastructure: server & n workers
         """
-        assert self.n_workers is None
-        self.n_workers = n_workers
         env = os.environ.copy()
         env["RUST_LOG"] = "trace"
         env["RUST_BACKTRACE"] = "1"
@@ -101,6 +104,13 @@ class TestEnv(Env):
 
         server_ready_file = os.path.join(WORK_DIR, "server-ready")
 
+        assert (n_workers is None) != (worker_defs is None)
+        if n_workers is not None:
+            worker_defs = (n_cpus,) * n_workers
+
+        assert self.worker_defs is None
+        self.worker_defs = worker_defs
+
         # Start SERVER
         args = (RAIN_BIN, "server",
                 "--ready-file", server_ready_file,
@@ -115,14 +125,14 @@ class TestEnv(Env):
         workers = []
 
         worker_ready_files = []
-        for i in range(n_workers):
+        for i, cpus in enumerate(worker_defs):
             name = "worker{}".format(i)
             ready_file = os.path.join(WORK_DIR, name + "-ready")
             worker_ready_files.append(ready_file)
             args = (RAIN_BIN,
                     "worker", "127.0.0.1:" + str(port),
                     "--ready-file", ready_file,
-                    "--cpus", str(n_cpus),
+                    "--cpus", str(cpus),
                     "--logdir", WORK_DIR,
                     "--workdir", WORK_DIR)
             workers.append(self.start_process(name, args, env=env))
@@ -171,7 +181,7 @@ class TestEnv(Env):
             time.sleep(0.1)
             info = self._client.get_server_info()
             workers = info["workers"]
-            assert len(workers) == self.n_workers
+            assert len(workers) == len(self.worker_defs)
             for w in workers:
                 assert not w["tasks"]
                 assert not w["objects"]

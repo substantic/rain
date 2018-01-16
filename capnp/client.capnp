@@ -15,6 +15,7 @@ struct WorkerInfo {
     workerId @0: WorkerId;
     tasks @1 :List(TaskId);
     objects @2 :List(DataObjectId);
+    resources @3 :Resources;
 }
 
 struct ServerInfo {
