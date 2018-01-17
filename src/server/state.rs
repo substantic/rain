@@ -912,7 +912,7 @@ impl State {
                                 // first completion
                                 o.state = state;
                                 o.size = Some(size);
-                                o.attributes = attributes;
+                                o.attributes.update(attributes);
                                 o.trigger_finish_hooks();
                             }
                             for cref in oref.get().consumers.clone() {
