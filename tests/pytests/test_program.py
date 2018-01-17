@@ -292,6 +292,6 @@ def test_execute_outputs(test_env):
         assert t1b.output.fetch().load() == obj
         assert t1c.output.fetch().load() == obj
         assert t1d.output.fetch().load() == obj
-        assert t1a.output.content_type == None
+        assert t1a.output.content_type is None
         with pytest.raises(RainException):
             t1a.output.fetch().load()

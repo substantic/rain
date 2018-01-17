@@ -8,3 +8,4 @@ tests/pytests/work
 src/capnp_gen/*_capnp.rs
 *.pyc
 guide-build
+!.flake8

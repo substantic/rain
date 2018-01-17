@@ -11,7 +11,7 @@ from .rpc import subworker as rpc_subworker
 from .control import ControlImpl
 from ..common.fs import remove_dir_content
 from ..common import DataInstance, RainException
-from ..common.content_type import merge_content_types, decode_value
+from ..common.content_type import merge_content_types
 
 SUBWORKER_PROTOCOL_VERSION = 0
 

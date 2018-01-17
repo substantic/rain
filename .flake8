@@ -1,0 +1,3 @@
+# flake8 configuration file
+[flake8]
+max-line-length = 100

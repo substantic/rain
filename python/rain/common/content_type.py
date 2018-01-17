@@ -46,7 +46,7 @@ def is_type_instance(t, ctype):
     if t == 'pickle' and ctype == 'cloudpickle':
         return True
     return False
-        
+
 
 def encode_value(val, content_type):
     "Encodes given python object with `content_type`. Returns `bytes`."
