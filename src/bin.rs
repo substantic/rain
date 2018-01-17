@@ -357,7 +357,7 @@ fn main() {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");
     }
-    env_logger::init().unwrap();
+    env_logger::init();
 
     // We do not use clap macro to built argument,
     // since it cannot handle "-" in name of long arguments

@@ -86,7 +86,7 @@ mod tests {
                         outputs,
                         "TType".to_string(),
                         Attributes::new(),
-                        Resources::cpus(1),
+                        Resources { cpus: 1 },
                     ).unwrap();
                 }
             }
