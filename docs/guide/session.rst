@@ -84,7 +84,7 @@ When you creates a tasks and data objects, there are always created in the
 active session. Note, that the example with the concatenation does not
 explicitly addresses session when data objects and the task is created.
 
-.. important::
+.. note::
 
    Which session is active is always local information that only influences
    creating tasks and data objects. The information is not propagated to the

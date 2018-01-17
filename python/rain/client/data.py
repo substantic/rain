@@ -116,7 +116,7 @@ class DataObject:
 
 def blob(value, label="const", content_type=None, encode=None):
     """
-    Create a constant data object.
+    Create a constant data object with accompanying data.
 
     Given `value` may be either `bytes` or any object to be encoded with
     `encoding` content type. Strings are encoded with utf-8 by default.

@@ -208,6 +208,8 @@ impl TaskInstance {
                         let mut p_output = p_outputs.borrow().get(i as u32);
                         let obj = output.get();
                         p_output.set_label(&obj.label);
+                        obj.attributes.to_capnp(&mut p_output.borrow()
+                                                    .get_attributes().unwrap());
                         obj.id.to_capnp(&mut p_output.get_id().unwrap());
                     }
                 }

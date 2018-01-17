@@ -10,7 +10,8 @@ Welcome to Rain's documentation!
    :maxdepth: 2
    
    overview
-   concepts
+   install
+   architecture
    roadmap
    session
    tasks

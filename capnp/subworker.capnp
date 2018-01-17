@@ -51,12 +51,13 @@ struct Task {
     struct OutDataObject {
         id @0 :DataObjectId;
         label @1 :Text;
+        attributes @2 :Attributes;
     }
 }
 
 struct LocalData {
 
-    attributes @0 :Attributes;    
+    attributes @0 :Attributes;
 
     storage :union {
         cache @1 :Void;
