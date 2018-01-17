@@ -1,11 +1,11 @@
-from .data import to_data
+from .data import to_data, DataObject
 
 
 class Input:
 
     data = None
 
-    def __init__(self, label=None, path=None, data=None, content_type=None, load=None):
+    def __init__(self, label=None, path=None, data=None, load=None, content_type=None):
 
         if label is not None and not isinstance(label, str):
             raise Exception("Label has to be string, not {!r}".format(label))
@@ -18,6 +18,7 @@ class Input:
         self.path = path
         if data is not None:
             self.data = to_data(data)
+        self.load = load
         self.content_type = content_type
         self.load = load
 

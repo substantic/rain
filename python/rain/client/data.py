@@ -113,7 +113,8 @@ class DataObject:
         pycode._global_pickle_inputs[1] += 1
         inputs.append((input_name, self))
         return (subworker.unpickle_input_object,
-                (input_name, len(inputs) - 1, input_proto.load))
+                (input_name, len(inputs) - 1,
+                 input_proto.load, input_proto.content_type))
 
     def __repr__(self):
         return "<DObj {} {}:{} {}>".format(

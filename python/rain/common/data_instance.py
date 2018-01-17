@@ -64,7 +64,7 @@ class DataInstance:
             self.attributes = data_object.attributes
             self._object_id = data_object.id_pair
             assert "spec" in self.attributes
-            assert "info" in self.attributes
+            self.attributes.setdefault("info", {})
         else:
             # At subworker
             self._object_id = object_id
