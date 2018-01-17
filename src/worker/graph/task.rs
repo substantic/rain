@@ -80,13 +80,13 @@ impl Task {
     }
 
     /// Get input data of the task at given index
-    pub fn input(&self, index: usize) -> Arc<Data> {
+    pub fn input_data(&self, index: usize) -> Arc<Data> {
         let object = self.inputs.get(index).unwrap().object.get();
         object.data().clone()
     }
 
     /// Get all input data as vector
-    pub fn inputs(&self) -> Vec<Arc<Data>> {
+    pub fn inputs_data(&self) -> Vec<Arc<Data>> {
         self.inputs
             .iter()
             .map(|input| input.object.get().data().clone())

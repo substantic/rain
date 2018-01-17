@@ -14,7 +14,7 @@ use bytes::{Buf, LittleEndian};
 pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {
     let inputs = {
         let task = task_ref.get();
-        task.inputs()
+        task.inputs_data()
     };
 
     for (i, input) in inputs.iter().enumerate() {
@@ -52,7 +52,7 @@ pub fn task_sleep(state: &mut State, task_ref: TaskRef) -> TaskResult {
                     {
                         let task = task_ref.get();
                         let output = task.output(0);
-                        output.get_mut().set_data(task.input(0));
+                        output.get_mut().set_data(task.input_data(0));
                     }
                     ()
                 })))
@@ -107,7 +107,7 @@ pub fn task_export(_: &mut State, task_ref: TaskRef) -> TaskResult {
         if !path.is_absolute() {
             bail!("Path {:?} is not absolute", path);
         }
-        let input = task.input(0);
+        let input = task.input_data(0);
         input.export_to_path(path)
     })))
 }
