@@ -3,7 +3,7 @@ from rain.client import rpc
 from rain.common import RainException
 from rain.client.task import Task
 from rain.client.data import DataObject
-from ..common import attributes, DataInstance
+from ..common import attributes, DataInstance, ids
 
 from .session import Session
 
@@ -55,8 +55,10 @@ class Client:
         """
         info = self._service.getServerInfo().wait()
         return {
-            "workers": [{"tasks": [(t.sessionId, t.id) for t in w.tasks],
-                         "objects": [(o.sessionId, o.id) for o in w.objects]}
+            "workers": [{"worker_id": ids.worker_id_from_capnp(w.workerId),
+                         "tasks": [(t.sessionId, t.id) for t in w.tasks],
+                         "objects": [(o.sessionId, o.id) for o in w.objects],
+                         "resources": {"cpus": w.resources.nCpus}}
                         for w in info.workers]
         }
 

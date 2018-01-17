@@ -14,6 +14,19 @@ impl Attributes {
         Default::default()
     }
 
+    pub fn find<'a, D>(&'a self, key: &str) -> Result<Option<D>>
+    where
+        D: ::serde::de::Deserialize<'a>,
+    {
+        match self.items.get(key) {
+            Some(ref value) => ::serde_json::from_str(value).map(|v| Some(v))
+                .map_err(|e| format!("Error in parsing attribute '{}': {}", key, e.description()).into()),
+            None => {
+                Ok(None)
+            }
+        }
+    }
+
     pub fn get<'a, D>(&'a self, key: &str) -> Result<D>
     where
         D: ::serde::de::Deserialize<'a>,

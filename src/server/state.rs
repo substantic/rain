@@ -16,7 +16,7 @@ use common::rpc::new_rpc_system;
 use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef, ClientRef,
                     DataObjectState, TaskState, TaskInput, SessionError};
 use server::rpc::ServerBootstrapImpl;
-use server::scheduler::{Scheduler, RandomScheduler, UpdatedIn, UpdatedOut};
+use server::scheduler::{ReactiveScheduler, UpdatedIn, UpdatedOut};
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
@@ -24,6 +24,7 @@ use common::{ConsistencyCheck, Attributes};
 
 use hyper::server::Http;
 use server::http::RequestHandler;
+use server::testmode;
 
 use common::logger::logger::Logger;
 use common::logger::sqlite_logger::SQLiteLogger;
@@ -48,12 +49,15 @@ pub struct State {
 
     stop_server: bool,
 
-    updates: UpdatedIn,
+    pub(super) updates: UpdatedIn,
 
     /// Workers that will checked by reactor in the next turn()
     underload_workers: RcSet<WorkerRef>,
 
-    scheduler: RandomScheduler,
+    scheduler: ReactiveScheduler,
+
+    // If testing_mode is true, then __test attributes are interpreted
+    test_mode: bool,
 
     self_ref: Option<StateRef>,
 
@@ -169,9 +173,12 @@ impl State {
     /// Helper for .remove_session() and .fail_session(). Remove all session tasks,
     /// objects and cancel all finish hooks.
     fn clear_session(&mut self, s: &SessionRef) -> Result<()> {
+        debug!("Clearing session");
+        self.scheduler.clear_session(&s);
         let tasks = s.get_mut().tasks.clone();
         for t in tasks {
             t.unschedule();
+            self.updates.remove_task(&t);
             self.remove_task(&t)?;
         }
         let objects = s.get_mut().objects.clone();
@@ -609,8 +616,11 @@ impl State {
                 }),
             );
 
-            wref.get_mut().assigned_tasks.insert(task.clone());
-            wref.get_mut().scheduled_ready_tasks.remove(task);
+            {
+                let mut w = wref.get_mut();
+                w.assigned_tasks.insert(task.clone());
+                w.scheduled_ready_tasks.remove(task);
+            }
             t.assigned = Some(wref.clone());
             t.state = TaskState::Assigned;
 
@@ -701,11 +711,16 @@ impl State {
         if tref.get().state == TaskState::NotAssigned && tref.get().waiting_for.is_empty() {
             tref.get_mut().state = TaskState::Ready;
             self.updates.tasks.insert(tref.clone());
+            if let Some(ref wref) = tref.get().scheduled {
+                let mut w = wref.get_mut();
+                w.active_resources += tref.get().resources.cpus();
+            }
         }
 
         if tref.get().state == TaskState::Ready {
             if let Some(ref wref) = tref.get().scheduled {
-                wref.get_mut().scheduled_ready_tasks.insert(tref.clone());
+                let mut w = wref.get_mut();
+                w.scheduled_ready_tasks.insert(tref.clone());
             }
         }
 
@@ -720,7 +735,8 @@ impl State {
                 if let Some(ref wref) = tref.get().scheduled {
                     if tref.get().state == TaskState::Ready {
                         // If reported as updated by mistake, the task may be already in the set
-                        wref.get_mut().scheduled_ready_tasks.insert(tref.clone());
+                        let mut w = wref.get_mut();
+                        w.scheduled_ready_tasks.insert(tref.clone());
                     }
                 }
             }
@@ -821,9 +837,11 @@ impl State {
                         t.state = state;
                         t.attributes.update(attributes);
                         t.scheduled = None;
-                        worker.get_mut().scheduled_tasks.remove(&tref);
                         t.assigned = None;
-                        worker.get_mut().assigned_tasks.remove(&tref);
+                        let mut w = worker.get_mut();
+                        w.scheduled_tasks.remove(&tref);
+                        w.assigned_tasks.remove(&tref);
+                        w.active_resources -= t.resources.cpus();
                         self.logger.add_task_finished_event(t.id);
                     }
                     tref.get_mut().trigger_finish_hooks();
@@ -863,7 +881,6 @@ impl State {
                         "Cannot decode error message".to_string()
                     });
                     self.underload_workers.insert(worker.clone());
-
                     tref.get_mut().state = state;
                     tref.get_mut().attributes = attributes;
                     let session = tref.get().session.clone();
@@ -983,9 +1000,13 @@ impl State {
     pub fn run_scheduler(&mut self) {
         debug!("Running scheduler");
 
+        if self.test_mode {
+            testmode::test_scheduler(self);
+        }
+
         // Run scheduler and reset updated objects.
         let changed = self.scheduler.schedule(&mut self.graph, &self.updates);
-        self.updates = Default::default();
+        self.updates.clear();
 
         // Update assignments of (possibly) changed objects.
         for (wref, os) in changed.objects.iter() {
@@ -1032,10 +1053,11 @@ impl ConsistencyCheck for State {
 pub type StateRef = WrappedRcRefCell<State>;
 
 impl StateRef {
-    pub fn new(handle: Handle, listen_address: SocketAddr, log_dir: PathBuf) -> Self {
+    pub fn new(handle: Handle, listen_address: SocketAddr, log_dir: PathBuf, test_mode: bool) -> Self {
         let s = Self::wrap(State {
             graph: Default::default(),
             need_scheduling: false,
+            test_mode: test_mode,
             listen_address: listen_address,
             handle: handle,
             scheduler: Default::default(),

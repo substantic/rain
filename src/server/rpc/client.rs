@@ -54,8 +54,9 @@ impl client_service::Server for ClientServiceImpl {
                 let w = worker.get();
                 let control = w.control.as_ref().unwrap();
                 let worker_id = worker_id.clone();
+                let resources = w.resources.clone();
                 control.get_info_request().send().promise.map(move |r| {
-                    (worker_id, r)
+                    (worker_id, r, resources)
                 })
             })
             .collect();
@@ -63,11 +64,12 @@ impl client_service::Server for ClientServiceImpl {
         Promise::from_future(future::join_all(futures).map(move |rs| {
             let results = results.get();
             let mut workers = results.init_workers(rs.len() as u32);
-            for (i, &(ref worker_id, ref r)) in rs.iter().enumerate() {
+            for (i, &(ref worker_id, ref r, ref resources)) in rs.iter().enumerate() {
                 let mut w = workers.borrow().get(i as u32);
                 let r = r.get().unwrap();
                 w.set_tasks(r.get_tasks().unwrap());
                 w.set_objects(r.get_objects().unwrap());
+                resources.to_capnp(&mut w.borrow().get_resources().unwrap());
                 worker_id.to_capnp(&mut w.get_worker_id().unwrap());
             }
             ()
