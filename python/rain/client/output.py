@@ -1,7 +1,9 @@
 
 from .data import DataObject
 from ..common.content_type import check_content_type, merge_content_types
+from ..common import LabeledList
 from copy import copy
+import collections
 
 
 class Output:
@@ -84,3 +86,86 @@ def to_output(obj):
     if isinstance(obj, str):
         return Output(obj)
     raise Exception("Object {!r} cannot be used as output".format(obj))
+
+
+class OutputSpec:
+    """
+    A base class for task outputs list.
+    Provides input and output specification, checking and instantiation.
+    """
+
+    # Required / default outputs; LabeledList of `Output`s
+    outputs = ()
+
+    def __init__(self, outputs=None, output=None):
+
+        if output is not None:
+            if outputs is not None:
+                raise ValueError("Both `output` and `outputs` not allowed.")
+            outputs = (output,)
+
+        if isinstance(outputs, int):
+            self.outputs = LabeledList(Output() for i in range(outputs))
+        elif isinstance(outputs, LabeledList):
+            self.outputs = outputs
+        elif isinstance(outputs, collections.Sequence):
+            self.outputs = LabeledList(outputs)
+        else:
+            raise TypeError("expected int, LabeledList or a sequence "
+                            "for `outputs`, got {:r}".format(type(outputs)))
+
+        for i, (label, output) in enumerate(self.outputs.items()):
+            if isinstance(output, str):
+                self.outputs.set(i, Output(label=output), label=output)
+            elif not isinstance(output, Output):
+                raise TypeError("Only string labels and `Output` accepted in output list.")
+
+    def instantiate(self, outputs=None, output=None, session=None):
+        """
+        Create new output `DataObject`s for `Output`s given.
+        
+        Returns a tuple of `LabeledList`s `(outputs, data_objects)`.
+        If both `output=None` and `outputs=None`, creates builder prototype outputs.
+        """
+
+        if output is not None:
+            if outputs is not None:
+                raise ValueError("Both `output` and `outputs` not allowed.")
+            outputs = (output,)
+
+        if outputs is None:
+            outputs = LabeledList(self.outputs)
+        if not isinstance(outputs, LabeledList):
+            if not isinstance(outputs, collections.Sequence):
+                raise TypeError("`outputs` must be None or a sequence type.")
+            outputs = LabeledList(outputs)
+
+        if len(outputs) != len(self.outputs):
+            raise ValueError("Got {} outputs, {} expected."
+                             .format(len(outputs), len(self.outputs)))
+
+        objs = LabeledList()
+        for i, (label, out) in enumerate(outputs.items()):
+            if i < len(self.outputs):
+                proto = self.outputs[i]
+            else:
+                proto = self.more_outputs
+            if isinstance(out, str):
+                out = Output(label=out)
+            if out is None:
+                out = Output()    
+            if not isinstance(out, Output):
+                raise TypeError("Only `Output` and `str` instances accepted in output list.")
+            out_merged = out.merge_with_prototype(proto)
+            if out_merged.label is None:
+                out_merged.label = "out{}".format(i)
+            do = out_merged.create_data_object(session=session)
+            if out_merged.encode is not None:
+                do.attributes['spec']['encode'] = out_merged.encode
+                do.attributes['spec']['content_type'] = out_merged.encode
+            if out_merged.size_hint is not None:
+                do.attributes['spec']['size_hint'] = out_merged.size_hint
+            objs.append(do, label=do.label)
+
+        return objs
+
