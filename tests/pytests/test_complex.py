@@ -108,7 +108,7 @@ def test_big_diamond(test_env):
         result.output.keep()
         s.submit()
         result = result.output.fetch()
-        assert result == data.upper()
+        assert result.get_bytes() == data.upper()
 
 
 def test_separated_lines(test_env):
@@ -150,8 +150,8 @@ def test_separated_lines(test_env):
 
         s.submit()
 
-        results1 = [t.output.fetch() for t in checkpoint]
-        results2 = [t.output.fetch() for t in streams]
+        results1 = [t.output.fetch().get_bytes() for t in checkpoint]
+        results2 = [t.output.fetch().get_bytes() for t in streams]
 
         assert results1 == [d * STEPS + d for d in initial_data]
         assert results2 == [d * STEPS * 3 + d for d in initial_data]
