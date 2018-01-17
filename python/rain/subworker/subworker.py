@@ -11,6 +11,7 @@ from .rpc import subworker as rpc_subworker
 from .control import ControlImpl
 from ..common.fs import remove_dir_content
 from ..common import DataInstance, RainException
+from ..common.content_type import merge_content_types, decode_value
 
 SUBWORKER_PROTOCOL_VERSION = 0
 
@@ -33,13 +34,15 @@ def _unpickle_inputs_context(inputs):
         _global_unpickle_inputs = None
 
 
-def unpickle_input_object(name, index, auto_load):
+def unpickle_input_object(name, index, load, content_type):
     """Helper to replace encoded input object placeholders with actual
     local data objects data."""
     global _global_unpickle_inputs
     assert _global_unpickle_inputs is not None
     input = _global_unpickle_inputs[index]
-    if auto_load:
+    input.attributes['spec']['content_type'] = \
+        merge_content_types(input.content_type, content_type)
+    if load:
         return input.load()
     else:
         return input
@@ -87,13 +90,17 @@ class Subworker:
         # Run the function
         result = fn(context, *args, **kwargs)
 
+        if len(outputs) == 0:
+            if result is not None and result != ():
+                raise RainException("No returned value allowed (0 outputs declared")
+            result = []
         if len(outputs) == 1:
             result = [result]
         if isinstance(result, collections.Mapping):
             result = [result.pop(o.label) for o in outputs]
         if not isinstance(result, collections.Sequence):
-            raise Exception("Invalid result of task (not a sequence type): {!r}"
-                            .format(result))
+            raise RainException("Invalid result of task (not a sequence type): {!r}"
+                                .format(result))
         if len(result) != len(outputs):
             raise RainException("Python task should return {} outputs, got {}."
                                 .format(len(outputs), len(result)))

@@ -433,7 +433,7 @@ def test_output_detailed_specs(test_env):
 def test_input_detailed_specs(test_env):
     "Tests specifying content types for inputs and dynamic content types."
 
-    obj1 = {1: 2, 3: [4, 5]}
+    obj1 = {'A': 2, 'B': [4, 5]}
     obj2 = [1.0, 2.0, True]
     obj4 = ["a", "b"]
     obj5 = {"object": 5}
@@ -491,7 +491,7 @@ def test_input_detailed_specs(test_env):
             t1 = test(
                 copied(blob(obj1, encode='json')),
                 blob(pickle.dumps(obj2)),
-                (pickled(24.0), "foo"),
+                (pickled(42.0), "foo"),
                 blob(obj4, encode='json'),
                 obj5,
                 blob("ňů", encode="text:latin2"),
