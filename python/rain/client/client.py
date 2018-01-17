@@ -76,6 +76,7 @@ class Client:
         req.send().wait()
 
     def _fetch(self, dataobj):
+        "Fetch the object data and update its state."
         if not dataobj._keep:
             raise RainException(
                 "Can't fetch object {} without keep flag.".format(dataobj))
@@ -100,12 +101,9 @@ class Client:
             data.append(r.data)
             eof = r.status == "eof"
         bytedata = b"".join(data)
-        # TODO(gavento): use the server-returned content_type
-        dynamic_type = None
+        self._get_state((), (dataobj, ))
         return DataInstance(data=bytedata,
-                            data_object=dataobj,
-                            content_type=dynamic_type)
-
+                            data_object=dataobj)
 
     def _wait(self, tasks, dataobjs):
         req = self._service.wait_request()

@@ -201,6 +201,7 @@ class Session:
                 o.state = rpc.common.DataObjectState.finished
 
     def fetch(self, dataobject):
+        "Fetch the object data and update its state."
         return self.client._fetch(dataobject)
 
     def unkeep(self, dataobjects):

@@ -74,6 +74,12 @@ class DataObject:
         self.session.wait((), (self,))
 
     def fetch(self):
+        """
+        Fetch the object data and update its state.
+
+        Returns:
+            DataInstance
+        """
         return self.session.fetch(self)
 
     def update(self):
