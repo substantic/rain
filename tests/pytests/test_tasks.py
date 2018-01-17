@@ -31,8 +31,8 @@ def test_task_outputs(fake_session):
         assert isinstance(t1.outputs["a"], DataObject)
         assert isinstance(t1.outputs["space inside"], DataObject)
         assert isinstance(t1.outputs["long_name"], DataObject)
-        assert t1.outputs.a.content_type == "text"
-        assert t1.outputs.long_name.content_type is None
+        assert t1.outputs['a'].content_type == "text"
+        assert t1.outputs['long_name'].content_type is None
 
         with pytest.raises(KeyError):
             t1.outputs["XXX"]

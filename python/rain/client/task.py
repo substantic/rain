@@ -1,5 +1,6 @@
 from .session import get_active_session
 from .data import DataObject, to_data
+from .output import Output
 from ..common import RainException
 from ..common import LabeledList
 from ..common.resources import cpu_1
@@ -32,15 +33,23 @@ class Task:
         if config is not None:
             self.attributes["config"] = config
 
+        def to_data_object(o):
+            if isinstance(o, int):
+                o = "out{}".format(o)
+            if isinstance(o, str):
+                return DataObject(label=o, session=session)
+            if isinstance(o, Output):
+                return o.create_data_object(session=session)
+            if isinstance(o, DataObject):
+                return o
+            raise TypeError("Anly `Output` and `str` allowed as outputs.")
+
         if outputs is None:
             outputs = ()
         elif isinstance(outputs, int):
-            outputs = tuple(DataObject(session=session)
-                            for i in range(outputs))
+            outputs = tuple(to_data_object(i) for i in range(outputs))
         else:
-            outputs = tuple(DataObject(obj, session=session)
-                            if isinstance(obj, str)
-                            else obj for obj in outputs)
+            outputs = tuple(to_data_object(obj) for obj in outputs)
 
         self.outputs = LabeledList(pairs=((output.label, output)
                                           for output in outputs))
