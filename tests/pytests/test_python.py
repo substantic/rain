@@ -398,14 +398,14 @@ def test_output_detailed_specs(test_env):
                        "out_c",
                        "out_d"):
         return (obj, b'\xe1\xb9\xef\xeb', pickle.dumps(obj2),
-                ctx.blob("[42.0]", content_type='json'))
+                ctx.blob(b"[42.0]", content_type='json'))
 
     @remote(outputs=[Output(encode='pickle', label='test_pickle', size_hint=0.1),
                      Output(content_type='text:latin2'),
                      "out_c", "out_d"])
     def test2(ctx):
         return (obj, b'\xe1\xb9\xef\xeb', pickle.dumps(obj2),
-                ctx.blob("[42.0]", content_type='json'))
+                ctx.blob(b"[42.0]", content_type='json'))
 
     test_env.start(1)
     for test in (test1, test2):
@@ -417,16 +417,17 @@ def test_output_detailed_specs(test_env):
             t.keep_outputs()
             s.submit()
             (a, b, c, d) = t.fetch_outputs()
-            assert d.label == "foo"
+            print(t.outputs)
+            assert t.outputs['foo'].label == "foo"
             assert a.load() == obj
             assert b.load() == 'ášďë'
-            assert b == b'\xe1\xb9\xef\xeb'
+            assert b.get_bytes() == b'\xe1\xb9\xef\xeb'
             assert c.load() == obj2
-            assert t.outputs.out_c.fetch().load == obj2
-            assert d == b"[42.0]"
-            with pytest.raises():
-                assert d.content_type == 'json'
-                assert d.load() == [42.0]
+            assert t.outputs['out_c'].fetch().load() == obj2
+            assert d.get_bytes() == b"[42.0]"
+            # Dynamic content type
+            assert d.content_type == 'json'
+            assert d.load() == [42.0]
 
 
 def test_input_detailed_specs(test_env):
@@ -453,26 +454,26 @@ def test_input_detailed_specs(test_env):
         assert kwargs['kwB'] == ["B"]
         assert kwargs['kwC'] == ["C"]
 
-    @remote(inputs=[Input(content_type='json', size_hint=0.1),
-                    Input(content_type='pickle', load=True),
-                    Input(load=True),  # expects input tuple (pickle(42.0), "foo")
-                    "input_4",  # static type 'json'
-                    None,  # No type and no input, only python objects,
-                    Input(load=True, content_type='cbor'),  # for 'ina'
-                    ],
-            args=Input(content_type='text', load=False),
-            kwargs=Input(load=True),  # dynamic types, different
+    @remote(inputs={'in1': Input(content_type='json'),
+                    'in2': Input(content_type='pickle', load=True),
+                    'in3': Input(load=True),  # expects input tuple (pickle(42.0), "foo")
+                    # 'in4' only static type 'json'
+                    # 'in5' has no type and no dataobject input, only python objects
+                    'args': Input(content_type='text', load=False),
+                    'ina': Input(load=True, content_type='cbor'),
+                    'kwargs': Input(load=True),  # dynamic types, different
+                    },
             outputs=0)
     def test1(ctx, in1, in2, in3, in4, in5, *args, ina="bar", **kwargs):
         test_gen(ctx, in1, in2, in3, in4, in5, *args, ina=ina, **kwargs)
 
     @remote()
     def test2(ctx,
-              in1: Input(content_type='json', size_hint=0.1),
+              in1: Input(content_type='json'),
               in2: Input(content_type='pickle', load=True),
               in3: Input(load=True),  # expects input tuple (pickle(42.0), "foo")
-              in4: "input_4",  # static type 'json'
-              in5: None,  # No type and no input, only python objects,
+              in4,  # static type 'json'
+              in5,  # No type and no input, only python objects,
               *args: Input(content_type='text', load=False),
               ina: Input(load=True, content_type='cbor') ="bar",  # for 'ina'
               **kwargs: Input(load=True)  # dynamic types, different
