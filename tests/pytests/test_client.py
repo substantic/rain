@@ -345,7 +345,7 @@ def test_fetch_outputs(test_env):
     with test_env.client.new_session() as s:
         t0 = tasks.execute("ls /", stdout=True)
         t1 = tasks.execute(("split", "-d", "-n", "l/2", t0),
-                           outputs=["x00", "x01"])
+                           output_files=["x00", "x01"])
         t2 = tasks.execute("ls /", stdout=True)
 
         t2.keep_outputs()
@@ -354,5 +354,5 @@ def test_fetch_outputs(test_env):
         a = t2.output.fetch()
         b = t1.fetch_outputs()
 
-        assert len(a) > 4
-        assert b[0] + b[1] == a
+        assert len(a.get_bytes()) > 4
+        assert b[0].get_bytes() + b[1].get_bytes() == a.get_bytes()
