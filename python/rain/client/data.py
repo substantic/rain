@@ -28,12 +28,12 @@ class DataObject:
         self.label = label
         self.id = session._register_dataobj(self)
         self.attributes = {
-            "config": {"content_type": content_type}
+            "spec": {"content_type": content_type}
         }
 
     @property
     def content_type(self):
-        return self.attributes["config"]["content_type"]
+        return self.attributes["spec"]["content_type"]
 
     @property
     def id_pair(self):
@@ -108,16 +108,16 @@ class DataObject:
         if pycode._global_pickle_inputs is None:
             # call normal __reduce__
             return super().__reduce__()
-        base_name, counter, inputs = pycode._global_pickle_inputs
+        base_name, counter, inputs, input_proto = pycode._global_pickle_inputs
         input_name = "{}{{{}}}".format(base_name, counter)
         pycode._global_pickle_inputs[1] += 1
         inputs.append((input_name, self))
         return (subworker.unpickle_input_object,
-                (input_name, len(inputs) - 1, ))
+                (input_name, len(inputs) - 1, input_proto.load))
 
     def __repr__(self):
-        return "<Do {} {}/{}>".format(
-            self.label, self.session.session_id, self.id)
+        return "<DObj {} {}:{} {}>".format(
+            self.label, self.session.session_id, self.id, self.attributes)
 
 
 def blob(value, label="const", content_type=None, encode=None):

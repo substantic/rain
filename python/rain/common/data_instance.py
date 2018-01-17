@@ -59,22 +59,27 @@ class DataInstance:
             # At client
             assert attributes is None
             assert object_id is None
+            assert content_type is None
             self._data_object = data_object
             self.attributes = data_object.attributes
             self._object_id = data_object.id_pair
-            assert "content_type" in self.attributes["config"]
+            assert "spec" in self.attributes
+            assert "info" in self.attributes
         else:
             # At subworker
             self._object_id = object_id
             self.attributes = attributes if attributes is not None else {}
-            self.attributes.setdefault("config", {})
-
-        self.attributes["config"]["content_type"] = merge_content_types(
-            self.attributes["config"].get("content_type"), content_type)
+            self.attributes.setdefault("spec", {})
+            self.attributes.setdefault("info", {})
+            if content_type is not None:
+                self.attributes["info"]["content_type"] = \
+                    merge_content_types(content_type,
+                                        self.attributes["spec"].get("content_type"))
 
     @property
     def content_type(self):
-        return self.attributes["config"]["content_type"]
+        return self.attributes["info"].get("content_type",
+                                           self.attributes["spec"].get("content_type"))
 
     def load(self, cache=False):
         """
@@ -134,9 +139,9 @@ class DataInstance:
 
     def __repr__(self):
         if self._data:
-            return "<DataInstance {}>".format(format_size(len(self._data)))
+            return "<DataInstance {} {}>".format(format_size(len(self._data)), self.attributes)
         else:
-            return "<DataInstance {!r}>".format(self._path)
+            return "<DataInstance {!r} {}>".format(self._path, self.attributes)
 
     def _remove(self):
         assert self._path

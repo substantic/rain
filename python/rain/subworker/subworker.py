@@ -5,10 +5,12 @@ import socket
 import base64
 import cloudpickle
 import contextlib
+import collections
 
 from .rpc import subworker as rpc_subworker
 from .control import ControlImpl
 from ..common.fs import remove_dir_content
+from ..common import DataInstance, RainException
 
 SUBWORKER_PROTOCOL_VERSION = 0
 
@@ -31,12 +33,16 @@ def _unpickle_inputs_context(inputs):
         _global_unpickle_inputs = None
 
 
-def unpickle_input_object(name, index):
+def unpickle_input_object(name, index, auto_load):
     """Helper to replace encoded input object placeholders with actual
     local data objects data."""
     global _global_unpickle_inputs
     assert _global_unpickle_inputs is not None
-    return _global_unpickle_inputs[index]
+    input = _global_unpickle_inputs[index]
+    if auto_load:
+        return input.load()
+    else:
+        return input
 
 
 class Subworker:
@@ -61,6 +67,13 @@ class Subworker:
         register.send().wait()
 
     def run_task(self, context, inputs, outputs):
+        """
+        Args:
+            inputs: is a list of `DataInstance`.
+            outputs: is list of `ControlImpl.OutputSpec`.
+        Returns:
+            list(DataInstance)
+        """
         fn = inputs[0].load(cache=True)
         cfg = context.attributes["config"]
         with _unpickle_inputs_context(inputs):
@@ -70,16 +83,39 @@ class Subworker:
                           for name, d in cfg["kwargs"].items())
         remove_dir_content(self.task_path)
         os.chdir(self.task_path)
-        result = fn(context, *args, **kwargs)
-        # TODO:(gavento) Handle `cfg['outputs']` and `cfg['pickle_outputs']`
-        return self._decode_results(result, outputs)
 
-    def _decode_results(self, result, outputs):
-        if isinstance(result, dict):
-            return [result[label] for label in outputs]
+        # Run the function
+        result = fn(context, *args, **kwargs)
+
         if len(outputs) == 1:
-            return [result]
-        raise Exception("Invalid result of task:" + repr(result))
+            result = [result]
+        if isinstance(result, collections.Mapping):
+            result = [result.pop(o.label) for o in outputs]
+        if not isinstance(result, collections.Sequence):
+            raise Exception("Invalid result of task (not a sequence type): {!r}"
+                            .format(result))
+        if len(result) != len(outputs):
+            raise RainException("Python task should return {} outputs, got {}."
+                                .format(len(outputs), len(result)))
+        res = []
+        for r, o in zip(result, outputs):
+            encode = o.encode
+            if isinstance(r, DataInstance):
+                di = r
+            elif encode is not None:
+                di = context.blob(r, encode=encode)
+            elif isinstance(r, str):
+                di = context.blob(r, encode="text")
+            elif isinstance(r, bytes):
+                di = context.blob(r)
+            else:
+                raise Exception("Invalid result object: {!r}".format(r))
+            di.attributes['spec'] = o.attributes['spec']
+            if 'user_spec' in o.attributes:
+                di.attributes['user_spec'] = o.attributes['user_spec']
+            res.append(di)
+
+        return res
 
 
 def get_environ(name):
