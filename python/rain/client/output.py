@@ -16,19 +16,19 @@ class Output:
     A default label is the number of the output in the task.
     """
 
-    def __init__(self, label=None, size_hint=None, content_type=None,
+    def __init__(self, label=None, *, size_hint=None, content_type=None,
                  mode=None, encode=None, path=None):
 
         self.label = label
         self.size_hint = size_hint
         self.content_type = content_type
-        check_content_type(self.content_type)        
+        check_content_type(self.content_type)
         assert mode is None, "Data object modes not supported yet"
         self.encode = encode
         if (self.encode is not None and self.content_type is not None and
            self.content_type != self.encode and self.content_type != ""):
             raise ValueError(
-                "When specifying both encode and content_type " + 
+                "When specifying both encode and content_type " +
                 "for Output, they must match.")
 
         self.path = path
@@ -41,13 +41,6 @@ class Output:
         if self.encode is not None or self.path is not None:
             raise ValueError("Task Outputs do not accept `encode`, `path`.")
 
-    def _check_for_program(self, program):
-        "Check and finalize the output for a Program factory."
-        if self.encode is not None:
-            raise ValueError("Program Outputs do not accept `encode`.")
-        if self.path is None:
-            self.path = "output_{}".format(self.label)
-
     def _check_for_remote(self, pytask):
         "Check and finalize the output for a Remote (pytask) factory."
         if self.path is not None:
@@ -55,9 +48,9 @@ class Output:
 
     def __repr__(self):
         if self.path is not None:
-            return "<Output {} path={}>".format(self.label, self.path)
+            return "<Output {!r} path={!r}>".format(self.label, self.path)
         else:
-            return "<Output {}>".format(self.label)
+            return "<Output {!r}>".format(self.label)
 
     def merge_with_prototype(self, proto):
         "Return a copy of self updated with `Output` `proto` properties."
@@ -78,6 +71,30 @@ class Output:
         if self.size_hint is not None:
             d.attributes['size_hint'] = self.size_hint
         return d
+
+    @classmethod
+    def _for_program(cls, out, label=None, execute=False, label_as_path=False):
+        """
+        Create `Output` from `Output` or `str` for `Program` or `execute`.
+        """
+        if isinstance(out, str):
+            out = cls(out)
+        if not isinstance(out, Output):
+            raise TypeError("Object {!r} cannot be used as output".format(out))
+        if out.label is None:
+            out.label = label
+        if out.label is None:
+            raise ValueError("Program/execute Outputs need `label`")
+        if out.encode is not None:
+            raise ValueError("Program/execute Outputs do not accept `encode`.")
+
+        if execute and out.path is None:
+            if label_as_path:
+                out.path = out.label
+            else:
+                out.path = "out_{}".format(out.label)
+
+        return out
 
 
 def to_output(obj):
@@ -123,7 +140,7 @@ class OutputSpec:
     def instantiate(self, outputs=None, output=None, session=None):
         """
         Create new output `DataObject`s for `Output`s given.
-        
+
         Returns a tuple of `LabeledList`s `(outputs, data_objects)`.
         If both `output=None` and `outputs=None`, creates builder prototype outputs.
         """
@@ -153,7 +170,7 @@ class OutputSpec:
             if isinstance(out, str):
                 out = Output(label=out)
             if out is None:
-                out = Output()    
+                out = Output()
             if not isinstance(out, Output):
                 raise TypeError("Only `Output` and `str` instances accepted in output list.")
             out_merged = out.merge_with_prototype(proto)
@@ -168,4 +185,3 @@ class OutputSpec:
             objs.append(do, label=do.label)
 
         return objs
-
