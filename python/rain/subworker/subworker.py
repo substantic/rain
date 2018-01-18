@@ -63,9 +63,6 @@ class Subworker:
         finally:
             os.chdir(backup)
 
-
-
-
         self.rpc_client = capnp.TwoPartyClient(sock)
 
         upstream = self.rpc_client.bootstrap().cast_as(
