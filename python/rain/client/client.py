@@ -3,8 +3,8 @@ from rain.client import rpc
 from rain.common import RainException
 from rain.client.task import Task
 from rain.client.data import DataObject
-from ..common import attributes, DataInstance, ids
-
+from ..common import attributes, DataInstance
+from ..common.ids import id_from_capnp, id_to_capnp, worker_id_from_capnp
 from .session import Session
 
 CLIENT_PROTOCOL_VERSION = 0
@@ -55,9 +55,9 @@ class Client:
         """
         info = self._service.getServerInfo().wait()
         return {
-            "workers": [{"worker_id": ids.worker_id_from_capnp(w.workerId),
-                         "tasks": [(t.sessionId, t.id) for t in w.tasks],
-                         "objects": [(o.sessionId, o.id) for o in w.objects],
+            "workers": [{"worker_id": worker_id_from_capnp(w.workerId),
+                         "tasks": [id_from_capnp(t) for t in w.tasks],
+                         "objects": [id_from_capnp(o) for o in w.objects],
                          "resources": {"cpus": w.resources.nCpus}}
                         for w in info.workers]
         }
@@ -88,8 +88,7 @@ class Client:
                 "Object {} is not submitted.".format(dataobj))
 
         req = self._datastore.createReader_request()
-        req.id.id = dataobj.id
-        req.id.sessionId = dataobj.session.session_id
+        id_to_capnp(dataobj.id, req.id)
         req.offset = 0
         result = req.send().wait()
         check_result(result)
@@ -115,13 +114,11 @@ class Client:
             task = tasks[i]
             if task.state is None:
                 raise RainException("Task {} is not submitted".format(task))
-            req.taskIds[i].id = task.id
-            req.taskIds[i].sessionId = task.session.session_id
+            id_to_capnp(task.id, req.taskIds[i])
 
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
-            req.objectIds[i].id = dataobjs[i].id
-            req.objectIds[i].sessionId = dataobjs[i].session.session_id
+            id_to_capnp(dataobjs[i].id, req.objectIds[i])
 
         result = req.send().wait()
         check_result(result)
@@ -136,15 +133,13 @@ class Client:
         req.init("taskIds", len(tasks))
         for i in range(len(tasks)):
             tasks_dict[tasks[i].id] = tasks[i]
-            req.taskIds[i].id = tasks[i].id
-            req.taskIds[i].sessionId = tasks[i].session.session_id
+            id_to_capnp(tasks[i].id, req.taskIds[i])
 
         dataobjs_dict = {}
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
             dataobjs_dict[dataobjs[i].id] = dataobjs[i]
-            req.objectIds[i].id = dataobjs[i].id
-            req.objectIds[i].sessionId = dataobjs[i].session.session_id
+            id_to_capnp(dataobjs[i].id, req.objectIds[i])
 
         finished = req.send().wait()
         finished_tasks = [tasks_dict[f_task.id]
@@ -167,8 +162,7 @@ class Client:
 
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
-            req.objectIds[i].id = dataobjs[i].id
-            req.objectIds[i].sessionId = dataobjs[i].session.session_id
+            id_to_capnp(dataobjs[i].id, req.objectIds[i])
 
         result = req.send().wait()
         check_result(result)
@@ -182,15 +176,13 @@ class Client:
 
         req.init("taskIds", len(tasks))
         for i in range(len(tasks)):
-            req.taskIds[i].id = tasks[i].id
-            req.taskIds[i].sessionId = tasks[i].session.session_id
+            id_to_capnp(tasks[i].id, req.taskIds[i])
 
         dataobjs_dict = {}
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
-            dataobjs_dict[dataobjs[i].id] = dataobjs[i]
-            req.objectIds[i].id = dataobjs[i].id
-            req.objectIds[i].sessionId = dataobjs[i].session.session_id
+            dataobjs_dict[dataobjs[i].id.id] = dataobjs[i]
+            id_to_capnp(dataobjs[i].id, req.objectIds[i])
 
         results = req.send().wait()
         check_result(results.state)

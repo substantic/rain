@@ -6,6 +6,7 @@ from .attributes import attributes_to_capnp
 from .content_type import decode_value, merge_content_types
 from .errors import RainException
 from .utils import format_size
+from .ids import id_to_capnp, ID
 
 
 class DataInstance:
@@ -62,7 +63,7 @@ class DataInstance:
             assert content_type is None
             self._data_object = data_object
             self.attributes = data_object.attributes
-            self._object_id = data_object.id_pair
+            self._object_id = data_object.id
             assert "spec" in self.attributes
             self.attributes.setdefault("info", {})
         else:
@@ -75,6 +76,7 @@ class DataInstance:
                 self.attributes["info"]["content_type"] = \
                     merge_content_types(content_type,
                                         self.attributes["spec"].get("content_type"))
+        assert isinstance(self._object_id, ID) or self._object_id is None
 
     @property
     def content_type(self):
@@ -114,8 +116,7 @@ class DataInstance:
         "Internal serializer."
         if self._object_id:
             builder.storage.init("inWorker")
-            builder.storage.inWorker.sessionId = self._object_id[0]
-            builder.storage.inWorker.id = self._object_id[1]
+            id_to_capnp(self._object_id, builder.storage.inWorker)
         elif self._path:
             builder.storage.path = self._path
         else:

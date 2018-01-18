@@ -1,7 +1,7 @@
 import capnp
 
 from .session import get_active_session
-from ..common import RainException
+from ..common import RainException, ids, ID
 from ..common.attributes import attributes_to_capnp
 from ..common.content_type import check_content_type, encode_value
 
@@ -27,6 +27,7 @@ class DataObject:
         self.session = session
         self.label = label
         self.id = session._register_dataobj(self)
+        assert isinstance(self.id, ID)
         self.attributes = {
             "spec": {"content_type": content_type}
         }
@@ -34,10 +35,6 @@ class DataObject:
     @property
     def content_type(self):
         return self.attributes["spec"]["content_type"]
-
-    @property
-    def id_pair(self):
-        return (self.id, self.session.session_id)
 
     def _free(self):
         """Set flag that object is not available on the server """
@@ -58,8 +55,7 @@ class DataObject:
         return self._keep
 
     def to_capnp(self, out):
-        out.id.id = self.id
-        out.id.sessionId = self.session.session_id
+        ids.id_to_capnp(self.id, out.id)
         out.keep = self._keep
         if self.label:
             out.label = self.label
