@@ -15,7 +15,7 @@ get_active_session()
 import weakref
 
 from rain.client import rpc
-from ..common import RainException
+from ..common import RainException, ID
 from . import graph
 
 _global_sessions = []
@@ -142,14 +142,14 @@ class Session:
         assert task.session == self and task.id is None
         self._tasks.append(task)
         self._id_counter += 1
-        return self._id_counter
+        return ID(session_id=self.session_id, id=self._id_counter)
 
     def _register_dataobj(self, dataobj):
         """Register data object into session; returns assigned id"""
         assert dataobj.session == self and dataobj.id is None
         self._dataobjs.append(dataobj)
         self._id_counter += 1
-        return self._id_counter
+        return ID(session_id=self.session_id, id=self._id_counter)
 
     def submit(self):
         """"Submit all registered objects"""

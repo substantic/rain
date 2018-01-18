@@ -1,3 +1,19 @@
+from collections import namedtuple
+
+
+ID = namedtuple("ID", ["session_id", "id"])
+ID.__repr__ = lambda self: "{}:{}".format(self[0], self[1])
+
+
+def id_from_capnp(reader):
+    return ID(session_id=reader.sessionId, id=reader.id)
+
+
+def id_to_capnp(obj, builder):
+    builder.sessionId = obj.session_id
+    builder.id = obj.id
+
+
 def worker_id_from_capnp(reader):
     if reader.address.which() == "ipv4":
         address = reader.address.ipv4

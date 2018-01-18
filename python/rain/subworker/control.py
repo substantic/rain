@@ -2,13 +2,14 @@ from .rpc import subworker as rpc_subworker
 from ..common.data_instance import DataInstance
 from .context import Context
 from ..common.attributes import attributes_to_capnp, attributes_from_capnp
+from ..common.ids import id_from_capnp
 import traceback
 import collections
 
 
 def load_worker_object(reader):
     data = DataInstance._from_capnp(reader.data)
-    data._object_id = (reader.id.sessionId, reader.id.id)
+    data._object_id = id_from_capnp(reader.id)
     return data
 
 
@@ -39,7 +40,7 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
             # List of OutputSpec
             outputs = [self.OutputSpec(
                             label=reader.label,
-                            id=(reader.id.sessionId, reader.id.id),
+                            id=id_from_capnp(reader.id),
                             attributes=attributes_from_capnp(reader.attributes),
                             encode=encode)
                        for reader, encode in zip(params.task.outputs,

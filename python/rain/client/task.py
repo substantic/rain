@@ -1,8 +1,7 @@
 from .session import get_active_session
 from .data import DataObject, to_data
 from .output import Output
-from ..common import RainException
-from ..common import LabeledList
+from ..common import RainException, ID, LabeledList, ids
 from ..common.resources import cpu_1
 from ..common.attributes import attributes_to_capnp
 
@@ -26,6 +25,7 @@ class Task:
             session = get_active_session()
         self.session = session
         self.id = session._register_task(self)
+        assert isinstance(self.id, ID)
 
         self.task_type = task_type
         self.attributes = {}
@@ -84,25 +84,18 @@ class Task:
                                 .format(self, count))
         return self.outputs[0]
 
-    @property
-    def id_pair(self):
-        return (self.id, self.session.session_id)
-
     def to_capnp(self, out):
-        out.id.id = self.id
-        out.id.sessionId = self.session.session_id
+        ids.id_to_capnp(self.id, out.id)
         out.init("inputs", len(self.inputs))
 
         for i, (key, dataobj) in enumerate(self.inputs.items()):
-            out.inputs[i].id.id = dataobj.id
-            out.inputs[i].id.sessionId = dataobj.session.session_id
+            ids.id_to_capnp(dataobj.id, out.inputs[i].id)
             if key:
                 out.inputs[i].label = key
 
         out.init("outputs", len(self.outputs))
         for i, dataobj in enumerate(self.outputs):
-            out.outputs[i].id = dataobj.id
-            out.outputs[i].sessionId = dataobj.session.session_id
+            ids.id_to_capnp(dataobj.id, out.outputs[i])
 
         out.taskType = self.task_type
         out.taskType = self.task_type

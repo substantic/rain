@@ -136,9 +136,9 @@ def test_wait_all(test_env):
     s = client.new_session()
     with s:
         t1 = tasks.concat((blob("a"), blob("b")))
-        t2 = tasks.sleep(0.4, t1)
+        t2 = tasks.sleep(0.5, t1)
         s.submit()
-        test_env.assert_duration(0.35, 0.48, lambda: s.wait_all())
+        test_env.assert_duration(0.35, 0.65, lambda: s.wait_all())
         assert t1.state == rpc.common.TaskState.finished
         assert t2.state == rpc.common.TaskState.finished
         test_env.assert_max_duration(0.1, lambda: t2.wait())
