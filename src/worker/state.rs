@@ -765,8 +765,15 @@ impl StateRef {
         }
 
         // --- Start listening Unix socket for subworkers ----
-        let listener = UnixListener::bind(self.get().work_dir().subworker_listen_path(), &handle)
-            .expect("Cannot initialize unix socket for subworkers");
+        let listener = {
+            let backup = ::std::env::current_dir().unwrap();
+            let path = self.get().work_dir().subworker_listen_path();
+            ::std::env::set_current_dir(path.parent().unwrap());
+            let result = UnixListener::bind(path.file_name().unwrap(), &handle);
+            ::std::env::set_current_dir(backup);
+            result
+        }.map_err(|e| info!("Cannot create listening unix socket: {:?}", e)).unwrap();
+
         let state = self.clone();
         let future = listener
             .incoming()

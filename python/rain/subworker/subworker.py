@@ -54,7 +54,18 @@ class Subworker:
         self.task_path = task_path
         self.stage_path = stage_path
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.connect(address)
+
+        # Protection against long filenames, socket names are limitted
+        backup = os.getcwd()
+        try:
+            os.chdir(os.path.dirname(address))
+            sock.connect(os.path.basename(address))
+        finally:
+            os.chdir(backup)
+
+
+
+
         self.rpc_client = capnp.TwoPartyClient(sock)
 
         upstream = self.rpc_client.bootstrap().cast_as(
