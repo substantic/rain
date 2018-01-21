@@ -106,7 +106,7 @@ impl worker_control::Server for WorkerControlImpl {
             let id = DataObjectId::from_capnp(&co.get_id().unwrap());
 
             if state.graph.objects.contains_key(&id) {
-                // Update remote if not downloaded yet
+                // TODO: Update remote if not downloaded yet
                 continue;
             }
 
@@ -185,11 +185,13 @@ impl worker_control::Server for WorkerControlImpl {
         // TODO: Introduce some kind of limitations of how many tasks are
         // fetched at once
         for object in remote_objects {
-            let worker_id = object.get().remote().unwrap();
-            let object_id = object.get().id;
+            let object_ref = object.clone();
+            let mut o = object.get_mut();
+            let worker_id = o.remote().unwrap();
+            let object_id = o.id;
+            o.state = DataObjectState::Pulling(worker_id.clone());
 
             let state_ref = self.state.clone();
-            let object_ref = object.clone();
             let future = state.fetch_from_datastore(&worker_id, object_id, 0).map(move |data| {
                 object_ref.get_mut().set_data(Arc::new(data));
                 state_ref.get_mut().object_is_finished(&object_ref);
