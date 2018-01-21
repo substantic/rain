@@ -85,6 +85,7 @@ class TestEnv(Env):
         env["RUST_LOG"] = "trace"
         env["RUST_BACKTRACE"] = "1"
         env["RAIN_TEST_MODE"] = "1"
+        env["RAIN_DEBUG_MODE"] = "1"
         env["PYTHONPATH"] = PYTHON_DIR
 
         if listen_addr:

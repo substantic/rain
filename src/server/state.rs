@@ -61,6 +61,9 @@ pub struct State {
 
     scheduler: ReactiveScheduler,
 
+    // If debug_mode is true, then consitency checks are enabled
+    debug_mode: bool,
+
     // If testing_mode is true, then __test attributes are interpreted
     test_mode: bool,
 
@@ -1064,10 +1067,11 @@ impl ConsistencyCheck for State {
 pub type StateRef = WrappedRcRefCell<State>;
 
 impl StateRef {
-    pub fn new(handle: Handle, listen_address: SocketAddr, log_dir: PathBuf, test_mode: bool) -> Self {
+    pub fn new(handle: Handle, listen_address: SocketAddr, log_dir: PathBuf, debug_mode: bool, test_mode: bool) -> Self {
         let s = Self::wrap(State {
             graph: Default::default(),
             need_scheduling: false,
+            debug_mode: debug_mode,
             test_mode: test_mode,
             listen_address: listen_address,
             handle: handle,

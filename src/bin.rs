@@ -70,13 +70,21 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
 
+   let debug_mode = ::std::env::var("RAIN_DEBUG_MODE").map(|s| s == "1").unwrap_or(false);
+
+    if debug_mode {
+        ::librain::DEBUG_CHECK_CONSISTENCY.store(true, ::std::sync::atomic::Ordering::Relaxed);
+        info!("DEBUG mode enabled");
+    }
+
     let test_mode = ::std::env::var("RAIN_TEST_MODE").map(|s| s == "1").unwrap_or(false);
 
     if test_mode {
-        info!("Testing mode enabled");
+        info!("TESTING mode enabled");
     }
 
-    let state = server::state::StateRef::new(tokio_core.handle(), listen_address, log_dir, test_mode);
+    let state = server::state::StateRef::new(
+        tokio_core.handle(), listen_address, log_dir, debug_mode, test_mode);
     state.start();
 
     // Create ready file - a file that is created when server is ready
@@ -352,7 +360,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 }
 
 fn main() {
-    // Temporary simple logger for better module log control, default level is INFO
+    // T    emporary simple logger for better module log control, default level is INFO
     // TODO: replace with Fern or log4rs later
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");

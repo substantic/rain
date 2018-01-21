@@ -46,7 +46,7 @@ pub const SUBWORKER_PROTOCOL_VERSION: i32 = 0;
 use std::sync::atomic::AtomicBool;
 lazy_static! {
     // Init debug mode TODO: depend on opts
-    pub static ref DEBUG_CHECK_CONSISTENCY: AtomicBool = AtomicBool::new(true);
+    pub static ref DEBUG_CHECK_CONSISTENCY: AtomicBool = AtomicBool::new(false);
 }
 
 
