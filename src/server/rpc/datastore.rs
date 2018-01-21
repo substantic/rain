@@ -128,7 +128,7 @@ impl data_store::Server for WorkerDataStoreImpl {
         let params = pry!(params.get());
         let id = DataObjectId::from_capnp(&pry!(params.get_id()));
 
-        if self.worker_ref.get().is_object_ignored(&id) {
+        if self.state_ref.get().is_object_ignored(&id) {
             results.get().set_ignored(());
             return Promise::ok(());
         }

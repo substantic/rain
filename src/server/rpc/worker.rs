@@ -64,7 +64,7 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
 
             for obj_update in pry!(update.get_objects()).iter() {
                 let id = DataObjectId::from_capnp(&pry!(obj_update.get_id()));
-                if worker.is_object_ignored(&id) {
+                if state.is_object_ignored(&id) {
                     continue;
                 }
                 let object = pry!(state.object_by_id(id));
@@ -75,7 +75,7 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
 
             for task_update in pry!(update.get_tasks()).iter() {
                 let id = TaskId::from_capnp(&pry!(task_update.get_id()));
-                if worker.is_task_ignored(&id) {
+                if state.is_task_ignored(&id) {
                     continue;
                 }
                 let task = pry!(state.task_by_id(id));

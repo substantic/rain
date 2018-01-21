@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
+use std::collections::HashSet;
 
 use futures::{Future, Stream};
 use tokio_core::reactor::Handle;
@@ -37,6 +38,10 @@ const IGNORE_ID_TIME_SECONDS: u64 = 30;
 pub struct State {
     // Contained objects
     pub(super) graph: Graph,
+
+    /// Id of recently closed sessions, that should be ignored for incoming messages
+    /// from worker
+    pub(in super::super) ignored_sessions: HashSet<SessionId>,
 
     /// If true, next "turn" the scheduler is executed
     need_scheduling: bool,
@@ -173,8 +178,19 @@ impl State {
     /// Helper for .remove_session() and .fail_session(). Remove all session tasks,
     /// objects and cancel all finish hooks.
     fn clear_session(&mut self, s: &SessionRef) -> Result<()> {
-        debug!("Clearing session");
+        let session_id = s.get().id.clone();
+        debug!("Clearing session {}", session_id);
         self.scheduler.clear_session(&s);
+
+        let state_ref = self.self_ref.clone().unwrap();
+        assert!(self.ignored_sessions.insert(session_id));
+        let duration = ::std::time::Duration::from_secs(IGNORE_ID_TIME_SECONDS);
+        let clean_id_future = self.timer.sleep(duration).map(move |()| {
+            debug!("Cleaning ignored session id {}", session_id);
+            state_ref.get_mut().ignored_sessions.remove(&session_id);
+        }).map_err(|e| panic!("Cleaning ignored id failed {:?}", e));
+        self.handle.spawn(clean_id_future);
+
         let tasks = s.get_mut().tasks.clone();
         for t in tasks {
             t.unschedule();
@@ -201,7 +217,10 @@ impl State {
             session.get().client.get_id()
         );
         // remove children objects
-        self.clear_session(session)?;
+        let has_error = session.get().error.is_some();
+        if !has_error {
+            self.clear_session(session)?;
+        }
         // remove from graph
         self.graph.sessions.remove(&session.get_id()).unwrap();
         // unlink
@@ -316,6 +335,16 @@ impl State {
         // Remove from graph
         self.graph.tasks.remove(&tref.get_id()).unwrap();
         Ok(())
+    }
+
+    #[inline]
+    pub fn is_task_ignored(&self, task_id: &TaskId) -> bool {
+        self.ignored_sessions.contains(&task_id.get_session_id())
+    }
+
+    #[inline]
+    pub fn is_object_ignored(&self, object_id: &DataObjectId) -> bool {
+        self.ignored_sessions.contains(&object_id.get_session_id())
     }
 
     pub fn worker_by_id(&self, id: WorkerId) -> Result<WorkerRef> {
@@ -502,20 +531,11 @@ impl State {
         }
 
         {
-            let object_id = object.get().id;
-            wref.get_mut().ignored_objects.insert(object_id);
-            let wref2 = wref.clone();
-            let duration = ::std::time::Duration::from_secs(IGNORE_ID_TIME_SECONDS);
-            let clean_id_future = self.timer.sleep(duration).map(move |()| {
-                wref2.get_mut().ignored_objects.remove(&object_id);
-            }).map_err(|e| panic!("Cleaning ignored id failed {}", e));
-
             let o2 = object.clone();
             let w2 = wref.clone();
             self.handle.spawn(
                 req.send()
                     .promise
-                    .join(clean_id_future)
                     .map(|_| ())
                     .map_err(move |e| {
                         panic!(
@@ -651,18 +671,9 @@ impl State {
             task.get_id().to_capnp(ct);
         }
 
-        let task_id = task.get().id;
-        wref.get_mut().ignored_tasks.insert(task_id);
-        let wref2 = wref.clone();
-        let duration = ::std::time::Duration::from_secs(IGNORE_ID_TIME_SECONDS);
-        let clean_id_future = self.timer.sleep(duration).map(move |()| {
-            wref2.get_mut().ignored_tasks.remove(&task_id);
-        }).map_err(|e| panic!("Cleaning ignored id failed {:?}", e));
-
         self.handle.spawn(
             req.send()
                 .promise
-                .join(clean_id_future)
                 .map(|_| ())
                 .map_err(|e| panic!("[unassign_task] Send failed {:?}", e)),
         );
@@ -1071,6 +1082,7 @@ impl StateRef {
                 .num_slots(512)
                 .build(),
             log_dir: log_dir,
+            ignored_sessions: Default::default(),
         });
         s.get_mut().self_ref = Some(s.clone());
         s
