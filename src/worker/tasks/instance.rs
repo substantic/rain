@@ -2,6 +2,9 @@
 use futures::Future;
 
 use std::rc::Rc;
+use chrono::{DateTime, Utc};
+use std::ops::Sub;
+
 use worker::graph::{TaskRef, SubworkerRef, TaskState};
 use errors::{Result, Error};
 use worker::state::{StateRef, State};
@@ -20,15 +23,19 @@ pub struct TaskInstance {
     // When this sender is triggered, then task is forcefully terminated
     // When cancel_sender is None, termination is actually running
     cancel_sender: Option<::futures::unsync::oneshot::Sender<()>>,
+
+    start_timestamp: DateTime<Utc>,
     //pub subworker: Option<SubworkerRef>
 }
 
 pub type TaskFuture = Future<Item = (), Error = Error>;
 pub type TaskResult = Result<Box<TaskFuture>>;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 struct AttributeInfo {
     worker: String,
+    start: String,
+    duration: i64,
 }
 
 fn fail_unknown_type(state: &mut State, task_ref: TaskRef) -> TaskResult {
@@ -100,6 +107,7 @@ impl TaskInstance {
         let instance = TaskInstance {
             task_ref: task_ref,
             cancel_sender: Some(sender),
+            start_timestamp: Utc::now(),
         };
         let state_ref = state.self_ref();
         state.graph.running_tasks.insert(task_id, instance);
@@ -119,6 +127,8 @@ impl TaskInstance {
 
             let info = AttributeInfo {
                 worker: format!("{}", state.worker_id()),
+                start: instance.start_timestamp.to_rfc3339(),
+                duration: (Utc::now().signed_duration_since(instance.start_timestamp)).num_milliseconds(),
             };
             task.new_attributes.set("info", info);
 
