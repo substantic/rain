@@ -323,8 +323,16 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         }
     }
 
+    let run_prefix = cmd_args.value_of("RUN_PREFIX")
+                             .map(|v| v.split(" ").map(|s| s.to_string()).collect())
+                             .unwrap_or(Vec::new());
+
+    if !run_prefix.is_empty() {
+        info!("Command prefix: {:?}", run_prefix);
+    }
+
     let mut config = start::starter::StarterConfig::new(
-        local_workers, listen_address, &log_dir, cmd_args.is_present("RCOS"));
+        local_workers, listen_address, &log_dir, cmd_args.is_present("RCOS"), run_prefix);
 
     config.worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(
         |s| PathBuf::from(s),
@@ -450,11 +458,16 @@ fn main() {
                     .long("--listen")
                     .help("Server listening port/address/address:port (default = 0.0.0.0:auto)")
                     .takes_value(true))
+                .arg(Arg::with_name("RUN_PREFIX")
+                    .long("--runprefix")
+                    .value_name("COMMAND")
+                    .help("Command used for runnig rain (e.g. --runprefix='valgrind --tool=callgrind'")
+                    .takes_value(true))
                 .arg(Arg::with_name("WORK_DIR")
                     .long("--workdir")
                     .help("Workding directory for workers (default = /tmp)")
                     .takes_value(true))
-            .arg(Arg::with_name("LOG_DIR")
+                .arg(Arg::with_name("LOG_DIR")
                     .long("--logdir")
                     .help("Logging directory for workers & server (default = /tmp)")
                     .takes_value(true)))

@@ -79,13 +79,13 @@ Synopsis
 ::
 
   rain run --simple [--listen=LISTEN_ADDRESS]
-           [--logdir=DIR] [--workdir=DIR]
+           [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
   rain run --autoconf=CONF [--listen=LISTEN_ADDRESS]
-           [--logdir=DIR] [--workdir=DIR]
+           [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
   rain run --local-workers [--listen=LISTEN_ADDRESS]
-           [--logdir=DIR] [--workdir=DIR]
+           [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
   rain run --worker-host-file=FILE [-S] [--listen=LISTEN_ADDRESS]
-           [--logdir=DIR] [--workdir=DIR]
+           [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
 
   rain server [--listen=LISTEN_ADDRESS] [--logdir=DIR]
               [--ready-file=<FILE>]
@@ -93,7 +93,7 @@ Synopsis
               [--ready-file=FILE] SERVER_ADDRESS[:PORT]
   rain --version | -v
   rain --help | -h
- 
+
 
 Command: run
 ------------
@@ -136,12 +136,15 @@ ready and terminates.
 **--listen=(PORT|ADDRESS|ADDRESS:PORT)**
   Set listening address of server. Default is 0.0.0.0:7210.
 
+**--runprefix**
+  Set a command before rain programs. It is designed to used to run
+  analytical tools (e.g. --runprefix="valgrind --tool=callgrind")
+
 **--logdir=DIR**
   The option is unchanged propagated into the server and workers.
 
 **--workdir=DIR**
   The option is unchanged propagated into workers.
-
 
 Command: server
 ---------------

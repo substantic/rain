@@ -26,19 +26,23 @@ pub struct StarterConfig {
     pub worker_host_file: Option<PathBuf>,
 
     pub reserve_cpu_on_server: bool,
+
+    pub run_prefix: Vec<String>
 }
 
 impl StarterConfig {
     pub fn new(local_workers: Vec<Option<u32>>,
                server_listen_address: SocketAddr,
                log_dir: &Path,
-               reserve_cpu_on_server: bool) -> Self {
+               reserve_cpu_on_server: bool,
+               run_prefix: Vec<String>) -> Self {
         Self {
             local_workers: local_workers,
             server_listen_address,
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
             worker_host_file: None,
             reserve_cpu_on_server,
+            run_prefix
         }
     }
 
@@ -134,9 +138,16 @@ impl Starter {
         Ok(())
     }
 
-    /// Path to "rain" binary
-    pub fn local_rain_program(&self) -> String {
-        ::std::env::args().nth(0).unwrap()
+    /// Command for starting rain
+    pub fn local_rain_command(&self) -> (String, Vec<String>) {
+        let rain_program = ::std::env::args().nth(0).unwrap();
+        if self.config.run_prefix.is_empty() {
+            (rain_program, Vec::new())
+        } else {
+            let mut args = self.config.run_prefix[1..].to_vec();
+            args.push(rain_program);
+            (self.config.run_prefix[0].clone(), args)
+        }
     }
 
     fn spawn_process(
@@ -161,14 +172,15 @@ impl Starter {
 
     fn start_server(&mut self) -> Result<()> {
         let ready_file = self.create_tmp_filename("server-ready");
-        let rain = self.local_rain_program();
+        let (program, program_args) = self.local_rain_command();
         let server_address = format!("{}", self.config.server_listen_address);
         info!("Starting local server ({})", server_address);
         self.server_pid = {
             let process = self.spawn_process(
                 "server",
                 &ready_file,
-                Command::new(rain)
+                Command::new(program)
+                    .args(program_args)
                     .arg("server")
                     .arg("--listen")
                     .arg(&server_address)
@@ -184,7 +196,7 @@ impl Starter {
 
     fn start_remote_workers(&mut self, worker_hosts: &Vec<String>) -> Result<()> {
         info!("Starting {} remote worker(s)", worker_hosts.len());
-        let rain = self.local_rain_program(); // TODO: configurable path for remotes
+        let (program, program_args) = self.local_rain_command();
         let dir = ::std::env::current_dir().unwrap(); // TODO: Do it configurable
         let server_address = self.server_address();
 
@@ -208,18 +220,20 @@ impl Starter {
                     else \n\
                     CPUS=detect \n\
                     fi \n\
-                    {rain} worker {server_address} --cpus=$CPUS --ready-file {ready_file:?}",
-                    rain = rain,
+                    {program} {program_args} worker {server_address} --cpus=$CPUS --ready-file {ready_file:?}",
+                    program = program,
+                    program_args = program_args.join(" "),
                     server_address = server_address,
                     ready_file = ready_file,
                     server_pid = self.server_pid,
                 )
             } else {
                 format!(
-                    "{rain} worker {server_address} --ready-file {ready_file:?}",
-                    rain = rain,
+                    "{program} {program_args} worker {server_address} --ready-file {ready_file:?}",
+                    program = program,
+                    program_args = program_args.join(" "),
                     server_address = server_address,
-                    ready_file = ready_file
+                    ready_file = ready_file,
                 )
 
             };
@@ -238,12 +252,13 @@ impl Starter {
     fn start_local_workers(&mut self) -> Result<()> {
         info!("Starting {} local worker(s)", self.config.local_workers.len());
         let server_address = self.server_address();
-        let rain = self.local_rain_program();
+        let (program, program_args) = self.local_rain_command();
         let workers: Vec<_> = self.config.local_workers.iter().map(|x| x.clone()).enumerate().collect();
         for (i, resource) in workers {
             let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
-            let mut cmd = Command::new(&rain);
-                cmd.arg("worker")
+            let mut cmd = Command::new(&program);
+                cmd.args(&program_args)
+                   .arg("worker")
                    .arg(&server_address)
                    .arg("--ready-file")
                    .arg(&ready_file);
