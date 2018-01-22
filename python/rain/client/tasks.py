@@ -81,7 +81,6 @@ def execute(args, stdout=None, stdin=None, input_files=(), output_files=(), shel
 
     task_inputs = [obj.dataobj for obj in ins]
     task_outputs = [output.create_data_object() for output in outs]
-    print(outs, task_outputs)
     return Task("!run",
                 {
                     "args": proc_args,
