@@ -55,6 +55,7 @@ impl SQLiteLogger {
 
 impl Logger for SQLiteLogger {
     fn flush_events(&mut self) {
+        debug!("Flushing {} events", self.events.len());
         self.save_events();
         self.events.clear();
     }
