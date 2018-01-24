@@ -1080,7 +1080,7 @@ impl StateRef {
             updates: Default::default(),
             stop_server: false,
             self_ref: None,
-            logger: Box::new(SQLiteLogger::new(&log_dir)),
+            logger: Box::new(SQLiteLogger::new(&log_dir).unwrap()),
             timer: tokio_timer::wheel()
                 .tick_duration(Duration::from_millis(100))
                 .num_slots(512)

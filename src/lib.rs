@@ -70,6 +70,7 @@ pub mod errors {
             SessionErr(::server::graph::SessionError);
             Utf8Err(::std::str::Utf8Error);
             Json(::serde_json::Error);
+            Sqlite(::rusqlite::Error);
         }
 
         errors {

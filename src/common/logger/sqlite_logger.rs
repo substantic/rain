@@ -8,6 +8,7 @@ use common::events::{Event, EventType, NewWorkerEvent, RemovedWorkerEvent, Worke
                      WorkerMonitoringEvent};
 use common::monitor::Frame;
 use common::fs::LogDir;
+use errors::Result;
 use super::logger::Logger;
 
 use serde_json;
@@ -22,9 +23,8 @@ pub struct SQLiteLogger {
 }
 
 impl SQLiteLogger {
-    pub fn new(log_dir: &PathBuf) -> Self {
-        let conn = Connection::open(log_dir.join("events.sql")).unwrap();
-
+    pub fn new(log_dir: &PathBuf) -> Result<Self> {
+        let conn = Connection::open(log_dir.join("events.sql"))?;
         conn.execute(
             "CREATE TABLE IF NOT EXISTS events (
                 id SERIAL PRIMARY KEY,
@@ -32,23 +32,25 @@ impl SQLiteLogger {
                 timestamp TEXT NOT NULL
              )",
             &[],
-        ).unwrap();
+        )?;
 
-        SQLiteLogger {
+        Ok(SQLiteLogger {
             events: Vec::new(),
             conn: conn,
-        }
+        })
     }
 
-    fn save_events(&self) -> Result<(), ()> {
-        let mut stmt = self.conn
-            .prepare("INSERT INTO events (timestamp, event) VALUES (?, ?)")
-            .unwrap();
+    fn save_events(&mut self) -> Result<()> {
+        let tx = self.conn.transaction()?;
+        {
+            let mut stmt =
+                tx.prepare_cached("INSERT INTO events (timestamp, event) VALUES (?, ?)")?;
 
-        for e in self.events.iter() {
-            stmt.execute(&[&e.timestamp, &serde_json::to_string(&e.event).unwrap()])
-                .unwrap();
+            for e in self.events.iter() {
+                stmt.execute(&[&e.timestamp, &serde_json::to_string(&e.event)?])?;
+            }
         }
+        tx.commit()?;
         Ok(())
     }
 }
@@ -56,7 +58,9 @@ impl SQLiteLogger {
 impl Logger for SQLiteLogger {
     fn flush_events(&mut self) {
         debug!("Flushing {} events", self.events.len());
-        self.save_events();
+        self.save_events().unwrap_or_else(|e| {
+            error!("Writing events failed: {}", e);
+        });
         self.events.clear();
     }
 
@@ -229,16 +233,20 @@ mod tests {
         }
     }
 
+    fn create_logger() -> SQLiteLogger {
+        SQLiteLogger::new(&PathBuf::from("/tmp")).unwrap()
+    }
+
     #[test]
     fn test_add_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         logger.add_dummy_event();
         assert_eq!(logger.events.len(), 1);
     }
 
     #[test]
     fn test_flush_events() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         logger.add_dummy_event();
         logger.add_dummy_event();
         assert_eq!(logger.events.len(), 2);
@@ -248,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_add_new_worker_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let w = create_test_worker_id();
         logger.add_new_worker_event(w);
         let et = EventType::WorkerNew(NewWorkerEvent::new(w));
@@ -257,7 +265,7 @@ mod tests {
 
     #[test]
     fn test_add_worker_removed_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let w = create_test_worker_id();
         let e = "error";
         logger.add_worker_removed_event(w, e.to_string());
@@ -267,7 +275,7 @@ mod tests {
 
     #[test]
     fn test_add_worker_failed_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let w = create_test_worker_id();
         let e = "error";
         logger.add_worker_failed_event(w, e.to_string());
@@ -277,7 +285,7 @@ mod tests {
 
     #[test]
     fn test_add_new_client_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let c = create_test_client_id();
         logger.add_new_client_event(c);
         let et = EventType::NewClient(NewClientEvent::new(c));
@@ -286,7 +294,7 @@ mod tests {
 
     #[test]
     fn test_add_removed_client_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let c = create_test_client_id();
         let e = "error";
         logger.add_removed_client_event(c, e.to_string());
@@ -296,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_add_client_submit_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let tasks = create_test_task_ids();
         let dataobjs = create_test_dataobj_ids();
         logger.add_client_submit_event(tasks.clone(), dataobjs.clone());
@@ -306,7 +314,7 @@ mod tests {
 
     #[test]
     fn test_add_client_invalid_request_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let c = create_test_client_id();
         let e = "error";
         logger.add_client_invalid_request_event(c, e.to_string());
@@ -317,7 +325,7 @@ mod tests {
 
     #[test]
     fn test_add_client_unkeep_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let dataobjs = create_test_dataobj_ids();
         logger.add_client_unkeep_event(dataobjs.clone());
         let et = EventType::ClientUnkeep(ClientUnkeepEvent::new(dataobjs));
@@ -326,7 +334,7 @@ mod tests {
 
     #[test]
     fn test_add_task_started_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let w = create_test_worker_id();
         let t = create_test_task_id();
         logger.add_task_started_event(t, w);
@@ -336,7 +344,7 @@ mod tests {
 
     #[test]
     fn test_add_task_finished_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let t = create_test_task_id();
         logger.add_task_finished_event(t);
         let et = EventType::TaskFinished(TaskFinishedEvent::new(t));
@@ -345,7 +353,7 @@ mod tests {
 
     #[test]
     fn test_add_task_failed_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let w = create_test_worker_id();
         let t = create_test_task_id();
         let e = "error";
@@ -356,7 +364,7 @@ mod tests {
 
     #[test]
     fn test_add_dataobject_finished_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let w = create_test_worker_id();
         let datobj = create_test_dataobj_id();
         let s: usize = 1024;
@@ -367,7 +375,7 @@ mod tests {
 
     #[test]
     fn test_add_dataobject_removed_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let w = create_test_worker_id();
         let datobj = create_test_dataobj_id();
         logger.add_dataobject_removed_event(datobj, w);
@@ -377,7 +385,7 @@ mod tests {
 
     #[test]
     fn test_add_worker_monitoring_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         let frame = create_test_frame();
         let w = create_test_worker_id();
         logger.add_worker_monitoring_event(frame.clone(), w);
@@ -387,7 +395,7 @@ mod tests {
 
     #[test]
     fn test_add_dummy_event() {
-        let mut logger = SQLiteLogger::new(&PathBuf::from("/tmp"));
+        let mut logger = create_logger();
         logger.add_dummy_event();
         let et = EventType::Dummy();
         assert!(logger.events[0].event == et);
