@@ -67,7 +67,7 @@ class Scenario:
                 placement = task.attributes["info"]["worker"]
                 if placement not in [w.worker_id for w in expected_workers]:
                     print("Task: ",
-                          task.id_pair,
+                          task.id,
                           "was computed on",
                           placement,
                           "but expected on",

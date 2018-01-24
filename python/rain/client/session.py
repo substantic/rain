@@ -233,7 +233,7 @@ class Session:
             if o is None:
                 return
             node = g.node(o)
-            node.label = o.id_pair
+            node.label = o.id
             node.shape = "box"
             node.color = "none"
             node.fillcolor = "#0088aa"

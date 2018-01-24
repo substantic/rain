@@ -69,6 +69,6 @@ class Input:
             if label_as_path:
                 inp.path = inp.label
             else:
-                inp.path = "in_{}_{}".format(inp.label, inp.dataobj.id_pair()[1])
+                inp.path = "in_{}_{}".format(inp.label, inp.dataobj.id[1])
 
         return inp
