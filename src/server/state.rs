@@ -1115,10 +1115,11 @@ impl StateRef {
         let listener = TcpListener::bind(&http_address, &handle).unwrap();
         let http = Http::new();
         let handle1 = self.get().handle.clone();
+        let state = self.clone();
         let http_server = listener
             .incoming()
             .for_each(move |(sock, http_address)| {
-                http.bind_connection(&handle1, sock, http_address, RequestHandler);
+                http.bind_connection(&handle1, sock, http_address, RequestHandler::new(&state));
                 Ok(())
             })
             .map_err(|e| {
