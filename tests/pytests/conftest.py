@@ -116,6 +116,7 @@ class TestEnv(Env):
         # Start SERVER
         args = (RAIN_BIN, "server",
                 "--ready-file", server_ready_file,
+                "--logdir", os.path.join(WORK_DIR, "server"),
                 "--listen", str(addr))
         self.server = self.start_process("server", args, env=env)
         assert self.server is not None
@@ -137,12 +138,13 @@ class TestEnv(Env):
             name = "worker{}".format(i)
             ready_file = os.path.join(WORK_DIR, name + "-ready")
             worker_ready_files.append(ready_file)
+            wdir = os.path.join(WORK_DIR, "worker-{}".format(i))
             args = (RAIN_BIN,
                     "worker", "127.0.0.1:" + str(port),
                     "--ready-file", ready_file,
                     "--cpus", str(cpus),
-                    "--logdir", WORK_DIR,
-                    "--workdir", WORK_DIR)
+                    "--logdir", os.path.join(wdir, "logs"),
+                    "--workdir", os.path.join(wdir, "work"))
             self.workers.append(self.start_process(name, args, env=env))
 
         it = 0

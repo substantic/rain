@@ -155,8 +155,7 @@ Runs Rain server.
   Set listening address of server. Default is 0.0.0.0:7210.
 
 **--logdir=DIR**
-  Set logging directory of server. The program creates directory
-  ``<DIR>/rain/server-<HOSTNAME>-<PID>/logs`` where logs of server are stored.
+  Set logging directory of server. Default is /tmp/rain/logs/server-<HOSTNAME>-PID.
 
 **--ready-file=FILE**
   Create file containing a single line "ready", when the server is fully initialized
@@ -187,13 +186,12 @@ Runs Rain worker.
   0 then a open random port is assigned. The default is 0.0.0.0:0.
 
 **--logdir=DIR**
-  Set the logging directory for the worker. The program creates directory
-  ``<DIR>/rain/worker-<HOSTNAME>-<PID>/logs`` where logs of server are stored.
+  Set the logging directory for the worker. Default is
+  ``/tmp/rain/logs/worker-<HOSTNAME>-<PID>/logs``.
 
 **--workdir=DIR**
   Set the working directory where the worker stores intermediate results.
-  The program creates directory ``<DIR>/rain/worker-<HOSTNAME>-<PID>/work``
-  where logs of server are stored.
+  The defautl is ``/tmp/rain/work/worker-<HOSTNAME>-<PID>``
 
   .. warning::
      Rain assumes that working directory is placed on a fast device (ideally

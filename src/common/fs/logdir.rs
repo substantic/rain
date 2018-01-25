@@ -10,7 +10,10 @@ pub struct LogDir {
 
 impl LogDir {
     pub fn new(path: PathBuf) -> Self {
-        ::std::fs::create_dir(path.join("subworkers")).unwrap();
+        let sw = path.join("subworkers");
+        if !sw.exists() {
+            ::std::fs::create_dir(&sw).unwrap();
+        }
         LogDir {
             path,
         }

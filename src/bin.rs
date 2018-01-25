@@ -61,9 +61,9 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         listen_address
     );
 
-    let log_dir_prefix = Path::new(cmd_args.value_of("LOG_DIR").unwrap_or("/tmp"));
+    let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or(default_logging_directory("server"));
 
-    let log_dir = make_logging_directory(log_dir_prefix, "server").unwrap_or_else(|e| {
+    ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
         error!("{}", e);
         exit(1);
     });
@@ -100,87 +100,40 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 }
 
-
-// Creates a working directory of the following scheme
-// prefix + "/rain/" + <base_name>-<hostname>-<process_pid>
-// It checks that 'prefix' exists, but not the full path
-fn make_working_directory(prefix: &Path, base_name: &str) -> Result<PathBuf> {
-    if !prefix.exists() {
-        bail!(format!(
-            "Working directory prefix {:?} does not exists",
-            prefix
-        ));
-    }
-
-    if !prefix.is_dir() {
-        bail!(format!(
-            "Working directory prefix {:?} is not directory",
-            prefix
-        ));
-    }
-
+fn default_working_directory() -> PathBuf {
     let pid = getpid();
     let mut buf = [0u8; 256];
     let hostname = gethostname(&mut buf).unwrap().to_str().unwrap();
-    let work_dir = prefix
-        .join("rain")
-        .join(format!("{}-{}-{}", base_name, hostname, pid));
-
-    if work_dir.exists() {
-        bail!(format!("Working directory {:?} already exists", work_dir));
-    }
-
-    debug!("Creating working directory {:?}", work_dir);
-    if let Err(e) = std::fs::create_dir_all(work_dir.clone()) {
-        bail!(format!(
-            "Working directory {:?} cannot by created: {}",
-            work_dir,
-            e.description()
-        ));
-    }
-    Ok(work_dir)
+    PathBuf::from("/tmp/rain/work")
+            .join(format!("worker-{}-{}", hostname, pid))
 }
 
-
-// Creates a logging directory of the following scheme:
-// prefix + "/rain/" + <base_name>-<hostname>-<process_pid> + "/logs/"
-// It checks that 'prefix' exists, but not the full path
-fn make_logging_directory(prefix: &Path, base_name: &str) -> Result<PathBuf> {
-    if !prefix.exists() {
-        bail!(format!(
-            "Logging directory prefix {:?} does not exists",
-            prefix
-        ));
-    }
-
-    if !prefix.is_dir() {
-        bail!(format!(
-            "Logging directory prefix {:?} is not directory",
-            prefix
-        ));
-    }
-
+fn default_logging_directory(basename: &str) -> PathBuf {
     let pid = getpid();
     let mut buf = [0u8; 256];
     let hostname = gethostname(&mut buf).unwrap().to_str().unwrap();
-    let log_dir = prefix
-        .join("rain")
-        .join(format!("{}-{}-{}", base_name, hostname, pid))
-        .join("logs");
+    PathBuf::from("/tmp/rain/logs")
+            .join(format!("{}-{}-{}", basename, hostname, pid))
+}
 
-    if log_dir.exists() {
-        bail!(format!("Logging directory {:?} already exists", log_dir));
+fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
+    if !dir.exists() {
+        debug!("{} not found, creating ... {:?}", name, dir);
+        if let Err(e) = std::fs::create_dir_all(dir.clone()) {
+            bail!(format!(
+                "{} {:?} cannot by created: {}",
+               name, dir,
+                e.description()
+            ));
+        }
+    } else {
+        if !dir.is_dir() {
+            bail!("{} {:?} exists but it is not a directory",
+                name, dir
+            );
+         }
     }
-
-    debug!("Creating logging directory {:?}", log_dir);
-    if let Err(e) = std::fs::create_dir_all(log_dir.clone()) {
-        bail!(format!(
-            "Logging directory {:?} cannot by created: {}",
-            log_dir,
-            e.description()
-        ));
-    }
-    Ok(log_dir)
+    Ok(())
 }
 
 
@@ -236,16 +189,16 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     };
     assert!(cpus >= 0);
 
-    let work_dir_prefix = Path::new(cmd_args.value_of("WORK_DIR").unwrap_or("/tmp"));
+    let work_dir = cmd_args.value_of("WORK_DIR").map(PathBuf::from).unwrap_or(default_working_directory());
 
-    let work_dir = make_working_directory(work_dir_prefix, "worker").unwrap_or_else(|e| {
+    ensure_directory(&work_dir, "working directory").unwrap_or_else(|e| {
         error!("{}", e);
         exit(1);
     });
 
-    let log_dir_prefix = Path::new(cmd_args.value_of("LOG_DIR").unwrap_or("/tmp"));
+    let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or(default_logging_directory("worker"));
 
-    let log_dir = make_logging_directory(log_dir_prefix, "worker").unwrap_or_else(|e| {
+    ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
         error!("{}", e);
         exit(1);
     });
@@ -391,7 +344,7 @@ fn main() {
                     .takes_value(true))
                 .arg(Arg::with_name("LOG_DIR")
                     .long("--logdir")
-                    .help("Logging directory (default = /tmp)")
+                    .help("Logging directory (default /tmp/rain/logs-$HOSTANE-$PID)")
                     .takes_value(true))
                 .arg(Arg::with_name("READY_FILE")
                     .long("--ready-file")
@@ -416,12 +369,12 @@ fn main() {
                     .default_value("detect"))
                 .arg(Arg::with_name("WORK_DIR")
                     .long("--workdir")
-                    .help("Workding directory (default = /tmp)")
+                    .help("Workding directory (default /tmp/rain/work-$HOSTANE-$PID)")
                     .value_name("DIR")
                     .takes_value(true))
                 .arg(Arg::with_name("LOG_DIR")
                     .long("--logdir")
-                    .help("Logging directory (default = /tmp)")
+                    .help("Logging directory (default /tmp/rain/logs-$HOSTANE-$PID)")
                     .takes_value(true))
                 .arg(Arg::with_name("READY_FILE")
                     .long("--ready-file")
