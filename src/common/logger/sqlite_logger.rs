@@ -1,24 +1,26 @@
 use std::path::PathBuf;
 
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
-use common::events::{Event, EventType, NewWorkerEvent, RemovedWorkerEvent, WorkerFailedEvent,
-                     NewClientEvent, RemovedClientEvent, ClientSubmitEvent, ClientUnkeepEvent,
-                     ClientInvalidRequestEvent, TaskStartedEvent, TaskFinishedEvent,
-                     TaskFailedEvent, DataObjectFinishedEvent, DataObjectRemovedEvent,
-                     WorkerMonitoringEvent};
+use common::events;
 use common::monitor::Frame;
 use common::fs::LogDir;
 use errors::Result;
-use super::logger::Logger;
+use super::logger::{SearchCriteria, Logger};
 
 use serde_json;
 use rusqlite::Connection;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EventWrapper {
+    pub event: events::Event,
+    pub timestamp: DateTime<Utc>,
+}
 
 pub struct SQLiteLogger {
-    events: Vec<Event>,
+    events: Vec<EventWrapper>,
     conn: Connection,
 }
 
@@ -27,9 +29,11 @@ impl SQLiteLogger {
         let conn = Connection::open(log_dir.join("events.sql"))?;
         conn.execute(
             "CREATE TABLE IF NOT EXISTS events (
-                id SERIAL PRIMARY KEY,
-                event TEXT NOT NULL,
-                timestamp TEXT NOT NULL
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                timestamp TEXT NOT NULL,
+                event_type VARCHAR(14) NOT NULL,
+                session INTEGER,
+                event TEXT NOT NULL
              )",
             &[],
         )?;
@@ -44,10 +48,13 @@ impl SQLiteLogger {
         let tx = self.conn.transaction()?;
         {
             let mut stmt =
-                tx.prepare_cached("INSERT INTO events (timestamp, event) VALUES (?, ?)")?;
+                tx.prepare_cached("INSERT INTO events (timestamp, event_type, session, event) VALUES (?, ?, ?, ?)")?;
 
             for e in self.events.iter() {
-                stmt.execute(&[&e.timestamp, &serde_json::to_string(&e.event)?])?;
+                stmt.execute(&[&e.timestamp,
+                    &e.event.event_type(),
+                    &e.event.session_id(),
+                    &serde_json::to_string(&e.event)?])?;
             }
         }
         tx.commit()?;
@@ -55,7 +62,52 @@ impl SQLiteLogger {
     }
 }
 
+
+fn make_where_string(column: &str, mode: &str) -> Result<String> {
+    match mode {
+        "=" | "<" | ">" | "<=" | ">=" => Ok(format!("{} {} ?", column, mode)),
+        _ => bail!("Invalid search criteria")
+    }
+}
+
+
 impl Logger for SQLiteLogger {
+
+    fn get_events(&self, search_criteria: &SearchCriteria) -> Result<Vec<(events::EventId, DateTime<Utc>, String)>> {
+        let mut args : Vec<&::rusqlite::types::ToSql> = Vec::new();
+        let mut where_conds = Vec::new();
+
+
+        if let Some(ref v) = search_criteria.id {
+            where_conds.push(make_where_string("id", &v.mode)?);
+            args.push(&v.value);
+        }
+
+        if let Some(ref v) = search_criteria.event_type {
+            where_conds.push(make_where_string("event_type", &v.mode)?);
+            args.push(&v.value);
+        }
+
+        if let Some(ref v) = search_criteria.session {
+            where_conds.push(make_where_string("session", &v.mode)?);
+            args.push(&v.value);
+        }
+
+        let query_str = if where_conds.is_empty() {
+            "SELECT id, timestamp, event FROM events ORDER BY id".to_string()
+        } else {
+            format!("SELECT id, timestamp, event FROM events WHERE {} ORDER BY id", where_conds.join(" AND "))
+        };
+
+        info!("Running query: {}", query_str);
+        let mut query = self.conn.prepare_cached(&query_str)?;
+        //query.execute(&[])?;
+        let iter = query.query_map(&args, |row| {
+            (row.get(0), row.get(1), row.get(2))
+        })?.map(|e| e.unwrap());
+        Ok(iter.collect())
+    }
+
     fn flush_events(&mut self) {
         debug!("Flushing {} events", self.events.len());
         self.save_events().unwrap_or_else(|e| {
@@ -64,134 +116,8 @@ impl Logger for SQLiteLogger {
         self.events.clear();
     }
 
-    fn add_event(&mut self, event: Event) {
-        self.events.push(event);
-    }
-
-    fn add_new_worker_event(&mut self, worker: WorkerId) {
-        self.add_event(Event::new(
-            EventType::WorkerNew(NewWorkerEvent::new(worker)),
-            Utc::now(),
-        ));
-    }
-
-    fn add_worker_removed_event(&mut self, worker: WorkerId, error_msg: String) {
-        self.add_event(Event::new(
-            EventType::WorkerRemoved(
-                RemovedWorkerEvent::new(worker, error_msg),
-            ),
-            Utc::now(),
-        ));
-    }
-
-    fn add_worker_failed_event(&mut self, worker: WorkerId, error_msg: String) {
-        self.add_event(Event::new(
-            EventType::WorkerFailed(
-                WorkerFailedEvent::new(worker, error_msg),
-            ),
-            Utc::now(),
-        ));
-    }
-
-    fn add_new_client_event(&mut self, client: ClientId) {
-        self.add_event(Event::new(
-            EventType::NewClient(NewClientEvent::new(client)),
-            Utc::now(),
-        ));
-    }
-
-    fn add_removed_client_event(&mut self, client: ClientId, error_msg: String) {
-        self.add_event(Event::new(
-            EventType::RemovedClient(
-                RemovedClientEvent::new(client, error_msg),
-            ),
-            Utc::now(),
-        ));
-    }
-
-    fn add_client_submit_event(&mut self, tasks: Vec<TaskId>, dataobjs: Vec<DataObjectId>) {
-        self.add_event(Event::new(
-            EventType::ClientSubmit(
-                ClientSubmitEvent::new(tasks, dataobjs),
-            ),
-            Utc::now(),
-        ));
-    }
-
-    fn add_client_invalid_request_event(&mut self, client: ClientId, error_msg: String) {
-        self.add_event(Event::new(
-            EventType::ClientInvalidRequest(
-                ClientInvalidRequestEvent::new(client, error_msg),
-            ),
-            Utc::now(),
-        ));
-    }
-
-    fn add_client_unkeep_event(&mut self, dataobjs: Vec<DataObjectId>) {
-        self.add_event(Event::new(
-            EventType::ClientUnkeep(ClientUnkeepEvent::new(dataobjs)),
-            Utc::now(),
-        ));
-    }
-
-    fn add_task_started_event(&mut self, task: TaskId, worker: WorkerId) {
-        self.add_event(Event::new(
-            EventType::TaskStarted(TaskStartedEvent::new(task, worker)),
-            Utc::now(),
-        ));
-    }
-
-    fn add_task_finished_event(&mut self, task: TaskId) {
-        self.add_event(Event::new(
-            EventType::TaskFinished(TaskFinishedEvent::new(task)),
-            Utc::now(),
-        ));
-    }
-
-    fn add_task_failed_event(&mut self, task: TaskId, worker: WorkerId, error_msg: String) {
-        self.add_event(Event::new(
-            EventType::TaskFailed(
-                TaskFailedEvent::new(task, worker, error_msg),
-            ),
-            Utc::now(),
-        ));
-    }
-
-    fn add_dataobject_finished_event(
-        &mut self,
-        dataobject: DataObjectId,
-        worker: WorkerId,
-        size: usize,
-    ) {
-        self.add_event(Event::new(
-            EventType::DataObjectFinished(
-                DataObjectFinishedEvent::new(dataobject, worker, size),
-            ),
-            Utc::now(),
-        ));
-    }
-
-    fn add_dataobject_removed_event(&mut self, dataobject: DataObjectId, worker: WorkerId) {
-        self.add_event(Event::new(
-            EventType::DataObjectRemoved(
-                DataObjectRemovedEvent::new(dataobject, worker),
-            ),
-            Utc::now(),
-        ));
-    }
-
-    fn add_worker_monitoring_event(&mut self, frame: Frame, worker: WorkerId) {
-        let timestamp = frame.timestamp.clone();
-        self.add_event(Event::new(
-            EventType::WorkerMonitoring(
-                WorkerMonitoringEvent::new(frame, worker),
-            ),
-            timestamp,
-        ));
-    }
-
-    fn add_dummy_event(&mut self) {
-        self.add_event(Event::new(EventType::Dummy(), Utc::now()));
+    fn add_event(&mut self, event: events::Event) {
+        self.events.push(EventWrapper{event, timestamp: Utc::now()});
     }
 }
 
@@ -259,145 +185,7 @@ mod tests {
         let mut logger = create_logger();
         let w = create_test_worker_id();
         logger.add_new_worker_event(w);
-        let et = EventType::WorkerNew(NewWorkerEvent::new(w));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_worker_removed_event() {
-        let mut logger = create_logger();
-        let w = create_test_worker_id();
-        let e = "error";
-        logger.add_worker_removed_event(w, e.to_string());
-        let et = EventType::WorkerRemoved(RemovedWorkerEvent::new(w, e.to_string()));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_worker_failed_event() {
-        let mut logger = create_logger();
-        let w = create_test_worker_id();
-        let e = "error";
-        logger.add_worker_failed_event(w, e.to_string());
-        let et = EventType::WorkerFailed(WorkerFailedEvent::new(w, e.to_string()));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_new_client_event() {
-        let mut logger = create_logger();
-        let c = create_test_client_id();
-        logger.add_new_client_event(c);
-        let et = EventType::NewClient(NewClientEvent::new(c));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_removed_client_event() {
-        let mut logger = create_logger();
-        let c = create_test_client_id();
-        let e = "error";
-        logger.add_removed_client_event(c, e.to_string());
-        let et = EventType::RemovedClient(RemovedClientEvent::new(c, e.to_string()));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_client_submit_event() {
-        let mut logger = create_logger();
-        let tasks = create_test_task_ids();
-        let dataobjs = create_test_dataobj_ids();
-        logger.add_client_submit_event(tasks.clone(), dataobjs.clone());
-        let et = EventType::ClientSubmit(ClientSubmitEvent::new(tasks, dataobjs));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_client_invalid_request_event() {
-        let mut logger = create_logger();
-        let c = create_test_client_id();
-        let e = "error";
-        logger.add_client_invalid_request_event(c, e.to_string());
-        let et = EventType::ClientInvalidRequest(ClientInvalidRequestEvent::new(c, e.to_string()));
-        assert!(logger.events[0].event == et);
-    }
-
-
-    #[test]
-    fn test_add_client_unkeep_event() {
-        let mut logger = create_logger();
-        let dataobjs = create_test_dataobj_ids();
-        logger.add_client_unkeep_event(dataobjs.clone());
-        let et = EventType::ClientUnkeep(ClientUnkeepEvent::new(dataobjs));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_task_started_event() {
-        let mut logger = create_logger();
-        let w = create_test_worker_id();
-        let t = create_test_task_id();
-        logger.add_task_started_event(t, w);
-        let et = EventType::TaskStarted(TaskStartedEvent::new(t, w));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_task_finished_event() {
-        let mut logger = create_logger();
-        let t = create_test_task_id();
-        logger.add_task_finished_event(t);
-        let et = EventType::TaskFinished(TaskFinishedEvent::new(t));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_task_failed_event() {
-        let mut logger = create_logger();
-        let w = create_test_worker_id();
-        let t = create_test_task_id();
-        let e = "error";
-        logger.add_task_failed_event(t, w, e.to_string());
-        let et = EventType::TaskFailed(TaskFailedEvent::new(t, w, e.to_string()));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_dataobject_finished_event() {
-        let mut logger = create_logger();
-        let w = create_test_worker_id();
-        let datobj = create_test_dataobj_id();
-        let s: usize = 1024;
-        logger.add_dataobject_finished_event(datobj, w, s);
-        let et = EventType::DataObjectFinished(DataObjectFinishedEvent::new(datobj, w, s));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_dataobject_removed_event() {
-        let mut logger = create_logger();
-        let w = create_test_worker_id();
-        let datobj = create_test_dataobj_id();
-        logger.add_dataobject_removed_event(datobj, w);
-        let et = EventType::DataObjectRemoved(DataObjectRemovedEvent::new(datobj, w));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_worker_monitoring_event() {
-        let mut logger = create_logger();
-        let frame = create_test_frame();
-        let w = create_test_worker_id();
-        logger.add_worker_monitoring_event(frame.clone(), w);
-        let et = EventType::WorkerMonitoring(WorkerMonitoringEvent::new(frame, w));
-        assert!(logger.events[0].event == et);
-    }
-
-    #[test]
-    fn test_add_dummy_event() {
-        let mut logger = create_logger();
-        logger.add_dummy_event();
-        let et = EventType::Dummy();
+        let et = events::Event::WorkerNew(events::WorkerNewEvent {worker: w});
         assert!(logger.events[0].event == et);
     }
 }

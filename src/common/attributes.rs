@@ -80,6 +80,10 @@ impl Attributes {
         }
     }
 
+    pub fn as_hashmap(&self) -> &HashMap<String, String> {
+        &self.items
+    }
+
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()

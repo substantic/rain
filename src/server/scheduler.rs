@@ -127,6 +127,13 @@ impl ReactiveScheduler {
     }
 
     pub fn schedule(&mut self, graph: &mut Graph, updated: &UpdatedIn) -> UpdatedOut {
+
+        let mut up_out: UpdatedOut = Default::default();
+
+        if graph.workers.is_empty() {
+            return up_out
+        }
+
         for tref in &updated.new_tasks {
             let mut t = tref.get_mut();
             if t.state == TaskState::Ready {
@@ -147,7 +154,6 @@ impl ReactiveScheduler {
 
         debug!("Scheduler started");
 
-        let mut up_out: UpdatedOut = Default::default();
         while let Some((tref, wref)) = self.pick_best(graph) {
             {
                 let mut w = wref.get_mut();

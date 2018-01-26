@@ -96,11 +96,31 @@ impl Task {
     }
 
     #[inline]
+    pub fn id(&self) -> TaskId {
+        self.id
+    }
+
+    #[inline]
+    pub fn inputs(&self) -> &Vec<TaskInput> {
+        &self.inputs
+    }
+
+    #[inline]
+    pub fn attributes(&self) -> &Attributes {
+        &self.attributes
+    }
+
+    #[inline]
     pub fn is_finished(&self) -> bool {
         match self.state {
             TaskState::Finished => true,
             _ => false,
         }
+    }
+
+    #[inline]
+    pub fn task_type(&self) -> &String {
+        &self.task_type
     }
 
     /// Inform observers that task is finished

@@ -112,6 +112,16 @@ impl DataObject {
     pub fn is_needed(&self) -> bool {
         self.client_keep || !self.need_by.is_empty()
     }
+
+    #[inline]
+    pub fn id(&self) -> DataObjectId {
+        self.id
+    }
+
+    #[inline]
+    pub fn producer(&self) -> &Option<TaskRef> {
+        &self.producer
+    }
 }
 
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;

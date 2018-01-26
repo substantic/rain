@@ -130,7 +130,7 @@ impl State {
         assert!(worker.get_mut().error.is_none());
         worker.get_mut().error = Some(cause.clone());
         // TODO: Cleanup and recovery if possible
-        self.logger.add_worker_failed_event(
+        self.logger.add_worker_removed_event(
             worker.get_id(),
             cause.clone(),
         );
@@ -175,6 +175,7 @@ impl State {
     pub fn add_session(&mut self, client: &ClientRef) -> Result<SessionRef> {
         let s = SessionRef::new(self.graph.new_session_id(), client);
         self.graph.sessions.insert(s.get_id(), s.clone());
+        self.logger.add_new_session_event(s.get_id(), client.get().id);
         Ok(s)
     }
 

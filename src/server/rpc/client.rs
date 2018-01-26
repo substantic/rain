@@ -12,6 +12,7 @@ use errors::{Result, ResultExt, ErrorKind, Error};
 use common::Attributes;
 use common::RcSet;
 use server::rpc::ClientDataStoreImpl;
+use common::events::{ObjectDescriptor, TaskDescriptor};
 
 pub struct ClientServiceImpl {
     state: StateRef,
@@ -172,8 +173,8 @@ impl client_service::Server for ClientServiceImpl {
             debug!("New tasks: {:?}", created_tasks);
             debug!("New objects: {:?}", created_objects);
             s.logger.add_client_submit_event(
-                created_tasks.iter().map(|t| t.get_id()).collect(),
-                created_objects.iter().map(|o| o.get_id()).collect(),
+                created_tasks.iter().map(|t| TaskDescriptor::from(&t.get())).collect(),
+                created_objects.iter().map(|o| ObjectDescriptor::from(&o.get())).collect(),
             );
             // verify submit integrity
             s.verify_submit(&created_tasks, &created_objects)

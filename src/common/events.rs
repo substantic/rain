@@ -1,261 +1,199 @@
-use super::id::{WorkerId, ClientId, DataObjectId, TaskId};
+use super::id::{WorkerId, ClientId, DataObjectId, TaskId, SessionId};
 use super::monitor::Frame;
 use chrono::{DateTime, Utc};
+use server::graph::{DataObject, Task};
+use common::id::SId;
+
+use std::collections::HashMap;
+
+
+pub type EventId = i64;
 
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct NewWorkerEvent {
-    worker: WorkerId, // TODO: Resources
-}
-
-impl NewWorkerEvent {
-    pub fn new(worker: WorkerId) -> Self {
-        NewWorkerEvent { worker: worker }
-    }
-}
-
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct RemovedWorkerEvent {
-    worker: WorkerId,
-    error_msg: String,
-}
-
-impl RemovedWorkerEvent {
-    pub fn new(worker: WorkerId, error_msg: String) -> Self {
-        RemovedWorkerEvent {
-            worker: worker,
-            error_msg: error_msg,
-        }
-    }
+pub struct WorkerNewEvent {
+    pub worker: WorkerId, // TODO: Resources
 }
 
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct NewClientEvent {
-    client: ClientId,
+pub struct WorkerRemovedEvent {
+    pub worker: WorkerId,
+    pub error_msg: String,
 }
-
-impl NewClientEvent {
-    pub fn new(client: ClientId) -> Self {
-        NewClientEvent { client: client }
-    }
-}
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct RemovedClientEvent {
-    client: ClientId,
+pub struct ClientNewEvent {
+    pub client: ClientId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ClientRemovedEvent {
+    pub client: ClientId,
     // If client is disconnected because of error, otherwise empty
-    error_msg: String,
+    pub error_msg: String,
 }
 
-impl RemovedClientEvent {
-    pub fn new(client: ClientId, error_msg: String) -> Self {
-        RemovedClientEvent {
-            client: client,
-            error_msg: error_msg,
-        }
-    }
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SessionNewEvent {
+    pub session: SessionId,
+    pub client: ClientId,
 }
 
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ClientSubmitEvent {
-    tasks: Vec<TaskId>,
-    dataobjs: Vec<DataObjectId>,
-}
-
-impl ClientSubmitEvent {
-    pub fn new(tasks: Vec<TaskId>, dataobjs: Vec<DataObjectId>) -> Self {
-        ClientSubmitEvent {
-            tasks: tasks,
-            dataobjs: dataobjs,
-        }
-    }
+    pub tasks: Vec<TaskDescriptor>,
+    pub dataobjs: Vec<ObjectDescriptor>,
 }
 
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ClientUnkeepEvent {
-    dataobjs: Vec<DataObjectId>,
+pub struct InputDescriptor {
+    id: DataObjectId,
+    label: String,
 }
 
-impl ClientUnkeepEvent {
-    pub fn new(dataobjs: Vec<DataObjectId>) -> Self {
-        ClientUnkeepEvent { dataobjs: dataobjs }
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct TaskDescriptor {
+    id: TaskId,
+    inputs: Vec<InputDescriptor>,
+    task_type: String,
+    attributes: HashMap<String, String>,
+}
+
+impl TaskDescriptor {
+    pub fn from(task: &Task) -> Self {
+        TaskDescriptor {
+            id: task.id(),
+            inputs: task.inputs().iter().map(|i| {
+                InputDescriptor {
+                    id: i.object.get().id(),
+                    label: i.label.clone(),
+                }
+            }).collect(),
+            task_type: task.task_type().clone(),
+            attributes: task.attributes().as_hashmap().clone(),
+        }
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ObjectDescriptor {
+    id: DataObjectId,
+    producer: Option<TaskId>,
+}
+
+impl ObjectDescriptor {
+    pub fn from(obj: &DataObject) -> Self {
+        ObjectDescriptor {
+            id: obj.id(),
+            producer: obj.producer().as_ref().map(|t| t.get().id()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ClientUnkeepEvent {
+    pub dataobjs: Vec<DataObjectId>,
+}
 
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TaskStartedEvent {
-    task: TaskId,
-    worker: WorkerId,
+    pub task: TaskId,
+    pub worker: WorkerId,
 }
-
-impl TaskStartedEvent {
-    pub fn new(task: TaskId, worker: WorkerId) -> Self {
-        TaskStartedEvent {
-            task: task,
-            worker: worker,
-        }
-    }
-}
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TaskFinishedEvent {
-    task: TaskId,
+    pub task: TaskId,
 }
-
-impl TaskFinishedEvent {
-    pub fn new(task: TaskId) -> Self {
-        TaskFinishedEvent { task: task }
-    }
-}
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DataObjectFinishedEvent {
-    dataobject: DataObjectId,
-    worker: WorkerId,
-    size: usize,
+    pub dataobject: DataObjectId,
+    pub worker: WorkerId,
+    pub size: usize,
 }
-
-impl DataObjectFinishedEvent {
-    pub fn new(dataobject: DataObjectId, worker: WorkerId, size: usize) -> Self {
-        DataObjectFinishedEvent {
-            dataobject: dataobject,
-            worker: worker,
-            size: size,
-        }
-    }
-}
-
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct DataObjectRemovedEvent {
-    dataobject: DataObjectId,
-    worker: WorkerId,
-}
-
-impl DataObjectRemovedEvent {
-    pub fn new(dataobject: DataObjectId, worker: WorkerId) -> Self {
-        DataObjectRemovedEvent {
-            dataobject: dataobject,
-            worker: worker,
-        }
-    }
-}
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkerMonitoringEvent {
-    frame: Frame,
-    worker: WorkerId,
+    pub frame: Frame,
+    pub worker: WorkerId,
 }
-
-impl WorkerMonitoringEvent {
-    pub fn new(frame: Frame, worker: WorkerId) -> Self {
-        WorkerMonitoringEvent {
-            frame: frame,
-            worker: worker,
-        }
-    }
-}
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TaskFailedEvent {
-    task: TaskId,
-    worker: WorkerId,
-    error_msg: String,
+    pub task: TaskId,
+    pub worker: WorkerId,
+    pub error_msg: String,
 }
-
-impl TaskFailedEvent {
-    pub fn new(task: TaskId, worker: WorkerId, error_msg: String) -> Self {
-        TaskFailedEvent {
-            task: task,
-            worker: worker,
-            error_msg: error_msg,
-        }
-    }
-}
-
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct WorkerFailedEvent {
-    worker: WorkerId,
-    error_msg: String,
-}
-
-impl WorkerFailedEvent {
-    pub fn new(worker: WorkerId, error_msg: String) -> Self {
-        WorkerFailedEvent {
-            worker: worker,
-            error_msg: error_msg,
-        }
-    }
-}
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ClientInvalidRequestEvent {
-    client: ClientId,
-    error_msg: String,
+    pub client: ClientId,
+    pub error_msg: String,
 }
-
-impl ClientInvalidRequestEvent {
-    pub fn new(client: ClientId, error_msg: String) -> Self {
-        ClientInvalidRequestEvent {
-            client: client,
-            error_msg: error_msg,
-        }
-    }
-}
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub enum EventType {
-    WorkerNew(NewWorkerEvent),
-    WorkerRemoved(RemovedWorkerEvent),
+#[serde(tag = "type")]
+pub enum Event {
+    WorkerNew(WorkerNewEvent),
+    WorkerRemoved(WorkerRemovedEvent),
 
-    NewClient(NewClientEvent),
-    RemovedClient(RemovedClientEvent),
+    ClientNew(ClientNewEvent),
+    ClientRemoved(ClientRemovedEvent),
+
+    SessionNew(SessionNewEvent),
 
     ClientSubmit(ClientSubmitEvent),
     ClientUnkeep(ClientUnkeepEvent),
 
     TaskStarted(TaskStartedEvent),
     TaskFinished(TaskFinishedEvent),
-
     DataObjectFinished(DataObjectFinishedEvent),
-    DataObjectRemoved(DataObjectRemovedEvent),
 
     WorkerMonitoring(WorkerMonitoringEvent),
 
     TaskFailed(TaskFailedEvent),
-    WorkerFailed(WorkerFailedEvent),
     ClientInvalidRequest(ClientInvalidRequestEvent),
 
-    Dummy(),
+    Dummy(i32),
 }
-
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Event {
-    pub event: EventType,
-    pub timestamp: DateTime<Utc>,
-}
-
 
 impl Event {
-    pub fn new(event: EventType, timestamp: DateTime<Utc>) -> Self {
-        Event {
-            event: event,
-            timestamp: timestamp,
+    pub fn event_type(&self) -> &'static str {
+        match self {
+            &Event::WorkerNew(_) => "WorkerNew",
+            &Event::WorkerRemoved(_) => "WorkerRemoved",
+            &Event::ClientNew(_) => "ClientNew",
+            &Event::ClientRemoved(_) => "ClientRemoved",
+            &Event::SessionNew(_) => "SessionNew",
+            &Event::ClientSubmit(_) => "ClientSubmit",
+            &Event::ClientUnkeep(_) => "ClientUnkeep",
+            &Event::TaskStarted(_) => "TaskStarted",
+            &Event::TaskFinished(_) => "TaskFinished",
+            &Event::TaskFailed(_) => "TaskFailed",
+            &Event::DataObjectFinished(_) => "ObjectFinished",
+            &Event::WorkerMonitoring(_) => "WorkerMonitor",
+            &Event::ClientInvalidRequest(_) => "InvalidRequest",
+            &Event::Dummy(_) => "Dummy",
+        }
+    }
+
+    pub fn session_id(&self) -> Option<SessionId> {
+        match self {
+            &Event::TaskFinished(ref e) => Some(e.task.get_session_id()),
+            &Event::TaskStarted(ref e) => Some(e.task.get_session_id()),
+            &Event::TaskFailed(ref e) => Some(e.task.get_session_id()),
+            &Event::SessionNew(ref e) => Some(e.session),
+            &Event::ClientSubmit(ref e) => {
+                // TODO: Quick hack, we expect that submit contains only tasks/obj from one session
+                e.tasks.get(0).map(|t| t.id.get_session_id())
+            }
+            _ => None,
         }
     }
 }
