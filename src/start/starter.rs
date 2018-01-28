@@ -175,6 +175,7 @@ impl Starter {
         let (program, program_args) = self.local_rain_command();
         let server_address = format!("{}", self.config.server_listen_address);
         info!("Starting local server ({})", server_address);
+        let log_dir = self.config.log_dir.join("server");
         self.server_pid = {
             let process = self.spawn_process(
                 "server",
@@ -182,10 +183,9 @@ impl Starter {
                 Command::new(program)
                     .args(program_args)
                     .arg("server")
-                    .arg("--listen")
-                    .arg(&server_address)
-                    .arg("--ready-file")
-                    .arg(&ready_file),
+                    .arg("--logdir").arg(&log_dir)
+                    .arg("--listen").arg(&server_address)
+                    .arg("--ready-file").arg(&ready_file),
             )?;
             let server_pid = process.id();
             info!("Server pid = {}", server_pid);
@@ -258,10 +258,9 @@ impl Starter {
             let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
             let mut cmd = Command::new(&program);
                 cmd.args(&program_args)
-                   .arg("worker")
-                   .arg(&server_address)
-                   .arg("--ready-file")
-                   .arg(&ready_file);
+                   .arg("worker").arg(&server_address)
+                   .arg("--logdir").arg(self.config.log_dir.join(format!("worker-{}", i)))
+                   .arg("--ready-file").arg(&ready_file);
                 if let Some(cpus) = resource {
                     cmd.arg("--cpus");
                     cmd.arg(cpus.to_string());

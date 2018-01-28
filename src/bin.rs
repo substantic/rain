@@ -61,7 +61,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         listen_address
     );
 
-    let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or(default_logging_directory("server"));
+    let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or_else(|| default_logging_directory("server"));
 
     ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
         error!("{}", e);
@@ -104,7 +104,7 @@ fn default_working_directory() -> PathBuf {
     let pid = getpid();
     let mut buf = [0u8; 256];
     let hostname = gethostname(&mut buf).unwrap().to_str().unwrap();
-    PathBuf::from("/tmp/rain/work")
+    PathBuf::from("/tmp/rain-work")
             .join(format!("worker-{}-{}", hostname, pid))
 }
 
@@ -112,7 +112,7 @@ fn default_logging_directory(basename: &str) -> PathBuf {
     let pid = getpid();
     let mut buf = [0u8; 256];
     let hostname = gethostname(&mut buf).unwrap().to_str().unwrap();
-    PathBuf::from("/tmp/rain/logs")
+    PathBuf::from("/tmp/rain-logs")
             .join(format!("{}-{}-{}", basename, hostname, pid))
 }
 
@@ -189,14 +189,14 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     };
     assert!(cpus >= 0);
 
-    let work_dir = cmd_args.value_of("WORK_DIR").map(PathBuf::from).unwrap_or(default_working_directory());
+    let work_dir = cmd_args.value_of("WORK_DIR").map(PathBuf::from).unwrap_or_else(|| default_working_directory());
 
     ensure_directory(&work_dir, "working directory").unwrap_or_else(|e| {
         error!("{}", e);
         exit(1);
     });
 
-    let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or(default_logging_directory("worker"));
+    let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or_else(|| default_logging_directory("worker"));
 
     ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
         error!("{}", e);
@@ -244,9 +244,14 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let listen_address = parse_listen_arg(cmd_args, DEFAULT_SERVER_PORT);
-    let log_dir = ::std::env::current_dir().unwrap();
+    let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or_else(|| default_logging_directory("worker"));
 
     info!("Log directory: {}", log_dir.to_str().unwrap());
+
+    ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
+        error!("{}", e);
+        exit(1);
+    });
 
     let mut local_workers = Vec::new();
 
@@ -254,11 +259,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         error!("--simple and --local-workers are mutually exclusive");
         exit(1);
     }
-    /*    let local_workers = if cmd_args.is_present("LOCAL_WORKERS") {
-        value_t_or_exit!(cmd_args, "LOCAL_WORKERS", u32)
-    } else {
-        0u32
-    };*/
+
     if cmd_args.is_present("SIMPLE") {
         local_workers.push(None);
     }
@@ -344,7 +345,7 @@ fn main() {
                     .takes_value(true))
                 .arg(Arg::with_name("LOG_DIR")
                     .long("--logdir")
-                    .help("Logging directory (default /tmp/rain/logs-$HOSTANE-$PID)")
+                    .help("Logging directory (default /tmp/rain-logs/server-$HOSTANE-$PID)")
                     .takes_value(true))
                 .arg(Arg::with_name("READY_FILE")
                     .long("--ready-file")
@@ -369,12 +370,12 @@ fn main() {
                     .default_value("detect"))
                 .arg(Arg::with_name("WORK_DIR")
                     .long("--workdir")
-                    .help("Workding directory (default /tmp/rain/work-$HOSTANE-$PID)")
+                    .help("Workding directory (default /tmp/rain-work/worker-$HOSTANE-$PID)")
                     .value_name("DIR")
                     .takes_value(true))
                 .arg(Arg::with_name("LOG_DIR")
                     .long("--logdir")
-                    .help("Logging directory (default /tmp/rain/logs-$HOSTANE-$PID)")
+                    .help("Logging directory (default /tmp/rain-logs/worker-$HOSTANE-$PID)")
                     .takes_value(true))
                 .arg(Arg::with_name("READY_FILE")
                     .long("--ready-file")
@@ -418,11 +419,11 @@ fn main() {
                     .takes_value(true))
                 .arg(Arg::with_name("WORK_DIR")
                     .long("--workdir")
-                    .help("Workding directory for workers (default = /tmp)")
+                    .help("Working directory for workers (default /tmp/rain-work/worker-$HOSTANE-$PID)")
                     .takes_value(true))
                 .arg(Arg::with_name("LOG_DIR")
                     .long("--logdir")
-                    .help("Logging directory for workers & server (default = /tmp)")
+                    .help("Logging directory for workers & server (default /tmp/rain-logs/run-$HOSTANE-$PID)")
                     .takes_value(true)))
         .get_matches();
 
