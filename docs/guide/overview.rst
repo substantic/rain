@@ -13,7 +13,9 @@ Overview
      programs are used.
    * Rain is focused on easy to use, deploy and run. Our goal is to built a nice
      API, straightforward installation, and straightforward deployment on a
-     cluster.
+     cluster. Rain infrastructure consists of all-in-one statically-linked
+     binary and client interface is a pure python package with dependencies
+     installable via pip.
 
 
 Hello world
@@ -23,7 +25,7 @@ This section shows how to start server and one local worker, and execute simple
 "Hello world" program.
 
 - **Start infrastructure.** You can do start and workers manually, but for
-  standard scenarios there is "rain run" to do it for you. The following command
+  standard scenariosthere is "rain run" to do it for you. The following command
   stars server and one local worker (Starting Rain infrastructure for
   distributed computations is described in :ref:`program-rain`.)::
 

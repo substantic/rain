@@ -22,6 +22,7 @@ Welcome to Rain's documentation!
    directories
    python_api
    args
+   dev_dashboard
 
 Indices and tables
 ==================
