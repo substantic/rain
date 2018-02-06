@@ -2,7 +2,7 @@
 Running external programs
 *************************
 
-A smooth integration of external programs into Rain pipelines is an import part
+A smooth integration of external programs into Rain pipelines is an essential part
 of Rain.
 
 Introduction of ``task.execute``

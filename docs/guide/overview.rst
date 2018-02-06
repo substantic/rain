@@ -1,7 +1,7 @@
 Overview
 ********
 
-**Rain** is a framework for running distributed computations.
+**Rain** is an open-source distributed computational framework.
 
    * Rain provides Python interface, where tasks and their interconnections is
      defined.
@@ -16,10 +16,11 @@ Overview
      cluster. Rain infrastructure consists of all-in-one statically-linked
      binary and client interface is a pure python package with dependencies
      installable via pip.
+     *RUST CORE
 
 
-Hello world
-===========
+Getting Started
+===============
 
 This section shows how to start server and one local worker, and execute simple
 "Hello world" program.

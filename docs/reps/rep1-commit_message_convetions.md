@@ -1,4 +1,4 @@
-# REP1: Commit message convetions
+# REP1: Commit message conventions
 
 
 ## Goals

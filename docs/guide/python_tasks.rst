@@ -2,8 +2,9 @@
 Python tasks
 ************
 
-Among build-in tasks, Rain allows to run additional tasks via subworkers. Rain
-is shipped with Python subworker, that allows to execute arbirary Python code.
+Among build-in tasks, Rain allows to run additional types of tasks via
+subworkers. Rain is shipped with Python subworker, that allows to execute
+arbirary Python code.
 
 Decorator ``@remote``
 =====================
@@ -26,12 +27,12 @@ Rain task. Let us consider the following example::
       result = t.output.fetch()
       print(result)              # Prints b'Hello world!'
 
-The decorator changes the behavior of the decorated function in way that calling
-it no longer executes it but creates task that executes the function in a python
-subworker. Worker starts and manages subworkers as necessary, there is no need
-of any action from the user perspective.
+The decorator changes the behavior of the decorated function in a way that
+calling it no longer executes it in the client but creates a task that executes
+the function in a python subworker. Worker starts and manages subworkers as
+necessary, there is no need of any action from the user perspective.
 
-The decorated function has to take at least one argument. As the first argument,
+The decorated function accepts at least one argument. As the first argument,
 the context of the execution is passed to the function. Context enables some
 actions within the task. It is a convetion to named this argument as ``ctx``.
 
