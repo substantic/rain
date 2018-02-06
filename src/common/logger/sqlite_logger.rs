@@ -98,7 +98,7 @@ impl Logger for SQLiteLogger {
             format!("SELECT id, timestamp, event FROM events WHERE {} ORDER BY id", where_conds.join(" AND "))
         };
 
-        info!("Running query: {}", query_str);
+        debug!("Running query: {}", query_str);
         let mut query = self.conn.prepare_cached(&query_str)?;
         //query.execute(&[])?;
         let iter = query.query_map(&args, |row| {

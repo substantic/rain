@@ -1,4 +1,9 @@
-let SERVER_URL = "http://localhost:8080/"
+let SERVER_URL = "/";
+
+if (window.location.href.startsWith("http://localhost:3000")) {
+    console.log("DEV mode detected, connecting to http://localhost:8080/");
+    SERVER_URL = "http://localhost:8080/";
+}
 
 export function fetch_from_server(link, body, method="POST") {
     return fetch(SERVER_URL + link, {

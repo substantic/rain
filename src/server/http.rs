@@ -1,5 +1,5 @@
-use hyper::Error;
-use hyper::header::{AccessControlAllowOrigin, ContentLength};
+use hyper::{StatusCode, Error};
+use hyper::header::{AccessControlAllowOrigin, ContentLength, ContentEncoding, Encoding};
 use hyper::server::{Request, Response, Service};
 use futures::Stream;
 use futures;
@@ -40,8 +40,8 @@ fn get_events(state: &StateRef, body: &str) -> Result<String> {
     Ok(format!("[{}]", chunks.join(",")))
 }
 
-fn lite_dashboard(state: &StateRef) -> String {
-    format!("<html>
+fn lite_dashboard(state: &StateRef) -> Result<String> {
+    Ok(format!("<html>
     <style>
         table, th, td {{
             border: 1px solid black;
@@ -63,7 +63,35 @@ fn lite_dashboard(state: &StateRef) -> String {
     worker_tab=wrap_elements("<tr>", "</tr>",
         state.get().graph.workers.iter().map(|(id, ref wref)|
             format!("<td>{}</td><td>{}</td>", id, wref.get().resources.cpus))
-    ))
+    )))
+}
+
+pub fn make_text_response(data: Result<String>) -> Response {
+    match data {
+        Ok(data) => Response::new()
+            .with_header(ContentLength(data.len() as u64))
+            .with_header(AccessControlAllowOrigin::Any)
+            .with_body(data),
+        Err(e) => {
+            warn!("Http request error: {}", e.description());
+            Response::new()
+                .with_status(StatusCode::InternalServerError)
+                .with_header(AccessControlAllowOrigin::Any)
+        }
+    }
+}
+
+pub fn static_data_response(data: &'static [u8]) -> Response {
+    Response::new()
+        .with_header(ContentLength(data.len() as u64))
+        .with_body(data)
+}
+
+pub fn static_gzipped_response(data: &'static [u8]) -> Response {
+    Response::new()
+        .with_header(ContentEncoding(vec![Encoding::Gzip]))
+        .with_header(ContentLength(data.len() as u64))
+        .with_body(data)
 }
 
 
@@ -81,15 +109,20 @@ impl Service for RequestHandler {
         Box::new(req.body().concat2()
             .and_then(move |body| {
                 let body = ::std::str::from_utf8(&body).unwrap();
-                let output = match path.as_str() {
-                    "/events" => get_events(&state_ref, &body).unwrap(),
-                    "/" => lite_dashboard(&state_ref),
-                    _ =>  { "FIXME".to_string() }
-                };
-                Ok(Response::new()
-                        .with_header(ContentLength(output.len() as u64))
-                        .with_header(AccessControlAllowOrigin::Any)
-                        .with_body(output))
+                Ok(match path.as_str() {
+                    "/events" => make_text_response(get_events(&state_ref, &body)),
+                    "/lite" => make_text_response(lite_dashboard(&state_ref)),
+                    // to protect against caching, .js contain hash in index.html, the same for .css file
+                    path if path.starts_with("/static/js/main.") && path.ends_with(".js") =>
+                        static_gzipped_response(&include_bytes!("./../../dashboard/dist/main.js.gz")[..]),
+                    path if path.starts_with("/static/css/main.") && path.ends_with(".css") =>
+                        static_gzipped_response(&include_bytes!("./../../dashboard/dist/main.css.gz")[..]),
+                    path => static_data_response(&include_bytes!("./../../dashboard/build/index.html")[..]),
+                    /*path =>  {
+                        warn!("Invalid HTTP request: {}", path);
+                        Response::new().with_status(StatusCode::NotFound)
+                    }*/
+                })
             }))
     }
 }
