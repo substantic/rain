@@ -87,8 +87,8 @@ Synopsis
   rain run --worker-host-file=FILE [-S] [--listen=LISTEN_ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
 
-  rain server [--listen=LISTEN_ADDRESS] [--logdir=DIR]
-              [--ready-file=<FILE>]
+  rain server [--listen=LISTEN_ADDRESS] [--http-listen=LISTEN_ADDRESS]
+              [--logdir=DIR] [--ready-file=<FILE>]
   rain worker [--cpus=N] [--workdir=DIR] [--logdir=DIR]
               [--ready-file=FILE] SERVER_ADDRESS[:PORT]
   rain --version | -v
@@ -135,6 +135,9 @@ ready and terminates.
 
 **--listen=(PORT|ADDRESS|ADDRESS:PORT)**
   Set listening address of server. Default is 0.0.0.0:7210.
+
+**--http-listen=(PORT|ADDRESS|ADDRESS:PORT)**
+  Set listening address of server for HTTP (dashboard). Default is 0.0.0.0:8080.
 
 **--runprefix**
   Set a command before rain programs. It is designed to used to run

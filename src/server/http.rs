@@ -32,7 +32,6 @@ impl RequestHandler {
     }
 }
 
-
 fn get_events(state: &StateRef, body: &str) -> Result<String> {
     let search_criteria: SearchCriteria = ::serde_json::from_str(body)?;
     let events = state.get().logger.get_events(&search_criteria);
@@ -111,7 +110,7 @@ impl Service for RequestHandler {
                 let body = ::std::str::from_utf8(&body).unwrap();
                 Ok(match path.as_str() {
                     "/events" => make_text_response(get_events(&state_ref, &body)),
-                    "/lite" => make_text_response(lite_dashboard(&state_ref)),
+                    "/lite" | "/lite/" => make_text_response(lite_dashboard(&state_ref)),
                     // to protect against caching, .js contain hash in index.html, the same for .css file
                     path if path.starts_with("/static/js/main.") && path.ends_with(".js") =>
                         static_gzipped_response(&include_bytes!("./../../dashboard/dist/main.js.gz")[..]),

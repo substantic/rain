@@ -7,7 +7,7 @@ pub mod resources;
 pub mod events;
 pub mod asycinit;
 pub mod attributes;
-
+pub mod sys;
 
 use std::collections::HashSet;
 use futures::unsync::oneshot;

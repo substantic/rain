@@ -13,7 +13,7 @@ extern crate error_chain;
 
 pub mod start;
 
-use nix::unistd::{gethostname, getpid};
+use nix::unistd::{getpid};
 use std::process::exit;
 use std::path::{Path, PathBuf};
 use std::error::Error;
@@ -31,21 +31,21 @@ const DEFAULT_WORKER_PORT: u16 = 0;
 const CLIENT_PROTOCOL_VERSION: i32 = 0;
 const WORKER_PROTOCOL_VERSION: i32 = 0;
 
-const DEFAULT_HTTP_PORT: u16 = 8080;
+const DEFAULT_HTTP_SERVER_PORT: u16 = 8080;
 
 
-fn parse_listen_arg(args: &ArgMatches, default_port: u16) -> SocketAddr {
-    if !args.is_present("LISTEN_ADDRESS") {
+fn parse_listen_arg(key: &str, args: &ArgMatches, default_port: u16) -> SocketAddr {
+    if !args.is_present(key) {
         return SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), default_port);
     }
 
-    value_t!(args, "LISTEN_ADDRESS", SocketAddr)
-        .unwrap_or_else(|_| match value_t!(args, "LISTEN_ADDRESS", IpAddr) {
+    value_t!(args, key, SocketAddr)
+        .unwrap_or_else(|_| match value_t!(args, key, IpAddr) {
             Ok(ip) => SocketAddr::new(ip, default_port),
             _ => {
                 SocketAddr::new(
                     IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-                    value_t_or_exit!(args, "LISTEN_ADDRESS", u16),
+                    value_t_or_exit!(args, key, u16),
                 )
             }
         })
@@ -53,7 +53,8 @@ fn parse_listen_arg(args: &ArgMatches, default_port: u16) -> SocketAddr {
 
 
 fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let listen_address = parse_listen_arg(cmd_args, DEFAULT_SERVER_PORT);
+    let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_SERVER_PORT);
+    let http_listen_address = parse_listen_arg("HTTP_LISTEN_ADDRESS", cmd_args, DEFAULT_HTTP_SERVER_PORT);
     let ready_file = cmd_args.value_of("READY_FILE");
     info!(
         "Starting Rain {} server at port {}",
@@ -84,7 +85,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 
     let state = server::state::StateRef::new(
-        tokio_core.handle(), listen_address, log_dir, debug_mode, test_mode);
+        tokio_core.handle(), listen_address, http_listen_address,log_dir, debug_mode, test_mode);
     state.start();
 
     // Create ready file - a file that is created when server is ready
@@ -102,16 +103,14 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 fn default_working_directory() -> PathBuf {
     let pid = getpid();
-    let mut buf = [0u8; 256];
-    let hostname = gethostname(&mut buf).unwrap().to_str().unwrap();
+    let hostname = ::librain::common::sys::get_hostname();
     PathBuf::from("/tmp/rain-work")
             .join(format!("worker-{}-{}", hostname, pid))
 }
 
 fn default_logging_directory(basename: &str) -> PathBuf {
     let pid = getpid();
-    let mut buf = [0u8; 256];
-    let hostname = gethostname(&mut buf).unwrap().to_str().unwrap();
+    let hostname = ::librain::common::sys::get_hostname();
     PathBuf::from("/tmp/rain-logs")
             .join(format!("{}-{}-{}", basename, hostname, pid))
 }
@@ -139,7 +138,7 @@ fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
 
 fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let ready_file = cmd_args.value_of("READY_FILE");
-    let listen_address = parse_listen_arg(cmd_args, DEFAULT_WORKER_PORT);
+    let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_WORKER_PORT);
     let mut server_address = cmd_args.value_of("SERVER_ADDRESS").unwrap().to_string();
     if !server_address.contains(":") {
         server_address = format!("{}:{}", server_address, DEFAULT_SERVER_PORT);
@@ -243,7 +242,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 
 fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let listen_address = parse_listen_arg(cmd_args, DEFAULT_SERVER_PORT);
+    let listen_address = parse_listen_arg("LISTEN_PORT", cmd_args, DEFAULT_SERVER_PORT);
     let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or_else(|| default_logging_directory("worker"));
 
     info!("Log directory: {}", log_dir.to_str().unwrap());
@@ -342,6 +341,11 @@ fn main() {
                     .short("l")
                     .long("--listen")
                     .help("Listening port/address/address:port (default 0.0.0.0:7210)")
+                    .takes_value(true))
+                .arg(Arg::with_name("HTTP_LISTEN_ADDRESS")
+                    .long("--http-listen")
+                    .value_name("ADDRESS")
+                    .help("Listening HTTP port/address/address:port (default = 0.0.0.0:8080)")
                     .takes_value(true))
                 .arg(Arg::with_name("LOG_DIR")
                     .long("--logdir")

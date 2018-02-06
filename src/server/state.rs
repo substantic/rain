@@ -46,9 +46,6 @@ pub struct State {
     /// If true, next "turn" the scheduler is executed
     need_scheduling: bool,
 
-    /// Listening port and address.
-    listen_address: SocketAddr,
-
     /// Tokio core handle.
     handle: Handle,
 
@@ -74,6 +71,12 @@ pub struct State {
     timer: tokio_timer::Timer,
 
     log_dir: PathBuf,
+
+    /// Listening port and address.
+    listen_address: SocketAddr,
+
+    /// Listening port for HTTP interface
+    http_listen_address: SocketAddr,
 }
 
 impl State {
@@ -1068,13 +1071,19 @@ impl ConsistencyCheck for State {
 pub type StateRef = WrappedRcRefCell<State>;
 
 impl StateRef {
-    pub fn new(handle: Handle, listen_address: SocketAddr, log_dir: PathBuf, debug_mode: bool, test_mode: bool) -> Self {
+    pub fn new(handle: Handle,
+               listen_address: SocketAddr,
+               http_listen_address: SocketAddr,
+               log_dir: PathBuf,
+               debug_mode: bool,
+               test_mode: bool) -> Self {
         let s = Self::wrap(State {
             graph: Default::default(),
             need_scheduling: false,
             debug_mode: debug_mode,
             test_mode: test_mode,
             listen_address: listen_address,
+            http_listen_address: http_listen_address,
             handle: handle,
             scheduler: Default::default(),
             underload_workers: Default::default(),
@@ -1095,6 +1104,7 @@ impl StateRef {
 
     pub fn start(&self) {
         let listen_address = self.get().listen_address;
+        let http_listen_address = self.get().http_listen_address;
         let handle = self.get().handle.clone();
         let listener = TcpListener::bind(&listen_address, &handle).unwrap();
 
@@ -1112,8 +1122,7 @@ impl StateRef {
         info!("Start listening on address={}", listen_address);
 
         // ---- Start HTTP server ----
-        let http_address = "0.0.0.0:8080".parse().unwrap();
-        let listener = TcpListener::bind(&http_address, &handle).unwrap();
+        let listener = TcpListener::bind(&http_listen_address, &handle).unwrap();
         let http = Http::new();
         let handle1 = self.get().handle.clone();
         let state = self.clone();
@@ -1127,7 +1136,11 @@ impl StateRef {
                 panic!("HTTP server failed {:?}", e);
             });
         handle.spawn(http_server);
-        info!("HTTP server running on address={}", http_address);
+
+        let hostname = ::common::sys::get_hostname();
+        info!("Dashboard is running at http://{}:{}/", hostname, http_listen_address.port());
+        info!("Lite dashboard is running at http://{}:{}/lite/", hostname, http_listen_address.port());
+
 
         // ---- Start logging ----
         let state = self.clone();
