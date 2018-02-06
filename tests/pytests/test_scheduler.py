@@ -75,9 +75,6 @@ def test_scheduler_biggest_irrelevant(test_env):
         s.new_task([])
     s.run()
 
-    import time
-    time.sleep(3)
-
 
 # o0(w0)
 #   \
