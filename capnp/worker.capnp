@@ -10,7 +10,10 @@ using import "common.capnp".Attributes;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
 using import "common.capnp".Resources;
+using import "common.capnp".Event;
 using import "monitor.capnp".MonitoringFrames;
+
+
 
 interface WorkerBootstrap {
     # Interface for entities connecting directly to the worker.
@@ -64,6 +67,9 @@ interface WorkerUpstream {
     getClientSession @2 () -> (session: Void); # TODO: return a real session
     # Gets a (temporary) client session that allows the tasks at the worker to modify
     # the graph. This is intended for subgraph expansion etc.
+
+    pushEvents @3 (events :List(Event)) -> ();
+    # Pushes events to server.
 }
 
 interface WorkerControl {
@@ -82,9 +88,7 @@ interface WorkerControl {
 
     getWorkerResources @4 () -> Resources;
 
-    getMonitoringFrames @5 () -> MonitoringFrames;
-
-    getInfo @6 () -> WorkerInfo;
+    getInfo @5 () -> WorkerInfo;
 
     # TODO: actual status: CPU, resources, counters, ...
 

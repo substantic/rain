@@ -6,6 +6,7 @@ use server::graph::{WorkerRef, Worker, DataObjectState};
 use worker_capnp::worker_upstream;
 use capnp::capability::Promise;
 use server::rpc::WorkerDataStoreImpl;
+use chrono::TimeZone;
 
 pub struct WorkerUpstreamImpl {
     state: StateRef,
@@ -97,6 +98,26 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
         Promise::err(::capnp::Error::unimplemented(
             "get_client_session: method not implemented".to_string(), // TODO
         ))
+    }
+
+    fn push_events(
+        &mut self,
+        params: worker_upstream::PushEventsParams,
+        _: worker_upstream::PushEventsResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let cevents = pry!(params.get_events());
+        let mut state = self.state.get_mut();
+
+        for cevent in cevents.iter() {
+            let event = cevent.get_event().unwrap().to_string();
+            let timestamp = pry!(cevent.get_timestamp());
+            let seconds = timestamp.get_seconds() as i64;
+            let subsec_nanos = timestamp.get_subsec_nanos();
+            state.logger.add_event_with_timestamp(::serde_json::from_str(&event).unwrap(),
+                                                  ::chrono::Utc.timestamp(seconds, subsec_nanos));
+        }
+        Promise::ok(())
     }
 }
 

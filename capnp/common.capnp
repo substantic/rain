@@ -74,3 +74,13 @@ struct UnitResult {
             error @1 :Error;
         }
 }
+
+struct Event {
+    timestamp @0 :Timestamp;
+    event @1: Text;
+}
+
+struct Timestamp {
+    seconds @0 :UInt64;
+    subsecNanos @1 :UInt32;
+}

@@ -18,9 +18,10 @@ use common::convert::{ToCapnp, FromCapnp};
 use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
-use common::monitor::{Monitor, Frame};
+use common::monitor::{Monitor};
 use common::Attributes;
 use common::fs::logdir::LogDir;
+use common::events;
 
 use worker::graph::{DataObjectRef, DataObjectState, DataObject, Graph, TaskRef,
                     TaskInput, TaskState, SubworkerRef, subworker_command};
@@ -44,7 +45,7 @@ use errors::{ErrorKind, Error, Result};
 
 use WORKER_PROTOCOL_VERSION;
 
-const MONITORING_INTERVAL: u64 = 5; // Monitoring interval in seconds
+const MONITORING_INTERVAL: u64 = 1; // Monitoring interval in seconds
 
 pub struct State {
     pub(super) graph: Graph,
@@ -623,6 +624,23 @@ impl State {
         &mut self.monitor
     }
 
+    /// Send event to server
+    pub fn send_event(&mut self, event: events::Event) {
+        debug!("Sending event to server");
+        let now = ::chrono::Utc::now();
+        let mut req = self.upstream.as_ref().unwrap().push_events_request();
+        {
+            let mut req_events = req.get().init_events(1);
+            let mut capnp_event = req_events.borrow().get(0);
+            capnp_event.set_event(&::serde_json::to_string(&event).unwrap());
+            let mut capnp_ts = capnp_event.init_timestamp();
+            capnp_ts.set_seconds(now.timestamp() as u64);
+            capnp_ts.set_subsec_nanos(now.timestamp_subsec_nanos() as u32);
+
+        }
+        self.spawn_panic_on_error(req.send().promise.map(|_| ()).map_err(|e| e.into()));
+    }
+
     #[inline]
     pub fn self_ref(&self) -> StateRef {
         self.self_ref.as_ref().unwrap().clone()
@@ -814,7 +832,9 @@ impl StateRef {
 
         let monitoring = interval
             .for_each(move |()| {
-                state.get_mut().monitor.collect_samples();
+                let mut s = state.get_mut();
+                let event = s.monitor.build_event();
+                s.send_event(event);
                 Ok(())
             })
             .map_err(|e| {

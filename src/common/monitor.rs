@@ -13,18 +13,8 @@ type CpuUsage = u8;
 type MemUsage = u8;
 
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Frame {
-    pub cpu_usage: Vec<CpuUsage>, // Cpu usage in percent
-    pub mem_usage: MemUsage, // Memory usage in bytes
-    pub timestamp: DateTime<Utc>, // Sample timestamp
-    pub net_stat: HashMap<String, Vec<u64>>, // Network IO
-}
-
-
 pub struct Monitor {
     clk_tck: isize, // Result of syscall CLK_TCK
-    frames: Vec<Frame>,
     last_timestamp: DateTime<Utc>,
     last_cpu_time: CpuTimes,
 }
@@ -39,7 +29,6 @@ impl Monitor {
                 warn!("Syscall sysconf(CLK_TCK) failed. Set to default value 100");
                 100isize
             }),
-            frames: Vec::new(),
             last_timestamp: Utc::now(),
             last_cpu_time: Vec::new(),
         }
@@ -126,7 +115,7 @@ impl Monitor {
         return net_stat;
     }
 
-    fn build_frame(&mut self) -> Frame {
+    pub fn build_event(&mut self) -> ::common::events::Event {
         let timestamp = Utc::now();
         let cpu_time = self.get_cpu_time();
         let cpu_usage = self.get_cpu_usage(&cpu_time, timestamp);
@@ -134,44 +123,21 @@ impl Monitor {
         let mem_usage = 0;
         let net_stat = self.get_net_stat();
 
-        let frame = Frame {
-            cpu_usage: cpu_usage,
-            mem_usage: mem_usage,
-            timestamp: timestamp,
-            net_stat: net_stat,
-        };
-
         self.last_timestamp = timestamp;
         self.last_cpu_time = cpu_time;
-        return frame;
-    }
 
-    pub fn collect_samples(&mut self) -> () {
-        let frame = self.build_frame();
-        self.frames.push(frame);
-    }
-
-    pub fn collect_frames(&mut self) -> Vec<Frame> {
-        mem::replace(&mut self.frames, Vec::new())
+        ::common::events::Event::Monitoring(::common::events::MonitoringEvent {
+            cpu_usage: cpu_usage,
+            mem_usage: mem_usage,
+            net_stat: net_stat,
+        })
     }
 }
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_collection() {
-        let mut monitor = Monitor::new();
-        assert_eq!(monitor.frames.len(), 0);
-        monitor.collect_samples();
-        assert_eq!(monitor.frames.len(), 1);
-        monitor.collect_samples();
-        assert_eq!(monitor.frames.len(), 2);
-        let frames = monitor.collect_frames();
-        assert_eq!(monitor.frames.len(), 0);
-        assert_eq!(frames.len(), 2);
-    }
 
     #[test]
     fn test_mem_usage() {

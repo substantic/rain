@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
 use common::events;
-use common::monitor::Frame;
 use common::fs::LogDir;
 use errors::Result;
 use super::logger::{SearchCriteria, Logger};
@@ -116,8 +115,8 @@ impl Logger for SQLiteLogger {
         self.events.clear();
     }
 
-    fn add_event(&mut self, event: events::Event) {
-        self.events.push(EventWrapper{event, timestamp: Utc::now()});
+    fn add_event_with_timestamp(&mut self, event: events::Event, timestamp: DateTime<Utc>) {
+        self.events.push(EventWrapper{event, timestamp});
     }
 }
 
@@ -148,15 +147,6 @@ mod tests {
 
     fn create_test_dataobj_id() -> DataObjectId {
         DataObjectId::new(1, 1)
-    }
-
-    fn create_test_frame() -> Frame {
-        Frame {
-            cpu_usage: vec![10, 10, 10, 10],
-            mem_usage: 50,
-            timestamp: Utc::now(),
-            net_stat: [(String::from("net0"), vec![50])].iter().cloned().collect(),
-        }
     }
 
     fn create_logger() -> SQLiteLogger {

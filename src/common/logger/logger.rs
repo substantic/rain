@@ -1,7 +1,6 @@
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
 use common::events::{Event, EventId, TaskDescriptor, ObjectDescriptor};
 use common::events;
-use common::monitor::Frame;
 use chrono::Utc;
 use errors::Result;
 
@@ -27,7 +26,12 @@ pub struct SearchCriteria {
 
 
 pub trait Logger {
-    fn add_event(&mut self, event: Event);
+
+    fn add_event(&mut self, event: Event) {
+        self.add_event_with_timestamp(event, Utc::now());
+    }
+
+    fn add_event_with_timestamp(&mut self, event: Event, ::chrono::DateTime<::chrono::Utc>);
 
     fn flush_events(&mut self);
 
@@ -78,10 +82,6 @@ pub trait Logger {
         size: usize,
     ) {
         self.add_event(Event::DataObjectFinished(events::DataObjectFinishedEvent {dataobject, worker, size}));
-    }
-
-    fn add_worker_monitoring_event(&mut self, frame: Frame, worker: WorkerId) {
-        self.add_event(Event::WorkerMonitoring(events::WorkerMonitoringEvent {frame, worker}));
     }
 
     fn add_dummy_event(&mut self) {

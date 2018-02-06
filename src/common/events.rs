@@ -1,5 +1,4 @@
 use super::id::{WorkerId, ClientId, DataObjectId, TaskId, SessionId};
-use super::monitor::Frame;
 use chrono::{DateTime, Utc};
 use server::graph::{DataObject, Task};
 use common::id::SId;
@@ -118,10 +117,14 @@ pub struct DataObjectFinishedEvent {
     pub size: usize,
 }
 
+pub type CpuUsage = u8;
+pub type MemUsage = u8;
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct WorkerMonitoringEvent {
-    pub frame: Frame,
-    pub worker: WorkerId,
+pub struct MonitoringEvent {
+    pub cpu_usage: Vec<CpuUsage>,            // Cpu usage in percent
+    pub mem_usage: MemUsage,                 // Memory usage in bytes
+    pub net_stat: HashMap<String, Vec<u64>>, // Network IO
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -155,7 +158,7 @@ pub enum Event {
     TaskFinished(TaskFinishedEvent),
     DataObjectFinished(DataObjectFinishedEvent),
 
-    WorkerMonitoring(WorkerMonitoringEvent),
+    Monitoring(MonitoringEvent),
 
     TaskFailed(TaskFailedEvent),
     ClientInvalidRequest(ClientInvalidRequestEvent),
@@ -177,7 +180,7 @@ impl Event {
             &Event::TaskFinished(_) => "TaskFinished",
             &Event::TaskFailed(_) => "TaskFailed",
             &Event::DataObjectFinished(_) => "ObjectFinished",
-            &Event::WorkerMonitoring(_) => "WorkerMonitor",
+            &Event::Monitoring(_) => "Monitoring",
             &Event::ClientInvalidRequest(_) => "InvalidRequest",
             &Event::Dummy(_) => "Dummy",
         }
