@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::mem;
+use common::id::WorkerId;
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use sys_info::mem_info;
@@ -46,6 +47,9 @@ impl Monitor {
             for l in f.lines() {
                 let line = l.unwrap();
                 if line.starts_with("cpu") {
+                    if line.starts_with("cpu ") {
+                        continue; // skip usage of all cpus
+                    }
                     let mut parsed_line = line.split_whitespace();
                     let cpu_time = parsed_line.nth(1).unwrap().parse::<u64>().unwrap() +
                         parsed_line.next().unwrap().parse::<u64>().unwrap() +
@@ -60,21 +64,20 @@ impl Monitor {
     }
 
     fn get_cpu_usage(&self, cpu_time: &CpuTimes, timestamp: DateTime<Utc>) -> Vec<CpuUsage> {
-        let mut cpu_usage = Vec::new();
+        let mut cpu_usage = Vec::with_capacity(cpu_time.len());
         let time_diff = timestamp.signed_duration_since(self.last_timestamp);
-        let mut millis = time_diff.num_nanoseconds().unwrap() as f64 / 1_000_000.0;
-        let secs = time_diff.num_seconds();
-        if secs == 0 && millis < 1.0 {
+        let mut millis = time_diff.num_milliseconds();
+        if millis < 1 {
             warn!(
                 "get_cpu_usage() called too often ({}ms since the last measurements)",
                 millis
             );
-            millis = 1.0;
+            millis = 1;
         }
-        let factor = (1_000.0 * secs as f64 + millis) as u64 * self.clk_tck as u64;
+        let factor = millis as u64 as u64 * self.clk_tck as u64;
         for (new_time, old_time) in cpu_time.iter().zip(&self.last_cpu_time) {
             let cpu_time_diff = new_time - old_time;
-            let usage = cpu_time_diff / factor;
+            let usage = (100_000 * cpu_time_diff) / factor;
             cpu_usage.push(usage as CpuUsage);
         }
         return cpu_usage;
@@ -115,18 +118,18 @@ impl Monitor {
         return net_stat;
     }
 
-    pub fn build_event(&mut self) -> ::common::events::Event {
+    pub fn build_event(&mut self, worker_id: &WorkerId) -> ::common::events::Event {
         let timestamp = Utc::now();
         let cpu_time = self.get_cpu_time();
         let cpu_usage = self.get_cpu_usage(&cpu_time, timestamp);
         let mem_usage = self.get_mem_usage();
-        let mem_usage = 0;
         let net_stat = self.get_net_stat();
 
         self.last_timestamp = timestamp;
         self.last_cpu_time = cpu_time;
 
         ::common::events::Event::Monitoring(::common::events::MonitoringEvent {
+            worker: worker_id.clone(),
             cpu_usage: cpu_usage,
             mem_usage: mem_usage,
             net_stat: net_stat,

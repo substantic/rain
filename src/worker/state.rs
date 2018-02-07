@@ -45,7 +45,7 @@ use errors::{ErrorKind, Error, Result};
 
 use WORKER_PROTOCOL_VERSION;
 
-const MONITORING_INTERVAL: u64 = 1; // Monitoring interval in seconds
+const MONITORING_INTERVAL: u64 = 5; // Monitoring interval in seconds
 
 pub struct State {
     pub(super) graph: Graph,
@@ -827,13 +827,21 @@ impl StateRef {
 
         // --- Start monitoring ---
         let state = self.clone();
-        let timer = state.get().timer.clone();
-        let interval = timer.interval(Duration::from_secs(MONITORING_INTERVAL));
 
+        let interval = state.get().timer.interval(Duration::from_secs(MONITORING_INTERVAL));
         let monitoring = interval
             .for_each(move |()| {
+                debug!("Monitoring wakeup");
                 let mut s = state.get_mut();
-                let event = s.monitor.build_event();
+                let worker_id = s.worker_id.clone();
+
+                // Check that we already know our address
+                if worker_id.ip().is_unspecified() {
+                    debug!("Monitoring skipped, registration is not completed yet");
+                    return Ok(())
+                }
+
+                let event = s.monitor.build_event(&worker_id);
                 s.send_event(event);
                 Ok(())
             })

@@ -122,6 +122,7 @@ pub type MemUsage = u8;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct MonitoringEvent {
+    pub worker: WorkerId,
     pub cpu_usage: Vec<CpuUsage>,            // Cpu usage in percent
     pub mem_usage: MemUsage,                 // Memory usage in bytes
     pub net_stat: HashMap<String, Vec<u64>>, // Network IO

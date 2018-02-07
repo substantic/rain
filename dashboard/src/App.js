@@ -3,6 +3,7 @@ import { NavbarBrand } from 'reactstrap';
 import { Nav, Navbar, NavItem, NavLink} from 'reactstrap';
 import './App.css';
 import Sessions from './components/Sessions.js';
+import Workers from './components/Workers.js';
 import Session from './components/Session.js';
 import { Route, BrowserRouter, Switch, Link } from 'react-router-dom';
 
@@ -39,7 +40,8 @@ class App extends Component {
           <div className="container">
           <Switch>
           <Route path="/session/:id" render={props => <Session id={props.match.params.id}/>} />
-          <Route path="/" render={() => <Sessions/>}/>
+          <Route path="/workers" render={() => <Workers/>}/>
+          <Route path="/sessions" render={() => <Sessions/>}/>
           </Switch>
           </div>
       </div>

@@ -16,11 +16,23 @@ class Session extends Component {
 
   constructor(props) {
     super(props)
-    this.state = {task_nodes: new Map(), obj_nodes: new Map()}
+    this.state = {
+      task_nodes: new Map(),
+      obj_nodes: new Map(),
+      unprocessed: {
+        version: 0,
+        x: "x",
+        columns: [
+          ["x"],
+          ["# of unprocessed tasks"]
+        ]
+      }
+    }
 
     this.unprocessed = ["# of unprocessed tasks"]
     this.time = ["x"]
     this.do_effect = false;
+
     setTimeout(() => this.do_effect = true, 500);
 
     this.unsubscribe = fetch_events({"session": {value: +props.id, mode: "="}}, event => {
@@ -33,25 +45,20 @@ class Session extends Component {
         this.changeUnprocessed(event.time, -1);
       }
       if (event.event.type === "NewSession") {
-        this.unprocessed.push(0);
-        this.time.push(Date.parse(event.time));
+        this.unprocessed.columns[1].push(0);
+        this.unprocessed.columns[0].push(Date.parse(event.time));
       }
 
     }, error => {
       this.setState(update(this.state, {error: {$set: error}}));
     }, () => {
-      this.chart.chart.load({
-          columns: [
-            this.unprocessed,
-            this.time
-          ]
-      });
+      this.setState(update(this.state, {unprocessed: {version: {$set: this.state.unprocessed.version + 1}}}));
     });
   }
 
   changeUnprocessed(time, change) {
-    this.unprocessed.push(this.unprocessed[this.unprocessed.length - 1] + change);
-    this.time.push(Date.parse(time));
+    this.state.unprocessed.columns[1].push(this.unprocessed[this.unprocessed.length - 1] + change);
+    this.state.unprocessed.columns[0].push(Date.parse(time));
   }
 
   componentWillUnmount() {
@@ -133,7 +140,7 @@ class Session extends Component {
         <div>
           <Error error={this.state.error}/>
           <h1>Session {this.props.id}</h1>
-          <Chart ref={(chart) => this.chart = chart}/>
+          <Chart data={this.state.unprocessed}/>
           <AcyclicGraph ref={(graph) => this.graph = graph} />
         </div>
     );
