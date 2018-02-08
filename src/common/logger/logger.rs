@@ -1,8 +1,9 @@
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
 use common::events::{Event, EventId, TaskDescriptor, ObjectDescriptor};
 use common::events;
-use chrono::Utc;
-use errors::Result;
+use futures::Future;
+use chrono::{DateTime, Utc};
+use errors::{Error, Result};
 
 
 #[derive(Deserialize)]
@@ -24,6 +25,7 @@ pub struct SearchCriteria {
     pub session: Option<SearchItemInt>,
 }
 
+pub type QueryEvents = Vec<(events::EventId, DateTime<Utc>, String)>;
 
 pub trait Logger {
 
@@ -96,5 +98,5 @@ pub trait Logger {
         self.add_event(Event::SessionNew(events::SessionNewEvent {session, client}));
     }
 
-    fn get_events(&self, search_criteria: &SearchCriteria) -> Result<Vec<(EventId, ::chrono::DateTime<::chrono::Utc>, String)>>;
+    fn get_events(&self, search_criteria: SearchCriteria) -> Box<Future<Item=QueryEvents, Error=Error>>;
 }

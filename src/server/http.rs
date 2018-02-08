@@ -32,15 +32,25 @@ impl RequestHandler {
     }
 }
 
-fn get_events(state: &StateRef, body: &str) -> Result<String> {
-    let search_criteria: SearchCriteria = ::serde_json::from_str(body)?;
-    let events = state.get().logger.get_events(&search_criteria);
-    let chunks : Vec<String> = events.unwrap().iter().map(|&(id, time, ref event)| format!("{{\"id\":{}, \"time\":\"{}\", \"event\":{}}}", id, time, event)).collect();
-    Ok(format!("[{}]", chunks.join(",")))
+type ResponseFuture = Box<futures::Future<Item = Response, Error = ::errors::Error>>;
+
+fn get_events(state: &StateRef, body: &str) -> ResponseFuture {
+    let state = state.clone();
+    match ::serde_json::from_str(body) {
+        Ok(search_criteria) => {
+            Box::new(
+                state.get().logger.get_events(search_criteria).map(|events| {
+                let chunks : Vec<_> = events.iter().map(|&(id, time, ref event)| format!("{{\"id\":{}, \"time\":\"{}\", \"event\":{}}}", id, time, event)).collect();
+                let result = format!("[{}]", chunks.join(","));
+                make_text_response(result)
+            }))
+        },
+        Err(e) => Box::new(::futures::future::failed(e.into()))
+    }
 }
 
-fn lite_dashboard(state: &StateRef) -> Result<String> {
-    Ok(format!("<html>
+fn lite_dashboard(state: &StateRef) -> ResponseFuture {
+    Box::new(::futures::future::ok(make_text_response(format!("<html>
     <style>
         table, th, td {{
             border: 1px solid black;
@@ -62,35 +72,34 @@ fn lite_dashboard(state: &StateRef) -> Result<String> {
     worker_tab=wrap_elements("<tr>", "</tr>",
         state.get().graph.workers.iter().map(|(id, ref wref)|
             format!("<td>{}</td><td>{}</td>", id, wref.get().resources.cpus))
-    )))
+    )))))
 }
 
-pub fn make_text_response(data: Result<String>) -> Response {
-    match data {
-        Ok(data) => Response::new()
-            .with_header(ContentLength(data.len() as u64))
-            .with_header(AccessControlAllowOrigin::Any)
-            .with_body(data),
-        Err(e) => {
+pub fn make_text_response(data: String) -> Response {
+    Response::new()
+        .with_header(ContentLength(data.len() as u64))
+        .with_header(AccessControlAllowOrigin::Any)
+        .with_body(data)
+/*        Err(e) => {
             warn!("Http request error: {}", e.description());
             Response::new()
                 .with_status(StatusCode::InternalServerError)
                 .with_header(AccessControlAllowOrigin::Any)
         }
-    }
+    }*/
 }
 
-pub fn static_data_response(data: &'static [u8]) -> Response {
-    Response::new()
+pub fn static_data_response(data: &'static [u8]) -> ResponseFuture {
+    Box::new(::futures::future::ok(Response::new()
         .with_header(ContentLength(data.len() as u64))
-        .with_body(data)
+        .with_body(data)))
 }
 
-pub fn static_gzipped_response(data: &'static [u8]) -> Response {
-    Response::new()
+pub fn static_gzipped_response(data: &'static [u8]) -> ResponseFuture {
+    Box::new(::futures::future::ok(Response::new()
         .with_header(ContentEncoding(vec![Encoding::Gzip]))
         .with_header(ContentLength(data.len() as u64))
-        .with_body(data)
+        .with_body(data)))
 }
 
 
@@ -108,9 +117,9 @@ impl Service for RequestHandler {
         Box::new(req.body().concat2()
             .and_then(move |body| {
                 let body = ::std::str::from_utf8(&body).unwrap();
-                Ok(match path.as_str() {
-                    "/events" => make_text_response(get_events(&state_ref, &body)),
-                    "/lite" | "/lite/" => make_text_response(lite_dashboard(&state_ref)),
+                let future = match path.as_str() {
+                    "/events" => get_events(&state_ref, &body),
+                    "/lite" | "/lite/" => lite_dashboard(&state_ref),
                     // to protect against caching, .js contain hash in index.html, the same for .css file
                     path if path.starts_with("/static/js/main.") && path.ends_with(".js") =>
                         static_gzipped_response(&include_bytes!("./../../dashboard/dist/main.js.gz")[..]),
@@ -121,6 +130,17 @@ impl Service for RequestHandler {
                         warn!("Invalid HTTP request: {}", path);
                         Response::new().with_status(StatusCode::NotFound)
                     }*/
+                    //_ => unreachable!()
+                };
+                future.then(|r| {
+                    Ok(match r {
+                        Ok(response) => response,
+                        Err(e) => {
+                            Response::new()
+                                .with_status(StatusCode::InternalServerError)
+                                .with_header(AccessControlAllowOrigin::Any)
+                        }
+                    })
                 })
             }))
     }

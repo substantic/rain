@@ -7,19 +7,9 @@ class Chart extends Component {
 
   constructor(props) {
       super(props)
-      /*this.data = ["Unprocessed tasks"]
-      this.time = ["x"]*/
   }
 
   componentDidMount() {
-    console.log(this.element);
-    /*this.chart = c3.generate({
-      bindto: this.element,
-      size: {
-        width: 600,
-        height: 150,
-      },
-    });*/
     this.chart = c3.generate({
       bindto: this.element,
       size: {
