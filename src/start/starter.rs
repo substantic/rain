@@ -20,6 +20,9 @@ pub struct StarterConfig {
     /// Listening address of server
     pub server_listen_address: SocketAddr,
 
+    /// Listening address of server for HTTP connections
+    pub server_http_listen_address: SocketAddr,
+
     /// Directory where logs are stored (absolute path)
     pub log_dir: PathBuf,
 
@@ -33,12 +36,14 @@ pub struct StarterConfig {
 impl StarterConfig {
     pub fn new(local_workers: Vec<Option<u32>>,
                server_listen_address: SocketAddr,
+               server_http_listen_address: SocketAddr,
                log_dir: &Path,
                reserve_cpu_on_server: bool,
                run_prefix: Vec<String>) -> Self {
         Self {
-            local_workers: local_workers,
+            local_workers,
             server_listen_address,
+            server_http_listen_address,
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
             worker_host_file: None,
             reserve_cpu_on_server,
@@ -174,6 +179,9 @@ impl Starter {
         let ready_file = self.create_tmp_filename("server-ready");
         let (program, program_args) = self.local_rain_command();
         let server_address = format!("{}", self.config.server_listen_address);
+        let server_http_address = format!("{}", self.config.server_http_listen_address);
+        let http_port = self.config.server_http_listen_address.port();
+
         info!("Starting local server ({})", server_address);
         let log_dir = self.config.log_dir.join("server");
         self.server_pid = {
@@ -185,9 +193,12 @@ impl Starter {
                     .arg("server")
                     .arg("--logdir").arg(&log_dir)
                     .arg("--listen").arg(&server_address)
+                    .arg("--http-listen").arg(&server_http_address)
                     .arg("--ready-file").arg(&ready_file),
             )?;
             let server_pid = process.id();
+            let hostname = ::librain::common::sys::get_hostname();
+            info!("Dashboard: http://{}:{}/", hostname, http_port);
             info!("Server pid = {}", server_pid);
             server_pid
         };
@@ -244,9 +255,8 @@ impl Starter {
     }
 
     fn server_address(&self) -> String {
-        let mut buf = [0u8; 256];
-        let result: &str = gethostname(&mut buf).unwrap().to_str().unwrap();
-        format!("{}:{}", result, self.config.server_listen_address.port())
+        let hostname = ::librain::common::sys::get_hostname();
+        format!("{}:{}", hostname, self.config.server_listen_address.port())
     }
 
     fn start_local_workers(&mut self) -> Result<()> {

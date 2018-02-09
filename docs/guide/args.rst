@@ -78,13 +78,14 @@ Synopsis
 
 ::
 
-  rain run --simple [--listen=LISTEN_ADDRESS]
+  rain run --simple [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
-  rain run --autoconf=CONF [--listen=LISTEN_ADDRESS]
+  rain run --autoconf=CONF [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
-  rain run --local-workers [--listen=LISTEN_ADDRESS]
+  rain run --local-workers [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
-  rain run --worker-host-file=FILE [-S] [--listen=LISTEN_ADDRESS]
+  rain run --worker-host-file=FILE [-S] [--listen=ADDRESS]
+           [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
 
   rain server [--listen=LISTEN_ADDRESS] [--http-listen=LISTEN_ADDRESS]

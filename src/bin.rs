@@ -242,7 +242,8 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 
 fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let listen_address = parse_listen_arg("LISTEN_PORT", cmd_args, DEFAULT_SERVER_PORT);
+    let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_SERVER_PORT);
+    let http_listen_address = parse_listen_arg("HTTP_LISTEN_ADDRESS", cmd_args, DEFAULT_HTTP_SERVER_PORT);
     let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or_else(|| default_logging_directory("worker"));
 
     info!("Log directory: {}", log_dir.to_str().unwrap());
@@ -285,7 +286,8 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 
     let mut config = start::starter::StarterConfig::new(
-        local_workers, listen_address, &log_dir, cmd_args.is_present("RCOS"), run_prefix);
+        local_workers, listen_address, http_listen_address,
+        &log_dir, cmd_args.is_present("RCOS"), run_prefix);
 
     config.worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(
         |s| PathBuf::from(s),
@@ -415,6 +417,11 @@ fn main() {
                     .value_name("ADDRESS")
                     .long("--listen")
                     .help("Server listening port/address/address:port (default = 0.0.0.0:auto)")
+                    .takes_value(true))
+                .arg(Arg::with_name("HTTP_LISTEN_ADDRESS")
+                    .long("--http-listen")
+                    .value_name("ADDRESS")
+                    .help("Server listening HTTP port/address/address:port (default = 0.0.0.0:8080)")
                     .takes_value(true))
                 .arg(Arg::with_name("RUN_PREFIX")
                     .long("--runprefix")
