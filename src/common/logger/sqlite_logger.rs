@@ -93,6 +93,13 @@ fn load_events(conn: &mut Connection, search_criteria: &SearchCriteria) -> Resul
 impl SQLiteLogger {
     pub fn new(log_dir: &PathBuf) -> Result<Self> {
         let mut conn = Connection::open(log_dir.join("events.db"))?;
+
+        // There are basically two type of queries
+        // (1) initial "big", where "id" is not involved
+        // (2) "small" update, where we ask only for new updates, and ID is involved
+        // Indexes are created for type (1) query; type (2) uses implicit "id" index
+        // TOOD: This needs a benchmark
+
         conn.execute(
             "CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -100,7 +107,11 @@ impl SQLiteLogger {
                 event_type VARCHAR(14) NOT NULL,
                 session INTEGER,
                 event TEXT NOT NULL
-             )",
+             );
+             CREATE INDEX IF NOT EXISTS idx_timestamp ON events(timestamp);
+             CREATE INDEX IF NOT EXISTS idx_event_type ON events(event_type);
+             CREATE INDEX IF NOT EXISTS idx_session ON events(session);
+             ",
             &[],
         )?;
 
