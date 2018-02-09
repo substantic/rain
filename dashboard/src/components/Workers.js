@@ -1,6 +1,4 @@
 import React, { Component } from 'react';
-import {Table} from 'reactstrap';
-import { Link } from 'react-router-dom';
 import update from 'react-addons-update';
 
 import { fetch_events } from '../utils/fetch';

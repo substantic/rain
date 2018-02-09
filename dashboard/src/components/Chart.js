@@ -5,10 +5,6 @@ import 'c3/c3.css';
 
 class Chart extends Component {
 
-  constructor(props) {
-      super(props)
-  }
-
   componentDidMount() {
     this.chart = c3.generate({
       bindto: this.element,

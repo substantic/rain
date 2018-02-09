@@ -42,6 +42,7 @@ class App extends Component {
           <Route path="/session/:id" render={props => <Session id={props.match.params.id}/>} />
           <Route path="/workers" render={() => <Workers/>}/>
           <Route path="/sessions" render={() => <Sessions/>}/>
+          <Route path="/" render={() => <Sessions/>}/>
           </Switch>
           </div>
       </div>
