@@ -4,6 +4,7 @@ import update from 'react-addons-update';
 import AcyclicGraph from './AcyclicGraph';
 import Chart from './Chart';
 import { fetch_events } from '../utils/fetch';
+import { parse_date } from '../utils/date';
 import Error from './Error.js';
 
 const UNFIN_FILL = "#ACA793";
@@ -46,7 +47,7 @@ class Session extends Component {
       }
       if (event.event.type === "NewSession") {
         this.unprocessed.columns[1].push(0);
-        this.unprocessed.columns[0].push(Date.parse(event.time));
+        this.unprocessed.columns[0].push(parse_date(event.time));
       }
 
     }, error => {
@@ -58,7 +59,7 @@ class Session extends Component {
 
   changeUnprocessed(time, change) {
     this.state.unprocessed.columns[1].push(this.unprocessed[this.unprocessed.length - 1] + change);
-    this.state.unprocessed.columns[0].push(Date.parse(time));
+    this.state.unprocessed.columns[0].push(parse_date(time));
   }
 
   componentWillUnmount() {

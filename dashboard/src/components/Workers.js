@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import update from 'react-addons-update';
 
 import { fetch_events } from '../utils/fetch';
+import { parse_date } from '../utils/date';
 import Error from './Error.js';
 import Chart from './Chart';
 
@@ -40,7 +41,7 @@ class Workers extends Component {
       // We are abusing immutablity here, but implicit versioning fixes this (performance reasons :( )
       let worker = this.state.workers[index];
 
-      worker.columns[0].push(new Date(event.time));
+      worker.columns[0].push(parse_date(event.time));
 
       let sum = 0;
       for (let usage of event.event.cpu_usage) {
