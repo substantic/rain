@@ -9,6 +9,7 @@ export function fetch_from_server(link, body, method="POST") {
     return fetch(SERVER_URL + link, {
         method: method,
         mode: 'cors',
+        cache: 'no-cache',
         body: body
     })
 }

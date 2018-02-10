@@ -20,6 +20,9 @@ class Chart extends Component {
           }
         }
       },
+      point: {
+        show: false
+      },
       data: this.props.data,
     })
   }
