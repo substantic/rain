@@ -75,7 +75,7 @@ fn lite_dashboard(state: &StateRef) -> ResponseFuture {
     )))))
 }
 
-pub fn make_text_response(data: String) -> Response {
+fn make_text_response(data: String) -> Response {
     Response::new()
         .with_header(ContentLength(data.len() as u64))
         .with_header(AccessControlAllowOrigin::Any)
@@ -89,13 +89,13 @@ pub fn make_text_response(data: String) -> Response {
     }*/
 }
 
-pub fn static_data_response(data: &'static [u8]) -> ResponseFuture {
+fn static_data_response(data: &'static [u8]) -> ResponseFuture {
     Box::new(::futures::future::ok(Response::new()
         .with_header(ContentLength(data.len() as u64))
         .with_body(data)))
 }
 
-pub fn static_gzipped_response(data: &'static [u8]) -> ResponseFuture {
+fn static_gzipped_response(data: &'static [u8]) -> ResponseFuture {
     Box::new(::futures::future::ok(Response::new()
         .with_header(ContentEncoding(vec![Encoding::Gzip]))
         .with_header(ContentLength(data.len() as u64))
