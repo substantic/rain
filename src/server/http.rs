@@ -125,7 +125,7 @@ impl Service for RequestHandler {
                         static_gzipped_response(&include_bytes!("./../../dashboard/dist/main.js.gz")[..]),
                     path if path.starts_with("/static/css/main.") && path.ends_with(".css") =>
                         static_gzipped_response(&include_bytes!("./../../dashboard/dist/main.css.gz")[..]),
-                    path => static_data_response(&include_bytes!("./../../dashboard/build/index.html")[..]),
+                    path => static_data_response(&include_bytes!("./../../dashboard/dist/index.html")[..]),
                     /*path =>  {
                         warn!("Invalid HTTP request: {}", path);
                         Response::new().with_status(StatusCode::NotFound)
