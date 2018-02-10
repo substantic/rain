@@ -5,6 +5,7 @@ use common::wrapped::WrappedRcRefCell;
 use common::{Attributes, RcSet};
 use super::{TaskRef, Graph};
 use worker::data::{Data};
+use worker::graph::SubworkerRef;
 use worker::fs::workdir::WorkDir;
 
 use std::net::SocketAddr;
@@ -43,6 +44,9 @@ pub struct DataObject {
     pub(in super::super) consumers: RcSet<TaskRef>,
 
     pub(in super::super) assigned: bool,
+
+    /// Where are data object cached
+    pub(in super::super) subworker_cache: RcSet<SubworkerRef>,
 
     /// ??? Is this necessary for worker?
     pub(in super::super) size: Option<usize>,
@@ -120,6 +124,7 @@ impl DataObjectRef {
                     label,
                     attributes,
                     new_attributes: Attributes::new(),
+                    subworker_cache: Default::default(),
                 });
                 e.insert(dataobj.clone());
                 dataobj

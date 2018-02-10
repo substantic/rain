@@ -1,8 +1,10 @@
 use std::path::Path;
 
 use std::sync::Arc;
+use std::rc::Rc;
+use std::cell::Cell;
 
-use common::id::DataObjectId;
+use common::id::{SubworkerId, DataObjectId};
 use common::convert::FromCapnp;
 use worker::{StateRef, State};
 use worker::graph::SubworkerRef;
@@ -20,17 +22,25 @@ use SUBWORKER_PROTOCOL_VERSION;
 
 pub struct SubworkerUpstreamImpl {
     state: StateRef,
+    subworker_id: Rc<Cell<Option<SubworkerId>>>,
 }
 
 impl SubworkerUpstreamImpl {
-    pub fn new(state: &StateRef) -> Self {
-        Self { state: state.clone() }
+    pub fn new(state: &StateRef, ) -> Self {
+        Self {
+            state: state.clone(),
+            subworker_id: Rc::new(Cell::new(None)),
+        }
+    }
+
+    pub fn subworker_id_rc(&self) -> Rc<Cell<Option<SubworkerId>>> {
+        self.subworker_id.clone()
     }
 }
 
 impl Drop for SubworkerUpstreamImpl {
     fn drop(&mut self) {
-        panic!("Lost connection to subworker");
+        debug!("SubworkerUpstream closed");
     }
 }
 
@@ -49,6 +59,8 @@ impl subworker_upstream::Server for SubworkerUpstreamImpl {
             )));
         }
 
+        let subworker_id = params.get_subworker_id();
+        self.subworker_id.set(Some(subworker_id));
         let subworker_type = pry!(params.get_subworker_type());
         let control = pry!(params.get_control());
 
@@ -56,7 +68,7 @@ impl subworker_upstream::Server for SubworkerUpstreamImpl {
             self.state
                 .get_mut()
                 .add_subworker(
-                    params.get_subworker_id(),
+                    subworker_id,
                     subworker_type.to_string(),
                     control,
                 )

@@ -198,12 +198,25 @@ impl TaskInstance {
                     for (i, input) in task.inputs.iter().enumerate() {
                         let mut p_input = p_inputs.borrow().get(i as u32);
                         p_input.set_label(&input.label);
-                        let obj = input.object.get();
-                        {
+                        let mut obj = input.object.get_mut();
+
+                        if obj.subworker_cache.contains(&subworker) {
                             let mut p_data = p_input.borrow().get_data().unwrap();
-                            obj.data().to_subworker_capnp(&mut p_data.borrow());
-                            obj.attributes.to_capnp(&mut p_data.borrow()
-                                                    .get_attributes().unwrap());
+                            p_data.get_storage().set_cache(());
+                        } else {
+                            // This is caching hack, since we know that 1st argument is function
+                            // for Python subworker, we force to cache first argument
+                            if i == 0 {
+                                obj.subworker_cache.insert(subworker.clone());
+                                p_input.set_save_in_cache(true);
+                            }
+
+                            {
+                                let mut p_data = p_input.borrow().get_data().unwrap();
+                                obj.data().to_subworker_capnp(&mut p_data.borrow());
+                                obj.attributes.to_capnp(&mut p_data.borrow()
+                                                        .get_attributes().unwrap());
+                            }
                         }
                         obj.id.to_capnp(&mut p_input.get_id().unwrap());
                     }
@@ -254,9 +267,7 @@ impl TaskInstance {
                         }
                         Err(err) => Err(err.into()),
                     };
-                    state_ref.get_mut().graph.idle_subworkers.push(
-                        subworker_ref,
-                    );
+                    state_ref.get_mut().graph.idle_subworkers.insert(subworker_ref);
                     result
                 },
             )

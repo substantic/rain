@@ -7,16 +7,12 @@ using import "common.capnp".Attributes;
 interface SubworkerControl {
     # This object serves also as bootstrap
 
-    runTask @0 (task :Task) -> (
-        data: List(LocalData),
-        ok :Bool,
-        errorMessage: Text,
-        taskAttributes: Attributes);
+    runTask @0 (task :Task) -> RunResponse;
     # Run the task, returns when task is finished
     # Flag "ok" indicates that task was finished without error
     # If "ok" if False then errorMessage is filled
 
-    removeObjects @1 (objectIds :List(DataObjectId)) -> ();
+    removeCachedObjects @1 (objectIds :List(DataObjectId)) -> ();
     # Remove object from Subworker
     # If object is "file" than the file is NOT removed, it is
     # a responsibility of the worker
@@ -46,6 +42,7 @@ struct Task {
         id @0 :DataObjectId;
         data @1 :LocalData;
         label @2 :Text;
+        saveInCache @3 :Bool;
     }
 
     struct OutDataObject {
@@ -76,4 +73,11 @@ struct LocalData {
         # This is used when subworker returns object to worker
         # we have just returned one of inputs
     }
+}
+
+struct RunResponse {
+    data @0 :List(LocalData);
+    ok @1 :Bool;
+    errorMessage @2 :Text;
+    taskAttributes @3 :Attributes;
 }

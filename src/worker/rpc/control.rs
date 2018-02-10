@@ -66,10 +66,7 @@ impl worker_control::Server for WorkerControlImpl {
                 ));
             }
             obj.assigned = false;
-            if obj.consumers.is_empty() {
-                let found = state.graph.objects.remove(&id);
-                assert!(found.is_some());
-            }
+            state.remove_dataobj_if_not_needed(&mut obj);
         }
         Promise::ok(())
     }
@@ -105,7 +102,9 @@ impl worker_control::Server for WorkerControlImpl {
         for co in new_objects.iter() {
             let id = DataObjectId::from_capnp(&co.get_id().unwrap());
 
-            if state.graph.objects.contains_key(&id) {
+            let obj_found = state.graph.objects.get(&id).cloned();
+            if let Some(obj) = obj_found {
+                state.mark_as_needed(&obj);
                 // TODO: Update remote if not downloaded yet
                 continue;
             }
@@ -221,8 +220,16 @@ impl worker_control::Server for WorkerControlImpl {
             }
         }
         {
-            let mut objects = result.init_objects(state.graph.objects.len() as u32);
+            let mut objects = result.borrow().init_objects(state.graph.objects.len() as u32);
             for (i, object) in state.graph.objects.values().enumerate() {
+                object.get().id.to_capnp(
+                    &mut objects.borrow().get(i as u32),
+                )
+            }
+        }
+        {
+            let mut objects = result.init_objects_to_delete(state.graph.delete_wait_list.len() as u32);
+            for (i, (object, _)) in state.graph.delete_wait_list.iter().enumerate() {
                 object.get().id.to_capnp(
                     &mut objects.borrow().get(i as u32),
                 )

@@ -14,6 +14,7 @@ class Context:
         self._staged_paths = set()
         self._debug_messages = []
         self.attributes = {}
+        self.function = None
 
     def stage_file(self, path, content_type=None):
         """Creates DataInstance from file.
