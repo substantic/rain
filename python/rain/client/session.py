@@ -195,7 +195,7 @@ class Session:
 
     def wait_some(self, items):
         """Wait until *some* of specified tasks/dataobjects are finished.
-        
+
         Returns:
             `(finished_tasks, finished_dataobjs)`"""
         tasks, dataobjs = self._split_tasks_objects(items)
@@ -227,7 +227,7 @@ class Session:
     def fetch(self, dataobject):
         """Wait for the object to finish, update its state and
         fetch the object data.
-        
+
         Returns:
             `DataInstance`: The object data proxy."""
         return self.client._fetch(dataobject)
