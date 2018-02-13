@@ -103,7 +103,7 @@ class Task:
         attributes_to_capnp(self.attributes, out.attributes)
 
     def wait(self):
-        self.session.wait((self,), ())
+        self.session.wait((self,))
 
     def update(self):
         self.session.update((self,))

@@ -166,8 +166,25 @@ class Session:
         self._tasks = []
         self._dataobjs = []
 
-    def wait(self, tasks, dataobjs):
+    def _split_tasks_objects(self, items):
+        """Split `items` into `Task`s and `DataObject`s, raisong error on anything else.
+
+        Returns:
+            `(tasks, dataobjs)`"""
+        from . import Task, DataObject
+        tasks, dataobjs = [], []
+        for i in items:
+            if isinstance(i, Task):
+                tasks.append(i)
+            elif isinstance(i, DataObject):
+                dataobjs.append(i)
+            else:
+                raise TypeError("Neither Task or DataObject: {!r}".format(i))
+        return (tasks, dataobjs)
+
+    def wait(self, items):
         """Wait until *all* specified tasks and dataobjects are finished."""
+        tasks, dataobjs = self._split_tasks_objects(items)
         self.client._wait(tasks, dataobjs)
 
         for task in tasks:
@@ -176,13 +193,14 @@ class Session:
         for dataobj in dataobjs:
             dataobj.state = rpc.common.DataObjectState.finished
 
-    def wait_some(self, tasks, dataobjects):
+    def wait_some(self, items):
         """Wait until *some* of specified tasks/dataobjects are finished.
         
         Returns:
             `(finished_tasks, finished_dataobjs)`"""
+        tasks, dataobjs = self._split_tasks_objects(items)
         finished_tasks, finished_dataobjs = self.client._wait_some(
-            tasks, dataobjects)
+            tasks, dataobjs)
 
         for task in finished_tasks:
             task.state = rpc.common.TaskState.finished
@@ -193,7 +211,7 @@ class Session:
         return finished_tasks, finished_dataobjs
 
     def wait_all(self):
-        """Wait until all submitted tasks are finished."""
+        """Wait until all submitted tasks and objects are finished."""
         self.client._wait_all(self.session_id)
 
         for task in self._submitted_tasks:
@@ -217,7 +235,10 @@ class Session:
     def unkeep(self, dataobjects):
         """Unset keep flag for given objects."""
         submitted = []
+        from . import DataObject
         for dataobj in dataobjects:
+            if not isinstance(dataobj, DataObject):
+                raise TypeError("Not a DataObject: {!r}".format(dataobj))
             if not dataobj.is_kept():
                 raise RainException("Object {} is not kept".format(dataobj.id))
             if dataobj.state is not None:
