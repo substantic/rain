@@ -1,7 +1,4 @@
-import capnp
-import os
+from ..common.fs import load_capnp
 
-SRC_DIR = os.path.dirname(__file__)
-capnp.remove_import_hook()
-common = capnp.load(SRC_DIR + "/../../../capnp/common.capnp")
-server = capnp.load(SRC_DIR + "/../../../capnp/server.capnp")
+common = load_capnp("common.capnp")
+server = load_capnp("server.capnp")
