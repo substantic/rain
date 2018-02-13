@@ -173,3 +173,23 @@ texinfo_documents = [
 
 nitpicky = True
 napoleon_use_rtype = False
+
+# -- Setup auto-linking without warning for not-found targets -------------
+
+
+# Still warns when a domain is specified and target is not found.
+# Also warns when the target is ambiguous. Source:
+# https://github.com/sphinx-doc/sphinx/issues/2709#issuecomment-235019522
+
+default_role = "any"
+
+
+def on_missing_reference(app, env, node, contnode):
+    if node['reftype'] == 'any':
+        return contnode
+    else:
+        return None
+
+
+def setup(app):
+    app.connect('missing-reference', on_missing_reference)
