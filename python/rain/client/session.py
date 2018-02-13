@@ -92,12 +92,12 @@ class Session:
 
     @property
     def task_count(self):
-        """The number of unsubmitted task"""
+        """The number of unsubmitted tasks."""
         return len(self._tasks)
 
     @property
     def dataobj_count(self):
-        """The number of unsubmitted objects"""
+        """The number of unsubmitted objects."""
         return len(self._dataobjs)
 
     def __enter__(self):
@@ -113,7 +113,7 @@ class Session:
         return "<Session session_id={}>".format(self.session_id)
 
     def close(self):
-        """Closes session; all tasks are stopped, all objects freed"""
+        """Closes session; all tasks are stopped, all objects freed."""
         if self.active and self.client:
             self.client._close_session(self)
         self._tasks = []
@@ -124,35 +124,38 @@ class Session:
 
     def bind_only(self):
         """
-        This method serves to bind session without autoclose functionality
+        This method serves to bind session without autoclose functionality.
 
         >>> with session.bind_only() as s:
         ...     doSometing()
 
-        binds the session, but do not close it at the end.
-        Except for skipping closing the session, it is the same as
-
-        >>> with session as s:
-        ...     doSometing()
+        binds the session, but do not close it at the end (so it may be bound
+        again either with `bind_only` or normally with `with session: ...`).
         """
         return SessionBinder(self)
 
     def _register_task(self, task):
-        """Register task into session; returns assigned id"""
+        """Register task into session.
+
+        Returns:
+            ID: the assigned id."""
         assert task.session == self and task.id is None
         self._tasks.append(task)
         self._id_counter += 1
         return ID(session_id=self.session_id, id=self._id_counter)
 
     def _register_dataobj(self, dataobj):
-        """Register data object into session; returns assigned id"""
+        """Register data object into session.
+
+        Returns:
+            ID: the assigned id."""
         assert dataobj.session == self and dataobj.id is None
         self._dataobjs.append(dataobj)
         self._id_counter += 1
         return ID(session_id=self.session_id, id=self._id_counter)
 
     def submit(self):
-        """"Submit all registered objects"""
+        """"Submit all unsubmitted objects."""
         self.client._submit(self._tasks, self._dataobjs)
         for task in self._tasks:
             task.state = rpc.common.TaskState.notAssigned
@@ -164,7 +167,7 @@ class Session:
         self._dataobjs = []
 
     def wait(self, tasks, dataobjs):
-        """Wait until specified tasks/dataobjects are finished"""
+        """Wait until *all* specified tasks and dataobjects are finished."""
         self.client._wait(tasks, dataobjs)
 
         for task in tasks:
@@ -174,7 +177,10 @@ class Session:
             dataobj.state = rpc.common.DataObjectState.finished
 
     def wait_some(self, tasks, dataobjects):
-        """Wait until some of specified tasks/dataobjects are finished"""
+        """Wait until *some* of specified tasks/dataobjects are finished.
+        
+        Returns:
+            `(finished_tasks, finished_dataobjs)`"""
         finished_tasks, finished_dataobjs = self.client._wait_some(
             tasks, dataobjects)
 
@@ -187,7 +193,7 @@ class Session:
         return finished_tasks, finished_dataobjs
 
     def wait_all(self):
-        """Wait until all submitted tasks are finished"""
+        """Wait until all submitted tasks are finished."""
         self.client._wait_all(self.session_id)
 
         for task in self._submitted_tasks:
@@ -201,11 +207,15 @@ class Session:
                 o.state = rpc.common.DataObjectState.finished
 
     def fetch(self, dataobject):
-        "Fetch the object data and update its state."
+        """Wait for the object to finish, update its state and
+        fetch the object data.
+        
+        Returns:
+            `DataInstance`: The object data proxy."""
         return self.client._fetch(dataobject)
 
     def unkeep(self, dataobjects):
-        """Remove data objects"""
+        """Unset keep flag for given objects."""
         submitted = []
         for dataobj in dataobjects:
             if not dataobj.is_kept():
@@ -224,10 +234,11 @@ class Session:
             dataobj._free()
 
     def update(self, items):
+        """Update the status and metadata of given tasks and objects."""
         self.client.update(items)
 
     def make_graph(self, show_ids=True):
-        """ Create a graph of tasks and objects that were not submitted """
+        """Create a graph of tasks and objects that were *not yet* submitted."""
 
         def add_obj(o):
             if o is None:
@@ -282,6 +293,7 @@ class Session:
 
 
 def get_active_session():
+    """Internal helper to get innermost active `Session`."""
     if not _global_sessions:
         raise RainException("No active session")
     else:

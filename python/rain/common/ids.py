@@ -3,6 +3,9 @@ from collections import namedtuple
 
 ID = namedtuple("ID", ["session_id", "id"])
 ID.__repr__ = lambda self: "{}:{}".format(self[0], self[1])
+ID.__doc__ = """
+A rain task and object ID. A named tuple `(session_id, id)`.
+"""
 
 
 def id_from_capnp(reader):
