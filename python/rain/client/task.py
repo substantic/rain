@@ -2,12 +2,45 @@ from .session import get_active_session
 from .data import DataObject, to_data
 from .output import Output
 from ..common import RainException, ID, LabeledList, ids
-from ..common.resources import cpu_1
+from ..common.resources import cpu_1, Resources  # noqa
 from ..common.attributes import attributes_to_capnp
 
 
 class Task:
+    """
+    A single task instance in the task graph.
 
+    `__init__` creates a single task instance, inserts it into `Session`
+    and assigns it an `ID`. Creates output `DataObject` instances based
+    on `outputs` given.
+
+    `Task` is commonly created by functions in `rain.client.tasks`, or task builders
+    created by `Remote` or `Program`. Always belongs to a `Session` and has a valid `ID`.
+    You may wish to call it explicitely (or subclass it) when creating your own task-types.
+
+    Particular task types are not realized via subclasses but
+    with string `task_type` attribute. (Subclassing may be introduced later.)
+
+    The task state is *not* automatically updated by the server. The state and
+    attributes are updated on `Task.update()`, `Task.fetch()` and `Task.wait()`.
+
+    Args:
+        task_type (`str`): Task-type name known to rain workers.
+        config: Any task-specific config.
+        inputs (`LabeledList` or sequence): Sequence of `Input` or `DataObject`.
+        outputs (`LabeledList` or sequence): Specification of `Output`\ s for the task.
+        session (`Session` or `None`): Session to create the task in.
+            If not specified, the current `Session` is used.
+
+    Attributes:
+        id (`ID`): Auto-assigned task ID.
+        inputs (`LabeledList[DataObject]`): Input objects.
+        outputs (`LabeledList[DataObject]`): Output objects created by the task.
+        output (`DataObject`): Shortcut for `outputs[0]`. Raises Exception on multiple outputs.
+        attributes (`dict`): Task attributes. See attributes_ for details.
+        state (`TaskState` enum): Task state on last update.
+        resources (`Resources`): Required resources.
+    """
     # State of object
     # None = Not submitted
     state = None
@@ -42,7 +75,7 @@ class Task:
                 return o.create_data_object(session=session)
             if isinstance(o, DataObject):
                 return o
-            raise TypeError("Anly `Output` and `str` allowed as outputs.")
+            raise TypeError("Only `Output` and `str` allowed as outputs.")
 
         if outputs is None:
             outputs = ()
@@ -64,16 +97,19 @@ class Task:
         self.inputs = LabeledList(pairs=input_pairs)
 
     def keep_outputs(self):
-        """Keep all outputs of the task"""
+        """Keep all output objects of the task."""
         for output in self.outputs:
             output.keep()
 
     def unkeep_outputs(self):
-        """Unkeep all outputs of the task"""
+        """Unkeep all output objects of the task."""
         self.session.unkeep(self.outputs)
 
     def fetch_outputs(self):
-        """Fetch all outputs of the task and return it as a list"""
+        """Fetch all outputs of the task.
+
+        Returns:
+            [`DataInstance`]: Fetched output data."""
         return [output.fetch() for output in self.outputs]
 
     @property
@@ -103,9 +139,11 @@ class Task:
         attributes_to_capnp(self.attributes, out.attributes)
 
     def wait(self):
+        """Wait for the task to complete. See `Session.wait()`."""
         self.session.wait((self,))
 
     def update(self):
+        """Update task state and attributes. See `Session.update()`."""
         self.session.update((self,))
 
     def __repr__(self):

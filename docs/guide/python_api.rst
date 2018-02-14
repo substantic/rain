@@ -64,6 +64,10 @@ Tied to a `Session`.
 .. autoclass:: Task
    :members:
 
+Attributes
+----------
+
+
 
 Input and Output
 ----------------
