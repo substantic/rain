@@ -1,11 +1,10 @@
 Dashboard
-*********
+=========
 
-Rain Dashboard is implement in JavaScript and for the development and built, we
-use NodeJs. However, we do not want to have Node.js as a hard depedancy when
-Rain is built from sources. Therefore, compiled form Dashboard is included into
-Rain git repository. Neverthless, if you want to work on Dashboard, you need to
-Node.js.
+Rain Dashboard is implement in JavaScript over NodeJs. However, we do not want
+to have Node.js as a hard dependency when Rain is built from sources. Therefore,
+compiled form of Dashboard is included into Rain git repository. Neverthless, if
+you want to work on Dashboard, you need to Node.js.
 
 Installation::
 
@@ -14,7 +13,7 @@ Installation::
 
 
 Development
-===========
+-----------
 
 For development, just run::
 
@@ -28,7 +27,7 @@ this change.
 
 
 Deployment
-==========
+----------
 
 All Dashboard resources (including JS source codes) are included into Rain
 binary. Rain compiles files in ``dashboard/dist`` into its binary. To generate

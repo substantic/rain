@@ -16,3 +16,4 @@ Important notes:
   the test you want to see. See options `-x` and `-k` of py.test-3
 * By default, Python tests run with rain binary located in `rain/target/debug/` directory.
   This path can be modified using RAIN_TEST_BIN environment variable.
+  

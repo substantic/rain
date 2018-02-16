@@ -9,20 +9,12 @@ Welcome to Rain's documentation!
 .. toctree::
    :maxdepth: 2
    
+   introduction
    overview
+   user
    install
-   architecture
-   roadmap
-   session
-   tasks
-   basic_tasks
-   execute_task
-   python_tasks
-   errors
-   directories
    python_api
-   args
-   dev_dashboard
+   dev/index
 
 Indices and tables
 ==================
