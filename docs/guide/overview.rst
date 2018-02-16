@@ -1,8 +1,52 @@
 Overview
 ********
 
-Rain Goals
-==========
+**Rain** is an open-source distributed computational framework written in
+Rust_.
+
+.. _Rust: https://www.rust-lang.org/en-US/
+
+Rain is a framework that aims to lower the entry barrier to the world of
+distributed computing. Our intention is to provide light yet robust distributed
+framework that features an intuitive Python API, simple installation, and
+straightforward deployment.
+
+ * **User friendliness.** The computational backend of Rain was designed to be
+   easy to deployed anywhere, ranging from a single node deployments to
+   large-scale distributed systems and clouds. Rain API provides intuitive
+   primitives for an intuitive interactions with the backend.
+ 
+ * **Python first.** Rain applications are defined as a pure Python code via
+   the Rain API module with no other configuration files required whatsoever.
+ 
+ * **Powerful and extensible task abstraction.** Rain is task-based. Rain
+  provides a predefined set of task types that can be used for building large
+  variety of Rain applications out-of-the-box. It also provides a support for an
+  easy integration of third-party applications or even tasks defined as
+  arbitrary Python code.
+
+
+What is in the box
+==================
+
+   * Rain provides Python interface, where tasks and their interconnections is
+     defined.
+   * Rain has low-overhead. You can have many (>10^6) short running (<1s) tasks.
+   * Rain workers communicates directly; there is no central bottle neck (e.g.
+     shared file system) for data transfers.
+   * Rain supports smooth integration of 3rd party programs and Python codes
+     into pipeline. It avoid unncessary copying of data when external "blackbox"
+     programs are used.
+   * Rain is focused on easy to use, deploy and run. Our goal is to built a nice
+     API, straightforward installation, and straightforward deployment on a
+     cluster. Rain infrastructure consists of all-in-one statically-linked
+     binary and client interface is a pure python package with dependencies
+     installable via pip.
+     *RUST CORE
+
+
+What is considered to be added
+==============================
 
 There are many things to improve, and even more new things to add. To work
 efficiently, we need to prioritize and for that we need your feedback and use
@@ -83,8 +127,11 @@ The Rust binary is already one staically linked file and one python-only
 library, making distribution easy and running on PBS is already supported. We
 would like to add better support for cloud settings, e.g. AWS and Kubernetes.
 
-Non-goals
-=========
+
+No go zone
+==========
+
+There are also some directions we do NOT intend to focus on in the scope of Rain.
 
 Visual editor
 -------------
@@ -141,5 +188,3 @@ v0.1
 * Basic functionality - all components are working, basic build-in tasks,
   external programs and Python tasks may be used.
 * Simple (but not stupid) scheduler
-
-

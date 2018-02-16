@@ -1,6 +1,9 @@
 Installation & Running & Deployment
 ***********************************
 
+Rain Distributed Execution Framework consists of all-in-one statically-linked binary.
+Rain API is a pure Python package with dependencies installable via pip.
+
 Binaries
 ========
 

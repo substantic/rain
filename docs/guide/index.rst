@@ -9,8 +9,8 @@ Welcome to Rain's documentation!
 .. toctree::
    :maxdepth: 2
    
-   introduction
    overview
+   getting_started
    user
    install
    python_api
