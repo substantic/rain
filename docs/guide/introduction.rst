@@ -28,7 +28,7 @@ This section shows how to start server and one local worker, and execute simple
 - **Start infrastructure.** You can do start and workers manually, but for
   standard scenariosthere is "rain run" to do it for you. The following command
   stars server and one local worker (Starting Rain infrastructure for
-  distributed computations is described in :ref:`program-rain`.)::
+  distributed computations is described in :ref:`start-rain`.)::
 
   $ rain run --simple
 

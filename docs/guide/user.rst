@@ -59,9 +59,13 @@ covered in Section :ref:`sessions`.
 Fetching data objects
 =====================
 
-Data objects produced by tasks are not transferred back to client
-automatically. If needed, this can be done using the ``fetch()`` function. In
-the following example, we download the result back to the Python client code.
+Data objects produced by tasks are not transferred back to client automatically.
+If needed, this can be done using the ``fetch()`` method. It returns
+:class:`rain.common.DataInstance` that wraps data together with some additional
+information. To get raw bytes from :class:`rain.common.DataInstance` you can
+call method ``get_bytes()``.
+
+In the following example, we download the result back to the Python client code.
 Expression ``t.output`` refers to the data object that is the output of task
 ``t``::
 
@@ -79,19 +83,19 @@ Expression ``t.output`` refers to the data object that is the output of task
       session.submit()           # Submit task graph
 
       result = t.output.fetch()  # Download result from the server
-      print(result)              # Prints b'Hello world!'
+      print(result.get_bytes())  # Prints b'Hello world!'
 
 
 By default, Rain automatically removes data objects that are no longer needed
 for further computation. Method ``keep()`` sets a flag to a given data object
 that instructs the server to keep the object until the client does not
-explicitly frees it. An object is freed when the session is closed or when
+explicitly frees it. An object can be freed when the session is closed or when
 ``unkeep()`` method is called. Method ``keep()`` may be called only before the
 submit. Method ``unkeep()`` may be called on any "kept" object any time.
 
-Kept objects can be fetched to the client by method ``fetch()``. If the object
-is not finished yet, the method blocks until the object is not finished. Note
-that because of that, we did not use ``wait_all()`` in this example.
+If method ``fetch()`` is called and the object has not been finished yet, the
+method blocks until the object is not finished. Note that because of that, we
+did not use ``wait_all()`` in this example.
 
 
 Inter-task dependencies
@@ -154,13 +158,61 @@ from zero), that also allows to access via string labels.
    t.fetch_outputs()
 
 
+Content types
+=============
+
+Data objects may represents different type of data in different formats.
+However, Rain threats all data objects as raw binary blobs, and it is up to
+tasks to interpret them. Content type is a string identifier that serves to
+distinguish format of data and may help to choose the right parser for tasks
+that accepts data in various formats. Python code also recognize some of content types
+and allows to load them.
+
+Recognized content types:
+
+  * <None> - Raw binary data
+  * pickle - Serialized Python object
+  * cloudpickle - Serialized Python object via Cloudpickle
+  * json - Object serialized into JSON
+  * cbor - Object serialized into CBOR
+  * text - UTF-8 string.
+  * text:<ENCODING> - Text with user specified encoding
+  * mime:<MIME> - Content type defined as MIME type
+  * user:<TYPE> - User defined type, <TYPE> may be arbitrary string
+  
 
 Constant data objects
 =====================
 
+Function :func:`rain.client.blob` serves to creating constant data object,
+which content is uploaded together with task graph.
+
+::
+
+   from rain.client import blob, pickled
+
+   blob(b"Raw data")  # Creates a data object with defined content
+
+   blob(b"Raw data", label="input data")  # Data with non-default label
+
+   blob("String data")  # Creates a data object from string, content type will
+                        # is set to 'text'
+ 
+   blob("[1, 2, 3, 4]", content_type="json")  # Data with specified content type
+
+   blob([1, 2, 3, 4], encode="json")  # Serialize python object to JSON and specify
+                                      # content type to "json"
+
+   blob([1, 2, 3, 4], encode="pickle")  # Serialize python object by pickle
+                                        # content type to "pickle"
+
+   pickled([1, 2, 3, 4])  # Same as line above
+
 
 Build-in tasks
 ==============
+
+The following four tasks are provided directly by Rain worker:
 
 
 Task *concat*
