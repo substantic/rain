@@ -18,7 +18,7 @@ TODO
 
 .. _start-rain:
 
-Starting infrastructure 
+Starting infrastructure
 =======================
 
 Starting local workers
@@ -27,13 +27,13 @@ Starting local workers
 The most simple case is running starting server and one worker with all
 resources of the local machine. The following command do all work for you::
 
-  $ rain run --simple
+  $ rain start --simple
 
 
 If you want to start more local workers, you can use the following command.
 It starts two workers with 4 assigned cpus and one with 2 assigned cpus::
 
-  $ rain run --local-wokers=[4,4,2]
+  $ rain start --local-wokers=[4,4,2]
 
 
 Starting remote workers
@@ -43,7 +43,7 @@ If you have more machines that are reachable via SSH you can use the following
 command. We assume that file ``my_hosts`` contains addresses of hosts, one per
 line::
 
-  $ rain run --worker-host-file=my_hosts
+  $ rain start --worker-host-file=my_hosts
 
 Let us note, that current version assumes that assumes for each host that Rain
 is placed in the same directory as on machine from which command is invoked.
@@ -51,7 +51,7 @@ is placed in the same directory as on machine from which command is invoked.
 If you are running Rain inside PBS scheduler (probably if you are using an HPC
 machine), then you can simple run::
 
-  $ rain run --autoconf=pbs
+  $ rain start --autoconf=pbs
 
 It executes worker on each node allocated by PBS scheduler.
 
@@ -62,7 +62,7 @@ It executes worker on each node allocated by PBS scheduler.
 
    Another option (with less isolation) is to use option ``-S``::
 
-     $ rain run -S --worker-host-file=my_hosts
+     $ rain start -S --worker-host-file=my_hosts
 
    If a remote machine is actually localhost (and therefore runs Rain server)
    then ``--cpus=-1`` argument is used for the worker on that machine, i.e. the
@@ -72,7 +72,7 @@ It executes worker on each node allocated by PBS scheduler.
 Starting workers manually
 -------------------------
 
-If you need a special setup that is not covered by ``rain run`` you can
+If you need a special setup that is not covered by ``rain start`` you can
 simply start server and workers manually::
 
   $ rain server                    # Start server
@@ -87,13 +87,13 @@ Synopsis
 
 ::
 
-  rain run --simple [--listen=ADDRESS] [--http-listen=ADDRESS]
+  rain start --simple [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
-  rain run --autoconf=CONF [--listen=ADDRESS] [--http-listen=ADDRESS]
+  rain start --autoconf=CONF [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
-  rain run --local-workers [--listen=ADDRESS] [--http-listen=ADDRESS]
+  rain start --local-workers [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
-  rain run --worker-host-file=FILE [-S] [--listen=ADDRESS]
+  rain start --worker-host-file=FILE [-S] [--listen=ADDRESS]
            [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
 
@@ -105,8 +105,8 @@ Synopsis
   rain --help | -h
 
 
-Command: run
-------------
+Command: start
+--------------
 
 Starts Rain infrastructure (server & workers), makes sure that everything is
 ready and terminates.
@@ -133,7 +133,7 @@ ready and terminates.
 
   * SSH server is running.
   * Rain is installed in the same directory as on the machine
-    from which that ``rain run`` is executed.
+    from which that ``rain start`` is executed.
 
 **-S**
   Serves for reserving a CPU on server node. If remote worker

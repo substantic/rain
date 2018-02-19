@@ -25,11 +25,11 @@ This section demonstrate how to start Rain DEE locally and execute simple
 
 - **Start Rain infrastructue** Although, the components of Rain (server and
   worker(s)) can be started manually, in order to simplify this process, we
-  provide "rain run" command to do it for you automatically. The following
+  provide "rain start" command to do it for you automatically. The following
   command starts server and one local worker. (Starting Rain infrastructure on
-  distributed systems is described in :ref:`program-rain`.)::
+  distributed systems is described in :ref:`start-rain`.)::
 
-  $ rain run --simple
+  $ rain start --simple
 
 - **Running "Hello World" example.** The following Python program creates a task
   that joins two strings (This example is more explained in Section
@@ -38,10 +38,10 @@ This section demonstrate how to start Rain DEE locally and execute simple
     from rain.client import Client, tasks, blob
 
     # Connect to server
-    client = Client("localhost")  
+    client = Client("localhost")
 
     # Create a new session
-    with client.new_session() as session:  
+    with client.new_session() as session:
 
         # Create task (and two data objects)
         task = tasks.concat(blob("Hello "), blob("world!"))
@@ -56,5 +56,5 @@ This section demonstrate how to start Rain DEE locally and execute simple
         result = task.outout.fetch()
 
         # Prints 'Hello world!'
-        print(result)  
+        print(result)
 

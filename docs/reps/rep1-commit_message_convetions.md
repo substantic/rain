@@ -46,7 +46,7 @@ Detailed long message describing what and why the commit happens.
 * [client] / [server] / [worker] / [subworker] - Changes in client, server,  ...
 * [backend] # server + worker (+ subworkers)
 * [all] - High impact change in many places
-* [starter] - Functionality under "rain run" command
+* [starter] - Functionality under "rain start" command
 * [api] - Interface visible to user, Python API, command-line interface
 * [test] - Tests
 * [doc] - Documentation
@@ -56,5 +56,5 @@ Detailed long message describing what and why the commit happens.
 ### Scope rules:
 
 * More scopes can be listed as [api][doc][subworker]
-* List only scopes where your commit has a major impact. Scopes that were affected minimally should be ommited. (E.g. a commit containing a big change in the server with a few basic unit tests, then just [server] should be used) 
+* List only scopes where your commit has a major impact. Scopes that were affected minimally should be ommited. (E.g. a commit containing a big change in the server with a few basic unit tests, then just [server] should be used)
 * If you have commit with major impacts in many places, maybe it is time to refactor and split it to more smaller ones

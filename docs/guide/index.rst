@@ -14,7 +14,7 @@ Welcome to Rain's documentation!
    user
    install
    python_api
-   dev/index
+   dev
 
 Indices and tables
 ==================
