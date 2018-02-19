@@ -10,7 +10,7 @@ Welcome to Rain's documentation!
    :maxdepth: 2
    
    overview
-   getting_started
+   quickstart
    user
    install
    python_api

@@ -1,5 +1,5 @@
-Getting Started
-***************
+Quickstart
+**********
 
 Introducing Rain Applications
 =============================
@@ -20,8 +20,8 @@ high-level functionality.
 Writing your first Rain Application
 ===================================
 
-This section demonstrate how to start Rain DEE locally and execute simple
-"Hello world" App.
+This section demonstrate how to start Rain infrastructure locally and execute
+a simple "Hello world" application.
 
 - **Start Rain infrastructue** Although, the components of Rain (server and
   worker(s)) can be started manually, in order to simplify this process, we

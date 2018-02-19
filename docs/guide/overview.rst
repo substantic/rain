@@ -16,37 +16,59 @@ straightforward deployment.
    large-scale distributed systems and clouds. Rain API provides intuitive
    primitives for an intuitive interactions with the backend.
  
+ * **Graph based computation.** Rain is task-based. Rain
+   provides a predefined set of task types that can be used for building large
+   variety of Rain applications out-of-the-box. It also provides a support for an
+   easy integration of third-party applications or even tasks defined as
+   arbitrary Python code.
+
  * **Python first.** Rain applications are defined as a pure Python code via
    the Rain API module with no other configuration files required whatsoever.
  
- * **Powerful and extensible task abstraction.** Rain is task-based. Rain
-  provides a predefined set of task types that can be used for building large
-  variety of Rain applications out-of-the-box. It also provides a support for an
-  easy integration of third-party applications or even tasks defined as
-  arbitrary Python code.
+ :doc:`Get started now. </quickstart>`
 
 
 What is in the box
 ==================
 
-   * Rain provides Python interface, where tasks and their interconnections is
-     defined.
-   * Rain has low-overhead. You can have many (>10^6) short running (<1s) tasks.
-   * Rain workers communicates directly; there is no central bottle neck (e.g.
-     shared file system) for data transfers.
-   * Rain supports smooth integration of 3rd party programs and Python codes
-     into pipeline. It avoid unncessary copying of data when external "blackbox"
-     programs are used.
-   * Rain is focused on easy to use, deploy and run. Our goal is to built a nice
-     API, straightforward installation, and straightforward deployment on a
-     cluster. Rain infrastructure consists of all-in-one statically-linked
-     binary and client interface is a pure python package with dependencies
-     installable via pip.
-     *RUST CORE
+Rain task execution engine
+--------------------------
+
+   * Basic schedulling heuristic respecting inter-task dependencies.
+   * Basic dashboard for execution monitoring.
+   * Efficient and extensible implementation in Rust enabling easy build and deployment.
+   * All-in-one binary with staticaly linked dependencies.
+   * Direct worker-to-worker communication.
+
+Easy-to-use Python API
+----------------------
+
+   * Task-based oriented programming model.
+   * Intuitive interface to Rain task execution engine.
+   * Python3 module.
+   * Powerful task abstraction providing various predefined task types including
+     support for exection of third-party applications.
 
 
-What is considered to be added
-==============================
+Architecture
+------------
+
+Rain infrastructure composes of central **server** component and several
+**worker** components.
+
+The server interacts with one or more **client** applications through which the
+computation description is provided. Server implements its own schedulling
+engine that controls the distributed task execution on suitable workers.
+
+Workers execute tasks as instructed by the server. Tasks are executed directly
+by a worker or using a specialized subworker.
+
+.. figure:: imgs/arch.svg
+   :alt: Connection between basic compoenents of Rain
+
+
+Wishlist
+========
 
 There are many things to improve, and even more new things to add. To work
 efficiently, we need to prioritize and for that we need your feedback and use
@@ -128,7 +150,7 @@ library, making distribution easy and running on PBS is already supported. We
 would like to add better support for cloud settings, e.g. AWS and Kubernetes.
 
 
-No go zone
+No-go zone
 ==========
 
 There are also some directions we do NOT intend to focus on in the scope of Rain.
@@ -154,21 +176,14 @@ When running multiple sessions, there is no intention to fairly schedule or
 prioritize them. The objective is only overally efficient resource usage.
 
 
-Comaprison with similar tools
+Comparison with similar tools
 =============================
 
 TODO
 
+We are not alone and we know it!
+
 Spark, Dask
-
-
-Architecture
-============
-
-Client/Server/Worker/Subworkers
-
-.. figure:: imgs/arch.svg
-   :alt: Connection between basic compoenents of Rain
 
 
 Roadmap
