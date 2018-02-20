@@ -36,6 +36,30 @@ def test_remote_more_bytes_outputs(test_env):
         assert b"One" == t1.outputs["x1"].fetch().get_bytes()
         assert b"Two" == t1.outputs["x2"].fetch().get_bytes()
 
+def test_python_cache(test_env):
+
+    @remote()
+    def f1(ctx):
+        return "f1:" + str(id(ctx.function))
+
+    @remote()
+    def f2(ctx):
+        return "f2:" + str(id(ctx.function))
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        r1 = [f1() for i in range(10)]
+        r2 = [f2() for i in range(10)]
+        for r in r1 + r2:
+            r.output.keep()
+        s.submit()
+        rs1 = list(set(r.output.fetch().get_bytes() for r in r1))
+        rs2 = list(set(r.output.fetch().get_bytes() for r in r2))
+        #s.wait_all()
+        assert len(rs1) == 1
+        assert rs1[0].startswith(b"f1:")
+        assert len(rs2) == 1
+        assert rs2[0].startswith(b"f2:")
 
 def test_remote_exception(test_env):
 

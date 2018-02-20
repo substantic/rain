@@ -58,6 +58,7 @@ class Client:
             "workers": [{"worker_id": worker_id_from_capnp(w.workerId),
                          "tasks": [id_from_capnp(t) for t in w.tasks],
                          "objects": [id_from_capnp(o) for o in w.objects],
+                         "objects_to_delete": [id_from_capnp(o) for o in w.objectsToDelete],
                          "resources": {"cpus": w.resources.nCpus}}
                         for w in info.workers]
         }

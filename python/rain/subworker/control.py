@@ -7,9 +7,12 @@ import traceback
 import collections
 
 
-def load_worker_object(reader):
+def load_worker_object(reader, cache):
+    object_id = id_from_capnp(reader.id)
+    if reader.data.storage.which() == "cache":
+        return cache[object_id]
     data = DataInstance._from_capnp(reader.data)
-    data._object_id = id_from_capnp(reader.id)
+    data._object_id = object_id
     return data
 
 
@@ -23,6 +26,12 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
 
     def __init__(self, subworker):
         self.subworker = subworker
+        self.cache = {}
+
+    def removeCachedObjects(self, objectIds, _context):
+        for reader in objectIds:
+            object_id = id_from_capnp(reader)
+            del self.cache[object_id]
 
     def runTask(self, task, _context):
         task_context = Context(self.subworker)
@@ -33,9 +42,12 @@ class ControlImpl(rpc_subworker.SubworkerControl.Server):
                 params.task.attributes)
             cfg = task_context.attributes["config"]
 
-            # List of DataInstances
-            inputs = [load_worker_object(reader)
-                      for reader in params.task.inputs]
+            inputs = []
+            for reader in params.task.inputs:
+                obj = load_worker_object(reader, self.cache)
+                if reader.saveInCache:
+                    self.cache[obj._object_id] = obj
+                inputs.append(obj)
 
             # List of OutputSpec
             outputs = [self.OutputSpec(

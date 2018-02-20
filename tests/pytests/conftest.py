@@ -196,7 +196,8 @@ class TestEnv(Env):
             assert len(workers) == len(self.worker_defs)
             for w in workers:
                 assert not w["tasks"]
-                assert not w["objects"]
+                invalid = [o for o in w["objects"] if o not in w["objects_to_delete"]]
+                assert not invalid
 
     def close(self):
         self._client = None

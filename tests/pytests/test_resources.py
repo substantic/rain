@@ -62,6 +62,10 @@ def test_number_of_tasks_and_objects(test_env):
 
         t1.wait()
 
+        # Timeout is expected as big as necessary to cleanup
+        # Worker caches
+        time.sleep(4)
+
         info = test_env.client.get_server_info()
         workers = info["workers"]
         assert len(workers) == 1
@@ -69,7 +73,10 @@ def test_number_of_tasks_and_objects(test_env):
         assert workers[0]["objects"] == [(1, 11)]
 
         t1.output.unkeep()
-        time.sleep(1.15)
+
+        # Timeout is expected as big as necessary to cleanup
+        # Worker caches
+        time.sleep(4)
 
         info = test_env.client.get_server_info()
         workers = info["workers"]

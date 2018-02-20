@@ -60,6 +60,12 @@ impl Subworker {
     }
 }
 
+impl ::std::fmt::Debug for SubworkerRef {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "Subworker id={}", self.get().subworker_id)
+    }
+}
+
 impl SubworkerRef {
     pub fn new(
         subworker_id: SubworkerId,

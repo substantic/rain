@@ -50,6 +50,7 @@ struct WorkerStateUpdate {
 struct WorkerInfo {
     tasks @0 :List(TaskId);
     objects @1 :List(DataObjectId);
+    objectsToDelete @2 :List(DataObjectId);
 }
 
 interface WorkerUpstream {

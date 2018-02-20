@@ -70,6 +70,7 @@ impl client_service::Server for ClientServiceImpl {
                 let r = r.get().unwrap();
                 w.set_tasks(r.get_tasks().unwrap());
                 w.set_objects(r.get_objects().unwrap());
+                w.set_objects_to_delete(r.get_objects_to_delete().unwrap());
                 resources.to_capnp(&mut w.borrow().get_resources().unwrap());
                 worker_id.to_capnp(&mut w.get_worker_id().unwrap());
             }

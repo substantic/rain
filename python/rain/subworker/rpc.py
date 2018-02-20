@@ -1,6 +1,3 @@
-import capnp
-import os
+from ..common.fs import load_capnp
 
-SRC_DIR = os.path.dirname(__file__)
-capnp.remove_import_hook()
-subworker = capnp.load(SRC_DIR + "/../../../capnp/subworker.capnp")
+subworker = load_capnp("subworker.capnp")

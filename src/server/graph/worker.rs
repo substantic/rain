@@ -87,6 +87,7 @@ impl Worker {
         Box::new(
             ::tokio_core::net::TcpStream::connect(&self.id, &handle)
                 .map(move |stream| {
+                    stream.set_nodelay(true).unwrap();
                     let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
                     let bootstrap: ::datastore_capnp::data_store::Client =
                         rpc_system.bootstrap(::capnp_rpc::rpc_twoparty_capnp::Side::Server);

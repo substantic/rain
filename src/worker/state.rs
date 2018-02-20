@@ -46,6 +46,7 @@ use errors::{ErrorKind, Error, Result};
 use WORKER_PROTOCOL_VERSION;
 
 const MONITORING_INTERVAL: u64 = 5; // Monitoring interval in seconds
+const DELETE_WAIT_LIST_INTERVAL: u64 = 2; // How often is delete_wait_list checked in seconds
 
 pub struct State {
     pub(super) graph: Graph,
@@ -179,7 +180,7 @@ impl State {
     }
 
     pub fn object_is_finished(&mut self, dataobj: &DataObjectRef) {
-        let dataobject = dataobj.get_mut();
+        let mut dataobject = dataobj.get_mut();
         debug!("Object id={} is finished", dataobject.id);
         self.updated_objects.insert(dataobj.clone());
 
@@ -195,7 +196,7 @@ impl State {
             self.need_scheduling();
         }
 
-        self.remove_dataobj_if_not_needed(&dataobject);
+        self.remove_dataobj_if_not_needed(&mut dataobject);
     }
 
     /// Send status of updated elements (updated_tasks/updated_objects) and then clear this sets
@@ -279,15 +280,21 @@ impl State {
         );
     }
 
+    fn subworker_cleanup(&mut self, subworker_ref: &SubworkerRef) {
+        for (_, obj_ref) in &self.graph.objects {
+            obj_ref.get_mut().subworker_cache.remove(&subworker_ref);
+        }
+    }
+
     pub fn get_subworker(
         &mut self,
         subworker_type: &str,
     ) -> Result<Box<Future<Item = SubworkerRef, Error = Error>>> {
         use tokio_process::CommandExt;
-        let index = self.graph.idle_subworkers.iter().position(|sw| {
+        let sw_result = self.graph.idle_subworkers.iter().find(|sw| {
             sw.get().subworker_type() == subworker_type
-        });
-        match index {
+        }).cloned();
+        match sw_result {
             None => {
                 let subworker_id = self.graph.make_id();
                 if let Some(args) = self.subworker_args.get(subworker_type) {
@@ -324,15 +331,13 @@ impl State {
                         })
                         .map_err(|e| e.into());
 
-                    // We do not care how kill switch of activated, so receiving () or CancelError is ok
+                    // We do not care how kill switch was activated, so receiving () or CancelError is ok
                     let kill_switch = kill_receiver.then(|_| Ok(()));
-
+                    let state_ref = self.self_ref();
                     self.spawn_panic_on_error(
                         command_future.select(kill_switch).map_err(|(e, _)| e).map(
-                            |_| (),
-                        ),
-                    );
-
+                            |e| { error!("Subworker error"); () },
+                        ));
                     Ok(Box::new(
                         ready_receiver.map_err(|_| "Subwork start cancelled".into()),
                     ))
@@ -340,8 +345,8 @@ impl State {
                     bail!("Unknown subworker")
                 }
             }
-            Some(i) => {
-                let sw = self.graph.idle_subworkers.remove(i);
+            Some(sw) => {
+                self.graph.idle_subworkers.remove(&sw);
                 Ok(Box::new(Ok(sw).into_future()))
             }
         }
@@ -379,7 +384,7 @@ impl State {
 
         if let Err(subworker) = ready_sender.send(subworker) {
             debug!("Failed to inform about new subworker");
-            self.graph.idle_subworkers.push(subworker);
+            self.graph.idle_subworkers.insert(subworker);
         }
         Ok(())
     }
@@ -480,10 +485,41 @@ impl State {
         }))
     }
 
+    pub fn remove_object(&mut self, object: &mut DataObject) {
+        debug!("Removing object {}", object.id);
+        for sw in ::std::mem::replace(&mut object.subworker_cache, Default::default()) {
+            let mut req = sw.get().control().remove_cached_objects_request();
+            {
+                debug!("Removing object from subworker {}", sw.get().id());
+                let mut object_ids = req.get().init_object_ids(1);
+                object.id.to_capnp(&mut object_ids.borrow().get(0));
+            }
+            self.spawn_panic_on_error(req.send().promise.map(|_| ()).map_err(|e| e.into()));
+        }
+        self.graph.objects.remove(&object.id);
+    }
 
-    pub fn remove_dataobj_if_not_needed(&mut self, object: &DataObject) {
+    // Call when object may be waiting for delete, but now is needed again
+    pub fn mark_as_needed(&mut self, object_ref: &DataObjectRef) {
+        if self.graph.delete_wait_list.remove(&object_ref).is_some() {
+            debug!("Object id={} is retaken from cache", object_ref.get().id);
+        }
+    }
+
+    pub fn remove_dataobj_if_not_needed(&mut self, object: &mut DataObject) {
         if !object.assigned && object.consumers.is_empty() {
-            self.graph.objects.remove(&object.id);
+            debug!("Object id={} is not needed", object.id);
+            if self.graph.delete_wait_list.len() > 100 {
+                // Instant deletion
+                self.remove_object(object);
+            } else {
+                // Delayed deletion
+                let now = ::std::time::Instant::now();
+                let timeout = now + ::std::time::Duration::from_secs(2);
+                let object_ref = self.graph.objects.get(&object.id).unwrap().clone();
+                let r = self.graph.delete_wait_list.insert(object_ref, timeout);
+                assert!(r.is_none()); // it should not be in delete list
+            }
         }
     }
 
@@ -508,9 +544,9 @@ impl State {
             self.remove_consumer(&mut obj, &task_ref);
         }
 
-        for output in &task.outputs {
-            self.remove_dataobj_if_not_needed(&output.get());
-        }
+        /*for output in &task.outputs {
+            self.remove_dataobj_if_not_needed(&mut output.get_mut());
+        }*/
     }
 
     /// Remove task from worker, if running it is forced to stop
@@ -758,14 +794,31 @@ impl StateRef {
 
     pub fn on_subworker_connection(&self, stream: UnixStream) {
         info!("New subworker connected");
+
+        let up_impl = SubworkerUpstreamImpl::new(self);
+        let subworker_id_rc = up_impl.subworker_id_rc();
         let upstream = ::subworker_capnp::subworker_upstream::ToClient::new(
-            SubworkerUpstreamImpl::new(self),
+            up_impl
         ).from_server::<::capnp_rpc::Server>();
         let rpc_system = ::common::rpc::new_rpc_system(stream, Some(upstream.client));
         let inner = self.get();
+
+        let state_ref = self.clone();
+
         inner.handle.spawn(rpc_system.map_err(
             |e| error!("RPC error: {:?}", e),
-        ));
+        ).then(move |result| {
+            debug!("Subworker cleanup");
+            let mut s = state_ref.get_mut();
+            if let Some(subworker_id) = subworker_id_rc.get() {
+                let sw = s.graph.subworkers.remove(&subworker_id).unwrap();
+                s.graph.idle_subworkers.remove(&sw);
+                 s.subworker_cleanup(&sw);
+            } else {
+                warn!("Closing uninitilized connection");
+            }
+            result
+        }));
     }
 
 
@@ -849,6 +902,32 @@ impl StateRef {
                 error!("Monitoring error {}", e)
             });
         handle.spawn(monitoring);
+
+        // --- Start checking wait list ----
+        let state = self.clone();
+        let interval = state.get().timer.interval(Duration::from_secs(DELETE_WAIT_LIST_INTERVAL));
+        let check_list = interval
+            .for_each(move |()| {
+                debug!("Checking wait list wakeup");
+                let mut s = state.get_mut();
+                if s.graph.delete_wait_list.is_empty() {
+                    return Ok(())
+                }
+                let now = ::std::time::Instant::now();
+                let to_delete : Vec<_> = s.graph.delete_wait_list.iter()
+                    .filter(|pair| pair.1 < &now)
+                    .map(|pair| pair.0.clone())
+                    .collect();
+                for obj in to_delete {
+                    s.remove_object(&mut obj.get_mut());
+                    s.graph.delete_wait_list.remove(&obj);
+                }
+                Ok(())
+            })
+            .map_err(|e| {
+                panic!("Error during checking wait list {}", e)
+            });
+        handle.spawn(check_list);
 
         // --- Start connection to server ----
         let core1 = self.clone();

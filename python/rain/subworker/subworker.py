@@ -86,6 +86,7 @@ class Subworker:
             list(DataInstance)
         """
         fn = inputs[0].load(cache=True)
+        context.function = fn
         cfg = context.attributes["config"]
         with _unpickle_inputs_context(inputs):
             args = [cloudpickle.loads(base64.b64decode(d))

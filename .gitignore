@@ -9,3 +9,5 @@ src/capnp_gen/*_capnp.rs
 *.pyc
 guide-build
 !.flake8
+dashboard/build
+dashboard/node_modules
