@@ -311,7 +311,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let mut starter = start::starter::Starter::new(config);
 
     match starter.start() {
-        Ok(()) => info!("Rain is started."),
+        Ok(()) => info!("Rain started. \u{1F327}"),
         Err(e) => {
             error!("{}", e.description());
             if starter.has_processes() {
@@ -388,8 +388,8 @@ fn main() {
                     .value_name("DIR")
                     .help("Create a file when worker is initialized and connected to the server")
                     .takes_value(true)))
-        .subcommand( // ---- RUN ----
-            SubCommand::with_name("run")
+        .subcommand( // ---- START ----
+            SubCommand::with_name("start")
                 .about("Start server & workers at once")
                 .arg(Arg::with_name("SIMPLE")
                     .long("--simple")
@@ -441,7 +441,7 @@ fn main() {
     match args.subcommand() {
         ("server", Some(ref cmd_args)) => run_server(&args, cmd_args),
         ("worker", Some(ref cmd_args)) => run_worker(&args, cmd_args),
-        ("run", Some(ref cmd_args)) => run_starter(&args, cmd_args),
+        ("start", Some(ref cmd_args)) => run_starter(&args, cmd_args),
         _ => {
             error!("No subcommand provided.");
             ::std::process::exit(1);
