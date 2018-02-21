@@ -2,7 +2,6 @@ use sysconf;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::mem;
 use common::id::WorkerId;
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
@@ -41,7 +40,7 @@ impl Monitor {
         if cfg!(target_os = "linux") {
             let f = match File::open("/proc/stat") {
                 Ok(f) => f,
-                Err(e) => panic!("Cannot open /proc/stat"),
+                Err(_) => panic!("Cannot open /proc/stat"),
             };
             let f = BufReader::new(&f);
             for l in f.lines() {
@@ -97,7 +96,7 @@ impl Monitor {
         if cfg!(target_os = "linux") {
             let f = match File::open("/proc/net/dev") {
                 Ok(f) => f,
-                Err(e) => panic!("Cannot open /proc/net/dev"),
+                Err(_) => panic!("Cannot open /proc/net/dev"),
             };
             let f = BufReader::new(&f);
             for l in f.lines() {

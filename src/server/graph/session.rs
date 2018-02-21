@@ -1,12 +1,11 @@
-use futures::unsync::oneshot::{Sender, Receiver};
+use futures::unsync::oneshot::{Receiver};
 use std::fmt;
 
 use common::wrapped::WrappedRcRefCell;
 use common::{RcSet, FinishHook, ConsistencyCheck};
 use common::id::SessionId;
-use common::events::Event;
-use super::{ClientRef, DataObjectRef, TaskRef, Graph, TaskState, DataObjectState};
-use errors::{Result, Error};
+use super::{ClientRef, DataObjectRef, TaskRef, TaskState, DataObjectState};
+use errors::{Result};
 
 #[derive(Debug)]
 pub struct Session {
@@ -66,7 +65,7 @@ impl Session {
         self.unfinished_tasks -= 1;
         if self.unfinished_tasks == 0 {
             for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
-                sender.send(());
+                sender.send(()).unwrap();
             }
         }
     }

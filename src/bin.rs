@@ -13,23 +13,20 @@ extern crate error_chain;
 
 pub mod start;
 
-use nix::unistd::{getpid};
-use std::process::exit;
-use std::path::{Path, PathBuf};
-use std::error::Error;
-use std::io::Write;
 use std::collections::HashMap;
+use std::error::Error;
+use std::net::{SocketAddr, IpAddr, Ipv4Addr, ToSocketAddrs};
+use std::path::{Path, PathBuf};
+use std::process::exit;
+
+use clap::{Arg, ArgMatches, App, SubCommand};
+use nix::unistd::{getpid};
 
 use librain::{server, worker, VERSION};
-use clap::{Arg, ArgMatches, App, SubCommand};
 use librain::errors::Result;
-
-use std::net::{SocketAddr, IpAddr, Ipv4Addr, ToSocketAddrs};
 
 const DEFAULT_SERVER_PORT: u16 = 7210;
 const DEFAULT_WORKER_PORT: u16 = 0;
-const CLIENT_PROTOCOL_VERSION: i32 = 0;
-const WORKER_PROTOCOL_VERSION: i32 = 0;
 
 const DEFAULT_HTTP_SERVER_PORT: u16 = 8080;
 
@@ -85,7 +82,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 
     let state = server::state::StateRef::new(
-        tokio_core.handle(), listen_address, http_listen_address,log_dir, debug_mode, test_mode);
+        tokio_core.handle(), listen_address, http_listen_address, log_dir, test_mode);
     state.start();
 
     // Create ready file - a file that is created when server is ready

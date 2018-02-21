@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use common::wrapped::WrappedRcRefCell;
 use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId};
 use super::{WorkerRef, TaskRef, DataObjectRef, SessionRef, ClientRef};
 

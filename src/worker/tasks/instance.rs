@@ -1,17 +1,14 @@
 
 use futures::Future;
-
-use std::rc::Rc;
 use chrono::{DateTime, Utc};
-use std::ops::Sub;
 
 use worker::graph::{TaskRef, SubworkerRef, TaskState};
-use errors::{Result, Error};
-use worker::state::{StateRef, State};
+use worker::state::{State};
 use worker::tasks;
 use worker::rpc::subworker::data_from_capnp;
 use common::Attributes;
 use common::convert::ToCapnp;
+use errors::{Result, Error};
 
 /// Instance represents a running task. It contains resource allocations and
 /// allows to signal finishing of data objects.
@@ -38,7 +35,7 @@ struct AttributeInfo {
     duration: i64,
 }
 
-fn fail_unknown_type(state: &mut State, task_ref: TaskRef) -> TaskResult {
+fn fail_unknown_type(_state: &mut State, task_ref: TaskRef) -> TaskResult {
     bail!("Unknown task type {}", task_ref.get().task_type)
 }
 
@@ -130,7 +127,7 @@ impl TaskInstance {
                 start: instance.start_timestamp.to_rfc3339(),
                 duration: (Utc::now().signed_duration_since(instance.start_timestamp)).num_milliseconds(),
             };
-            task.new_attributes.set("info", info);
+            task.new_attributes.set("info", info).unwrap();
 
             match r {
                 Ok((true, _)) => {

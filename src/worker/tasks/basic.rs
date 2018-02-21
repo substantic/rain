@@ -7,11 +7,10 @@ use worker::state::State;
 use worker::graph::TaskRef;
 use worker::data::{Data, DataBuilder};
 use futures::{Future, future};
-use bytes::{Buf, LittleEndian};
 
 
 /// Task that merge all input blobs and merge them into one blob
-pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {
+pub fn task_concat(_state: &mut State, task_ref: TaskRef) -> TaskResult {
     let inputs = {
         let task = task_ref.get();
         task.inputs_data()
@@ -28,7 +27,7 @@ pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {
         let mut builder = DataBuilder::new();
         builder.set_size(result_size);
         for input in inputs {
-            builder.write_blob(&input);
+            builder.write_blob(&input).unwrap();
         }
         let result = builder.build();
         let output = task_ref.get().output(0);

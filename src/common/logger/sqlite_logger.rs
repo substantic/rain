@@ -1,11 +1,10 @@
 use std::path::PathBuf;
 
-use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
+//use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
 use common::events;
 use futures::sync::{oneshot, mpsc};
 use futures::Stream;
 use futures::Future;
-use common::fs::LogDir;
 use errors::{Error, Result};
 use common::logger::logger::QueryEvents;
 use super::logger::{SearchCriteria, Logger};

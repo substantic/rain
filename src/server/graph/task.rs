@@ -6,9 +6,9 @@ use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::{RcSet, Attributes, FinishHook, ConsistencyCheck};
 use common::id::{TaskId, SId};
-use super::{DataObjectRef, WorkerRef, SessionRef, Graph, DataObjectState};
+use super::{DataObjectRef, WorkerRef, SessionRef, DataObjectState};
 pub use common_capnp::TaskState;
-use errors::{Result, Error};
+use errors::{Result};
 
 #[derive(Debug, Clone)]
 pub struct TaskInput {
@@ -129,7 +129,7 @@ impl Task {
         for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
             match sender.send(()) {
                 Ok(()) => { /* Do nothing */}
-                Err(e) => {
+                Err(_) => {
                     /* Just log error, it is non fatal */
                     debug!("Failed to inform about finishing task");
                 }

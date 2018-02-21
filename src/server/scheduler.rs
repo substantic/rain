@@ -1,7 +1,6 @@
 use std::collections::hash_map::HashMap;
 use std::clone::Clone;
 use super::graph::{DataObjectRef, TaskRef, WorkerRef, Graph, TaskState};
-use common::id::SId;
 use common::RcSet;
 use server::graph::SessionRef;
 

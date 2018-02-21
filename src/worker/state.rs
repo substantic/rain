@@ -1,21 +1,13 @@
-use std::rc::Rc;
-use std::sync::Arc;
-use std::cell::RefCell;
 use std::net::SocketAddr;
-use std::net::IpAddr;
-use std::net::Ipv4Addr;
 use std::process::exit;
 use std::path::{Path, PathBuf};
-use std::io::Write;
 use std::time::Duration;
-use std::iter::FromIterator;
 use std::collections::HashMap;
 
 use common::asycinit::AsyncInitWrapper;
 use common::RcSet;
-use common::id::{SId, SubworkerId, WorkerId, empty_worker_id, TaskId, DataObjectId};
+use common::id::{SubworkerId, WorkerId, empty_worker_id, TaskId, DataObjectId};
 use common::convert::{ToCapnp, FromCapnp};
-use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
 use common::monitor::{Monitor};
@@ -25,21 +17,20 @@ use common::events;
 
 use worker::graph::{DataObjectRef, DataObjectState, DataObject, Graph, TaskRef,
                     TaskInput, TaskState, SubworkerRef, subworker_command};
-use worker::data::{DataBuilder, Data};
+use worker::data::{Data};
 use worker::tasks::TaskInstance;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
 
-use futures::{Future, future};
+use futures::{Future};
 use futures::Stream;
 use futures::IntoFuture;
 use tokio_core::reactor::Handle;
 use tokio_core::net::TcpListener;
 use tokio_core::net::TcpStream;
-use tokio_io::AsyncRead;
 use tokio_timer;
 use tokio_uds::{UnixListener, UnixStream};
-use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
+use capnp_rpc::{rpc_twoparty_capnp};
 use capnp::capability::Promise;
 use errors::{ErrorKind, Error, Result};
 
@@ -271,15 +262,6 @@ impl State {
         self.spawn_panic_on_error(req.send().promise.map(|_| ()).map_err(|e| e.into()));
     }
 
-    fn register_subworker(&mut self, name: &str, args: &[&str]) {
-        self.subworker_args.insert(
-            name.into(),
-            args.iter()
-                .map(|i| i.to_string())
-                .collect(),
-        );
-    }
-
     fn subworker_cleanup(&mut self, subworker_ref: &SubworkerRef) {
         for (_, obj_ref) in &self.graph.objects {
             obj_ref.get_mut().subworker_cache.remove(&subworker_ref);
@@ -320,23 +302,21 @@ impl State {
 
                     let command_future = command
                         .status_async2(&self.handle)?
+                        .map_err(|e| e.into())
                         .and_then(move |status| {
                             error!(
                                 "Subworker {} terminated with exit code: {}",
                                 subworker_id,
                                 status
                             );
-                            panic!("Subworker terminated; TODO handle this situation");
-                            Ok(())
-                        })
-                        .map_err(|e| e.into());
+                            bail!("Subworker terminated; TODO handle this situation");
+                        });
 
                     // We do not care how kill switch was activated, so receiving () or CancelError is ok
                     let kill_switch = kill_receiver.then(|_| Ok(()));
-                    let state_ref = self.self_ref();
                     self.spawn_panic_on_error(
                         command_future.select(kill_switch).map_err(|(e, _)| e).map(
-                            |e| { error!("Subworker error"); () },
+                            |_| { error!("Subworker error"); panic!("Subworker error!") },
                         ));
                     Ok(Box::new(
                         ready_receiver.map_err(|_| "Subwork start cancelled".into()),
@@ -366,7 +346,7 @@ impl State {
 
         info!("Subworker registered (subworker_id={})", subworker_id);
 
-        let (sw, sw_type, work_dir, ready_sender, kill_sender) = self.initializing_subworkers
+        let (_, sw_type, work_dir, ready_sender, kill_sender) = self.initializing_subworkers
             .remove(index);
 
         if sw_type != subworker_type {
@@ -592,7 +572,7 @@ impl State {
         TaskInstance::start(self, task_ref);
     }
 
-    pub fn schedule(&mut self, state_ref: &StateRef) {
+    pub fn schedule(&mut self) {
         let mut i = 0;
         while i < self.graph.ready_tasks.len() {
             if self.free_slots == 0 {
@@ -831,25 +811,20 @@ impl StateRef {
     ) {
         let handle = self.get().handle.clone();
 
-        // --- Create workdir layout ---
-        {
-            let state = self.get();
-        }
-
         // --- Start listening Unix socket for subworkers ----
         let listener = {
             let backup = ::std::env::current_dir().unwrap();
             let path = self.get().work_dir().subworker_listen_path();
-            ::std::env::set_current_dir(path.parent().unwrap());
+            ::std::env::set_current_dir(path.parent().unwrap()).unwrap();
             let result = UnixListener::bind(path.file_name().unwrap(), &handle);
-            ::std::env::set_current_dir(backup);
+            ::std::env::set_current_dir(backup).unwrap();
             result
         }.map_err(|e| info!("Cannot create listening unix socket: {:?}", e)).unwrap();
 
         let state = self.clone();
         let future = listener
             .incoming()
-            .for_each(move |(stream, addr)| {
+            .for_each(move |(stream, _)| {
                 state.on_subworker_connection(stream);
                 Ok(())
             })
@@ -950,7 +925,7 @@ impl StateRef {
         let mut state = self.get_mut();
         if state.need_scheduling {
             state.need_scheduling = false;
-            state.schedule(self);
+            state.schedule();
         }
 
         // Important: Scheduler should be before update, since scheduler may produce another updates

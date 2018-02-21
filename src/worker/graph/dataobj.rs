@@ -1,18 +1,13 @@
 
 use common::id::{DataObjectId, WorkerId};
-use common::keeppolicy::KeepPolicy;
 use common::wrapped::WrappedRcRefCell;
 use common::{Attributes, RcSet};
 use super::{TaskRef, Graph};
 use worker::data::{Data};
 use worker::graph::SubworkerRef;
-use worker::fs::workdir::WorkDir;
 
 use std::net::SocketAddr;
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::Arc;
-use std::path::Path;
 use std::fmt;
 
 

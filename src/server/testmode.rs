@@ -1,6 +1,5 @@
 /* Routines for usage in test_mode */
 
-use server::scheduler::UpdatedIn;
 use server::state::State;
 
 #[derive(Debug, Deserialize)]

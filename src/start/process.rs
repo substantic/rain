@@ -1,8 +1,11 @@
 use std::process::{Stdio, Child, Command};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
-use librain::errors::{Error, Result};
-use std::path::{PathBuf, Path};
+use std::path::Path;
+
+use librain::errors::{Result};
+
 use start::common::Readiness;
+
 
 /// Struct that represents a process running under a starter
 /// It is wrapper over std::process::Child with a string name
@@ -55,10 +58,11 @@ impl Process {
     pub fn kill(&mut self) -> Result<()> {
         if let Readiness::WaitingForReadyFile(ref path) = self.ready {
             if path.exists() {
+                use std::error::Error;
                 // This error is non fatal, so we just log an error and continue
                 match ::std::fs::remove_file(path) {
                     Ok(_) => debug!("Ready file of killed process removed"),
-                    Err(e) => error!("Cannot remove ready file for killed process"),
+                    Err(e) => error!("Cannot remove ready file for killed process: {}", e.description()),
                 }
             }
         }

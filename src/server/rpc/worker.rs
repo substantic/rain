@@ -2,7 +2,7 @@ use common::convert::FromCapnp;
 use common::Attributes;
 use common::id::{DataObjectId, TaskId};
 use server::state::StateRef;
-use server::graph::{WorkerRef, Worker, DataObjectState};
+use server::graph::{WorkerRef, Worker};
 use worker_capnp::worker_upstream;
 use capnp::capability::Promise;
 use server::rpc::WorkerDataStoreImpl;
@@ -35,12 +35,12 @@ impl Drop for WorkerUpstreamImpl {
 impl worker_upstream::Server for WorkerUpstreamImpl {
     fn get_data_store(
         &mut self,
-        params: worker_upstream::GetDataStoreParams,
+        _params: worker_upstream::GetDataStoreParams,
         mut results: worker_upstream::GetDataStoreResults,
     ) -> Promise<(), ::capnp::Error> {
         debug!("server data store requested from worker");
         let datastore = ::datastore_capnp::data_store::ToClient::new(
-            WorkerDataStoreImpl::new(&self.state, &self.worker),
+            WorkerDataStoreImpl::new(&self.state),
         ).from_server::<::capnp_rpc::Server>();
         results.get().set_store(datastore);
         Promise::ok(())
@@ -61,8 +61,6 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
         let mut task_updates = Vec::new();
 
         {
-            let worker = self.worker.get();
-
             for obj_update in pry!(update.get_objects()).iter() {
                 let id = DataObjectId::from_capnp(&pry!(obj_update.get_id()));
                 if state.is_object_ignored(&id) {

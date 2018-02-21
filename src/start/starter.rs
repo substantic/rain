@@ -5,9 +5,9 @@ use std::net::SocketAddr;
 use start::common::Readiness;
 use start::process::Process;
 use start::ssh::RemoteProcess;
-use librain::errors::{Error, Result};
+use librain::errors::{Result};
 
-use nix::unistd::{gethostname, getpid};
+use nix::unistd::getpid;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::fs::File;
@@ -58,7 +58,7 @@ impl StarterConfig {
         }
         let nodefile = ::std::env::var("PBS_NODEFILE");
         match nodefile {
-            Err(e) => bail!("Variable PBS_NODEFILE not defined, are you running inside PBS?"),
+            Err(_) => bail!("Variable PBS_NODEFILE not defined, are you running inside PBS?"),
             Ok(path) => self.worker_host_file = Some(PathBuf::from(path)),
         }
         Ok(())
@@ -279,7 +279,7 @@ impl Starter {
                     cmd.arg("--cpus");
                     cmd.arg(cpus.to_string());
                 }
-            let process = self.spawn_process(
+            self.spawn_process(
                 &format!("worker-{}", i),
                 &ready_file,
                 &mut cmd

@@ -7,11 +7,8 @@ use std::cell::Cell;
 use common::id::{SubworkerId, DataObjectId};
 use common::convert::FromCapnp;
 use worker::{StateRef, State};
-use worker::graph::SubworkerRef;
 use worker::data::{Data, Storage};
-use worker::fs::workdir::WorkDir;
 use subworker_capnp::subworker_upstream;
-use futures::Future;
 use capnp;
 use capnp::capability::Promise;
 

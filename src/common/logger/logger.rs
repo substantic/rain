@@ -1,9 +1,9 @@
-use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
-use common::events::{Event, EventId, TaskDescriptor, ObjectDescriptor};
+use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId};
+use common::events::{Event, TaskDescriptor, ObjectDescriptor};
 use common::events;
 use futures::Future;
 use chrono::{DateTime, Utc};
-use errors::{Error, Result};
+use errors::{Error};
 
 
 #[derive(Deserialize)]

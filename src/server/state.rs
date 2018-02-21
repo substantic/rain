@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 use std::collections::HashSet;
@@ -8,7 +7,6 @@ use futures::{Future, Stream};
 use tokio_core::reactor::Handle;
 use tokio_core::net::{TcpListener, TcpStream};
 use tokio_timer;
-use capnp_rpc::{twoparty, rpc_twoparty_capnp};
 
 use errors::Result;
 use common::RcSet;
@@ -17,7 +15,7 @@ use common::rpc::new_rpc_system;
 use server::graph::{Graph, WorkerRef, DataObjectRef, TaskRef, SessionRef, ClientRef,
                     DataObjectState, TaskState, TaskInput, SessionError};
 use server::rpc::ServerBootstrapImpl;
-use server::scheduler::{ReactiveScheduler, UpdatedIn, UpdatedOut};
+use server::scheduler::{ReactiveScheduler, UpdatedIn};
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
@@ -43,9 +41,6 @@ pub struct State {
     /// from worker
     pub(in super::super) ignored_sessions: HashSet<SessionId>,
 
-    /// If true, next "turn" the scheduler is executed
-    need_scheduling: bool,
-
     /// Tokio core handle.
     handle: Handle,
 
@@ -58,9 +53,6 @@ pub struct State {
 
     scheduler: ReactiveScheduler,
 
-    // If debug_mode is true, then consitency checks are enabled
-    debug_mode: bool,
-
     // If testing_mode is true, then __test attributes are interpreted
     test_mode: bool,
 
@@ -69,8 +61,6 @@ pub struct State {
     pub logger: Box<Logger>,
 
     timer: tokio_timer::Timer,
-
-    log_dir: PathBuf,
 
     /// Listening port and address.
     listen_address: SocketAddr,
@@ -100,7 +90,7 @@ impl State {
 
     /// Remove the worker from the graph, forcefully unassigning all tasks and objects.
     /// TODO: better specs and context of worker removal
-    pub fn remove_worker(&mut self, worker: &WorkerRef) -> Result<()> {
+    pub fn remove_worker(&mut self, _worker: &WorkerRef) -> Result<()> {
         unimplemented!() /*
             pub fn delete(self, graph: &mut Graph) {
         debug!("Deleting worker {}", self.get_id());
@@ -744,7 +734,7 @@ impl State {
 
         if tref.get().state == TaskState::Assigned || tref.get().state == TaskState::Running {
             if tref.get().assigned != tref.get().scheduled {
-                if let Some(ref wref) = tref.get().assigned {
+                if let Some(_) = tref.get().assigned {
                     // Unassign the task if assigned
                     self.unassign_task(tref);
                     // The state was assigned or running, now is ready
@@ -894,7 +884,7 @@ impl State {
                         worker,
                         attributes
                     );
-                    let error_message: String = attributes.get("error").unwrap_or_else(|e| {
+                    let error_message: String = attributes.get("error").unwrap_or_else(|_| {
                         warn!("Cannot decode error message");
                         "Cannot decode error message".to_string()
                     });
@@ -1075,12 +1065,9 @@ impl StateRef {
                listen_address: SocketAddr,
                http_listen_address: SocketAddr,
                log_dir: PathBuf,
-               debug_mode: bool,
                test_mode: bool) -> Self {
         let s = Self::wrap(State {
             graph: Default::default(),
-            need_scheduling: false,
-            debug_mode: debug_mode,
             test_mode: test_mode,
             listen_address: listen_address,
             http_listen_address: http_listen_address,
@@ -1095,7 +1082,6 @@ impl StateRef {
                 .tick_duration(Duration::from_millis(100))
                 .num_slots(512)
                 .build(),
-            log_dir: log_dir,
             ignored_sessions: Default::default(),
         });
         s.get_mut().self_ref = Some(s.clone());

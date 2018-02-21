@@ -1,8 +1,6 @@
 use futures::unsync::oneshot;
 use std::fmt;
 
-use errors::Error;
-
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
@@ -282,7 +280,7 @@ impl ConsistencyCheck for DataObjectRef {
             bail!("state inconsistency in {:?}", s);
         }
         // data consistency
-        if let Some(ref dr) = s.data {
+        if let Some(_) = s.data {
             if s.size.is_none() /*|| dr.len() != s.size.unwrap()*/ {
                 bail!("size and uploaded data mismatch in {:?}", s);
             }

@@ -1,5 +1,4 @@
 
-use tokio_core::net::TcpStream;
 use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
 use tokio_io::{AsyncRead, AsyncWrite};
 

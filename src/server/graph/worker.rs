@@ -1,6 +1,4 @@
-use futures::unsync::oneshot::Sender;
 use std::net::SocketAddr;
-use std::collections::HashSet;
 use std::fmt;
 
 use futures::Future;
@@ -9,9 +7,9 @@ use errors::Error;
 use common::asycinit::AsyncInitWrapper;
 use common::wrapped::WrappedRcRefCell;
 use common::{RcSet, ConsistencyCheck};
-use common::id::{TaskId, DataObjectId, WorkerId};
+use common::id::{WorkerId};
 use common::resources::Resources;
-use super::{TaskRef, DataObjectRef, Graph};
+use super::{TaskRef, DataObjectRef};
 use errors::Result;
 
 

@@ -3,12 +3,12 @@ use std::net::SocketAddr;
 use futures::{Future, future};
 
 use common::resources::Resources;
-use common::id::{DataObjectId, TaskId, SessionId, SId};
+use common::id::{DataObjectId, TaskId, SId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
 use server::state::StateRef;
-use server::graph::{SessionRef, ClientRef, DataObjectRef, TaskRef, TaskInput, SessionError};
-use errors::{Result, ResultExt, ErrorKind, Error};
+use server::graph::{ClientRef, DataObjectRef, TaskRef, TaskInput, SessionError};
+use errors::{Result, ErrorKind, Error};
 use common::Attributes;
 use common::RcSet;
 use server::rpc::ClientDataStoreImpl;
@@ -68,9 +68,9 @@ impl client_service::Server for ClientServiceImpl {
             for (i, &(ref worker_id, ref r, ref resources)) in rs.iter().enumerate() {
                 let mut w = workers.borrow().get(i as u32);
                 let r = r.get().unwrap();
-                w.set_tasks(r.get_tasks().unwrap());
-                w.set_objects(r.get_objects().unwrap());
-                w.set_objects_to_delete(r.get_objects_to_delete().unwrap());
+                w.set_tasks(r.get_tasks().unwrap()).unwrap();
+                w.set_objects(r.get_objects().unwrap()).unwrap();
+                w.set_objects_to_delete(r.get_objects_to_delete().unwrap()).unwrap();
                 resources.to_capnp(&mut w.borrow().get_resources().unwrap());
                 worker_id.to_capnp(&mut w.get_worker_id().unwrap());
             }
@@ -195,7 +195,7 @@ impl client_service::Server for ClientServiceImpl {
 
     fn get_data_store(
         &mut self,
-        params: client_service::GetDataStoreParams,
+        _params: client_service::GetDataStoreParams,
         mut results: client_service::GetDataStoreResults,
     ) -> Promise<(), ::capnp::Error> {
         debug!("server data store requested from client");
@@ -217,7 +217,6 @@ impl client_service::Server for ClientServiceImpl {
             error.to_capnp(&mut result.borrow().init_error());
         }
 
-        let state = self.state.clone();
         let s = self.state.get_mut();
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
@@ -309,9 +308,8 @@ impl client_service::Server for ClientServiceImpl {
     fn wait_some(
         &mut self,
         params: client_service::WaitSomeParams,
-        results: client_service::WaitSomeResults,
+        _results: client_service::WaitSomeResults,
     ) -> Promise<(), ::capnp::Error> {
-        let s = self.state.get_mut();
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());

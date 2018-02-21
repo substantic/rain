@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use super::{SessionRef, Graph};
+use super::{SessionRef};
 use common::wrapped::WrappedRcRefCell;
 use common::id::ClientId;
 use common::{RcSet, ConsistencyCheck};

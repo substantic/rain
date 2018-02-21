@@ -3,15 +3,12 @@ use std::sync::Arc;
 
 use common::Attributes;
 use common::Resources;
-use common::RcSet;
-use common::keeppolicy;
 use common::convert::{ToCapnp, FromCapnp};
 use common::id::{DataObjectId, WorkerId, TaskId};
 use worker::graph::{DataObjectState, TaskInput};
 use worker::StateRef;
 use worker_capnp::worker_control;
 use capnp::capability::Promise;
-use std::process::exit;
 use futures::future::Future;
 use errors::{ErrorKind, Error};
 

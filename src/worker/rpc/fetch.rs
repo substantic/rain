@@ -1,11 +1,7 @@
 
 use futures::{Future, future};
-
-use common::id::WorkerId;
-use common::convert::ToCapnp;
-use worker::graph::DataObjectRef;
 use worker::data::{DataBuilder, Data};
-use errors::{ErrorKind, Error};
+use errors::{Error};
 
 
 // TODO: Remove box when impl Trait

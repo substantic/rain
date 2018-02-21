@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use common::id::{SubworkerId};
-use errors::Result;
 
 
 pub struct LogDir {

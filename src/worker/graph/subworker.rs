@@ -1,20 +1,13 @@
 
 use std::process::{Command, Stdio};
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::fs::File;
-use std::path::PathBuf;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 
 use common::id::SubworkerId;
 use common::wrapped::WrappedRcRefCell;
 use common::fs::LogDir;
-use worker::StateRef;
 use worker::fs::workdir::WorkDir;
-use subworker_capnp::subworker_upstream;
-use capnp::capability::Promise;
-use futures::Future;
 
 use errors::Result;
 

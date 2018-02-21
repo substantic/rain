@@ -2,7 +2,7 @@
 use std::path::{Path, PathBuf};
 use std::cell::Cell;
 
-use common::id::{SubworkerId, TaskId, SId, DataObjectId};
+use common::id::{SubworkerId, TaskId, SId};
 use errors::Result;
 
 

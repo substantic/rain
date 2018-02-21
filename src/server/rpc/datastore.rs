@@ -1,11 +1,10 @@
 use common::convert::ToCapnp;
-use futures::{Future, future, IntoFuture};
+use futures::{Future, future};
 use capnp::capability::Promise;
 use common::convert::FromCapnp;
 use common::id::DataObjectId;
-use common::id::SId;
 
-use server::graph::{WorkerRef, DataObjectRef, DataObjectState};
+use server::graph::{DataObjectRef, DataObjectState};
 use datastore_capnp::{reader, data_store, read_reply};
 use server::state::StateRef;
 
@@ -47,12 +46,8 @@ impl data_store::Server for ClientDataStoreImpl {
         }
 
         let state = self.state.clone();
-        let state2 = state.clone();
-        let object1 = object.clone();
         let object2 = object.clone();
-        let object3 = object.clone();
         let object4 = object.clone();
-        let session_id = id.get_session_id();
         let mut obj = object2.get_mut();
         let session = obj.session.clone();
 
@@ -109,12 +104,11 @@ impl data_store::Server for ClientDataStoreImpl {
 // Datastore provided for workers
 pub struct WorkerDataStoreImpl {
     state_ref: StateRef,
-    worker_ref: WorkerRef,
 }
 
 impl WorkerDataStoreImpl {
-    pub fn new(state: &StateRef, worker_ref: &WorkerRef) -> Self {
-        Self { state_ref: state.clone(), worker_ref: worker_ref.clone()  }
+    pub fn new(state: &StateRef) -> Self {
+        Self { state_ref: state.clone() }
     }
 }
 
@@ -184,10 +178,10 @@ impl reader::Server for LocalReaderImpl {
         let param_size = pry!(params.get()).get_size() as usize;
         let mut results = results.get();
         let start = self.offset;
-        let (end, size, status) = if start + param_size < self.size {
-            (start + param_size, param_size, read_reply::Status::Ok)
+        let end = if start + param_size < self.size {
+            start + param_size
         } else {
-            (self.size, self.size - start, read_reply::Status::Eof)
+            self.size
         };
 
         results.set_data(&self.object.get().data.as_ref().unwrap()[start..end]);

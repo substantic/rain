@@ -2,12 +2,7 @@ use std::sync::Arc;
 use common::id::TaskId;
 use super::{DataObjectRef, Graph};
 use common::{RcSet, Attributes};
-use std::iter::FromIterator;
 
-use std::io::Bytes;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::hash::{Hash, Hasher};
 use worker::data::Data;
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;

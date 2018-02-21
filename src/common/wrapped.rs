@@ -1,9 +1,8 @@
 use std::cell::{RefCell, Ref, RefMut};
 use std::rc::Rc;
 use std::hash::{Hash, Hasher};
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref};
 use std::clone::Clone;
-use std::fmt::{Debug, Formatter, Result as FmtResult};
 
 /// Wrapper struct containing a `Rc<RefCell<T>>`, implementing  several
 /// helper functions and useful traits.
@@ -38,10 +37,11 @@ impl<T> WrappedRcRefCell<T> {
         self.inner.deref().borrow_mut()
     }
 
-    /// Return the number of strong references to the contained Rc
+    // Return the number of strong references to the contained Rc
+    /* Not used now, feel free to uncomment this
     pub(crate) fn get_num_refs(&self) -> usize {
         Rc::strong_count(&self.inner)
-    }
+    } */
 }
 
 impl<T> Clone for WrappedRcRefCell<T> {
@@ -52,7 +52,7 @@ impl<T> Clone for WrappedRcRefCell<T> {
 
 impl<T> Hash for WrappedRcRefCell<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let ptr = &*self.inner as *const _;
+        let ptr = &*self.inner as *const RefCell<T>;
         ptr.hash(state);
     }
 }

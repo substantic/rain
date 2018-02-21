@@ -1,4 +1,3 @@
-use std::io::Read;
 use std::path::{PathBuf, Path};
 use std::os::unix::fs::PermissionsExt;
 
@@ -108,7 +107,7 @@ impl Data {
 
     #[inline]
     pub fn is_blob(&self) -> bool {
-        // TODO: Directories        
+        // TODO: Directories
         true
     }
 

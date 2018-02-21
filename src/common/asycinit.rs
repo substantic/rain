@@ -57,12 +57,12 @@ impl<T> AsyncInitWrapper<T> {
     /// If object is already prepared than future is finished immediately
     pub fn wait(&mut self) -> Box<Future<Item = (), Error = Error>> {
         match self.state {
-            State::Ready(ref value) => Box::new(Ok(()).into_future()),
+            State::Ready(_) => Box::new(Ok(()).into_future()),
             State::Initing(ref mut senders) => {
                 let (sender, receiver) = unsync::oneshot::channel();
                 senders.push(sender);
                 // TODO: Convert to testable error
-                Box::new(receiver.map_err(|e| "Cancelled".into()))
+                Box::new(receiver.map_err(|_| "Cancelled".into()))
             }
         }
     }

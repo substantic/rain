@@ -8,7 +8,6 @@ use common::id::WorkerId;
 use common::convert::{FromCapnp, ToCapnp};
 use common::resources::Resources;
 use server::state::StateRef;
-use server::graph::{WorkerRef, ClientRef};
 use server_capnp::server_bootstrap;
 
 use CLIENT_PROTOCOL_VERSION;
@@ -118,8 +117,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
 
         // Ask for resources and then create a new worker in server
         let req = control.get_worker_resources_request();
-        Promise::from_future(req.send().promise.and_then(move |response| {
-            let response = pry!(response.get());
+        Promise::from_future(req.send().promise.and_then(move |_| {
             // The order is important here:
             // 1) add worker
             // 2) create upstream

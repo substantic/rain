@@ -1,8 +1,7 @@
-use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 use std::io::BufRead;
-use std::process::{Stdio, Child, Command};
+use std::process::{Stdio, Command};
 use std::error::Error;
 
 use librain::errors::Result;
@@ -115,7 +114,7 @@ touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
         let stdout = self.run_ssh_first_line(&shell_cmd)?;
 
         if stdout.starts_with("Ok: ") {
-            self.pid = stdout[4..].trim().parse().map_err(|e| {
+            self.pid = stdout[4..].trim().parse().map_err(|_| {
                 format!("Internal error, value is not integer: {}", stdout)
             })?;
         } else if stdout.starts_with("Error: ") {
@@ -144,7 +143,7 @@ touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
         };
         shell_cmd += "echo 'Ok'";
 
-        let (stdout, stderr) = self.run_ssh(&shell_cmd)?;
+        let (stdout, _stderr) = self.run_ssh(&shell_cmd)?;
         Ok(match stdout.trim() {
             "Ok" => is_ready,
             "Ready" => {

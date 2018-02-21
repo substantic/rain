@@ -1,7 +1,6 @@
-use std::rc::Rc;
-use capnp::capability::{Promise, Results, Params};
+use capnp::capability::{Promise};
 use capnp;
-use worker_capnp::{worker_bootstrap, worker_upstream, worker_control};
+use worker_capnp::{worker_bootstrap, worker_control};
 use worker::StateRef;
 use super::WorkerControlImpl;
 
@@ -19,10 +18,10 @@ impl worker_bootstrap::Server for WorkerBootstrapImpl {
     fn get_data_store(
         &mut self,
         _arg: worker_bootstrap::GetDataStoreParams,
-        res: worker_bootstrap::GetDataStoreResults,
+        _res: worker_bootstrap::GetDataStoreResults,
     ) -> Promise<(), capnp::Error> {
         ::capnp::capability::Promise::err(::capnp::Error::unimplemented(
-            "method not implemented".to_string(),
+            "get_data_store yet not implemented".to_string(),
         ))
     }
 

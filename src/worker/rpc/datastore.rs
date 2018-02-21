@@ -1,16 +1,10 @@
-use std::sync::Arc;
-use common::convert::ToCapnp;
-use futures::Future;
 use capnp::capability::Promise;
 use common::convert::FromCapnp;
 use common::id::DataObjectId;
 use worker::data::{PackStream, new_pack_stream};
 
-use worker::data::Data;
 use datastore_capnp::{reader, data_store, read_reply};
 use worker::state::StateRef;
-
-use errors::Result;
 
 pub struct DataStoreImpl {
     state: StateRef,
