@@ -209,7 +209,7 @@ impl Starter {
         info!("Starting {} remote worker(s)", worker_hosts.len());
         let (program, program_args) = self.local_rain_command();
         let dir = ::std::env::current_dir().unwrap(); // TODO: Do it configurable
-        let server_address = self.server_address();
+        let server_address = self.server_address(false);
 
         for (i, host) in worker_hosts.iter().enumerate() {
             info!(
@@ -254,14 +254,18 @@ impl Starter {
         Ok(())
     }
 
-    fn server_address(&self) -> String {
-        let hostname = ::librain::common::sys::get_hostname();
+    fn server_address(&self, localhost: bool) -> String {
+        let hostname = if localhost {
+            "localhost".to_string()
+        } else {
+            ::librain::common::sys::get_hostname()
+        };
         format!("{}:{}", hostname, self.config.server_listen_address.port())
     }
 
     fn start_local_workers(&mut self) -> Result<()> {
         info!("Starting {} local worker(s)", self.config.local_workers.len());
-        let server_address = self.server_address();
+        let server_address = self.server_address(true);
         let (program, program_args) = self.local_rain_command();
         let workers: Vec<_> = self.config.local_workers.iter().map(|x| x.clone()).enumerate().collect();
         for (i, resource) in workers {
