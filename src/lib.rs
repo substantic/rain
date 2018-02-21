@@ -50,11 +50,6 @@ lazy_static! {
 }
 
 
-
-// NOTE: Development solution to get type autocompletion and go-to-definition
-pub mod capnp_gen;
-pub use capnp_gen::*;
-
 #[allow(unused_doc_comment)]
 pub mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
@@ -90,8 +85,6 @@ impl std::convert::From<errors::Error> for capnp::Error {
 }
 
 
-
-/* // NOTE: PyCharm does not support feature switching, so using comments :'(
 pub mod server_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/server_capnp.rs"));
 }
@@ -111,4 +104,11 @@ pub mod worker_capnp {
 pub mod datastore_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/datastore_capnp.rs"));
 }
-*/
+
+pub mod subworker_capnp {
+    include!(concat!(env!("OUT_DIR"), "/capnp/subworker_capnp.rs"));
+}
+
+pub mod monitor_capnp {
+    include!(concat!(env!("OUT_DIR"), "/capnp/monitor_capnp.rs"));
+}

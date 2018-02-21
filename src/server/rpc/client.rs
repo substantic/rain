@@ -230,7 +230,7 @@ impl client_service::Server for ClientServiceImpl {
 
 
         if task_ids.len() == 1 && object_ids.len() == 0 &&
-            task_ids.get(0).get_id() == ::capnp_gen::common_capnp::ALL_TASKS_ID
+            task_ids.get(0).get_id() == ::common_capnp::ALL_TASKS_ID
         {
             let session_id = task_ids.get(0).get_session_id();
             debug!("Waiting for all session session_id={}", session_id);

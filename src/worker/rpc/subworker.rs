@@ -81,15 +81,15 @@ impl subworker_upstream::Server for SubworkerUpstreamImpl {
 pub fn data_from_capnp(
     state: &State,
     subworker_dir: &Path,
-    reader: &::capnp_gen::subworker_capnp::local_data::Reader,
+    reader: &::subworker_capnp::local_data::Reader,
 ) -> Result<Arc<Data>> {
     match reader.get_storage().which()? {
-        ::capnp_gen::subworker_capnp::local_data::storage::Memory(data) => Ok(Arc::new(Data::new(
+        ::subworker_capnp::local_data::storage::Memory(data) => Ok(Arc::new(Data::new(
             Storage::Memory(
                 data?.into(),
             ),
         ))),
-        ::capnp_gen::subworker_capnp::local_data::storage::Path(data) => {
+        ::subworker_capnp::local_data::storage::Path(data) => {
             let source_path = Path::new(data?);
             if !source_path.is_absolute() {
                 bail!("Path of dataobject is not absolute");
@@ -102,7 +102,7 @@ pub fn data_from_capnp(
                 Data::new_by_fs_move(&Path::new(source_path), target_path)?,
             ))
         }
-        ::capnp_gen::subworker_capnp::local_data::storage::InWorker(data) => {
+        ::subworker_capnp::local_data::storage::InWorker(data) => {
             let object_id = DataObjectId::from_capnp(&data?);
             let object = state.object_by_id(object_id)?;
             let data = object.get().data().clone();

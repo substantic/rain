@@ -19,7 +19,6 @@ cargo:build:
     - apt-get update
     - apt-get install -y capnproto libsqlite3-dev
     - cargo install capnpc
-    - ./build_capnp.sh
     - cargo build --all-features --release --verbose --jobs 1
   artifacts:
     paths:
@@ -62,7 +61,6 @@ cargo:test:
     - apt-get update
     - apt-get install -y capnproto libsqlite3-dev
     - cargo install capnpc
-    - ./build_capnp.sh
     - cargo test --all-features
   only:
     - master

@@ -26,11 +26,11 @@ impl Resources {
         }
     }
 
-    pub fn from_capnp(reader: &::capnp_gen::common_capnp::resources::Reader) -> Self {
+    pub fn from_capnp(reader: &::common_capnp::resources::Reader) -> Self {
         Resources { cpus: reader.get_n_cpus() }
     }
 
-    pub fn to_capnp(&self, builder: &mut ::capnp_gen::common_capnp::resources::Builder) {
+    pub fn to_capnp(&self, builder: &mut ::common_capnp::resources::Builder) {
         builder.set_n_cpus(self.cpus);
     }
 

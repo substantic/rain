@@ -163,7 +163,7 @@ impl SessionError {
         SessionError { message }
     }
 
-    pub fn to_capnp(&self, builder: &mut ::capnp_gen::common_capnp::error::Builder) {
+    pub fn to_capnp(&self, builder: &mut ::common_capnp::error::Builder) {
         builder.borrow().set_message(&self.message);
     }
 }
