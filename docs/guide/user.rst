@@ -633,12 +633,16 @@ to set additional attributes of data object. More outputs may be configured via
 
 
 
-Annotations
------------
+Type hints
+----------
 
-the remote function may return an instance of ``bytes`` or ``str`` that will be
-used the value for the output. How to define inputs or more outputs is
-elaborated in the following sections.
+If you are using sufficiently new Python (>=3.5), you can use type hints
+to define define outputs and inputs, e.g.::
+
+    @remote
+    def test1(ctx, a : Input(content_type="json")) -> Output(encode='pickle', label='test_pickle');
+        pass
+
 
 Resources
 =========
