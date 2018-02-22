@@ -10,19 +10,11 @@ Welcome to Rain's documentation!
    :maxdepth: 2
    
    overview
+   getting_started
+   user
    install
-   architecture
-   roadmap
-   session
-   tasks
-   basic_tasks
-   execute_task
-   python_tasks
-   errors
-   directories
    python_api
-   args
-   dev_dashboard
+   dev
 
 Indices and tables
 ==================

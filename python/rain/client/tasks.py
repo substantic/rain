@@ -8,7 +8,7 @@ import shlex
 
 
 def concat(objs):
-    """Creates a task that Concatenate data objects"""
+    """Creates a task concatenating data objects"""
     return Task("!concat", inputs=tuple(objs), outputs=1)
 
 

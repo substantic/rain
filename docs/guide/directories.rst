@@ -1,4 +1,0 @@
-
-
-Directories as Data Objects
-***************************

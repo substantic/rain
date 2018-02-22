@@ -1,7 +1,33 @@
 Overview
 ********
 
-**Rain** is a framework for running distributed computations.
+**Rain** is an open-source distributed computational framework written in
+Rust_.
+
+.. _Rust: https://www.rust-lang.org/en-US/
+
+Rain is a framework that aims to lower the entry barrier to the world of
+distributed computing. Our intention is to provide light yet robust distributed
+framework that features an intuitive Python API, simple installation, and
+straightforward deployment.
+
+ * **User friendliness.** The computational backend of Rain was designed to be
+   easy to deployed anywhere, ranging from a single node deployments to
+   large-scale distributed systems and clouds. Rain API provides intuitive
+   primitives for an intuitive interactions with the backend.
+ 
+ * **Python first.** Rain applications are defined as a pure Python code via
+   the Rain API module with no other configuration files required whatsoever.
+ 
+ * **Powerful and extensible task abstraction.** Rain is task-based. Rain
+  provides a predefined set of task types that can be used for building large
+  variety of Rain applications out-of-the-box. It also provides a support for an
+  easy integration of third-party applications or even tasks defined as
+  arbitrary Python code.
+
+
+What is in the box
+==================
 
    * Rain provides Python interface, where tasks and their interconnections is
      defined.
@@ -16,100 +42,149 @@ Overview
      cluster. Rain infrastructure consists of all-in-one statically-linked
      binary and client interface is a pure python package with dependencies
      installable via pip.
+     *RUST CORE
 
 
-Hello world
-===========
+What is considered to be added
+==============================
 
-This section shows how to start server and one local worker, and execute simple
-"Hello world" program.
-
-- **Start infrastructure.** You can do start and workers manually, but for
-  standard scenariosthere is "rain run" to do it for you. The following command
-  stars server and one local worker (Starting Rain infrastructure for
-  distributed computations is described in :ref:`program-rain`.)::
-
-  $ rain run --simple
-
-- **Running "Hello World" example.** The following Python program creates a task
-  that joins two strings (This example is more explained in Section
-  :ref:`tasks-and-objs`.)::
-
-    from rain.client import Client, tasks, blob
-
-    # Connect to server
-    client = Client("localhost")  
-
-    # Create a new session
-    with client.new_session() as session:  
-
-        # Create task (and two data objects)
-        task = tasks.concat(blob("Hello "), blob("world!"))
-
-        # Mark that the output should be kept after submit
-        task.output.keep()
-
-        # Submit all crated tasks to server
-        session.submit()
-
-        # Wait for completion of task and fetch results
-        result = task.outout.fetch()
-
-        # Prints 'Hello world!'
-        print(result)  
+There are many things to improve, and even more new things to add. To work
+efficiently, we need to prioritize and for that we need your feedback and use
+cases. Which features would you like to see and put to good use? What kind of
+pipelines do you run?
 
 
+Better dashboard
+----------------
 
-Highlighted features
-====================
-
-
-*Tasks can form any acyclic graph*
-::
-
-    TODO
+Better interactive view on the current and past computation status, including
+post-mortem analysis. Which stats and views give you the most insight?
 
 
-*Integrating external programs*
-::
+Better scheduler
+----------------
 
-    # Open file
-    data = tasks.open("data")
-
-    # Run "grep" with on opened file and use stdout as result
-    pruned = tasks.execute(["grep", "something", data], stdout=True)
+While surprisingly efficient, the current scheduler is currently mostly based on
+heuristics and rules. We plan to replace it with an incremental global scheduler
+based on belief propagation.
 
 
+Resiliency
+----------
 
-*Python functions as task*
-::
+The current version supports and propagates some failures (remote python task
+exceptions, external program errors) but other errors still cause server panic
+(e.g. worker node failure). The near-term goal is to have better failure modes
+for introspection and possibly recovery. The system is designed to allow
+building resiliency against task or worker failures via checkpoints in the task
+graph (keeping file copies). It is not clear how useful to our users this would
+be but it is on our radar.
 
-    @remote()
-    def my_function(ctx, param_a):
-        return param_a.to_str() + " world!"
+Resources
+---------
 
-    with client.new_session as session:
-
-        task = my_function(blob("Hello"))
-        task.output.keep()
-
-        session.submit()
-        print(task.output.fetch())
-
-
-*Preserving structres in Python tasks*
-::
-
-    TODO
+Currently, the only resources supported are CPU cores. We are working on also
+supporting memory requirements, but other resources (GPUs, TPUs, disk space,
+...) should be possible with enough work and interest.
 
 
-*Resource management*
-::
+Directory and stream objects support
+------------------------------------
 
-    TODO
+Currently, only plain file objects are supported (with optional content type
+hints). We are working on also supporting arbitrary directories, picking just a
+subset of files for transport and "lazy" remote access. This will also allow for
+simple map/array data types for large volumes. Some tasks work in a streaming
+fashion and it would be inefficient to wait for their entire output before
+starting a consumer task. We plan to include streaming data objects but there
+are semantic and usage issues about resources, scheduling, multiple consumers
+and resiliency.
 
 
-*Computaiton can be formed dynamically*
-::
+Plain C/C++ tasks and subworkers
+--------------------------------
 
-    TODO - more submits
+Right now, the availabe tasks are either built in, external programs or python
+routines. It should be possible and straightforward to turn your C or C++ (or
+other language) function to a custom task by creating a new subworker. We plan a
+simple C library subworker scaffold that will allow easy gray-box subworkers.
+You do not have to link agains Rain, which should make deployment easier.
+
+
+REST client interface
+---------------------
+
+The capnp API is a bit heavy-handed for a client API. We plan to create a REST
+API for the client applications, simplifying API creation in new languages, and
+to unify it with the dashboard/status query API. External REST apis are
+convenient for many users and they do not seem to be a performance bottleneck.
+
+
+Easier Deployment in cloud settings
+-----------------------------------
+
+The Rust binary is already one staically linked file and one python-only
+library, making distribution easy and running on PBS is already supported. We
+would like to add better support for cloud settings, e.g. AWS and Kubernetes.
+
+
+No go zone
+==========
+
+There are also some directions we do NOT intend to focus on in the scope of Rain.
+
+Visual editor
+-------------
+
+We do not plan to support visual creation and editing of pipelines. The scale of
+reasonably editable workflows is usually very small. We focus on clean and easy
+client APIs and great visualization.
+
+User isolation and task sandboxing
+----------------------------------
+
+We do not plan to limit malicious users or tasks from doing any harm. Use
+existing tools for task isolation. The system is lightweight enough to have one
+instance per user if necessary.
+
+Fair user scheduling, accounting and quotas
+-------------------------------------------
+
+When running multiple sessions, there is no intention to fairly schedule or
+prioritize them. The objective is only overally efficient resource usage.
+
+
+Comaprison with similar tools
+=============================
+
+TODO
+
+Spark, Dask
+
+
+Architecture
+============
+
+Client/Server/Worker/Subworkers
+
+.. figure:: imgs/arch.svg
+   :alt: Connection between basic compoenents of Rain
+
+
+Roadmap
+=======
+
+v0.2
+----
+
+* Worker/Subworker crash resilience
+* More clever scheduler
+* Directories as blobs
+
+
+v0.1
+----
+
+* Basic functionality - all components are working, basic build-in tasks,
+  external programs and Python tasks may be used.
+* Simple (but not stupid) scheduler
