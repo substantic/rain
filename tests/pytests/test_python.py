@@ -558,3 +558,18 @@ def test_auto_load_and_encode(test_env):
         t1.keep_outputs()
         s.submit()
         assert t1.output.fetch().load()['msg'] == "Hello world"
+
+
+def test_python_cpus(test_env):
+
+    @remote(auto_load=True, auto_encode='pickle', cpus=2)
+    def sleep(ctx):
+        import time
+        time.sleep(0.5)
+
+    test_env.start(1, n_cpus=2)
+    with test_env.client.new_session() as s:
+        sleep()
+        sleep()
+        s.submit()
+        test_env.assert_duration(0.9, 1.5, lambda: s.wait_all())

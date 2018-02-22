@@ -20,7 +20,8 @@ class Program:
                  args,
                  stdout=None, stdin=None,
                  input_files=(), output_files=(),
-                 shell=False):
+                 shell=False,
+                 cpus=1):
 
         if stdin is not None:
             self.stdin = Input._for_program(stdin, label="stdin")
@@ -34,6 +35,7 @@ class Program:
                                  for obj in input_files)
         self.output_files = tuple(Output._for_program(obj, label_as_path=True)
                                   for obj in output_files)
+        self.cpus = cpus
 
         if isinstance(args, str):
             args = shlex.split(args)
@@ -72,4 +74,5 @@ class Program:
                        stdin=apply_data(self.stdin),
                        input_files=[apply_data(obj) for obj in self.input_files],
                        output_files=[obj for obj in self.output_files],
-                       shell=self.shell)
+                       shell=self.shell,
+                       cpus=self.cpus)

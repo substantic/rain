@@ -295,3 +295,12 @@ def test_execute_outputs(test_env):
         assert t1a.output.content_type is None
         with pytest.raises(RainException):
             t1a.output.fetch().load()
+
+
+def test_execute_cpus(test_env):
+    test_env.start(1, n_cpus=2)
+    with test_env.client.new_session() as s:
+        tasks.execute("sleep 1", cpus=2)
+        tasks.execute("sleep 1", cpus=2)
+        s.submit()
+        test_env.assert_duration(1.9, 2.3, lambda: s.wait_all())

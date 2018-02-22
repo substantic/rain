@@ -2,7 +2,6 @@ from .session import get_active_session
 from .data import DataObject, to_data
 from .output import Output
 from ..common import RainException, ID, LabeledList, ids
-from ..common.resources import cpu_1, Resources  # noqa
 from ..common.attributes import attributes_to_capnp
 
 
@@ -31,6 +30,7 @@ class Task:
         outputs (`LabeledList` or sequence): Specification of `Output`\ s for the task.
         session (`Session` or `None`): Session to create the task in.
             If not specified, the current `Session` is used.
+        cpus (`int`): Number of cpus.
 
     Attributes:
         id (`ID`): Auto-assigned task ID.
@@ -39,13 +39,11 @@ class Task:
         output (`DataObject`): Shortcut for `outputs[0]`. Raises Exception on multiple outputs.
         attributes (`dict`): Task attributes. See attributes_ for details.
         state (`TaskState` enum): Task state on last update.
-        resources (`Resources`): Required resources.
     """
     # State of object
     # None = Not submitted
     state = None
     id = None
-    resources = cpu_1
     config = None
 
     def __init__(self,
@@ -53,7 +51,8 @@ class Task:
                  config=None,
                  inputs=(),
                  outputs=None,
-                 session=None):
+                 session=None,
+                 cpus=1):
         if session is None:
             session = get_active_session()
         self.session = session
@@ -65,6 +64,9 @@ class Task:
 
         if config is not None:
             self.attributes["config"] = config
+
+        if cpus is not None:
+            self.attributes["resources"] = {"cpus": cpus}
 
         def to_data_object(o):
             if isinstance(o, int):
@@ -135,7 +137,6 @@ class Task:
 
         out.taskType = self.task_type
         out.taskType = self.task_type
-        self.attributes["resources"] = {"cpus": self.resources.n_cpus}
         attributes_to_capnp(self.attributes, out.attributes)
 
     def wait(self):

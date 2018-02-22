@@ -1,4 +1,4 @@
-from rain.client import blob, remote, Resources
+from rain.client import blob, remote
 
 
 class Worker:
@@ -50,7 +50,7 @@ class Scenario:
         with self.session.bind_only():
             task = testing_task(inputs)
             if cpus != 1:
-                task.resources = Resources(n_cpus=cpus)
+                task.attributes["resources"]["cpus"] = cpus
             if expect_worker:
                 if isinstance(expect_worker, Worker):
                     expect_worker = (expect_worker,)

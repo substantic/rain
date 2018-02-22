@@ -63,7 +63,8 @@ def remote(*,
            outputs=None,
            inputs=(),
            auto_load=None,
-           auto_encode=None):
+           auto_encode=None,
+           cpus=1):
     "Decorator for :py:class:`Remote`, see the documentation there."
     def make_remote(fn):
         if not inspect.isfunction(fn):
@@ -73,7 +74,8 @@ def remote(*,
                       outputs=outputs,
                       inputs=inputs,
                       auto_load=auto_load,
-                      auto_encode=auto_encode)
+                      auto_encode=auto_encode,
+                      cpus=cpus)
     return make_remote
 
 
@@ -90,9 +92,11 @@ class Remote:
                  inputs=None,
                  outputs=None,
                  auto_load=False,
-                 auto_encode=None):
+                 auto_encode=None,
+                 cpus=1):
         self.fn = fn
         code = self.fn.__code__
+        self.cpus = cpus
 
         if 'return' in fn.__annotations__:
             assert outputs is None
@@ -177,4 +181,4 @@ class Remote:
             'encode_outputs': [o.attributes['spec'].get('encode') for o in output_objs]
         }
 
-        return Task("py", task_config, input_objs, output_objs)
+        return Task("py", task_config, input_objs, output_objs, cpus=self.cpus)

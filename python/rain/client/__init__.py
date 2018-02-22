@@ -7,5 +7,4 @@ from ..common import RainException, RainWarning # noqa
 from .pycode import remote, Remote  # noqa
 from .client import Client  # noqa
 from .program import Program  # noqa
-from ..common.resources import cpus, Resources  # noqa
 from .session import Session  # noqa

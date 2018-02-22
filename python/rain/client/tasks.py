@@ -12,7 +12,7 @@ def concat(objs):
     return Task("!concat", inputs=tuple(objs), outputs=1)
 
 
-def sleep(timeout, dataobj):
+def sleep(timeout, dataobj, cpus=1):
     """Task that forwards argument 'dataobj' after 'timeout' seconds.
     The type of resulting data object is the same as type of input data object
     This task serves for testing purpose"""
@@ -21,7 +21,8 @@ def sleep(timeout, dataobj):
     return Task("!sleep",
                 time_ms,
                 inputs=(dataobj,),
-                outputs=(dataobj.__class__("output"),))
+                outputs=(dataobj.__class__("output"),),
+                cpus=cpus)
 
 
 def open(filename):
@@ -32,7 +33,13 @@ def export(dataobj, filename):
     return Task("!export", {"path": filename}, inputs=(dataobj,))
 
 
-def execute(args, stdout=None, stdin=None, input_files=(), output_files=(), shell=False):
+def execute(args,
+            stdout=None,
+            stdin=None,
+            input_files=(),
+            output_files=(),
+            shell=False,
+            cpus=1):
 
     ins = []
     outs = []
@@ -88,4 +95,5 @@ def execute(args, stdout=None, stdin=None, input_files=(), output_files=(), shel
                     "out_paths": [obj.path for obj in outs],
                 },
                 inputs=task_inputs,
-                outputs=task_outputs)
+                outputs=task_outputs,
+                cpus=cpus)

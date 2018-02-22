@@ -578,12 +578,14 @@ impl State {
         self.free_resources.remove(resources);
         assert!(self.free_slots > 0);
         self.free_slots -= 1;
+        debug!("{} cpus allocated, free now: {}", resources.cpus(), self.free_resources.cpus());
     }
 
     pub fn free_resources(&mut self, resources: &Resources) {
         self.free_resources.add(resources);
         self.free_slots += 1;
         self.need_scheduling();
+        debug!("{} cpus disposed, free now: {}", resources.cpus(), self.free_resources.cpus());
     }
 
     pub fn start_task(&mut self, task_ref: TaskRef) {
@@ -600,14 +602,13 @@ impl State {
             let j = self.graph.ready_tasks[i..].iter().position(|task| {
                 n_cpus >= task.get().resources.cpus
             });
-
             if j.is_none() {
                 break;
             }
             let j = j.unwrap();
             let task_ref = self.graph.ready_tasks.remove(i + j);
             self.start_task(task_ref.clone());
-            i += j + 1;
+            i += j;
         }
     }
 

@@ -1,4 +1,4 @@
-from rain.client import tasks, cpus, blob
+from rain.client import tasks, blob
 
 import time
 
@@ -28,8 +28,7 @@ def test_cpu_resources3(test_env):
     test_env.start(1, n_cpus=2)
     with test_env.client.new_session() as s:
         tasks.sleep(1.0, blob("first"))
-        t1 = tasks.sleep(1.0, blob("second"))
-        t1.resources = cpus(2)
+        t1 = tasks.sleep(1.0, blob("second"), cpus=2)
         s.submit()
         test_env.assert_duration(1.9, 2.1, lambda: s.wait_all())
 
@@ -39,8 +38,7 @@ def test_cpu_resources4(test_env):
     test_env.start(1, n_cpus=3)
     with test_env.client.new_session() as s:
         tasks.sleep(1.0, blob("first"))
-        t1 = tasks.sleep(1.0, blob("second"))
-        t1.resources = cpus(2)
+        t1 = tasks.sleep(1.0, blob("second"), cpus=2)
         s.submit()
         test_env.assert_duration(0.9, 1.1, lambda: s.wait_all())
 
