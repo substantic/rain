@@ -62,12 +62,12 @@ impl PackStream for MmapPackStream {
     fn read(&mut self, read_size: usize) -> (&[u8], bool) {
         let start = self.position;
         let data_size = self.data.size();
-        let (end, size, eof) = if start + read_size < data_size {
-            (start + read_size, read_size, false)
+        let (end, eof) = if start + read_size < data_size {
+            (start + read_size, false)
         } else {
-            (data_size, data_size - start, true)
+            (data_size, true)
         };
-        (&self.mmap, eof)
+        (&self.mmap[start..end], eof)
     }
 }
 
