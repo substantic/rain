@@ -25,9 +25,9 @@ fn wrap_elements<I>(open_tag: &str, close_tag: &str, elements: I) -> String wher
 
 impl RequestHandler {
 
-    pub fn new(state: &::server::state::StateRef) -> Self {
+    pub fn new(state: ::server::state::StateRef) -> Self {
         Self {
-            state: state.clone()
+            state: state
         }
     }
 }

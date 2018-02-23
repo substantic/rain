@@ -1108,20 +1108,15 @@ impl StateRef {
         info!("Start listening on address={}", listen_address);
 
         // ---- Start HTTP server ----
-        let listener = TcpListener::bind(&http_listen_address, &handle).unwrap();
-        let http = Http::new();
+        //let listener = TcpListener::bind(&http_listen_address, &handle).unwrap();
         let handle1 = self.get().handle.clone();
         let state = self.clone();
-        let http_server = listener
-            .incoming()
-            .for_each(move |(sock, http_address)| {
-                http.bind_connection(&handle1, sock, http_address, RequestHandler::new(&state));
-                Ok(())
-            })
-            .map_err(|e| {
-                panic!("HTTP server failed {:?}", e);
-            });
-        handle.spawn(http_server);
+        let http_server = Http::new()
+            .serve_addr_handle(&http_listen_address, &handle1, move || Ok(RequestHandler::new(state.clone()))).unwrap();
+        handle.spawn(http_server.for_each(move |conn| {
+            handle1.spawn(conn.map(|_| ()).map_err(|e| { error!("Http connection error: {:?}", e); }));
+            Ok(())
+        }).map_err(|_| ()));
 
         let hostname = ::common::sys::get_hostname();
         info!("Dashboard is running at http://{}:{}/", hostname, http_listen_address.port());
