@@ -52,8 +52,8 @@ a simple "Hello world" application.
         # Submit all crated tasks to server
         session.submit()
 
-        # Wait for completion of task and fetch results
-        result = task.outout.fetch()
+        # Wait for completion of task and fetch results and get it as bytes
+        result = task.outout.fetch().get_bytes()
 
         # Prints 'Hello world!'
         print(result)

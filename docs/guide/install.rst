@@ -13,7 +13,13 @@ TODO
 Build from sources
 ==================
 
-TODO
+For building from sources, you need Rust and SQLite3 installed on your system.
+
+- `git clone https://github.com/substantic/rain`
+- `cd rain`
+- `cargo build --release`
+
+After the installation, the final binary can be found ``rain/target/relase/rain``.
 
 
 .. _start-rain:

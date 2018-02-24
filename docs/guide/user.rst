@@ -261,7 +261,7 @@ Running external programs
 =========================
 
 Task ``tasks.execute``
----------------------
+----------------------
 
 The whole functionality is built around build-in task
 :func:`rain.client.tasks.execute`. When a program is executed through
