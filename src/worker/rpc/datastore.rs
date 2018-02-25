@@ -1,9 +1,9 @@
 use capnp::capability::Promise;
 use common::convert::FromCapnp;
 use common::id::DataObjectId;
-use worker::data::{PackStream, new_pack_stream};
+use worker::data::{new_pack_stream, PackStream};
 
-use datastore_capnp::{reader, data_store, read_reply};
+use datastore_capnp::{data_store, read_reply, reader};
 use worker::state::StateRef;
 
 pub struct DataStoreImpl {
@@ -12,10 +12,11 @@ pub struct DataStoreImpl {
 
 impl DataStoreImpl {
     pub fn new(state: &StateRef) -> Self {
-        Self { state: state.clone() }
+        Self {
+            state: state.clone(),
+        }
     }
 }
-
 
 impl data_store::Server for DataStoreImpl {
     fn create_reader(
@@ -31,7 +32,7 @@ impl data_store::Server for DataStoreImpl {
                 debug!("Worker responding 'not here' for id={}", id);
                 let mut results = results.get();
                 results.set_not_here(());
-                return Promise::ok(())
+                return Promise::ok(());
             }
         };
         let size = object.get().size.map(|s| s as i64).unwrap_or(-1i64);
@@ -52,7 +53,6 @@ impl data_store::Server for DataStoreImpl {
     }
 }
 
-
 pub struct ReaderImpl {
     pack_stream: Box<PackStream>,
 }
@@ -62,7 +62,6 @@ impl ReaderImpl {
         Self { pack_stream }
     }
 }
-
 
 impl reader::Server for ReaderImpl {
     fn read(

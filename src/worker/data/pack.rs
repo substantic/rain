@@ -1,4 +1,3 @@
-
 use std::sync::Arc;
 use std::fs::File;
 use errors::Result;
@@ -26,7 +25,6 @@ pub fn new_pack_stream(data: Arc<Data>) -> Result<Box<PackStream>> {
         }),
     })
 }
-
 
 struct MemoryPackStream {
     data: Arc<Data>,
@@ -70,8 +68,6 @@ impl PackStream for MmapPackStream {
         (&self.mmap[start..end], eof)
     }
 }
-
-
 
 /*enum TransportStreamType {
     MemoryBlob,

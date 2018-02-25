@@ -1,4 +1,4 @@
-use capnp::capability::{Promise};
+use capnp::capability::Promise;
 use capnp;
 use worker_capnp::{worker_bootstrap, worker_control};
 use worker::StateRef;
@@ -6,7 +6,9 @@ use super::WorkerControlImpl;
 
 impl WorkerBootstrapImpl {
     pub fn new(state: &StateRef) -> Self {
-        WorkerBootstrapImpl { state: state.clone() }
+        WorkerBootstrapImpl {
+            state: state.clone(),
+        }
     }
 }
 

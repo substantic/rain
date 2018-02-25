@@ -1,18 +1,15 @@
-use super::id::{WorkerId, ClientId, DataObjectId, TaskId, SessionId};
+use super::id::{ClientId, DataObjectId, SessionId, TaskId, WorkerId};
 use server::graph::{DataObject, Task};
 use common::id::SId;
 
 use std::collections::HashMap;
 
-
 pub type EventId = i64;
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkerNewEvent {
     pub worker: WorkerId, // TODO: Resources
 }
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct WorkerRemovedEvent {
@@ -38,20 +35,17 @@ pub struct SessionNewEvent {
     pub client: ClientId,
 }
 
-
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ClientSubmitEvent {
     pub tasks: Vec<TaskDescriptor>,
     pub dataobjs: Vec<ObjectDescriptor>,
 }
 
-
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct InputDescriptor {
     id: DataObjectId,
     label: String,
 }
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TaskDescriptor {
@@ -65,12 +59,13 @@ impl TaskDescriptor {
     pub fn from(task: &Task) -> Self {
         TaskDescriptor {
             id: task.id(),
-            inputs: task.inputs().iter().map(|i| {
-                InputDescriptor {
+            inputs: task.inputs()
+                .iter()
+                .map(|i| InputDescriptor {
                     id: i.object.get().id(),
                     label: i.label.clone(),
-                }
-            }).collect(),
+                })
+                .collect(),
             task_type: task.task_type().clone(),
             attributes: task.attributes().as_hashmap().clone(),
         }
@@ -96,7 +91,6 @@ impl ObjectDescriptor {
 pub struct ClientUnkeepEvent {
     pub dataobjs: Vec<DataObjectId>,
 }
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TaskStartedEvent {

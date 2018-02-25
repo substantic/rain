@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use common::id::TaskId;
 use super::{DataObjectRef, Graph};
-use common::{RcSet, Attributes};
+use common::{Attributes, RcSet};
 
 use worker::data::Data;
 use common::wrapped::WrappedRcRefCell;
@@ -29,7 +29,6 @@ pub struct TaskInput {
     /// Path to subdirectory/subblob; if input is not directory it has to be empty
     pub path: String,
 }
-
 
 #[derive(Debug)]
 pub struct Task {

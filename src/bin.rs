@@ -1,26 +1,26 @@
-extern crate librain;
 #[macro_use]
 extern crate clap;
-#[macro_use]
-extern crate log;
-extern crate tokio_core;
 extern crate env_logger;
-extern crate num_cpus;
-extern crate nix;
-extern crate serde_json;
 #[macro_use]
 extern crate error_chain;
+extern crate librain;
+#[macro_use]
+extern crate log;
+extern crate nix;
+extern crate num_cpus;
+extern crate serde_json;
+extern crate tokio_core;
 
 pub mod start;
 
 use std::collections::HashMap;
 use std::error::Error;
-use std::net::{SocketAddr, IpAddr, Ipv4Addr, ToSocketAddrs};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
-use clap::{Arg, ArgMatches, App, SubCommand};
-use nix::unistd::{getpid};
+use clap::{App, Arg, ArgMatches, SubCommand};
+use nix::unistd::getpid;
 
 use librain::{server, worker, VERSION};
 use librain::errors::Result;
@@ -30,36 +30,34 @@ const DEFAULT_WORKER_PORT: u16 = 0;
 
 const DEFAULT_HTTP_SERVER_PORT: u16 = 8080;
 
-
 fn parse_listen_arg(key: &str, args: &ArgMatches, default_port: u16) -> SocketAddr {
     if !args.is_present(key) {
         return SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), default_port);
     }
 
-    value_t!(args, key, SocketAddr)
-        .unwrap_or_else(|_| match value_t!(args, key, IpAddr) {
-            Ok(ip) => SocketAddr::new(ip, default_port),
-            _ => {
-                SocketAddr::new(
-                    IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-                    value_t_or_exit!(args, key, u16),
-                )
-            }
-        })
+    value_t!(args, key, SocketAddr).unwrap_or_else(|_| match value_t!(args, key, IpAddr) {
+        Ok(ip) => SocketAddr::new(ip, default_port),
+        _ => SocketAddr::new(
+            IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
+            value_t_or_exit!(args, key, u16),
+        ),
+    })
 }
-
 
 fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_SERVER_PORT);
-    let http_listen_address = parse_listen_arg("HTTP_LISTEN_ADDRESS", cmd_args, DEFAULT_HTTP_SERVER_PORT);
+    let http_listen_address =
+        parse_listen_arg("HTTP_LISTEN_ADDRESS", cmd_args, DEFAULT_HTTP_SERVER_PORT);
     let ready_file = cmd_args.value_of("READY_FILE");
     info!(
         "Starting Rain {} server at port {}",
-        VERSION,
-        listen_address
+        VERSION, listen_address
     );
 
-    let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or_else(|| default_logging_directory("server"));
+    let log_dir = cmd_args
+        .value_of("LOG_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| default_logging_directory("server"));
 
     ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
         error!("{}", e);
@@ -68,21 +66,30 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
 
-   let debug_mode = ::std::env::var("RAIN_DEBUG_MODE").map(|s| s == "1").unwrap_or(false);
+    let debug_mode = ::std::env::var("RAIN_DEBUG_MODE")
+        .map(|s| s == "1")
+        .unwrap_or(false);
 
     if debug_mode {
         ::librain::DEBUG_CHECK_CONSISTENCY.store(true, ::std::sync::atomic::Ordering::Relaxed);
         info!("DEBUG mode enabled");
     }
 
-    let test_mode = ::std::env::var("RAIN_TEST_MODE").map(|s| s == "1").unwrap_or(false);
+    let test_mode = ::std::env::var("RAIN_TEST_MODE")
+        .map(|s| s == "1")
+        .unwrap_or(false);
 
     if test_mode {
         info!("TESTING mode enabled");
     }
 
     let state = server::state::StateRef::new(
-        tokio_core.handle(), listen_address, http_listen_address, log_dir, test_mode);
+        tokio_core.handle(),
+        listen_address,
+        http_listen_address,
+        log_dir,
+        test_mode,
+    );
     state.start();
 
     // Create ready file - a file that is created when server is ready
@@ -101,15 +108,13 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 fn default_working_directory() -> PathBuf {
     let pid = getpid();
     let hostname = ::librain::common::sys::get_hostname();
-    PathBuf::from("/tmp/rain-work")
-            .join(format!("worker-{}-{}", hostname, pid))
+    PathBuf::from("/tmp/rain-work").join(format!("worker-{}-{}", hostname, pid))
 }
 
 fn default_logging_directory(basename: &str) -> PathBuf {
     let pid = getpid();
     let hostname = ::librain::common::sys::get_hostname();
-    PathBuf::from("/tmp/rain-logs")
-            .join(format!("{}-{}-{}", basename, hostname, pid))
+    PathBuf::from("/tmp/rain-logs").join(format!("{}-{}-{}", basename, hostname, pid))
 }
 
 fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
@@ -118,20 +123,18 @@ fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
         if let Err(e) = std::fs::create_dir_all(dir.clone()) {
             bail!(format!(
                 "{} {:?} cannot by created: {}",
-               name, dir,
+                name,
+                dir,
                 e.description()
             ));
         }
     } else {
         if !dir.is_dir() {
-            bail!("{} {:?} exists but it is not a directory",
-                name, dir
-            );
-         }
+            bail!("{} {:?} exists but it is not a directory", name, dir);
+        }
     }
     Ok(())
 }
-
 
 fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let ready_file = cmd_args.value_of("READY_FILE");
@@ -141,21 +144,18 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         server_address = format!("{}:{}", server_address, DEFAULT_SERVER_PORT);
     }
 
-
     let server_addr = match server_address.to_socket_addrs() {
         Err(_) => {
             error!("Cannot resolve server address");
             exit(1);
         }
-        Ok(mut addrs) => {
-            match addrs.next() {
-                None => {
-                    error!("Cannot resolve server address");
-                    exit(1);
-                }
-                Some(ref addr) => *addr,
+        Ok(mut addrs) => match addrs.next() {
+            None => {
+                error!("Cannot resolve server address");
+                exit(1);
             }
-        }
+            Some(ref addr) => *addr,
+        },
     };
 
     fn detect_cpus() -> i32 {
@@ -173,7 +173,10 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         if value < 0 {
             let cpus = detect_cpus();
             if cpus <= -value {
-                error!("{} cpus detected and {} is subtracted via --cpus. No cpus left.", cpus, -value);
+                error!(
+                    "{} cpus detected and {} is subtracted via --cpus. No cpus left.",
+                    cpus, -value
+                );
                 exit(1);
             }
             detect_cpus() + value
@@ -185,14 +188,20 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     };
     assert!(cpus >= 0);
 
-    let work_dir = cmd_args.value_of("WORK_DIR").map(PathBuf::from).unwrap_or_else(|| default_working_directory());
+    let work_dir = cmd_args
+        .value_of("WORK_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| default_working_directory());
 
     ensure_directory(&work_dir, "working directory").unwrap_or_else(|e| {
         error!("{}", e);
         exit(1);
     });
 
-    let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or_else(|| default_logging_directory("worker"));
+    let log_dir = cmd_args
+        .value_of("LOG_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| default_logging_directory("worker"));
 
     ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
         error!("{}", e);
@@ -204,8 +213,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     info!("Working directory: {:?}", work_dir);
     info!(
         "Server address {} was resolved as {}",
-        server_address,
-        server_addr
+        server_address, server_addr
     );
 
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
@@ -237,11 +245,14 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 }
 
-
 fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_SERVER_PORT);
-    let http_listen_address = parse_listen_arg("HTTP_LISTEN_ADDRESS", cmd_args, DEFAULT_HTTP_SERVER_PORT);
-    let log_dir = cmd_args.value_of("LOG_DIR").map(PathBuf::from).unwrap_or_else(|| default_logging_directory("worker"));
+    let http_listen_address =
+        parse_listen_arg("HTTP_LISTEN_ADDRESS", cmd_args, DEFAULT_HTTP_SERVER_PORT);
+    let log_dir = cmd_args
+        .value_of("LOG_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| default_logging_directory("worker"));
 
     info!("Log directory: {}", log_dir.to_str().unwrap());
 
@@ -274,21 +285,27 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         }
     }
 
-    let run_prefix = cmd_args.value_of("RUN_PREFIX")
-                             .map(|v| v.split(" ").map(|s| s.to_string()).collect())
-                             .unwrap_or(Vec::new());
+    let run_prefix = cmd_args
+        .value_of("RUN_PREFIX")
+        .map(|v| v.split(" ").map(|s| s.to_string()).collect())
+        .unwrap_or(Vec::new());
 
     if !run_prefix.is_empty() {
         info!("Command prefix: {:?}", run_prefix);
     }
 
     let mut config = start::starter::StarterConfig::new(
-        local_workers, listen_address, http_listen_address,
-        &log_dir, cmd_args.is_present("RCOS"), run_prefix);
-
-    config.worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(
-        |s| PathBuf::from(s),
+        local_workers,
+        listen_address,
+        http_listen_address,
+        &log_dir,
+        cmd_args.is_present("RCOS"),
+        run_prefix,
     );
+
+    config.worker_host_file = cmd_args
+        .value_of("WORKER_HOST_FILE")
+        .map(|s| PathBuf::from(s));
 
     // Autoconf
     match cmd_args.value_of("AUTOCONF") {

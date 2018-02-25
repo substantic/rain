@@ -1,36 +1,36 @@
 #[macro_use]
-extern crate log;
-#[macro_use]
-extern crate bitflags;
-#[macro_use]
-extern crate capnp;
-extern crate futures;
-extern crate tokio_core;
-extern crate tokio_timer;
-extern crate tokio_io;
-extern crate tokio_uds;
-extern crate tokio_process;
-#[macro_use]
-extern crate capnp_rpc;
-#[macro_use]
 extern crate arrayref;
 #[macro_use]
+extern crate bitflags;
+extern crate bytes;
+#[macro_use]
+extern crate capnp;
+#[macro_use]
+extern crate capnp_rpc;
+extern crate chrono;
+#[macro_use]
 extern crate error_chain;
+extern crate futures;
+extern crate hyper;
 #[macro_use]
 extern crate lazy_static;
-extern crate bytes;
-extern crate tempdir;
+#[macro_use]
+extern crate log;
 extern crate memmap;
-extern crate sysconf;
-extern crate sys_info;
-extern crate hyper;
+extern crate nix;
 extern crate rusqlite;
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
 extern crate serde_json;
-extern crate chrono;
-extern crate nix;
+extern crate sys_info;
+extern crate sysconf;
+extern crate tempdir;
+extern crate tokio_core;
+extern crate tokio_io;
+extern crate tokio_process;
+extern crate tokio_timer;
+extern crate tokio_uds;
 
 pub mod common;
 pub mod worker;
@@ -41,14 +41,11 @@ pub const WORKER_PROTOCOL_VERSION: i32 = 0;
 pub const CLIENT_PROTOCOL_VERSION: i32 = 0;
 pub const SUBWORKER_PROTOCOL_VERSION: i32 = 0;
 
-
-
 use std::sync::atomic::AtomicBool;
 lazy_static! {
     // Init debug mode TODO: depend on opts
     pub static ref DEBUG_CHECK_CONSISTENCY: AtomicBool = AtomicBool::new(false);
 }
-
 
 #[allow(unused_doc_comment)]
 pub mod errors {
@@ -83,7 +80,6 @@ impl std::convert::From<errors::Error> for capnp::Error {
         capnp::Error::failed(e.description().to_string())
     }
 }
-
 
 pub mod server_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/server_capnp.rs"));

@@ -4,9 +4,9 @@ use std::fmt;
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
-use common::{Attributes, RcSet, FinishHook, ConsistencyCheck};
-use super::{TaskRef, WorkerRef, SessionRef, TaskState};
-pub use common_capnp::{DataObjectState};
+use common::{Attributes, ConsistencyCheck, FinishHook, RcSet};
+use super::{SessionRef, TaskRef, TaskState, WorkerRef};
+pub use common_capnp::DataObjectState;
 use errors::Result;
 
 #[derive(Debug)]
@@ -65,7 +65,8 @@ impl DataObject {
     /// It does not fill `placement` and `assigned`, that must be done by caller
     pub fn to_worker_capnp(&self, builder: &mut ::worker_capnp::data_object::Builder) {
         self.id.to_capnp(&mut builder.borrow().get_id().unwrap());
-        self.attributes.to_capnp(&mut builder.borrow().get_attributes().unwrap());
+        self.attributes
+            .to_capnp(&mut builder.borrow().get_attributes().unwrap());
         self.size.map(|s| builder.set_size(s as i64));
         builder.set_label(&self.label);
         builder.set_state(self.state);
@@ -77,7 +78,7 @@ impl DataObject {
         for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
             //        for sender in self.finish_hooks, Vec::new()) {
             match sender.send(()) {
-                Ok(()) => { /* Do nothing */}
+                Ok(()) => { /* Do nothing */ }
                 Err(e) => {
                     /* Just log error, it is non fatal */
                     debug!("Failed to inform about finishing dataobject: {:?}", e);
@@ -268,20 +269,23 @@ impl ConsistencyCheck for DataObjectRef {
         }
         // state consistency
         if !match s.state {
-            DataObjectState::Unfinished =>
-                s.scheduled.len() <= 1 && s.assigned.len() <= 1,
-                // NOTE: Can't check s.producer.is_some() in case the session is being destroyed,
-            DataObjectState::Finished =>
-                s.data.is_some() || (s.located.len() >= 1 && s.assigned.len() >= 1),
-            DataObjectState::Removed =>
-                s.located.is_empty() && s.scheduled.is_empty() && s.assigned.is_empty() &&
-                s.finish_hooks.is_empty() /* &&  Why this?? s.size.is_some()*/ /* This is not true when session failed && s.data.is_none()*/,
+            DataObjectState::Unfinished => s.scheduled.len() <= 1 && s.assigned.len() <= 1,
+            // NOTE: Can't check s.producer.is_some() in case the session is being destroyed,
+            DataObjectState::Finished => {
+                s.data.is_some() || (s.located.len() >= 1 && s.assigned.len() >= 1)
+            }
+            DataObjectState::Removed => {
+                s.located.is_empty() && s.scheduled.is_empty() && s.assigned.is_empty()
+                    && s.finish_hooks.is_empty()
+            } /* &&  Why this?? s.size.is_some()*/ /* This is not true when session failed && s.data.is_none()*/
         } {
             bail!("state inconsistency in {:?}", s);
         }
         // data consistency
         if let Some(_) = s.data {
-            if s.size.is_none() /*|| dr.len() != s.size.unwrap()*/ {
+            if s.size.is_none()
+            /*|| dr.len() != s.size.unwrap()*/
+            {
                 bail!("size and uploaded data mismatch in {:?}", s);
             }
         }
@@ -296,8 +300,8 @@ impl ConsistencyCheck for DataObjectRef {
         }
 
         // used or kept objects must be assigned when their producers are
-        if (s.client_keep || !s.consumers.is_empty()) && s.assigned.is_empty() &&
-            s.state == DataObjectState::Unfinished
+        if (s.client_keep || !s.consumers.is_empty()) && s.assigned.is_empty()
+            && s.state == DataObjectState::Unfinished
         {
             if let Some(ref prod) = s.producer {
                 let p = prod.get();

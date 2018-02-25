@@ -1,4 +1,4 @@
-use nix::unistd::{gethostname};
+use nix::unistd::gethostname;
 
 pub fn get_hostname() -> String {
     let mut buf = [0u8; 256];

@@ -1,5 +1,5 @@
-use capnp::{message, traits, serialize};
-use std::io::{Write, Read};
+use capnp::{message, serialize, traits};
+use std::io::{Read, Write};
 
 /// Generic trait for reading the value from a Capnp `Reader`.
 /// All values are copied into `Self`.

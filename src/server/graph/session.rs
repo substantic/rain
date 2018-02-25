@@ -1,11 +1,11 @@
-use futures::unsync::oneshot::{Receiver};
+use futures::unsync::oneshot::Receiver;
 use std::fmt;
 
 use common::wrapped::WrappedRcRefCell;
-use common::{RcSet, FinishHook, ConsistencyCheck};
+use common::{ConsistencyCheck, FinishHook, RcSet};
 use common::id::SessionId;
-use super::{ClientRef, DataObjectRef, TaskRef, TaskState, DataObjectState};
-use errors::{Result};
+use super::{ClientRef, DataObjectRef, DataObjectState, TaskRef, TaskState};
+use errors::Result;
 
 #[derive(Debug)]
 pub struct Session {
@@ -126,19 +126,19 @@ impl ConsistencyCheck for SessionRef {
             bail!("owning client does not contain {:?}", s);
         }
         // finished?
-        if !s.finish_hooks.is_empty() &&
-            s.tasks.iter().all(
-                |tr| tr.get().state == TaskState::Finished,
-            ) &&
-            s.objects.iter().all(|or| {
-                or.get().state != DataObjectState::Unfinished
-            })
+        if !s.finish_hooks.is_empty()
+            && s.tasks
+                .iter()
+                .all(|tr| tr.get().state == TaskState::Finished)
+            && s.objects
+                .iter()
+                .all(|or| or.get().state != DataObjectState::Unfinished)
         {
             bail!("finish_hooks on all-finished session {:?}", s);
         }
         // in case of error, the session should be cleared
-        if s.error.is_some() &&
-            !(s.finish_hooks.is_empty() && s.tasks.is_empty() && s.objects.is_empty())
+        if s.error.is_some()
+            && !(s.finish_hooks.is_empty() && s.tasks.is_empty() && s.objects.is_empty())
         {
             bail!("Session with error is not cleared: {:?}", s);
         }

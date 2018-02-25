@@ -7,7 +7,6 @@ use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 use std::io::Read;
 
-
 use super::TaskResult;
 use worker::graph::TaskRef;
 use worker::state::State;
@@ -77,17 +76,15 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
         (dir, future, stderr_path)
     };
 
-    Ok(Box::new(
-        future.map_err(|e| e.into()).and_then(move |status| {
+    Ok(Box::new(future.map_err(|e| e.into()).and_then(
+        move |status| {
             if !status.success() {
                 let stderr = match read_stderr(&stderr_path) {
                     Ok(s) => format!("Stderr: {}\n", s),
-                    Err(e) => {
-                        format!(
-                            "Stderr could not be obtained: {}",
-                            ::std::error::Error::description(&e)
-                        )
-                    }
+                    Err(e) => format!(
+                        "Stderr could not be obtained: {}",
+                        ::std::error::Error::description(&e)
+                    ),
                 };
                 match status.code() {
                     Some(code) => bail!("Program exit with exit code {}\n{}", code, stderr),
@@ -110,6 +107,6 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
                 }
             }
             Ok(())
-        }),
-    ))
+        },
+    )))
 }

@@ -1,4 +1,3 @@
-
 use std::sync::Arc;
 use std::path::Path;
 
@@ -6,8 +5,7 @@ use super::TaskResult;
 use worker::state::State;
 use worker::graph::TaskRef;
 use worker::data::{Data, DataBuilder};
-use futures::{Future, future};
-
+use futures::{future, Future};
 
 /// Task that merge all input blobs and merge them into one blob
 pub fn task_concat(_state: &mut State, task_ref: TaskRef) -> TaskResult {
@@ -45,16 +43,20 @@ pub fn task_sleep(state: &mut State, task_ref: TaskRef) -> TaskResult {
     };
     debug!("Starting sleep task for {} ms", sleep_ms);
     let duration = ::std::time::Duration::from_millis(sleep_ms);
-    Ok(Box::new(state.timer().sleep(duration)
-                .map_err(|e| e.into())
-                .map(move |()| {
-                    {
-                        let task = task_ref.get();
-                        let output = task.output(0);
-                        output.get_mut().set_data(task.input_data(0));
-                    }
-                    ()
-                })))
+    Ok(Box::new(
+        state
+            .timer()
+            .sleep(duration)
+            .map_err(|e| e.into())
+            .map(move |()| {
+                {
+                    let task = task_ref.get();
+                    let output = task.output(0);
+                    output.get_mut().set_data(task.input_data(0));
+                }
+                ()
+            }),
+    ))
 }
 
 #[derive(Deserialize)]
@@ -86,12 +88,10 @@ pub fn task_open(state: &mut State, task_ref: TaskRef) -> TaskResult {
     })))
 }
 
-
 #[derive(Deserialize)]
 struct ExportConfig {
     path: String,
 }
-
 
 /// Export internal file to external file system
 pub fn task_export(_: &mut State, task_ref: TaskRef) -> TaskResult {

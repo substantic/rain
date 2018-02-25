@@ -1,17 +1,15 @@
-
 use std::sync::Arc;
 
 use common::Attributes;
 use common::Resources;
-use common::convert::{ToCapnp, FromCapnp};
-use common::id::{DataObjectId, WorkerId, TaskId};
+use common::convert::{FromCapnp, ToCapnp};
+use common::id::{DataObjectId, TaskId, WorkerId};
 use worker::graph::{DataObjectState, TaskInput};
 use worker::StateRef;
 use worker_capnp::worker_control;
 use capnp::capability::Promise;
 use futures::future::Future;
-use errors::{ErrorKind, Error};
-
+use errors::{Error, ErrorKind};
 
 pub struct WorkerControlImpl {
     state: StateRef,
@@ -19,7 +17,9 @@ pub struct WorkerControlImpl {
 
 impl WorkerControlImpl {
     pub fn new(state: &StateRef) -> Self {
-        Self { state: state.clone() }
+        Self {
+            state: state.clone(),
+        }
     }
 }
 
@@ -36,9 +36,9 @@ impl worker_control::Server for WorkerControlImpl {
         _params: worker_control::GetWorkerResourcesParams,
         mut results: worker_control::GetWorkerResourcesResults,
     ) -> Promise<(), ::capnp::Error> {
-        results.get().set_n_cpus(
-            self.state.get().get_resources().cpus,
-        );
+        results
+            .get()
+            .set_n_cpus(self.state.get().get_resources().cpus);
         Promise::ok(())
     }
 
@@ -124,8 +124,7 @@ impl worker_control::Server for WorkerControlImpl {
             let assigned = co.get_assigned();
             let attributes = Attributes::from_capnp(&co.get_attributes().unwrap());
             let dataobject =
-                state.add_dataobject(
-                    id, object_state, assigned, size, label, attributes);
+                state.add_dataobject(id, object_state, assigned, size, label, attributes);
 
             debug!(
                 "Received DataObject {:?}, is_remote: {}",
@@ -147,32 +146,21 @@ impl worker_control::Server for WorkerControlImpl {
             let inputs: Vec<_> = ct.get_inputs()
                 .unwrap()
                 .iter()
-                .map(|ci| {
-                    TaskInput {
-                        object: state
-                            .object_by_id(DataObjectId::from_capnp(&ci.get_id().unwrap()))
-                            .unwrap(),
-                        label: ci.get_label().unwrap().into(),
-                        path: ci.get_path().unwrap().into(),
-                    }
+                .map(|ci| TaskInput {
+                    object: state
+                        .object_by_id(DataObjectId::from_capnp(&ci.get_id().unwrap()))
+                        .unwrap(),
+                    label: ci.get_label().unwrap().into(),
+                    path: ci.get_path().unwrap().into(),
                 })
                 .collect();
 
             let outputs: Vec<_> = ct.get_outputs()
                 .unwrap()
                 .iter()
-                .map(|co| {
-                    state.object_by_id(DataObjectId::from_capnp(&co)).unwrap()
-                })
+                .map(|co| state.object_by_id(DataObjectId::from_capnp(&co)).unwrap())
                 .collect();
-            let task = state.add_task(
-                id,
-                inputs,
-                outputs,
-                resources,
-                task_type.into(),
-                attributes,
-            );
+            let task = state.add_task(id, inputs, outputs, resources, task_type.into(), attributes);
 
             debug!("Received Task {:?}", task.get());
         }
@@ -188,14 +176,16 @@ impl worker_control::Server for WorkerControlImpl {
             o.state = DataObjectState::Pulling(worker_id.clone());
 
             let state_ref = self.state.clone();
-            let future = state.fetch_from_datastore(&worker_id, object_id, 0).map(move |data| {
-                object_ref.get_mut().set_data(Arc::new(data));
-                state_ref.get_mut().object_is_finished(&object_ref);
-            });
+            let future = state
+                .fetch_from_datastore(&worker_id, object_id, 0)
+                .map(move |data| {
+                    object_ref.get_mut().set_data(Arc::new(data));
+                    state_ref.get_mut().object_is_finished(&object_ref);
+                });
             state.handle().spawn(future.map_err(move |e| {
                 match e {
                     Error(ErrorKind::Ignored, _) => { /* do nothing, it is safe */ }
-                    e => panic!("Fetch dataobject failed {:?}", e)
+                    e => panic!("Fetch dataobject failed {:?}", e),
                 }
             }));
         }
@@ -217,19 +207,24 @@ impl worker_control::Server for WorkerControlImpl {
             }
         }
         {
-            let mut objects = result.borrow().init_objects(state.graph.objects.len() as u32);
+            let mut objects = result
+                .borrow()
+                .init_objects(state.graph.objects.len() as u32);
             for (i, object) in state.graph.objects.values().enumerate() {
-                object.get().id.to_capnp(
-                    &mut objects.borrow().get(i as u32),
-                )
+                object
+                    .get()
+                    .id
+                    .to_capnp(&mut objects.borrow().get(i as u32))
             }
         }
         {
-            let mut objects = result.init_objects_to_delete(state.graph.delete_wait_list.len() as u32);
+            let mut objects =
+                result.init_objects_to_delete(state.graph.delete_wait_list.len() as u32);
             for (i, (object, _)) in state.graph.delete_wait_list.iter().enumerate() {
-                object.get().id.to_capnp(
-                    &mut objects.borrow().get(i as u32),
-                )
+                object
+                    .get()
+                    .id
+                    .to_capnp(&mut objects.borrow().get(i as u32))
             }
         }
         Promise::ok(())

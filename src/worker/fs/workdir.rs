@@ -1,11 +1,8 @@
-
 use std::path::{Path, PathBuf};
 use std::cell::Cell;
 
-use common::id::{SubworkerId, TaskId, SId};
+use common::id::{SId, SubworkerId, TaskId};
 use errors::Result;
-
-
 
 pub struct WorkDir {
     path: PathBuf,
@@ -50,8 +47,7 @@ impl WorkDir {
     }
 
     pub fn new_path_for_dataobject(&self) -> PathBuf {
-        self.path.join(
-            Path::new(&format!("data/{}", self.new_id())),
-        )
+        self.path
+            .join(Path::new(&format!("data/{}", self.new_id())))
     }
 }

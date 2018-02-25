@@ -1,6 +1,6 @@
 use std::collections::hash_map::HashMap;
 use std::clone::Clone;
-use super::graph::{DataObjectRef, TaskRef, WorkerRef, Graph, TaskState};
+use super::graph::{DataObjectRef, Graph, TaskRef, TaskState, WorkerRef};
 use common::RcSet;
 use server::graph::SessionRef;
 
@@ -30,8 +30,8 @@ pub struct UpdatedIn {
 
 impl UpdatedIn {
     pub fn is_empty(&self) -> bool {
-        self.tasks.is_empty() && self.objects.is_empty() && self.new_tasks.is_empty() &&
-            self.new_objects.is_empty()
+        self.tasks.is_empty() && self.objects.is_empty() && self.new_tasks.is_empty()
+            && self.new_objects.is_empty()
     }
 
     pub fn clear(&mut self) {
@@ -65,7 +65,6 @@ pub struct ReactiveScheduler {
     ready_tasks: RcSet<TaskRef>,
 }
 
-
 impl ReactiveScheduler {
     /*type TaskExtra = ();
     type DataObjectExtra = ();
@@ -93,8 +92,9 @@ impl ReactiveScheduler {
             for (_, wref) in &graph.workers {
                 let w = wref.get();
                 let cpus = t.resources.cpus();
-                if cpus + w.active_resources <= w.resources.cpus() &&
-                   t.resources.is_subset_of(&w.resources) {
+                if cpus + w.active_resources <= w.resources.cpus()
+                    && t.resources.is_subset_of(&w.resources)
+                {
                     let mut score = neg_avg_size + cpus as i64 * 5000i64;
                     for input in &t.inputs {
                         let o = input.object.get();
@@ -117,8 +117,7 @@ impl ReactiveScheduler {
         }
     }
 
-    pub fn clear_session(&mut self, session: &SessionRef)
-    {
+    pub fn clear_session(&mut self, session: &SessionRef) {
         let s = session.get();
         for tref in &s.tasks {
             self.ready_tasks.remove(&tref);
@@ -126,11 +125,10 @@ impl ReactiveScheduler {
     }
 
     pub fn schedule(&mut self, graph: &mut Graph, updated: &UpdatedIn) -> UpdatedOut {
-
         let mut up_out: UpdatedOut = Default::default();
 
         if graph.workers.is_empty() {
-            return up_out
+            return up_out;
         }
 
         for tref in &updated.new_tasks {
@@ -169,7 +167,6 @@ impl ReactiveScheduler {
 
                 debug!("Scheduler: {} -> {}", t.id, w.id());
                 for oref in &t.outputs {
-
                     w.scheduled_objects.insert(oref.clone());
                     oref.get_mut().scheduled.insert(wref.clone());
 
@@ -221,8 +218,6 @@ impl ReactiveScheduler {
                     .insert(oref.clone());
             }
         }*/
-
-
     }
 }
 

@@ -1,14 +1,14 @@
 use capnp::capability::Promise;
 use std::net::SocketAddr;
-use futures::{Future, future};
+use futures::{future, Future};
 
 use common::resources::Resources;
-use common::id::{DataObjectId, TaskId, SId};
+use common::id::{DataObjectId, SId, TaskId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
 use server::state::StateRef;
-use server::graph::{ClientRef, DataObjectRef, TaskRef, TaskInput, SessionError};
-use errors::{Result, ErrorKind, Error};
+use server::graph::{ClientRef, DataObjectRef, SessionError, TaskInput, TaskRef};
+use errors::{Error, ErrorKind, Result};
 use common::Attributes;
 use common::RcSet;
 use server::rpc::ClientDataStoreImpl;
@@ -21,7 +21,6 @@ pub struct ClientServiceImpl {
 
 impl ClientServiceImpl {
     pub fn new(state: &StateRef, address: &SocketAddr) -> Result<Self> {
-
         Ok(Self {
             state: state.clone(),
             client: state.get_mut().add_client(address.clone())?,
@@ -33,9 +32,8 @@ impl Drop for ClientServiceImpl {
     fn drop(&mut self) {
         let mut s = self.state.get_mut();
         info!("Client {} disconnected", self.client.get_id());
-        s.remove_client(&self.client).expect(
-            "client connection drop",
-        );
+        s.remove_client(&self.client)
+            .expect("client connection drop");
     }
 }
 
@@ -56,9 +54,11 @@ impl client_service::Server for ClientServiceImpl {
                 let control = w.control.as_ref().unwrap();
                 let worker_id = worker_id.clone();
                 let resources = w.resources.clone();
-                control.get_info_request().send().promise.map(move |r| {
-                    (worker_id, r, resources)
-                })
+                control
+                    .get_info_request()
+                    .send()
+                    .promise
+                    .map(move |r| (worker_id, r, resources))
             })
             .collect();
 
@@ -70,7 +70,8 @@ impl client_service::Server for ClientServiceImpl {
                 let r = r.get().unwrap();
                 w.set_tasks(r.get_tasks().unwrap()).unwrap();
                 w.set_objects(r.get_objects().unwrap()).unwrap();
-                w.set_objects_to_delete(r.get_objects_to_delete().unwrap()).unwrap();
+                w.set_objects_to_delete(r.get_objects_to_delete().unwrap())
+                    .unwrap();
                 resources.to_capnp(&mut w.borrow().get_resources().unwrap());
                 worker_id.to_capnp(&mut w.get_worker_id().unwrap());
             }
@@ -147,7 +148,7 @@ impl client_service::Server for ClientServiceImpl {
                 let id = TaskId::from_capnp(&ct.get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
                 let attributes = Attributes::from_capnp(&ct.get_attributes().unwrap());
-                let resources : Resources = attributes.get("resources")?;
+                let resources: Resources = attributes.get("resources")?;
                 let mut inputs = Vec::<TaskInput>::new();
                 for ci in ct.get_inputs()?.iter() {
                     inputs.push(TaskInput {
@@ -174,8 +175,14 @@ impl client_service::Server for ClientServiceImpl {
             debug!("New tasks: {:?}", created_tasks);
             debug!("New objects: {:?}", created_objects);
             s.logger.add_client_submit_event(
-                created_tasks.iter().map(|t| TaskDescriptor::from(&t.get())).collect(),
-                created_objects.iter().map(|o| ObjectDescriptor::from(&o.get())).collect(),
+                created_tasks
+                    .iter()
+                    .map(|t| TaskDescriptor::from(&t.get()))
+                    .collect(),
+                created_objects
+                    .iter()
+                    .map(|o| ObjectDescriptor::from(&o.get()))
+                    .collect(),
             );
             // verify submit integrity
             s.verify_submit(&created_tasks, &created_objects)
@@ -199,9 +206,9 @@ impl client_service::Server for ClientServiceImpl {
         mut results: client_service::GetDataStoreResults,
     ) -> Promise<(), ::capnp::Error> {
         debug!("server data store requested from client");
-        let datastore = ::datastore_capnp::data_store::ToClient::new(
-            ClientDataStoreImpl::new(&self.state),
-        ).from_server::<::capnp_rpc::Server>();
+        let datastore = ::datastore_capnp::data_store::ToClient::new(ClientDataStoreImpl::new(
+            &self.state,
+        )).from_server::<::capnp_rpc::Server>();
         results.get().set_store(datastore);
         Promise::ok(())
     }
@@ -211,7 +218,6 @@ impl client_service::Server for ClientServiceImpl {
         params: client_service::WaitParams,
         mut result: client_service::WaitResults,
     ) -> Promise<(), ::capnp::Error> {
-
         // Set error from session to result
         fn set_error(result: &mut ::common_capnp::unit_result::Builder, error: &SessionError) {
             error.to_capnp(&mut result.borrow().init_error());
@@ -227,9 +233,8 @@ impl client_service::Server for ClientServiceImpl {
             object_ids.len()
         );
 
-
-        if task_ids.len() == 1 && object_ids.len() == 0 &&
-            task_ids.get(0).get_id() == ::common_capnp::ALL_TASKS_ID
+        if task_ids.len() == 1 && object_ids.len() == 0
+            && task_ids.get(0).get_id() == ::common_capnp::ALL_TASKS_ID
         {
             let session_id = task_ids.get(0).get_session_id();
             debug!("Waiting for all session session_id={}", session_id);
@@ -352,9 +357,8 @@ impl client_service::Server for ClientServiceImpl {
         for o in objects.iter() {
             s.unkeep_object(&o);
         }
-        s.logger.add_client_unkeep_event(
-            objects.iter().map(|o| o.get().id).collect(),
-        );
+        s.logger
+            .add_client_unkeep_event(objects.iter().map(|o| o.get().id).collect());
         Promise::ok(())
     }
 
@@ -376,7 +380,8 @@ impl client_service::Server for ClientServiceImpl {
         let tasks: Vec<_> = match task_ids
             .iter()
             .map(|id| s.task_by_id_check_session(TaskId::from_capnp(&id)))
-            .collect() {
+            .collect()
+        {
             Ok(tasks) => tasks,
             Err(Error(ErrorKind::SessionErr(ref e), _)) => {
                 e.to_capnp(&mut results.get().get_state().unwrap().init_error());
@@ -387,10 +392,9 @@ impl client_service::Server for ClientServiceImpl {
 
         let objects: Vec<_> = match object_ids
             .iter()
-            .map(|id| {
-                s.object_by_id_check_session(DataObjectId::from_capnp(&id))
-            })
-            .collect() {
+            .map(|id| s.object_by_id_check_session(DataObjectId::from_capnp(&id)))
+            .collect()
+        {
             Ok(tasks) => tasks,
             Err(Error(ErrorKind::SessionErr(ref e), _)) => {
                 e.to_capnp(&mut results.get().get_state().unwrap().init_error());
@@ -412,11 +416,12 @@ impl client_service::Server for ClientServiceImpl {
         }
 
         {
-           let mut obj_updates = results.borrow().init_objects(objects.len() as u32);
+            let mut obj_updates = results.borrow().init_objects(objects.len() as u32);
             for (i, obj) in objects.iter().enumerate() {
                 let mut update = obj_updates.borrow().get(i as u32);
                 let o = obj.get();
-                o.attributes.to_capnp(&mut update.borrow().get_attributes().unwrap());
+                o.attributes
+                    .to_capnp(&mut update.borrow().get_attributes().unwrap());
                 o.id.to_capnp(&mut update.get_id().unwrap());
             }
         }

@@ -1,15 +1,13 @@
-
 use common::id::{DataObjectId, WorkerId};
 use common::wrapped::WrappedRcRefCell;
 use common::{Attributes, RcSet};
-use super::{TaskRef, Graph};
-use worker::data::{Data};
+use super::{Graph, TaskRef};
+use worker::data::Data;
 use worker::graph::SubworkerRef;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::fmt;
-
 
 #[derive(Debug)]
 pub enum DataObjectState {
@@ -58,7 +56,6 @@ pub struct DataObject {
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
 impl DataObject {
-
     pub fn set_data(&mut self, data: Arc<Data>) {
         assert!(!self.is_finished());
         self.size = Some(data.size());
@@ -94,7 +91,6 @@ impl DataObject {
     }
 }
 
-
 impl DataObjectRef {
     pub fn new(
         graph: &mut Graph,
@@ -105,7 +101,6 @@ impl DataObjectRef {
         label: String,
         attributes: Attributes,
     ) -> Self {
-
         debug!("New object id={}", id);
 
         match graph.objects.entry(id.clone()) {

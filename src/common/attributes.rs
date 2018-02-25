@@ -1,4 +1,3 @@
-
 use std::collections::HashMap;
 use errors::Result;
 use std::error::Error;
@@ -19,11 +18,10 @@ impl Attributes {
         D: ::serde::de::Deserialize<'a>,
     {
         match self.items.get(key) {
-            Some(ref value) => ::serde_json::from_str(value).map(|v| Some(v))
-                .map_err(|e| format!("Error in parsing attribute '{}': {}", key, e.description()).into()),
-            None => {
-                Ok(None)
-            }
+            Some(ref value) => ::serde_json::from_str(value).map(|v| Some(v)).map_err(|e| {
+                format!("Error in parsing attribute '{}': {}", key, e.description()).into()
+            }),
+            None => Ok(None),
         }
     }
 
@@ -32,8 +30,14 @@ impl Attributes {
         D: ::serde::de::Deserialize<'a>,
     {
         match self.items.get(key) {
-            Some(ref value) => ::serde_json::from_str(value)
-                .map_err(|e| format!("Error in parsing attribute '{}': {} (data {:?})", key, e.description(), &value).into()),
+            Some(ref value) => ::serde_json::from_str(value).map_err(|e| {
+                format!(
+                    "Error in parsing attribute '{}': {} (data {:?})",
+                    key,
+                    e.description(),
+                    &value
+                ).into()
+            }),
             None => {
                 bail!("Key not found in attributes");
             }
@@ -44,10 +48,8 @@ impl Attributes {
     where
         S: ::serde::ser::Serialize,
     {
-        self.items.insert(
-            key.to_string(),
-            ::serde_json::to_string(&value)?,
-        );
+        self.items
+            .insert(key.to_string(), ::serde_json::to_string(&value)?);
         Ok(())
     }
 

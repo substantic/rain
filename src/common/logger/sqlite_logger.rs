@@ -2,18 +2,17 @@ use std::path::PathBuf;
 
 //use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
 use common::events;
-use futures::sync::{oneshot, mpsc};
+use futures::sync::{mpsc, oneshot};
 use futures::Stream;
 use futures::Future;
 use errors::{Error, Result};
 use common::logger::logger::QueryEvents;
-use super::logger::{SearchCriteria, Logger};
+use super::logger::{Logger, SearchCriteria};
 
 use serde_json;
 use rusqlite::Connection;
 
 use chrono::{DateTime, Utc};
-
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EventWrapper {
@@ -24,7 +23,7 @@ pub struct EventWrapper {
 pub struct SQLiteLogger {
     events: Vec<EventWrapper>,
     queue: mpsc::UnboundedSender<LoggerMessage>,
-//    conn: Connection,
+    //    conn: Connection,
 }
 
 enum LoggerMessage {
@@ -32,19 +31,21 @@ enum LoggerMessage {
     LoadEvents(SearchCriteria, oneshot::Sender<QueryEvents>),
 }
 
-
 fn save_events(conn: &mut Connection, events: Vec<EventWrapper>) -> Result<()> {
     debug!("Saving {} events into log", events.len());
     let tx = conn.transaction()?;
     {
-        let mut stmt =
-            tx.prepare_cached("INSERT INTO events (timestamp, event_type, session, event) VALUES (?, ?, ?, ?)")?;
+        let mut stmt = tx.prepare_cached(
+            "INSERT INTO events (timestamp, event_type, session, event) VALUES (?, ?, ?, ?)",
+        )?;
 
         for e in events.iter() {
-            stmt.execute(&[&e.timestamp,
+            stmt.execute(&[
+                &e.timestamp,
                 &e.event.event_type(),
                 &e.event.session_id(),
-                &serde_json::to_string(&e.event)?])?;
+                &serde_json::to_string(&e.event)?,
+            ])?;
         }
     }
     tx.commit()?;
@@ -52,9 +53,8 @@ fn save_events(conn: &mut Connection, events: Vec<EventWrapper>) -> Result<()> {
 }
 
 fn load_events(conn: &mut Connection, search_criteria: &SearchCriteria) -> Result<QueryEvents> {
-    let mut args : Vec<&::rusqlite::types::ToSql> = Vec::new();
+    let mut args: Vec<&::rusqlite::types::ToSql> = Vec::new();
     let mut where_conds = Vec::new();
-
 
     if let Some(ref v) = search_criteria.id {
         where_conds.push(make_where_string("id", &v.mode)?);
@@ -74,20 +74,22 @@ fn load_events(conn: &mut Connection, search_criteria: &SearchCriteria) -> Resul
     let query_str = if where_conds.is_empty() {
         "SELECT id, timestamp, event FROM events ORDER BY id".to_string()
     } else {
-        format!("SELECT id, timestamp, event FROM events WHERE {} ORDER BY id", where_conds.join(" AND "))
+        format!(
+            "SELECT id, timestamp, event FROM events WHERE {} ORDER BY id",
+            where_conds.join(" AND ")
+        )
     };
 
     debug!("Running query: {}", query_str);
     let mut query = conn.prepare_cached(&query_str)?;
     //query.execute(&[])?;
-    let iter = query.query_map(&args, |row| {
-        (row.get(0), row.get(1), row.get(2))
-    })?.map(|e| e.unwrap());
-    let results : Vec<_> = iter.collect();
+    let iter = query
+        .query_map(&args, |row| (row.get(0), row.get(1), row.get(2)))?
+        .map(|e| e.unwrap());
+    let results: Vec<_> = iter.collect();
     debug!("Logger query response: {} rows", results.len());
     Ok(results)
 }
-
 
 impl SQLiteLogger {
     pub fn new(log_dir: &PathBuf) -> Result<Self> {
@@ -123,11 +125,11 @@ impl SQLiteLogger {
                 match m {
                     LoggerMessage::SaveEvents(events) => {
                         save_events(&mut conn, events).unwrap();
-                    },
+                    }
                     LoggerMessage::LoadEvents(search_criteria, sender) => {
                         match load_events(&mut conn, &search_criteria) {
                             Ok(result) => sender.send(result).unwrap(),
-                            Err(e) => info!("Event query error: {}", e.description())
+                            Err(e) => info!("Event query error: {}", e.description()),
                         };
                     }
                 }
@@ -146,26 +148,34 @@ impl SQLiteLogger {
 fn make_where_string(column: &str, mode: &str) -> Result<String> {
     match mode {
         "=" | "<" | ">" | "<=" | ">=" => Ok(format!("{} {} ?", column, mode)),
-        _ => bail!("Invalid search criteria")
+        _ => bail!("Invalid search criteria"),
     }
 }
 
-
 impl Logger for SQLiteLogger {
-
-    fn get_events(&self, search_criteria: SearchCriteria) -> Box<Future<Item=QueryEvents, Error=Error>> {
+    fn get_events(
+        &self,
+        search_criteria: SearchCriteria,
+    ) -> Box<Future<Item = QueryEvents, Error = Error>> {
         let (sx, rx) = oneshot::channel();
-        self.queue.unbounded_send(LoggerMessage::LoadEvents(search_criteria, sx)).unwrap();
+        self.queue
+            .unbounded_send(LoggerMessage::LoadEvents(search_criteria, sx))
+            .unwrap();
         Box::new(rx.map_err(|_| "Invalid logger query".into()))
     }
 
     fn flush_events(&mut self) {
         debug!("Flushing {} events", self.events.len());
-        self.queue.unbounded_send(LoggerMessage::SaveEvents(::std::mem::replace(&mut self.events, Vec::new()))).unwrap();
+        self.queue
+            .unbounded_send(LoggerMessage::SaveEvents(::std::mem::replace(
+                &mut self.events,
+                Vec::new(),
+            )))
+            .unwrap();
     }
 
     fn add_event_with_timestamp(&mut self, event: events::Event, timestamp: DateTime<Utc>) {
-        self.events.push(EventWrapper{event, timestamp});
+        self.events.push(EventWrapper { event, timestamp });
     }
 }
 
@@ -224,7 +234,7 @@ mod tests {
         let mut logger = create_logger();
         let w = create_test_worker_id();
         logger.add_new_worker_event(w);
-        let et = events::Event::WorkerNew(events::WorkerNewEvent {worker: w});
+        let et = events::Event::WorkerNew(events::WorkerNewEvent { worker: w });
         assert!(logger.events[0].event == et);
     }
 }

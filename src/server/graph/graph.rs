@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId};
-use super::{WorkerRef, TaskRef, DataObjectRef, SessionRef, ClientRef};
+use common::id::{ClientId, DataObjectId, SessionId, TaskId, WorkerId};
+use super::{ClientRef, DataObjectRef, SessionRef, TaskRef, WorkerRef};
 
 #[derive(Clone, Default)]
 pub struct Graph {
@@ -29,8 +29,8 @@ impl Graph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::{ClientRef, SessionRef, Graph, TaskRef, WorkerRef, DataObjectRef, TaskInput};
-    use common::id::{SId, TaskId, SessionId, ClientId, DataObjectId, WorkerId};
+    use super::super::{ClientRef, DataObjectRef, Graph, SessionRef, TaskInput, TaskRef, WorkerRef};
+    use common::id::{ClientId, DataObjectId, SId, SessionId, TaskId, WorkerId};
     use common::resources::Resources;
     use common::keeppolicy;
     use common::attributes::Attributes;

@@ -1,10 +1,8 @@
-
-use common::id::{Id, TaskId, DataObjectId, SubworkerId};
+use common::id::{DataObjectId, Id, SubworkerId, TaskId};
 use common::RcSet;
-use super::{TaskRef, DataObjectRef, SubworkerRef};
+use super::{DataObjectRef, SubworkerRef, TaskRef};
 use worker::tasks::TaskInstance;
 use std::collections::HashMap;
-
 
 pub struct Graph {
     pub ready_tasks: Vec<TaskRef>,

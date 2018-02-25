@@ -19,7 +19,7 @@ use WORKER_PROTOCOL_VERSION;
 
 pub struct ServerBootstrapImpl {
     state: StateRef,
-    registered: bool, // true if the connection is already registered
+    registered: bool,    // true if the connection is already registered
     address: SocketAddr, // Remote address of the connection
 }
 
@@ -45,12 +45,11 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         params: server_bootstrap::RegisterAsClientParams,
         mut results: server_bootstrap::RegisterAsClientResults,
     ) -> Promise<(), ::capnp::Error> {
-
         if self.registered {
             error!("Multiple registration from connection {}", self.address);
-            return Promise::err(capnp::Error::failed(
-                format!("Connection already registered"),
-            ));
+            return Promise::err(capnp::Error::failed(format!(
+                "Connection already registered"
+            )));
         }
 
         let params = pry!(params.get());
@@ -62,27 +61,26 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
 
         self.registered = true;
 
-        let service = ::client_capnp::client_service::ToClient::new(
-            pry!(ClientServiceImpl::new(&self.state, &self.address)),
-        ).from_server::<::capnp_rpc::Server>();
+        let service = ::client_capnp::client_service::ToClient::new(pry!(ClientServiceImpl::new(
+            &self.state,
+            &self.address
+        ))).from_server::<::capnp_rpc::Server>();
 
         info!("Connection {} registered as client", self.address);
         results.get().set_service(service);
         Promise::ok(())
     }
 
-
     fn register_as_worker(
         &mut self,
         params: server_bootstrap::RegisterAsWorkerParams,
         mut results: server_bootstrap::RegisterAsWorkerResults,
     ) -> Promise<(), ::capnp::Error> {
-
         if self.registered {
             error!("Multiple registration from connection {}", self.address);
-            return Promise::err(capnp::Error::failed(
-                format!("Connection already registered"),
-            ));
+            return Promise::err(capnp::Error::failed(format!(
+                "Connection already registered"
+            )));
         }
 
         let params = pry!(params.get());
@@ -107,9 +105,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
 
         info!(
             "Connection {} registered as worker {} with {:?}",
-            self.address,
-            worker_id,
-            resources
+            self.address, worker_id, resources
         );
 
         let control = pry!(params.get_control());
@@ -122,11 +118,11 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             // 1) add worker
             // 2) create upstream
             // reason: upstream drop tries to remove worker
-            let worker = pry!(state.get_mut().add_worker(
-                worker_id,
-                Some(control),
-                resources,
-            ));
+            let worker = pry!(
+                state
+                    .get_mut()
+                    .add_worker(worker_id, Some(control), resources,)
+            );
             let upstream = ::worker_capnp::worker_upstream::ToClient::new(
                 WorkerUpstreamImpl::new(&state, &worker),
             ).from_server::<::capnp_rpc::Server>();

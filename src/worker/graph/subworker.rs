@@ -1,4 +1,3 @@
-
 use std::process::{Command, Stdio};
 use std::fs::File;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
@@ -77,7 +76,6 @@ impl SubworkerRef {
     }
 }
 
-
 pub fn subworker_command(
     work_dir: &WorkDir,
     log_dir: &LogDir,
@@ -91,8 +89,7 @@ pub fn subworker_command(
 
     info!(
         "Staring new subworker type={} id={}",
-        subworker_type,
-        subworker_id
+        subworker_type, subworker_id
     );
     info!("Subworker stdout log: {:?}", log_path_out);
     info!("Subworker stderr log: {:?}", log_path_err);

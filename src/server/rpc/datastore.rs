@@ -1,11 +1,11 @@
 use common::convert::ToCapnp;
-use futures::{Future, future};
+use futures::{future, Future};
 use capnp::capability::Promise;
 use common::convert::FromCapnp;
 use common::id::DataObjectId;
 
 use server::graph::{DataObjectRef, DataObjectState};
-use datastore_capnp::{reader, data_store, read_reply};
+use datastore_capnp::{data_store, read_reply, reader};
 use server::state::StateRef;
 
 use errors::{Error, ErrorKind};
@@ -17,7 +17,9 @@ pub struct ClientDataStoreImpl {
 
 impl ClientDataStoreImpl {
     pub fn new(state: &StateRef) -> Self {
-        Self { state: state.clone() }
+        Self {
+            state: state.clone(),
+        }
     }
 }
 
@@ -51,53 +53,72 @@ impl data_store::Server for ClientDataStoreImpl {
         let mut obj = object2.get_mut();
         let session = obj.session.clone();
 
-
-        Promise::from_future(obj.wait()
-            .then(move |r| -> future::Either<_, _> {
-                if r.is_err() {
-                    let session = session.get();
-                    session.get_error().as_ref().unwrap().to_capnp(&mut results.get().init_error());
-                    return future::Either::A(future::result(Ok(())));
-                }
-                let obj = object4.get();
-                trace!("create_reader at server on {:?}", obj);
-                if obj.state == DataObjectState::Removed {
-                    let session = session.get();
-                    session.get_error().as_ref().unwrap().to_capnp(&mut results.get().init_error());
-                    return future::Either::A(future::result(Ok(())));
-                }
-
-                future::Either::B(future::lazy(move || {
-                    let obj = object.get();
-                    assert_eq!(obj.state, DataObjectState::Finished,
-                               "triggered finish hook on unfinished object");
-                    if obj.data.is_some() {
-                        unimplemented!();
+        Promise::from_future(
+            obj.wait()
+                .then(move |r| -> future::Either<_, _> {
+                    if r.is_err() {
+                        let session = session.get();
+                        session
+                            .get_error()
+                            .as_ref()
+                            .unwrap()
+                            .to_capnp(&mut results.get().init_error());
+                        return future::Either::A(future::result(Ok(())));
                     }
-                    let worker = obj.located.iter().next().unwrap().clone();
-                    let worker2 = worker.clone();
-                    let handle = state.get().handle().clone();
-                    let future = worker.get_mut().wait_for_datastore(&worker, &handle).map(move |()| worker2);
-                    future
-                }).and_then(move |worker| {
-                    let worker = worker.get();
-                    let datastore = worker.get_datastore();
-                    let mut req = datastore.create_reader_request();
-                    {
-                        let mut params = req.get();
-                        params.set_offset(offset);
-                        id.to_capnp(&mut params.get_id().unwrap());
+                    let obj = object4.get();
+                    trace!("create_reader at server on {:?}", obj);
+                    if obj.state == DataObjectState::Removed {
+                        let session = session.get();
+                        session
+                            .get_error()
+                            .as_ref()
+                            .unwrap()
+                            .to_capnp(&mut results.get().init_error());
+                        return future::Either::A(future::result(Ok(())));
                     }
-                    req.send().promise.map_err(|e| e.into())
-                }).and_then(move |response| {
-                    // TODO: Here we simply resend response from worker to client
-                    // and fully utilize capnp. For resilience, we will probably need
-                    // Some more sophisticated solution to cover worker crashes
-                    let response = pry!(response.get());
-                    pry!(results.set(response));
-                    Promise::ok(())
-                }))
-            }).map_err(|e| panic!("Fetch failed: {:?}", e)))
+
+                    future::Either::B(
+                        future::lazy(move || {
+                            let obj = object.get();
+                            assert_eq!(
+                                obj.state,
+                                DataObjectState::Finished,
+                                "triggered finish hook on unfinished object"
+                            );
+                            if obj.data.is_some() {
+                                unimplemented!();
+                            }
+                            let worker = obj.located.iter().next().unwrap().clone();
+                            let worker2 = worker.clone();
+                            let handle = state.get().handle().clone();
+                            let future = worker
+                                .get_mut()
+                                .wait_for_datastore(&worker, &handle)
+                                .map(move |()| worker2);
+                            future
+                        }).and_then(move |worker| {
+                            let worker = worker.get();
+                            let datastore = worker.get_datastore();
+                            let mut req = datastore.create_reader_request();
+                            {
+                                let mut params = req.get();
+                                params.set_offset(offset);
+                                id.to_capnp(&mut params.get_id().unwrap());
+                            }
+                            req.send().promise.map_err(|e| e.into())
+                        })
+                            .and_then(move |response| {
+                                // TODO: Here we simply resend response from worker to client
+                                // and fully utilize capnp. For resilience, we will probably need
+                                // Some more sophisticated solution to cover worker crashes
+                                let response = pry!(response.get());
+                                pry!(results.set(response));
+                                Promise::ok(())
+                            }),
+                    )
+                })
+                .map_err(|e| panic!("Fetch failed: {:?}", e)),
+        )
     }
 }
 
@@ -108,10 +129,11 @@ pub struct WorkerDataStoreImpl {
 
 impl WorkerDataStoreImpl {
     pub fn new(state: &StateRef) -> Self {
-        Self { state_ref: state.clone() }
+        Self {
+            state_ref: state.clone(),
+        }
     }
 }
-
 
 impl data_store::Server for WorkerDataStoreImpl {
     fn create_reader(
@@ -147,8 +169,6 @@ impl data_store::Server for WorkerDataStoreImpl {
     }
 }
 
-
-
 /// The implementation of reader that reads object
 /// that is localy stored in server
 pub struct LocalReaderImpl {
@@ -167,7 +187,6 @@ impl LocalReaderImpl {
         }
     }
 }
-
 
 impl reader::Server for LocalReaderImpl {
     fn read(

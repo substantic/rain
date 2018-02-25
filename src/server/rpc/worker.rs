@@ -2,7 +2,7 @@ use common::convert::FromCapnp;
 use common::Attributes;
 use common::id::{DataObjectId, TaskId};
 use server::state::StateRef;
-use server::graph::{WorkerRef, Worker};
+use server::graph::{Worker, WorkerRef};
 use worker_capnp::worker_upstream;
 use capnp::capability::Promise;
 use server::rpc::WorkerDataStoreImpl;
@@ -26,9 +26,8 @@ impl Drop for WorkerUpstreamImpl {
     fn drop(&mut self) {
         error!("Connection to worker {} lost", self.worker.get_id());
         let mut s = self.state.get_mut();
-        s.remove_worker(&self.worker).expect(
-            "dropping worker upstream",
-        );
+        s.remove_worker(&self.worker)
+            .expect("dropping worker upstream");
     }
 }
 
@@ -39,9 +38,9 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
         mut results: worker_upstream::GetDataStoreResults,
     ) -> Promise<(), ::capnp::Error> {
         debug!("server data store requested from worker");
-        let datastore = ::datastore_capnp::data_store::ToClient::new(
-            WorkerDataStoreImpl::new(&self.state),
-        ).from_server::<::capnp_rpc::Server>();
+        let datastore = ::datastore_capnp::data_store::ToClient::new(WorkerDataStoreImpl::new(
+            &self.state,
+        )).from_server::<::capnp_rpc::Server>();
         results.get().set_store(datastore);
         Promise::ok(())
     }
@@ -112,8 +111,10 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
             let timestamp = pry!(cevent.get_timestamp());
             let seconds = timestamp.get_seconds() as i64;
             let subsec_nanos = timestamp.get_subsec_nanos();
-            state.logger.add_event_with_timestamp(::serde_json::from_str(&event).unwrap(),
-                                                  ::chrono::Utc.timestamp(seconds, subsec_nanos));
+            state.logger.add_event_with_timestamp(
+                ::serde_json::from_str(&event).unwrap(),
+                ::chrono::Utc.timestamp(seconds, subsec_nanos),
+            );
         }
         Promise::ok(())
     }

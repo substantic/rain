@@ -1,6 +1,6 @@
-use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6, Ipv4Addr, Ipv6Addr, IpAddr};
-use common_capnp::{task_id, data_object_id, socket_address};
-use super::convert::{FromCapnp, ToCapnp, ReadCapnp, WriteCapnp};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
+use common_capnp::{data_object_id, socket_address, task_id};
+use super::convert::{FromCapnp, ReadCapnp, ToCapnp, WriteCapnp};
 use std::io::Read;
 use capnp::serialize;
 use std::fmt;
@@ -27,15 +27,11 @@ impl<'a> FromCapnp<'a> for SocketAddr {
     fn from_capnp(read: &Self::Reader) -> Self {
         match read.get_address().which().unwrap() {
             socket_address::address::Ipv4(ref octet) => SocketAddr::V4(SocketAddrV4::new(
-                Ipv4Addr::from(
-                    *array_ref![octet.as_ref().unwrap(), 0, 4],
-                ),
+                Ipv4Addr::from(*array_ref![octet.as_ref().unwrap(), 0, 4]),
                 read.get_port(),
             )),
             socket_address::address::Ipv6(ref octet) => SocketAddr::V6(SocketAddrV6::new(
-                Ipv6Addr::from(
-                    *array_ref![octet.as_ref().unwrap(), 0, 16],
-                ),
+                Ipv6Addr::from(*array_ref![octet.as_ref().unwrap(), 0, 16]),
                 read.get_port(),
                 0,
                 0,
@@ -190,7 +186,6 @@ impl<'a> FromCapnp<'a> for DataObjectId {
         DataObjectId::new(read.get_session_id(), read.get_id())
     }
 }
-
 
 // TODO(gavento): Replace Sid by Task/DO ID
 pub type Sid = TaskId;

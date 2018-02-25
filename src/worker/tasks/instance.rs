@@ -1,14 +1,13 @@
-
 use futures::Future;
 use chrono::{DateTime, Utc};
 
-use worker::graph::{TaskRef, SubworkerRef, TaskState};
-use worker::state::{State};
+use worker::graph::{SubworkerRef, TaskRef, TaskState};
+use worker::state::State;
 use worker::tasks;
 use worker::rpc::subworker::data_from_capnp;
 use common::Attributes;
 use common::convert::ToCapnp;
-use errors::{Result, Error};
+use errors::{Error, Result};
 
 /// Instance represents a running task. It contains resource allocations and
 /// allows to signal finishing of data objects.
@@ -46,7 +45,9 @@ struct KillOnDrop {
 
 impl KillOnDrop {
     pub fn new(subworker_ref: SubworkerRef) -> Self {
-        KillOnDrop { subworker_ref: Some(subworker_ref) }
+        KillOnDrop {
+            subworker_ref: Some(subworker_ref),
+        }
     }
 
     pub fn deactive(&mut self) -> SubworkerRef {
@@ -109,51 +110,50 @@ impl TaskInstance {
         let state_ref = state.self_ref();
         state.graph.running_tasks.insert(task_id, instance);
 
-        state.spawn_panic_on_error(future
-                                   .map(|()| true)
-                                   .select(receiver
-                                           .map(|()| false)
-                                           .map_err(|_| unreachable!()))
-                                   .then(move |r| {
-            let mut state = state_ref.get_mut();
-            let instance = state.graph.running_tasks.remove(&task_id).unwrap();
-            state.task_updated(&instance.task_ref);
-            state.unregister_task(&instance.task_ref);
-            let mut task = instance.task_ref.get_mut();
-            state.free_resources(&task.resources);
+        state.spawn_panic_on_error(
+            future
+                .map(|()| true)
+                .select(receiver.map(|()| false).map_err(|_| unreachable!()))
+                .then(move |r| {
+                    let mut state = state_ref.get_mut();
+                    let instance = state.graph.running_tasks.remove(&task_id).unwrap();
+                    state.task_updated(&instance.task_ref);
+                    state.unregister_task(&instance.task_ref);
+                    let mut task = instance.task_ref.get_mut();
+                    state.free_resources(&task.resources);
 
-            let info = AttributeInfo {
-                worker: format!("{}", state.worker_id()),
-                start: instance.start_timestamp.to_rfc3339(),
-                duration: (Utc::now().signed_duration_since(instance.start_timestamp)).num_milliseconds(),
-            };
-            task.new_attributes.set("info", info).unwrap();
+                    let info = AttributeInfo {
+                        worker: format!("{}", state.worker_id()),
+                        start: instance.start_timestamp.to_rfc3339(),
+                        duration: (Utc::now().signed_duration_since(instance.start_timestamp))
+                            .num_milliseconds(),
+                    };
+                    task.new_attributes.set("info", info).unwrap();
 
-            match r {
-                Ok((true, _)) => {
-                    let all_finished = task.outputs.iter()
-                        .all(|o| o.get().is_finished());
-                    if !all_finished {
-                        task.set_failed("Some of outputs were not produced"
-                                        .to_string());
-                    } else {
-                        for output in &task.outputs {
-                            state.object_is_finished(output);
+                    match r {
+                        Ok((true, _)) => {
+                            let all_finished = task.outputs.iter().all(|o| o.get().is_finished());
+                            if !all_finished {
+                                task.set_failed("Some of outputs were not produced".to_string());
+                            } else {
+                                for output in &task.outputs {
+                                    state.object_is_finished(output);
+                                }
+                                debug!("Task was successfully finished");
+                                task.state = TaskState::Finished;
+                            }
                         }
-                        debug!("Task was successfully finished");
-                        task.state = TaskState::Finished;
-                    }
-                },
-                Ok((false, _)) => {
-                    debug!("Task {} was terminated", task.id);
-                    task.set_failed("Task terminated by server".into());
-                },
-                Err((e, _)) => {
-                    task.set_failed(e.description().to_string());
-                }
-            };
-            Ok(())
-        }));
+                        Ok((false, _)) => {
+                            debug!("Task {} was terminated", task.id);
+                            task.set_failed("Task terminated by server".into());
+                        }
+                        Err((e, _)) => {
+                            task.set_failed(e.description().to_string());
+                        }
+                    };
+                    Ok(())
+                }),
+        );
     }
 
     pub fn stop(&mut self) {
@@ -183,10 +183,8 @@ impl TaskInstance {
                 let mut param_task = req.get().get_task().unwrap();
                 task.id.to_capnp(&mut param_task.borrow().get_id().unwrap());
 
-                task.attributes.to_capnp(&mut param_task
-                    .borrow()
-                    .get_attributes()
-                    .unwrap());
+                task.attributes
+                    .to_capnp(&mut param_task.borrow().get_attributes().unwrap());
 
                 param_task.borrow().init_inputs(task.inputs.len() as u32);
                 {
@@ -211,14 +209,13 @@ impl TaskInstance {
                             {
                                 let mut p_data = p_input.borrow().get_data().unwrap();
                                 obj.data().to_subworker_capnp(&mut p_data.borrow());
-                                obj.attributes.to_capnp(&mut p_data.borrow()
-                                                        .get_attributes().unwrap());
+                                obj.attributes
+                                    .to_capnp(&mut p_data.borrow().get_attributes().unwrap());
                             }
                         }
                         obj.id.to_capnp(&mut p_input.get_id().unwrap());
                     }
                 }
-
 
                 param_task.borrow().init_outputs(task.outputs.len() as u32);
                 {
@@ -228,29 +225,31 @@ impl TaskInstance {
                         let mut p_output = p_outputs.borrow().get(i as u32);
                         let obj = output.get();
                         p_output.set_label(&obj.label);
-                        obj.attributes.to_capnp(&mut p_output.borrow()
-                                                    .get_attributes().unwrap());
+                        obj.attributes
+                            .to_capnp(&mut p_output.borrow().get_attributes().unwrap());
                         obj.id.to_capnp(&mut p_output.get_id().unwrap());
                     }
                 }
             }
-            req.send().promise.map_err::<_, Error>(|e| e.into()).then(
-                move |r| {
+            req.send()
+                .promise
+                .map_err::<_, Error>(|e| e.into())
+                .then(move |r| {
                     let subworker_ref = sw_wrapper.deactive();
                     let result = match r {
                         Ok(response) => {
                             let mut task = task_ref.get_mut();
                             let response = response.get()?;
-                            task.new_attributes.update_from_capnp(
-                                &response.get_task_attributes()?,
-                            );
+                            task.new_attributes
+                                .update_from_capnp(&response.get_task_attributes()?);
                             let subworker = subworker_ref.get();
                             let work_dir = subworker.work_dir();
                             if response.get_ok() {
                                 debug!("Task id={} finished in subworker", task.id);
                                 for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
                                     let data = data_from_capnp(&state_ref.get(), work_dir, &co)?;
-                                    let attributes = Attributes::from_capnp(&co.get_attributes().unwrap());
+                                    let attributes =
+                                        Attributes::from_capnp(&co.get_attributes().unwrap());
 
                                     let mut o = output.get_mut();
                                     o.set_attributes(attributes);
@@ -264,10 +263,13 @@ impl TaskInstance {
                         }
                         Err(err) => Err(err.into()),
                     };
-                    state_ref.get_mut().graph.idle_subworkers.insert(subworker_ref);
+                    state_ref
+                        .get_mut()
+                        .graph
+                        .idle_subworkers
+                        .insert(subworker_ref);
                     result
-                },
-            )
+                })
         })))
     }
 }

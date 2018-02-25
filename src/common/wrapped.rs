@@ -1,7 +1,7 @@
-use std::cell::{RefCell, Ref, RefMut};
+use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use std::hash::{Hash, Hasher};
-use std::ops::{Deref};
+use std::ops::Deref;
 use std::clone::Clone;
 
 /// Wrapper struct containing a `Rc<RefCell<T>>`, implementing  several
@@ -24,7 +24,9 @@ impl<T> WrappedRcRefCell<T> {
     /// Create a new wrapped instance. This is not called `new` so that you may implement
     /// your own function `new`.
     pub(crate) fn wrap(t: T) -> Self {
-        WrappedRcRefCell { inner: Rc::new(RefCell::new(t)) }
+        WrappedRcRefCell {
+            inner: Rc::new(RefCell::new(t)),
+        }
     }
 
     /// Return a immutable reference to contents. Panics whenever `RefCell::borrow()` would.
@@ -46,7 +48,9 @@ impl<T> WrappedRcRefCell<T> {
 
 impl<T> Clone for WrappedRcRefCell<T> {
     fn clone(&self) -> Self {
-        WrappedRcRefCell { inner: self.inner.clone() }
+        WrappedRcRefCell {
+            inner: self.inner.clone(),
+        }
     }
 }
 

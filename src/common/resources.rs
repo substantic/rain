@@ -4,7 +4,6 @@ pub struct Resources {
 }
 
 impl Resources {
-
     #[inline]
     pub fn cpus(&self) -> u32 {
         self.cpus
@@ -27,7 +26,9 @@ impl Resources {
     }
 
     pub fn from_capnp(reader: &::common_capnp::resources::Reader) -> Self {
-        Resources { cpus: reader.get_n_cpus() }
+        Resources {
+            cpus: reader.get_n_cpus(),
+        }
     }
 
     pub fn to_capnp(&self, builder: &mut ::common_capnp::resources::Builder) {

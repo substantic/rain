@@ -12,7 +12,6 @@ type CpuUsage = u8;
 
 type MemUsage = u8;
 
-
 pub struct Monitor {
     clk_tck: isize, // Result of syscall CLK_TCK
     last_timestamp: DateTime<Utc>,
@@ -50,9 +49,9 @@ impl Monitor {
                         continue; // skip usage of all cpus
                     }
                     let mut parsed_line = line.split_whitespace();
-                    let cpu_time = parsed_line.nth(1).unwrap().parse::<u64>().unwrap() +
-                        parsed_line.next().unwrap().parse::<u64>().unwrap() +
-                        parsed_line.next().unwrap().parse::<u64>().unwrap();
+                    let cpu_time = parsed_line.nth(1).unwrap().parse::<u64>().unwrap()
+                        + parsed_line.next().unwrap().parse::<u64>().unwrap()
+                        + parsed_line.next().unwrap().parse::<u64>().unwrap();
                     cpu_time_vec.push(cpu_time);
                 } else {
                     break;
@@ -135,7 +134,6 @@ impl Monitor {
         })
     }
 }
-
 
 #[cfg(test)]
 mod tests {

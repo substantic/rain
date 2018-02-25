@@ -1,4 +1,4 @@
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::os::unix::fs::PermissionsExt;
 
 use errors::Result;
@@ -20,7 +20,6 @@ pub enum Storage {
 pub struct Data {
     storage: Storage,
 }
-
 
 impl Data {
     /// Create Data from vector
@@ -55,7 +54,6 @@ impl Data {
         let size = metadata.len() as usize;
         Ok(Data::new_from_path(target_path, size))
     }
-
 
     pub fn storage(&self) -> &Storage {
         &self.storage
@@ -111,17 +109,13 @@ impl Data {
         true
     }
 
-    pub fn to_subworker_capnp(
-        &self,
-        builder: &mut ::subworker_capnp::local_data::Builder,
-    ) {
+    pub fn to_subworker_capnp(&self, builder: &mut ::subworker_capnp::local_data::Builder) {
         match self.storage {
             Storage::Memory(ref data) => builder.borrow().get_storage().set_memory(&data),
-            Storage::Path(ref data) => {
-                builder.borrow().get_storage().set_path(
-                    data.path.to_str().unwrap(),
-                )
-            }
+            Storage::Path(ref data) => builder
+                .borrow()
+                .get_storage()
+                .set_path(data.path.to_str().unwrap()),
         };
     }
 }

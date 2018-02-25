@@ -1,17 +1,15 @@
-
 use std::process::Command;
 use std::path::{Path, PathBuf};
 use std::net::SocketAddr;
 use start::common::Readiness;
 use start::process::Process;
 use start::ssh::RemoteProcess;
-use librain::errors::{Result};
+use librain::errors::Result;
 
 use nix::unistd::getpid;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::fs::File;
-
 
 pub struct StarterConfig {
     /// Number of local worker that will be spawned
@@ -30,16 +28,18 @@ pub struct StarterConfig {
 
     pub reserve_cpu_on_server: bool,
 
-    pub run_prefix: Vec<String>
+    pub run_prefix: Vec<String>,
 }
 
 impl StarterConfig {
-    pub fn new(local_workers: Vec<Option<u32>>,
-               server_listen_address: SocketAddr,
-               server_http_listen_address: SocketAddr,
-               log_dir: &Path,
-               reserve_cpu_on_server: bool,
-               run_prefix: Vec<String>) -> Self {
+    pub fn new(
+        local_workers: Vec<Option<u32>>,
+        server_listen_address: SocketAddr,
+        server_http_listen_address: SocketAddr,
+        log_dir: &Path,
+        reserve_cpu_on_server: bool,
+        run_prefix: Vec<String>,
+    ) -> Self {
         Self {
             local_workers,
             server_listen_address,
@@ -47,7 +47,7 @@ impl StarterConfig {
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
             worker_host_file: None,
             reserve_cpu_on_server,
-            run_prefix
+            run_prefix,
         }
     }
 
@@ -115,7 +115,6 @@ impl Starter {
 
     /// Main method of starter that launch everything
     pub fn start(&mut self) -> Result<()> {
-
         if !self.config.local_workers.is_empty() && self.config.worker_host_file.is_some() {
             bail!("Cannot combine remote & local workers");
         }
@@ -191,10 +190,14 @@ impl Starter {
                 Command::new(program)
                     .args(program_args)
                     .arg("server")
-                    .arg("--logdir").arg(&log_dir)
-                    .arg("--listen").arg(&server_address)
-                    .arg("--http-listen").arg(&server_http_address)
-                    .arg("--ready-file").arg(&ready_file),
+                    .arg("--logdir")
+                    .arg(&log_dir)
+                    .arg("--listen")
+                    .arg(&server_address)
+                    .arg("--http-listen")
+                    .arg(&server_http_address)
+                    .arg("--ready-file")
+                    .arg(&ready_file),
             )?;
             let server_pid = process.id();
             let hostname = ::librain::common::sys::get_hostname();
@@ -214,8 +217,7 @@ impl Starter {
         for (i, host) in worker_hosts.iter().enumerate() {
             info!(
                 "Connecting to {} (remote log dir: {:?})",
-                host,
-                self.config.log_dir
+                host, self.config.log_dir
             );
             let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
             let name = format!("worker-{}", i);
@@ -246,7 +248,6 @@ impl Starter {
                     server_address = server_address,
                     ready_file = ready_file,
                 )
-
             };
             process.start(&command, &dir, &self.config.log_dir)?;
             self.remote_processes.push(process);
@@ -264,26 +265,33 @@ impl Starter {
     }
 
     fn start_local_workers(&mut self) -> Result<()> {
-        info!("Starting {} local worker(s)", self.config.local_workers.len());
+        info!(
+            "Starting {} local worker(s)",
+            self.config.local_workers.len()
+        );
         let server_address = self.server_address(true);
         let (program, program_args) = self.local_rain_command();
-        let workers: Vec<_> = self.config.local_workers.iter().map(|x| x.clone()).enumerate().collect();
+        let workers: Vec<_> = self.config
+            .local_workers
+            .iter()
+            .map(|x| x.clone())
+            .enumerate()
+            .collect();
         for (i, resource) in workers {
             let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
             let mut cmd = Command::new(&program);
-                cmd.args(&program_args)
-                   .arg("worker").arg(&server_address)
-                   .arg("--logdir").arg(self.config.log_dir.join(format!("worker-{}", i)))
-                   .arg("--ready-file").arg(&ready_file);
-                if let Some(cpus) = resource {
-                    cmd.arg("--cpus");
-                    cmd.arg(cpus.to_string());
-                }
-            self.spawn_process(
-                &format!("worker-{}", i),
-                &ready_file,
-                &mut cmd
-            )?;
+            cmd.args(&program_args)
+                .arg("worker")
+                .arg(&server_address)
+                .arg("--logdir")
+                .arg(self.config.log_dir.join(format!("worker-{}", i)))
+                .arg("--ready-file")
+                .arg(&ready_file);
+            if let Some(cpus) = resource {
+                cmd.arg("--cpus");
+                cmd.arg(cpus.to_string());
+            }
+            self.spawn_process(&format!("worker-{}", i), &ready_file, &mut cmd)?;
         }
         Ok(())
     }

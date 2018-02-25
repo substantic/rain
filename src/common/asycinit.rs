@@ -1,7 +1,5 @@
-
 use errors::Error;
-use futures::{IntoFuture, unsync, Future};
-
+use futures::{unsync, Future, IntoFuture};
 
 /// This code serves for "async" initialization Item may be in state "Initing"
 /// that stores oneshots that are fired when the item is in ready state. The
@@ -20,10 +18,11 @@ pub struct AsyncInitWrapper<T> {
     state: State<T>,
 }
 
-
 impl<T> AsyncInitWrapper<T> {
     pub fn new() -> Self {
-        Self { state: State::Initing(Vec::new()) }
+        Self {
+            state: State::Initing(Vec::new()),
+        }
     }
 
     pub fn is_ready(&self) -> bool {
@@ -44,11 +43,9 @@ impl<T> AsyncInitWrapper<T> {
     /// It triggers all waiting oneshots
     pub fn set_value(&mut self, value: T) {
         match ::std::mem::replace(&mut self.state, State::Ready(value)) {
-            State::Initing(senders) => {
-                for sender in senders {
-                    sender.send(()).unwrap();
-                }
-            }
+            State::Initing(senders) => for sender in senders {
+                sender.send(()).unwrap();
+            },
             State::Ready(_) => panic!("Element is already finished"),
         }
     }

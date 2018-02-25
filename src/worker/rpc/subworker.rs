@@ -4,14 +4,13 @@ use std::sync::Arc;
 use std::rc::Rc;
 use std::cell::Cell;
 
-use common::id::{SubworkerId, DataObjectId};
+use common::id::{DataObjectId, SubworkerId};
 use common::convert::FromCapnp;
-use worker::{StateRef, State};
+use worker::{State, StateRef};
 use worker::data::{Data, Storage};
 use subworker_capnp::subworker_upstream;
 use capnp;
 use capnp::capability::Promise;
-
 
 use errors::Result;
 
@@ -23,7 +22,7 @@ pub struct SubworkerUpstreamImpl {
 }
 
 impl SubworkerUpstreamImpl {
-    pub fn new(state: &StateRef, ) -> Self {
+    pub fn new(state: &StateRef) -> Self {
         Self {
             state: state.clone(),
             subworker_id: Rc::new(Cell::new(None)),
@@ -64,11 +63,7 @@ impl subworker_upstream::Server for SubworkerUpstreamImpl {
         pry!(
             self.state
                 .get_mut()
-                .add_subworker(
-                    subworker_id,
-                    subworker_type.to_string(),
-                    control,
-                )
+                .add_subworker(subworker_id, subworker_type.to_string(), control)
                 .map_err(|e| ::capnp::Error::failed(e.description().into()))
         );
         Promise::ok(())
@@ -81,11 +76,9 @@ pub fn data_from_capnp(
     reader: &::subworker_capnp::local_data::Reader,
 ) -> Result<Arc<Data>> {
     match reader.get_storage().which()? {
-        ::subworker_capnp::local_data::storage::Memory(data) => Ok(Arc::new(Data::new(
-            Storage::Memory(
-                data?.into(),
-            ),
-        ))),
+        ::subworker_capnp::local_data::storage::Memory(data) => {
+            Ok(Arc::new(Data::new(Storage::Memory(data?.into()))))
+        }
         ::subworker_capnp::local_data::storage::Path(data) => {
             let source_path = Path::new(data?);
             if !source_path.is_absolute() {
@@ -95,9 +88,10 @@ pub fn data_from_capnp(
                 bail!("Path of dataobject is not in subworker dir");
             }
             let target_path = state.work_dir().new_path_for_dataobject();
-            Ok(Arc::new(
-                Data::new_by_fs_move(&Path::new(source_path), target_path)?,
-            ))
+            Ok(Arc::new(Data::new_by_fs_move(
+                &Path::new(source_path),
+                target_path,
+            )?))
         }
         ::subworker_capnp::local_data::storage::InWorker(data) => {
             let object_id = DataObjectId::from_capnp(&data?);

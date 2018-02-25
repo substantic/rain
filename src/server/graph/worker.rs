@@ -6,12 +6,11 @@ use futures::Future;
 use errors::Error;
 use common::asycinit::AsyncInitWrapper;
 use common::wrapped::WrappedRcRefCell;
-use common::{RcSet, ConsistencyCheck};
-use common::id::{WorkerId};
+use common::{ConsistencyCheck, RcSet};
+use common::id::WorkerId;
 use common::resources::Resources;
-use super::{TaskRef, DataObjectRef};
+use super::{DataObjectRef, TaskRef};
 use errors::Result;
-
 
 pub struct Worker {
     /// Unique ID, here the registration socket address.
@@ -90,15 +89,17 @@ impl Worker {
                     let bootstrap: ::datastore_capnp::data_store::Client =
                         rpc_system.bootstrap(::capnp_rpc::rpc_twoparty_capnp::Side::Server);
                     handle.spawn(rpc_system.map_err(|e| panic!("Rpc system error: {:?}", e)));
-                    worker_ref.get_mut().datastore.as_mut().unwrap().set_value(
-                        bootstrap,
-                    );
+                    worker_ref
+                        .get_mut()
+                        .datastore
+                        .as_mut()
+                        .unwrap()
+                        .set_value(bootstrap);
                 })
                 .map_err(|e| e.into()),
         )
     }
 }
-
 
 impl WorkerRef {
     pub fn new(
@@ -135,7 +136,10 @@ impl ConsistencyCheck for WorkerRef {
         let s = self.get();
 
         if s.scheduled_tasks.is_empty() && s.active_resources != 0 {
-            bail!("Invalid active resources: active_resources = {}", s.active_resources);
+            bail!(
+                "Invalid active resources: active_resources = {}",
+                s.active_resources
+            );
         }
 
         // refs

@@ -1,7 +1,5 @@
-
-use capnp_rpc::{RpcSystem, twoparty, rpc_twoparty_capnp};
+use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 use tokio_io::{AsyncRead, AsyncWrite};
-
 
 pub fn new_rpc_system<Stream>(
     stream: Stream,

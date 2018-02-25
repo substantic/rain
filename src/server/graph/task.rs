@@ -4,11 +4,11 @@ use std::fmt;
 use common::resources::Resources;
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
-use common::{RcSet, Attributes, FinishHook, ConsistencyCheck};
-use common::id::{TaskId, SId};
-use super::{DataObjectRef, WorkerRef, SessionRef, DataObjectState};
+use common::{Attributes, ConsistencyCheck, FinishHook, RcSet};
+use common::id::{SId, TaskId};
+use super::{DataObjectRef, DataObjectState, SessionRef, WorkerRef};
 pub use common_capnp::TaskState;
-use errors::{Result};
+use errors::Result;
 
 #[derive(Debug, Clone)]
 pub struct TaskInput {
@@ -87,10 +87,8 @@ impl Task {
             }
         }
 
-        self.attributes.to_capnp(&mut builder
-            .borrow()
-            .get_attributes()
-            .unwrap());
+        self.attributes
+            .to_capnp(&mut builder.borrow().get_attributes().unwrap());
 
         builder.set_task_type(&self.task_type);
     }
@@ -128,7 +126,7 @@ impl Task {
         assert!(self.is_finished());
         for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
             match sender.send(()) {
-                Ok(()) => { /* Do nothing */}
+                Ok(()) => { /* Do nothing */ }
                 Err(_) => {
                     /* Just log error, it is non fatal */
                     debug!("Failed to inform about finishing task");
@@ -180,8 +178,7 @@ impl TaskRef {
                         inobj.id
                     );
                 }
-                DataObjectState::Finished => {
-                }
+                DataObjectState::Finished => {}
                 DataObjectState::Unfinished => {
                     waiting.insert(i.object.clone());
                 }
@@ -333,8 +330,8 @@ impl ConsistencyCheck for TaskRef {
             if o.state == DataObjectState::Removed && s.state != TaskState::Finished {
                 bail!("waiting for removed object {:?} in {:?}", o, s);
             }
-            if (o.state == DataObjectState::Finished || o.state == DataObjectState::Removed) ==
-                (s.waiting_for.contains(&i.object))
+            if (o.state == DataObjectState::Finished || o.state == DataObjectState::Removed)
+                == (s.waiting_for.contains(&i.object))
             {
                 bail!(
                     "waiting_for all unfinished inputs invalid woth {:?} in {:?}",
@@ -349,8 +346,8 @@ impl ConsistencyCheck for TaskRef {
             if o.producer != Some(self.clone()) {
                 bail!("output/producer incosistency of {:?} in {:?}", o, s);
             }
-            if (o.state == DataObjectState::Finished || o.state == DataObjectState::Removed) &&
-                s.state != TaskState::Finished
+            if (o.state == DataObjectState::Finished || o.state == DataObjectState::Removed)
+                && s.state != TaskState::Finished
             {
                 bail!(
                     "data object {:?} done/removed before the task has finished in {:?}",
@@ -373,8 +370,7 @@ impl ConsistencyCheck for TaskRef {
                 s.assigned.is_none() && s.waiting_for.is_empty(),
             TaskState::Failed =>
                 /* ??? s.assigned.is_none() && */ s.waiting_for.is_empty(),
-        })
-        {
+        }) {
             bail!("state/assigned/waiting_for inconsistency in {:?}", s);
         }
         if s.state == TaskState::Finished && !s.finish_hooks.is_empty() {

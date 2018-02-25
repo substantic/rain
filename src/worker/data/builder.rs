@@ -1,8 +1,6 @@
-
 use std::fs::File;
 use super::data::{Data, Storage};
 use errors::Result;
-
 
 pub struct DataBuilder {
     buffer: Vec<u8>,
@@ -35,8 +33,9 @@ impl DataBuilder {
     }
 
     pub fn build(&mut self) -> Data {
-        Data::new(
-            Storage::Memory(::std::mem::replace(&mut self.buffer, Vec::new())),
-        )
+        Data::new(Storage::Memory(::std::mem::replace(
+            &mut self.buffer,
+            Vec::new(),
+        )))
     }
 }

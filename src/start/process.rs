@@ -1,11 +1,10 @@
-use std::process::{Stdio, Child, Command};
+use std::process::{Child, Command, Stdio};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 
-use librain::errors::{Result};
+use librain::errors::Result;
 
 use start::common::Readiness;
-
 
 /// Struct that represents a process running under a starter
 /// It is wrapper over std::process::Child with a string name
@@ -24,7 +23,6 @@ pub struct Process {
     ready: Readiness,
 }
 
-
 impl Process {
     pub fn spawn(
         log_dir: &Path,
@@ -32,11 +30,10 @@ impl Process {
         ready: Readiness,
         command: &mut Command,
     ) -> Result<Self> {
-
-        let log_path_out_id = ::std::fs::File::create(log_dir.join(&format!("{}.out", name)))?
-            .into_raw_fd();
-        let log_path_err_id = ::std::fs::File::create(log_dir.join(&format!("{}.err", name)))?
-            .into_raw_fd();
+        let log_path_out_id =
+            ::std::fs::File::create(log_dir.join(&format!("{}.out", name)))?.into_raw_fd();
+        let log_path_err_id =
+            ::std::fs::File::create(log_dir.join(&format!("{}.err", name)))?.into_raw_fd();
 
         let log_path_out_pipe = unsafe { Stdio::from_raw_fd(log_path_out_id) };
         let log_path_err_pipe = unsafe { Stdio::from_raw_fd(log_path_err_id) };
@@ -62,7 +59,10 @@ impl Process {
                 // This error is non fatal, so we just log an error and continue
                 match ::std::fs::remove_file(path) {
                     Ok(_) => debug!("Ready file of killed process removed"),
-                    Err(e) => error!("Cannot remove ready file for killed process: {}", e.description()),
+                    Err(e) => error!(
+                        "Cannot remove ready file for killed process: {}",
+                        e.description()
+                    ),
                 }
             }
         }
@@ -74,7 +74,7 @@ impl Process {
         if let Some(exit_code) = self.child.try_wait()? {
             bail!(
                 "Process '{1}' terminated with exit code {0}; \
-                   process outputs can be found in {1}.{{out/err}}",
+                 process outputs can be found in {1}.{{out/err}}",
                 exit_code,
                 self.name
             );
