@@ -180,32 +180,14 @@ impl Logger for SQLiteLogger {
 }
 
 #[cfg(test)]
+
 mod tests {
     use super::*;
     use std::net::{IpAddr, Ipv4Addr};
+    use common::id::WorkerId;
 
     fn create_test_worker_id() -> WorkerId {
         WorkerId::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 9010)
-    }
-
-    fn create_test_client_id() -> ClientId {
-        ClientId::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 9010)
-    }
-
-    fn create_test_task_ids() -> Vec<TaskId> {
-        vec![TaskId::new(1, 1)]
-    }
-
-    fn create_test_task_id() -> TaskId {
-        TaskId::new(1, 1)
-    }
-
-    fn create_test_dataobj_ids() -> Vec<DataObjectId> {
-        vec![DataObjectId::new(1, 1)]
-    }
-
-    fn create_test_dataobj_id() -> DataObjectId {
-        DataObjectId::new(1, 1)
     }
 
     fn create_logger() -> SQLiteLogger {

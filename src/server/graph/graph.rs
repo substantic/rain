@@ -28,9 +28,8 @@ impl Graph {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::{ClientRef, DataObjectRef, Graph, SessionRef, TaskInput, TaskRef, WorkerRef};
-    use common::id::{ClientId, DataObjectId, SId, SessionId, TaskId, WorkerId};
+    use common::id::{DataObjectId, SId, TaskId};
     use common::resources::Resources;
     use common::attributes::Attributes;
 
@@ -41,9 +40,9 @@ mod tests {
         tasks: usize,
         objects: usize,
     ) -> Graph {
-        let mut g = Graph::new();
+        let g = Graph::new();
         for wi in 0..workers {
-            let w = WorkerRef::new(
+            WorkerRef::new(
                 format!("0.0.0.{}:67", wi + 1).parse().unwrap(),
                 None,
                 Resources { cpus: 8 },
@@ -77,7 +76,7 @@ mod tests {
                         }
                     }
                     let outputs = vec![objs[ti].clone()];
-                    let t = TaskRef::new(
+                    TaskRef::new(
                         &s,
                         TaskId::new(s.get_id(), (ti + objects) as i32),
                         inputs,
@@ -96,13 +95,13 @@ mod tests {
     #[test]
     #[ignore]
     fn graph_create_delete() {
-        let mut g = create_test_graph(4, 2, 3, 10, 20);
+        let g = create_test_graph(4, 2, 3, 10, 20);
 
         assert!(!g.objects.is_empty());
         assert!(!g.workers.is_empty());
 
-        let client_rcs: Vec<_> = g.clients.values().map(|x| x.clone()).collect();
-        let worker_rcs: Vec<_> = g.workers.values().map(|x| x.clone()).collect();
+        //let client_rcs: Vec<_> = g.clients.values().map(|x| x.clone()).collect();
+        //let worker_rcs: Vec<_> = g.workers.values().map(|x| x.clone()).collect();
 
         // FIXME!
         //for c in client_rcs { c.delete(&mut g); }

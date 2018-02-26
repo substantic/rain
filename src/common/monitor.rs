@@ -141,28 +141,25 @@ mod tests {
 
     #[test]
     fn test_mem_usage() {
-        let mut monitor = Monitor::new();
+        let monitor = Monitor::new();
         let mem_usage = monitor.get_mem_usage();
-        let mem_usage = 0;
-        assert!(mem_usage >= 0);
         assert!(mem_usage <= 100);
     }
 
     #[test]
     fn test_cpu_uasge() {
-        let mut monitor = Monitor::new();
+        let monitor = Monitor::new();
         let cpu_usage = monitor.get_cpu_usage(&(monitor.get_cpu_time()), Utc::now());
         for u in cpu_usage {
-            assert!(u >= 0);
             assert!(u <= 100)
         }
     }
 
     #[test]
     fn test_net_stat() {
-        let mut monitor = Monitor::new();
+        let monitor = Monitor::new();
         let net_stat = monitor.get_net_stat();
-        for (dev, bytes) in net_stat {
+        for (_dev, bytes) in net_stat {
             assert!(bytes.len() == 2);
         }
     }
