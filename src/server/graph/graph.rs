@@ -32,7 +32,6 @@ mod tests {
     use super::super::{ClientRef, DataObjectRef, Graph, SessionRef, TaskInput, TaskRef, WorkerRef};
     use common::id::{ClientId, DataObjectId, SId, SessionId, TaskId, WorkerId};
     use common::resources::Resources;
-    use common::keeppolicy;
     use common::attributes::Attributes;
 
     fn create_test_graph(

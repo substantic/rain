@@ -18,7 +18,6 @@ path = "src/bin.rs"
 
 [dependencies]
 error-chain="*"
-bitflags = "1.0.0"
 capnp = "*"
 capnp-rpc = "*"
 clap = "*"
