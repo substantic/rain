@@ -1,36 +1,57 @@
 Overview
 ********
 
-**Rain** is an open-source distributed computational framework written in Rust_
-and interfaced via Python_.
+**Rain** is an open-source distributed computational framework for large-scale
+ task-based pipelines.
 
-.. _Rust: https://www.rust-lang.org/en-US/
+Rain aims to lower the entry barrier to the world of distributed computing and
+to do so efficiently and within any scale. Our intention is to develop a light
+yet robust distributed framework that features an intuitive Python_ API,
+straightforward installation and deployment with insightful monitoring on top.
+
 .. _Python: https://www.python.org/
 
-Rain is a framework that aims to lower the entry barrier to the world of
-distributed computing. Our intention is to provide light yet robust distributed
-framework that features an intuitive Python API, simple installation, and
-straightforward deployment.
+.. note::
+
+  This is an early release of Rain that is already usable and quite efficient,
+  with a polished Python API, but there is still a lot that can be improved.
+
+  Most importantly, we are looking for external users and collaborators to drive
+  our future work, both enthusiasts, from the industry and the scientific
+  community. Talk to us online at TODO, let us know what your project needs and
+  use-cases, submit bugs or feature requests at GitHub_ or even contribute with
+  pull requests.
+
 
 * **Dataflow programming.** Computation in Rain is defined as a flow graph of
   tasks. Tasks may be build-in functions, Python code, or an external
-  applications. System is designed to integrate any code into a pipeline.
+  applications, short and light or long-running and heavy. The system is
+  designed to integrate any code into a pipeline, respecting its resource
+  requirements, and to handle very large task graphs (hundreds thousands tasks).
 
 * **Easy to use.** Rain was designed to be easy to deployed anywhere, ranging
-  from a single node deployments to large-scale distributed systems and clouds.
+  from a single node deployments to large-scale distributed systems and clouds
+  ranging thousands of cores.
 
-* **Python API.** Rain is shipped with high-level Python API to Rain core infrastructure.
-  Nevertheless, Rain core infrastructure provides language-indepedent
-  inteface, that does not prevent adding support for other languages in
-  the future.
+* **Rust core, Python API.** Rain is written in Rust_ for safety and efficiency
+  and has a high-level Python API to Rain core infrastructure, and even supports
+  Python tasks out-of-the-box. Nevertheless, Rain core infrastructure provides
+  language-indepedent inteface that does not prevent adding support for other
+  languages in the future.
 
+* **Monitoring** Rain is designed to support both online and postmortem
+  monitoring.
 
-:doc:`Get started now. </quickstart>`
+.. _Rust: https://www.rust-lang.org/en-US/
+.. _GitHub: https://github.com/substantic/rain
+
+** :doc:`Get started now. </quickstart>` **
+
 
 What is in the box
 ==================
 
-Rain infrastructure composes of central **server** component and **worker**
+Rain infrastructure composes of a central **server** component and **worker**
 components, that may run on different machines. A worker may spawn one or more
 **subworkers** that are local processes that provides execution of an external
 code. Rain is distributed with Python subworker. Workers communicate via

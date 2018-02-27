@@ -7,20 +7,39 @@ Rain API is a pure Python package with dependencies installable via pip.
 Binaries
 ========
 
-TODO
+Rain provides a binary distribution for Linux/x64. The binary is almost fully
+statically linked. The only dynamic dependancy is libc and sqlite3 (for logging
+purpose).
 
+Latest release can be found at https://github.com/substantic/rain/releases.
+It can be downloaded and unpacked as follows:
+
+::
+
+   $ wget https://github.com/substantic/rain/releases/download/nightly-YYYY-MM-DD/rain-YYYY-MM-DD-linux-x64.tar.xz
+   $ tar xvf rain-YYYY-MM-DD-linux-x64.tar.xz
+
+Installation of Python API::
+
+  pip3 install --force-reinstall https://github.com/substantic/rain/releases/download/nightly-YYYY-MM-DD/rain-0.1-py3-none-any.whl
 
 Build from sources
 ==================
 
 For building from sources, you need Rust and SQLite3 installed on your system.
 
-- `git clone https://github.com/substantic/rain`
-- `cd rain`
-- `cargo build --release`
+::
+
+  $ git clone https://github.com/substantic/rain
+  $ cd rain
+  $ cargo build --release
 
 After the installation, the final binary can be found ``rain/target/relase/rain``.
 
+Installation of Python API::
+
+  $ cd python
+  $ python setup.py install
 
 .. _start-rain:
 
