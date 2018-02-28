@@ -15,9 +15,9 @@ straightforward installation and deployment with insightful monitoring on top.
 
 > Most importantly, we are looking for external users and collaborators to drive
 > our future work, both enthusiasts, from the industry and the scientific
-> community. Talk to us online at TODO, let us know what your project needs and
-> use-cases, submit bugs or feature requests at GitHub_ or even contribute with
-pull requests.
+> community. Talk to us online at Gitter or via email and let us know what your
+> project needs and use-cases, submit bugs or feature requests at GitHub_ or
+> even contribute with pull requests.
 
 - **Dataflow programming.** Computation in Rain is defined as a flow graph of
   tasks. Tasks may be build-in functions, Python code, or an external
@@ -38,6 +38,11 @@ pull requests.
 - **Monitoring** Rain is designed to support both online and postmortem
   monitoring.
 
+# Documentation
+
+* [Documentation](http://rain.readthedocs.io)
+
+
 # Quick start
 
 * Download binary
@@ -47,16 +52,16 @@ pull requests.
    $ tar xvf rain-v0.1.0-linux-x64.tar.xz
 ```
 
-* Start server & a single local worker
-
-```
-$ ./rain-v0.1.0-linux-x86/rain start --simple
-```
-
 * Install Python API
 
 ```
   $ pip3 install https://github.com/substantic/rain/releases/download/v0.1.0/rain-0.1.0-py3-none-any.whl
+```
+
+* Start server & a single local worker
+
+```
+$ ./rain-v0.1.0-linux-x86/rain start --simple
 ```
 
 * Rain "Hello world" in Python

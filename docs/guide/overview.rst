@@ -18,9 +18,9 @@ straightforward installation and deployment with insightful monitoring on top.
 
   Most importantly, we are looking for external users and collaborators to drive
   our future work, both enthusiasts, from the industry and the scientific
-  community. Talk to us online at TODO, let us know what your project needs and
-  use-cases, submit bugs or feature requests at GitHub_ or even contribute with
-  pull requests.
+  community. Talk to us online at Gitter_ or via email and let us know what your
+  project needs and use-cases, submit bugs or feature requests at GitHub_ or
+  even contribute with pull requests.
 
 
 * **Dataflow programming.** Computation in Rain is defined as a flow graph of
@@ -44,6 +44,7 @@ straightforward installation and deployment with insightful monitoring on top.
 
 .. _Rust: https://www.rust-lang.org/en-US/
 .. _GitHub: https://github.com/substantic/rain
+.. _Gitter: https://gitter.im/substantic/rain
 
 ** :doc:`Get started now. </quickstart>` **
 
