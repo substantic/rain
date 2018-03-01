@@ -818,7 +818,12 @@ impl State {
         );
         worker.check_consistency_opt().unwrap(); // non-recoverable
 
+        let mut ignore_check_again = false;
+
         for (tref, state, attributes) in task_updates {
+            if ignore_check_again && self.is_task_ignored(&tref.get().id()) {
+                continue;
+            }
             // inform the scheduler
             self.updates.tasks.insert(tref.clone());
             // set the state and possibly propagate
@@ -872,6 +877,7 @@ impl State {
                         warn!("Cannot decode error message");
                         "Cannot decode error message".to_string()
                     });
+                    ignore_check_again = true;
                     self.underload_workers.insert(worker.clone());
                     tref.get_mut().state = state;
                     tref.get_mut().attributes = attributes;
