@@ -4,22 +4,21 @@
 
 # Rain
 
-**Rain** is an open-source distributed computational framework for large-scale
-task-based pipelines.
+**Rain** is an open-source distributed computational framework for processing
+of large-scale task-based pipelines.
 
-Rain aims to lower the entry barrier to the world of distributed computing and
-to do so efficiently and within any scale. Our intention is to develop a light
-yet robust distributed framework that features an intuitive Python_ API,
-straightforward installation and deployment with insightful monitoring on top.
+Rain aims to lower the entry barrier to the world of distributed computing. Our
+intention is to provide a light yet robust distributed framework that features
+an intuitive Python API, straightforward installation and deployment with
+insightful monitoring on top.
 
-> This is an early release of Rain that is already usable and quite efficient,
-> with a polished Python API, but there is still a lot that can be improved.
-
-> Most importantly, we are looking for external users and collaborators to drive
-> our future work, both enthusiasts, from the industry and the scientific
-> community. Talk to us online at Gitter or via email and let us know what your
-> project needs and use-cases, submit bugs or feature requests at GitHub_ or
-> even contribute with pull requests.
+> Despite that this is an early release of Rain, it is a fully functional
+> project that can be used out-of-the box. Being aware that there is still
+> a lot that can be improved and added, we are looking for external
+> users and collaborators to drive our future work, both enthusiasts, from the
+> industry and the scientific community. Talk to us online at Gitter or via email
+> and let us know what your project needs and use-cases, submit bugs or feature
+> requests at GitHub or even contribute with pull requests.
 
 - **Dataflow programming.** Computation in Rain is defined as a flow graph of
   tasks. Tasks may be build-in functions, Python code, or an external

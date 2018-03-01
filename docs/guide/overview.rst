@@ -12,15 +12,13 @@ straightforward installation and deployment with insightful monitoring on top.
 .. _Python: https://www.python.org/
 
 .. note::
-
-  This is an early release of Rain that is already usable and quite efficient,
-  with a polished Python API, but there is still a lot that can be improved.
-
-  Most importantly, we are looking for external users and collaborators to drive
-  our future work, both enthusiasts, from the industry and the scientific
-  community. Talk to us online at Gitter_ or via email and let us know what your
-  project needs and use-cases, submit bugs or feature requests at GitHub_ or
-  even contribute with pull requests.
+  Despite that this is an early release of Rain, it is a fully functional
+  project that can be used out-of-the box. Being aware that there is still
+  a lot that can be improved and added, we are looking for external
+  users and collaborators to drive our future work, both enthusiasts, from the
+  industry and the scientific community. Talk to us online at Gitter_ or via email
+  and let us know what your project needs and use-cases, submit bugs or feature
+  requests at GitHub_ or even contribute with pull requests.
 
 
 * **Dataflow programming.** Computation in Rain is defined as a flow graph of

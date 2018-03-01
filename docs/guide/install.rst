@@ -1,14 +1,14 @@
-Installation & Running & Deployment
-***********************************
+Installation, Running & Deployment
+**********************************
 
-Rain Distributed Execution Framework consists of all-in-one statically-linked binary.
-Rain API is a pure Python package with dependencies installable via pip.
+Rain Distributed Execution Framework consists is an all-in-one binary.
+Rain API is a pure Python package with a set of dependencies installable via pip.
 
 Binaries
 ========
 
 Rain provides a binary distribution for Linux/x64. The binary is almost fully
-statically linked. The only dynamic dependancy is libc and sqlite3 (for logging
+statically linked. The only dynamic dependancies are libc and sqlite3 (for logging
 purpose).
 
 Latest release can be found at https://github.com/substantic/rain/releases.
