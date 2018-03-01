@@ -21,8 +21,11 @@ It can be downloaded and unpacked as follows:
 
 Installation of Python API::
 
-  $ pip3 install https://github.com/substantic/rain/releases/download/v0.1.0/rain-0.1.0-py3-none-any.whl
+  $ git clone https://github.com/substantic/rain.git
+  $ cd ./rain/python
+  $ python3 setup.py install
 
+We do not provide .whl nor .egg Python package at the moment.
 
 Build from sources
 ==================
