@@ -50,7 +50,7 @@ class Program:
             elif isinstance(a, Output):
                 if a.label is None:
                     a.label = "arg{}".format(i)
-                self.args.append(Input._for_program(a))
+                self.args.append(Output._for_program(a))
             else:
                 raise TypeError("Can't use {!r} in program argument list."
                                 .format(a))
