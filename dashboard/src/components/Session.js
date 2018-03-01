@@ -29,8 +29,6 @@ class Session extends Component {
         ]
       }
     }
-
-    this.unprocessed = ["# of unprocessed tasks"]
     this.time = ["x"]
     this.do_effect = false;
 
@@ -45,9 +43,9 @@ class Session extends Component {
         this.processTaskFinished(event);
         this.changeUnprocessed(event.time, -1);
       }
-      if (event.event.type === "NewSession") {
-        this.unprocessed.columns[1].push(0);
-        this.unprocessed.columns[0].push(parse_date(event.time));
+      if (event.event.type === "SessionNew") {
+        this.state.unprocessed.columns[1].push(0);
+        this.state.unprocessed.columns[0].push(parse_date(event.time));
       }
 
     }, error => {
@@ -58,8 +56,9 @@ class Session extends Component {
   }
 
   changeUnprocessed(time, change) {
-    this.state.unprocessed.columns[1].push(this.unprocessed[this.unprocessed.length - 1] + change);
-    this.state.unprocessed.columns[0].push(parse_date(time));
+    let u = this.state.unprocessed;
+    u.columns[1].push(u.columns[1][u.columns[1].length - 1] + change);
+    u.columns[0].push(parse_date(time));
   }
 
   componentWillUnmount() {
