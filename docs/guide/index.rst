@@ -8,11 +8,12 @@ Welcome to Rain's documentation!
 
 .. toctree::
    :maxdepth: 2
-   
+
    overview
    quickstart
    user
    install
+   examples
    python_api
    dev
 

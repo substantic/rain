@@ -1,8 +1,10 @@
 [![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-![Rain Logo](docs/imgs/logo.svg?sanitize=true)
 
 # Rain
+
+<img style="vertical-align: center; padding: 2em; width: 320px;" src="docs/imgs/logo.svg?sanitize=true">
+
 
 **Rain** is an open-source distributed computational framework for processing
 of large-scale task-based pipelines.
@@ -37,7 +39,7 @@ insightful monitoring on top.
   languages in the future.
 
 - **Monitoring** Rain is designed to support both online and postmortem
-  monitoring.
+  monitoring. ![Dashboard screencast](docs/imgs/rain-dashboard.gif)
 
 # Documentation
 

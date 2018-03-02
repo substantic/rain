@@ -312,7 +312,7 @@ output of :func:`rain.cient.tasks.execute`. The following example calls program
 
   with client.new_session() as session:
       t = tasks.execute("wget https://github.com/",
-                         outputs=[Output("index", path="index.html")])
+                         output_files=[Output("index", path="index.html")])
       t.output.keep()
 
       session.submit()
@@ -331,7 +331,7 @@ If we do not want to configure the output, it is possible to use just string
 instead of instance of ``Output``. It creates the output with the same label and
 path as the given string. Therefore we can create the task as follows::
 
-  t = tasks.execute("wget https://github.com/", outputs=["index.html"])
+  t = tasks.execute("wget https://github.com/", output_files=["index.html"])
 
 The only difference is that label of the output is now "index.html" (not
 "index").
@@ -340,7 +340,7 @@ Of course, more than one output may be specified. Program ``wget`` allows
 redirect its log to a file through ``--output-file`` option::
 
   t = tasks.execute("wget https://github.com/ --output-file log",
-                    outputs=["index.html", "log"])
+                    outputs_files=["index.html", "log"])
 
 This creates a task with two outputs with labels "index.html" and "log". The outputs
 are available using standard syntax, e.g. ``t.outputs["log"]``.
@@ -350,7 +350,7 @@ passing the output path as an argument. The example above can be written as
 follows::
 
   t = tasks.execute(["wget", "https://github.com/", "--output-file", Output("log")],
-                    outputs=["index.html"])
+                    output_files=["index.html"])
 
 The argument ``stdout`` allows to use program's standard output::
 
@@ -403,13 +403,13 @@ For additional settings and file name control, there is
     task = tasks.execute(["a-program", "argument1",
                           Input("my_label", path="myfile", dataobj=my_data)])
 
-The argument ``inputs`` of :func:`rain.client.tasks.execute` serves to map a
+The argument ``input_files`` of :func:`rain.client.tasks.execute` serves to map a
 data object into file without putting filename into program arguments::
 
   # It executes a program "a-program" with arguments "argument1"
   # and while it maps dataobject in variable 'data' into file 'myfile'
   tasks.execute(["a-program", "argument1"],
-                inputs=[Input("my_label", path="myfile", dataobj=my_data)])
+                input_files=[Input("my_label", path="myfile", dataobj=my_data)])
 
 The argument ``stdin`` serves to map a data object on the standard input of the
 program::
@@ -443,10 +443,11 @@ active session.
       # 'data' is mapped into <FILE>
       task = rain_grep(my_input=data)
 
-``Program`` accepts the same arguments as ``execute``,
-including ``inputs``, ``outputs``, ``stdin``, and ``stdout``. The only difference
-is that ``Input`` used for ``Program`` cannot use ``dataobj`` argument,
-since ``Program`` defines "pattern" indepedently on a particular session.
+``Program`` accepts the same arguments as ``execute``, including
+``input_files``, ``output_files``, ``stdin``, and ``stdout``. The only
+difference is that ``Input`` used for ``Program`` cannot use ``dataobj``
+argument, since ``Program`` defines "pattern" indepedently on a particular
+session.
 
 
 Python tasks
