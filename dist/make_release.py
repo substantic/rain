@@ -116,6 +116,8 @@ def main():
 
     os.chdir(os.path.join(RAIN_ROOT, "python"))
     shutil.rmtree("dist")  # Remove dist in python dir (create by setup.py)
+    shutil.rmtree("rain.egg-info")
+    shutil.rmtree("build")
     subprocess.check_call(("python3", "setup.py", "bdist_wheel"), env=dist_env)
     dist_files = list(os.listdir("dist"))
     assert len(dist_files) == 1

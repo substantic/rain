@@ -16,7 +16,4 @@ def remove_dir_content(path):
 def load_capnp(filename):
     src_dir = os.path.dirname(__file__)
     capnp.remove_import_hook()
-    try:
-        return capnp.load(os.path.join(src_dir, "../../../capnp", filename))
-    except OSError:
-        return capnp.load(os.path.join(src_dir, "../../capnp", filename))
+    return capnp.load(os.path.join(src_dir, "../capnp", filename))
