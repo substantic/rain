@@ -1,10 +1,13 @@
+
+<div align="center">
+<img style="width: 250px;" src="docs/imgs/logo.svg?sanitize=true">
+</div>
+
+-----------------
+
 [![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-
 # Rain
-
-<img style="vertical-align: center; padding: 2em; width: 320px;" src="docs/imgs/logo.svg?sanitize=true">
-
 
 **Rain** is an open-source distributed computational framework for processing
 of large-scale task-based pipelines.
