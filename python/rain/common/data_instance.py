@@ -102,6 +102,12 @@ class DataInstance:
             self._load_cache = obj
         return obj
 
+    def get_str(self):
+        """
+        Shortcut for get_bytes().decode()
+        """
+        return self.get_bytes().decode()
+
     def get_bytes(self):
         """
         Return the data as `bytes`. May read them from the disk.

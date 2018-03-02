@@ -154,6 +154,11 @@ class Session:
         self._id_counter += 1
         return ID(session_id=self.session_id, id=self._id_counter)
 
+    def keep_all(self):
+        """Set keep flag for all unsubmitted objects"""
+        for dataobj in self._dataobjs:
+            dataobj.keep()
+
     def submit(self):
         """"Submit all unsubmitted objects."""
         self.client._submit(self._tasks, self._dataobjs)
