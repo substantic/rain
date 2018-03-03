@@ -5,7 +5,8 @@
 
 -----------------
 
-[![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Documentation Status](http://readthedocs.org/projects/rain/badge/?version=latest)](http://rain.readthedocs.io/en/latest/?badge=latest)
+
 
 # Rain
 
