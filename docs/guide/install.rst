@@ -26,9 +26,20 @@ $ pip3 install https://github.com/substantic/rain/releases/download/v0.1.0/rain-
 Build from sources
 ==================
 
-For building from sources, you need Rust and SQLite3 installed on your system.
+For building from sources, you need Rust and SQLite3 (for logging) and Capnp
+compiler (for compiling protocol files) installed on your system.
 
 ::
+
+  # Example for installation of dependencies on Ubuntu
+
+  # Installation of latest Rust
+  $ curl https://sh.rustup.rs -sSf | sh
+
+  # Other dependencies
+  $ sudo apt-get install capnproto libsqlite3-dev
+
+For building Rain, run the following commands::
 
   $ git clone https://github.com/substantic/rain
   $ cd rain
