@@ -35,7 +35,7 @@ insightful monitoring on top.
   from a single node deployments to large-scale distributed systems and clouds
   ranging thousands of cores.
 
-- **Rust core, Python API.** Rain is written in Rust_ for safety and efficiency
+- **Rust core, Python API.** Rain is written in Rust for safety and efficiency
   and has a high-level Python API to Rain core infrastructure, and even supports
   Python tasks out-of-the-box. Nevertheless, Rain core infrastructure provides
   language-indepedent inteface that does not prevent adding support for other
