@@ -21,10 +21,12 @@ insightful monitoring on top.
 > Despite that this is an early release of Rain, it is a fully functional
 > project that can be used out-of-the box. Being aware that there is still
 > a lot that can be improved and added, we are looking for external
-> users and collaborators to drive our future work, both enthusiasts, from the
-> industry and the scientific community. Talk to us online at Gitter or via email
-> and let us know what your project needs and use-cases, submit bugs or feature
+> users and collaborators to help to move this work forward.
+> Talk to us online at Gitter or via email and let us know what your
+> projects and use-cases need, submit bugs or feature
 > requests at GitHub or even contribute with pull requests.
+
+## Features
 
 - **Dataflow programming.** Computation in Rain is defined as a flow graph of
   tasks. Tasks may be build-in functions, Python code, or an external
@@ -43,14 +45,15 @@ insightful monitoring on top.
   languages in the future.
 
 - **Monitoring** Rain is designed to support both online and postmortem
-  monitoring. ![Dashboard screencast](docs/imgs/rain-dashboard.gif)
+  monitoring.
 
-# Documentation
+  ![Dashboard screencast](docs/imgs/rain-dashboard.gif)
+
+## Documentation
 
 * [Documentation](http://rain.readthedocs.io)
 
-
-# Quick start
+## Quick start
 
 * Download binary
 
@@ -85,3 +88,5 @@ with client.new_session() as session:
     result = task.outout.fetch().get_bytes()
     print(result)
 ```
+
+[Read the docs](http://rain.readthedocs.io/en/latest/examples.html) for more examples.
