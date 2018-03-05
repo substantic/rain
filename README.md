@@ -5,7 +5,7 @@
 
 -----------------
 
-[![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Documentation Status](http://readthedocs.org/projects/rain/badge/?version=latest)](http://rain.readthedocs.io/en/latest/?badge=latest)
+[![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Documentation Status](http://readthedocs.org/projects/rain/badge/?version=latest)](http://rain.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.org/substantic/rain.svg?branch=master)](https://travis-ci.org/substantic/rain)
 
 
 # Rain
@@ -44,7 +44,7 @@ insightful monitoring on top.
   language-indepedent inteface that does not prevent adding support for other
   languages in the future.
 
-- **Monitoring** Rain is designed to support both online and postmortem
+- **Monitoring.** Rain is designed to support both online and postmortem
   monitoring.
 
   ![Dashboard screencast](docs/imgs/rain-dashboard.gif)

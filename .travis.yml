@@ -1,0 +1,6 @@
+services:
+  - docker
+before_install:
+  - docker build . -t rain
+script:
+  - docker run -e RAIN_TEST_BIN=/rain/target/release/rain rain pytest -x -v --timeout=300

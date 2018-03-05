@@ -10,3 +10,4 @@ guide-build
 !.flake8
 dashboard/build
 dashboard/node_modules
+!.travis.yml
