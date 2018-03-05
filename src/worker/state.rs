@@ -319,8 +319,9 @@ impl State {
                             .select(kill_switch)
                             .map_err(|(e, _)| e)
                             .map(|_| {
-                                error!("Subworker error");
-                                panic!("Subworker error!")
+                                // Process was terminated. We do not handle error here, since
+                                // it is handled when connection (not process) is terminated
+                                debug!("Subworker process terminated");
                             }),
                     );
                     Ok(Box::new(
