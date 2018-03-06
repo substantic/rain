@@ -41,7 +41,7 @@ Dashboard
 Rain Dashboard is implement in JavaScript over NodeJs. However, we do not want
 to have Node.js as a hard dependency when Rain is built from sources. Therefore,
 compiled form of Dashboard is included into Rain git repository. Neverthless, if
-you want to work on Dashboard, you need to Node.js.
+you want to work on Dashboard, you need to install Node.js.
 
 Installation::
 
