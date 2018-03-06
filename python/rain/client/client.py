@@ -14,7 +14,10 @@ def check_result(result):
     if result.which() == "ok":
         return  # Do nothing
     elif result.which() == "error":
-        raise RainException(result.error.message)
+        message = result.error.message
+        if result.error.debug:
+            message += "\nDebug:\n" + result.error.debug
+        raise RainException(message)
     else:
         raise Exception("Invalid result")
 

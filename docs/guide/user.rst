@@ -635,6 +635,31 @@ configured via ``outputs`` attribute of remote::
         return ([1, 2, 3], {"x": 123})
 
 
+Debug stream
+------------
+
+Method ``debug`` on the context allows to write messages into debug stream that
+can be found in task attribute "debug" and it is also part of an error message
+when the task fails.
+
+::
+
+    @remote()
+    def remote_fn(ctx):
+        a = 11
+        b = a + 10
+        ctx.debug("Variable a = {}", a)
+        ctx.debug("Variable b = {}", b)
+        raise Exception("Error occured!")
+
+    # When this task is executed, you get the following error message:
+    #
+    # Exception: Error occured!
+    #
+    # Debug:
+    # Variable a = 11
+    # Variable b = 21
+
 
 Type hints
 ----------

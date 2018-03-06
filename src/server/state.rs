@@ -226,7 +226,14 @@ impl State {
 
     /// Put the session into a failed state, removing all tasks and objects,
     /// cancelling all finish_hooks.
-    pub fn fail_session(&mut self, session: &SessionRef, cause: String) -> Result<()> {
+    /// Debug message string is propagated together with error message
+    /// it usually comes from task debug string
+    pub fn fail_session(
+        &mut self,
+        session: &SessionRef,
+        cause: String,
+        debug: Option<String>,
+    ) -> Result<()> {
         debug!(
             "Failing session {} of client {} with cause {:?}",
             session.get_id(),
@@ -234,7 +241,7 @@ impl State {
             cause
         );
         assert!(session.get_mut().error.is_none());
-        session.get_mut().error = Some(SessionError::new(cause));
+        session.get_mut().error = Some(SessionError::new(cause, debug));
         // Remove all tasks + objects (with their finish hooks)
         self.clear_session(session)
     }
@@ -877,13 +884,19 @@ impl State {
                         warn!("Cannot decode error message");
                         "Cannot decode error message".to_string()
                     });
+
+                    let debug_message: Option<String> = attributes
+                        .find("debug")
+                        .unwrap_or_else(|_| Some("Invalid value in 'debug' attribute".to_string()));
+
                     ignore_check_again = true;
                     self.underload_workers.insert(worker.clone());
                     tref.get_mut().state = state;
                     tref.get_mut().attributes = attributes;
                     let session = tref.get().session.clone();
                     let error_message = format!("Task {} failed: {}", tref.get().id, error_message);
-                    self.fail_session(&session, error_message.clone()).unwrap();
+                    self.fail_session(&session, error_message.clone(), debug_message)
+                        .unwrap();
                     self.logger.add_task_failed_event(
                         tref.get().id,
                         worker.get_id(),

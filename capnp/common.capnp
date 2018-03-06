@@ -66,6 +66,7 @@ struct Resources {
 
 struct Error {
     message @0 :Text;
+    debug @1: Text;
 }
 
 struct UnitResult {

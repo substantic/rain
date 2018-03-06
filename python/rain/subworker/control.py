@@ -17,6 +17,8 @@ def load_worker_object(reader, cache):
 
 
 def write_attributes(context, builder):
+    if context._debug_messages:
+        context.attributes["debug"] = "\n".join(context._debug_messages)
     attributes_to_capnp(context.attributes, builder)
 
 

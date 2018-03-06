@@ -155,15 +155,19 @@ impl fmt::Debug for SessionRef {
 #[derive(Debug, Clone)]
 pub struct SessionError {
     message: String,
+    debug: Option<String>,
 }
 
 impl SessionError {
-    pub fn new(message: String) -> Self {
-        SessionError { message }
+    pub fn new(message: String, debug: Option<String>) -> Self {
+        SessionError { message, debug }
     }
 
     pub fn to_capnp(&self, builder: &mut ::common_capnp::error::Builder) {
         builder.borrow().set_message(&self.message);
+        if let Some(ref m) = self.debug {
+            builder.borrow().set_debug(&m);
+        }
     }
 }
 

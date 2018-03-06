@@ -56,10 +56,14 @@ class Context:
     def pickled(self, obj, content_type="pickle"):
         return self.blob(obj, encode="pickle")
 
-    def debug(self, message):
+    def debug(self, message, *args, **kw):
+        """ Add a message to debug stream that is returned as task attribute "debug".
+            *args and **kw is used to call .format(*args, **kw) on 'message'.
+            Server prints "debug" attribute when task fails, but it can be also
+            accessed as normal attribute """
         if not isinstance(message, str):
-            raise Exception("Method 'debug' accepts only strings")
-        self._debug_messages.append(message)
+            raise Exception("First argument has to be a string")
+        self._debug_messages.append(message.format(*args, **kw))
 
     def _cleanup(self, results):
         for result in results:

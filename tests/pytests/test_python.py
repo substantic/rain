@@ -573,3 +573,22 @@ def test_python_cpus(test_env):
         sleep()
         s.submit()
         test_env.assert_duration(0.9, 1.5, lambda: s.wait_all())
+
+
+def test_debug_message(test_env):
+
+    @remote()
+    def remote_fn(ctx):
+        a = 11
+        ctx.debug("This is first message")
+        ctx.debug("This is second message and variable a = {}", a)
+        return b""
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        t = remote_fn()
+        s.submit()
+        t.wait()
+        t.update()
+        assert t.attributes["debug"] == \
+            "This is first message\nThis is second message and variable a = 11"
