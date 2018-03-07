@@ -156,7 +156,7 @@ def main():
     repo = g.repository("substantic", "rain")
 
     release = repo.create_release(
-        info.tag_name, info.git_commit, info.release_name, info.description,
+        info.tag_name, "master", info.release_name, info.description,
         prerelease=info.prerelease)
     with open(tarball_path, "rb") as f:
         release.upload_asset("application/x-xz", tarball, f.read())
