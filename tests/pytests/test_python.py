@@ -36,6 +36,7 @@ def test_remote_more_bytes_outputs(test_env):
         assert b"One" == t1.outputs["x1"].fetch().get_bytes()
         assert b"Two" == t1.outputs["x2"].fetch().get_bytes()
 
+
 def test_python_cache(test_env):
 
     @remote()
@@ -55,11 +56,11 @@ def test_python_cache(test_env):
         s.submit()
         rs1 = list(set(r.output.fetch().get_bytes() for r in r1))
         rs2 = list(set(r.output.fetch().get_bytes() for r in r2))
-        #s.wait_all()
         assert len(rs1) == 1
         assert rs1[0].startswith(b"f1:")
         assert len(rs2) == 1
         assert rs2[0].startswith(b"f2:")
+
 
 def test_remote_exception(test_env):
 
