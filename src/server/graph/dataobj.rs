@@ -277,7 +277,8 @@ impl ConsistencyCheck for DataObjectRef {
             DataObjectState::Removed => {
                 s.located.is_empty() && s.scheduled.is_empty() && s.assigned.is_empty()
                     && s.finish_hooks.is_empty()
-            } /* &&  Why this?? s.size.is_some()*/ /* This is not true when session failed && s.data.is_none()*/
+            } /* &&  Why this?? s.size.is_some()*/
+              /* This is not true when session failed && s.data.is_none()*/
         } {
             bail!("state inconsistency in {:?}", s);
         }

@@ -16,11 +16,13 @@ def load_cargo_version():
                 return m.groups()[0]
     raise Exception("Cannot determine version")
 
+
 def load_version():
     if "RAIN_VERSION" in os.environ and os.environ["RAIN_VERSION"]:
         return os.environ["RAIN_VERSION"]
     else:
         return load_cargo_version()
+
 
 with open('requirements.txt') as reqs:
     requirements = [line for line in reqs.read().split('\n') if line]

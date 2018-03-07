@@ -652,7 +652,8 @@ impl State {
                     .map(move |stream| {
                         debug!("Connection to worker {} established", worker_id);
                         let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
-                        let datastore: ::datastore_capnp::data_store::Client = rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
+                        let datastore: ::datastore_capnp::data_store::Client = rpc_system.bootstrap(
+                            rpc_twoparty_capnp::Side::Server);
                         let mut s = state.get_mut();
                         {
                             let wrapper = s.datastores.get_mut(&worker_id).unwrap();
@@ -868,7 +869,8 @@ impl StateRef {
         // --- Start listening TCP/IP for worker2worker communications ----
         let listener = TcpListener::bind(&listen_address, &handle).unwrap();
         let port = listener.local_addr().unwrap().port();
-        listen_address.set_port(port); // Since listen port may be 0, we need to update the real port
+        // Since listen port may be 0, we need to update the real port
+        listen_address.set_port(port);
         info!("Start listening on port={}", port);
 
         let state = self.clone();
