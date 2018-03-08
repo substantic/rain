@@ -1,14 +1,9 @@
-
-<div align="center">
-<img style="width: 250px;" src="docs/imgs/logo.svg?sanitize=true">
-</div>
-
------------------
-
 [![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Documentation Status](http://readthedocs.org/projects/rain/badge/?version=latest)](http://rain.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.org/substantic/rain.svg?branch=master)](https://travis-ci.org/substantic/rain)
 
 
 # Rain
+
+<img align="right" style="width: 30%" src="docs/imgs/logo.svg?sanitize=true">
 
 **Rain** is an open-source distributed computational framework for processing
 of large-scale task-based pipelines.
@@ -49,9 +44,12 @@ insightful monitoring on top.
 
   ![Dashboard screencast](docs/imgs/rain-dashboard.gif)
 
-## Documentation
+## [Documentation](http://rain.readthedocs.io/)
 
-* [Documentation](http://rain.readthedocs.io)
+* [Quickstart](http://rain.readthedocs.io/en/latest/quickstart.html)
+* [User guide](http://rain.readthedocs.io/en/latest/user.html)
+* [Examples](http://rain.readthedocs.io/en/latest/examples.html)
+* [Python API](http://rain.readthedocs.io/en/latest/python_api.html)
 
 ## Quick start
 
