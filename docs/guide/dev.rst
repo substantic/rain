@@ -6,6 +6,15 @@ We welcome contributions of any kind. Do not hesitate to open an GitHub issue or
 contant us via email; this part of documentation is quite sparse.
 
 
+Scripts
+=======
+
+* `utils/stylecheck.sh` -- Runs code style checks (flake8 & dry cargo fmt)
+* `utils/fullcheck.sh` -- Runs stylecheck.sh + all available tests
+* `dist/make_release.sh` -- Compiles release binary of Rain, creates Python package and
+  publish release on GitHub
+
+
 Testing
 =======
 
@@ -40,10 +49,15 @@ Dashboard
 
 Rain Dashboard is implement in JavaScript over NodeJs. However, we do not want
 to have Node.js as a hard dependency when Rain is built from sources. Therefore,
-compiled form of Dashboard is included into Rain git repository. Neverthless, if
+compiled form of Dashboard is included in Rain git repository. Neverthless, if
 you want to work on Dashboard, you need to install Node.js.
 
-Installation::
+Installation
+------------
+
+(We assume that you have already installed Node.js.)
+
+::
 
   cd dashboard
   npm install
@@ -60,18 +74,18 @@ It starts on Rain dashboard on port 3000. Now you can just edit dashboard
 sources, **without** recompiling Rain binary. Dashboard in the development mode
 assumes, that http rain server is running at localhost:8080. If you need, you
 can change the address in ``dashboard/src/utils/fetch.js``, but do not commit
-this change.
+this change, please.
 
 
 Deployment
 ----------
 
 All Dashboard resources (including JS source codes) are included into Rain
-binary. Rain compiles files in ``dashboard/dist`` into its binary. To generate
-``dist`` directory from actual sources, you need to run::
+binary. When Rain is compiled, files in ``dashboard/dist`` are read. To generate
+``dist`` directory from actual dashboard sources, you need to run::
 
   cd dashboard
   sh make_dist.sh
 
-And then rebuild Rain (e.g. ``cargo build``). When you finish work on dashboard,
-do not forget to include files in ``dist``.
+Then you need rebuild Rain (e.g. ``cargo build``). When you finish work on
+dashboard, do not forget to include files in ``dist`` into repository.
