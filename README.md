@@ -3,7 +3,7 @@
 
 # Rain
 
-<img align="right" style="width: 30%" src="docs/imgs/logo.svg?sanitize=true">
+<img align="right" width="35%" src="docs/imgs/logo.svg?sanitize=true">
 
 **Rain** is an open-source distributed computational framework for processing
 of large-scale task-based pipelines.
@@ -44,12 +44,9 @@ insightful monitoring on top.
 
   ![Dashboard screencast](docs/imgs/rain-dashboard.gif)
 
-## [Documentation](http://rain.readthedocs.io/)
+## Documentation
 
-* [Quickstart](http://rain.readthedocs.io/en/latest/quickstart.html)
-* [User guide](http://rain.readthedocs.io/en/latest/user.html)
-* [Examples](http://rain.readthedocs.io/en/latest/examples.html)
-* [Python API](http://rain.readthedocs.io/en/latest/python_api.html)
+[Overview](http://rain.readthedocs.io/en/latest/overview.html) &bull; [Quickstart](http://rain.readthedocs.io/en/latest/quickstart.html) &bull; [User guide](http://rain.readthedocs.io/en/latest/user.html) &bull; [Python API](http://rain.readthedocs.io/en/latest/python_api.html) &bull; [Examples](http://rain.readthedocs.io/en/latest/examples.html)
 
 ## Quick start
 
