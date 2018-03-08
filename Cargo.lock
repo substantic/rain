@@ -514,6 +514,7 @@ name = "rain"
 version = "0.1.0"
 dependencies = [
  "arrayref 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "atty 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytes 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "capnp 0.8.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "capnp-rpc 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",

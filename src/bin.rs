@@ -1,3 +1,5 @@
+extern crate atty;
+extern crate chrono;
 #[macro_use]
 extern crate clap;
 extern crate env_logger;
@@ -18,6 +20,7 @@ use std::error::Error;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use std::io::Write;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use nix::unistd::getpid;
@@ -332,17 +335,52 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 }
 
-fn main() {
+fn init_log() {
     // T    emporary simple logger for better module log control, default level is INFO
     // TODO: replace with Fern or log4rs later
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");
     }
-    env_logger::init();
+    if ::atty::is(::atty::Stream::Stdout) {
+        ::env_logger::Builder::new()
+            .format(|buf, record| {
+                use env_logger::Color;
+                use log::Level;
 
-    // We do not use clap macro to built argument,
+                let ts = buf.timestamp();
+                let level = record.level();
+                let mut level_style = buf.style();
+
+                match level {
+                    Level::Trace => level_style.set_color(Color::White),
+                    Level::Debug => level_style.set_color(Color::Blue),
+                    Level::Info => level_style.set_color(Color::Green),
+                    Level::Warn => level_style.set_color(Color::Yellow),
+                    Level::Error => level_style.set_color(Color::Red).set_bold(true),
+                };
+                let mut cloud_style = buf.style();
+                cloud_style.set_color(Color::Blue);
+                writeln!(
+                    buf,
+                    "{} {:>5} {} {}",
+                    cloud_style.value("\u{1F327}"),
+                    level_style.value(level),
+                    ts,
+                    record.args()
+                )
+            })
+            .parse(&::std::env::var("RUST_LOG").unwrap_or("info".into()))
+            .init();
+    } else {
+        ::env_logger::init();
+    }
+}
+
+fn main() {
+    init_log();
+
+    // We do not use clap macro to build parser,
     // since it cannot handle "-" in name of long arguments
-
     let args = App::new("Rain")
         .version(VERSION)
         .about("Task-based workflow manager and executor")

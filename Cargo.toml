@@ -17,6 +17,7 @@ name = "rain"
 path = "src/bin.rs"
 
 [dependencies]
+atty="*"
 error-chain="*"
 capnp = "*"
 capnp-rpc = "*"
