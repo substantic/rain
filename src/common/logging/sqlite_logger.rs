@@ -6,7 +6,7 @@ use futures::sync::{mpsc, oneshot};
 use futures::Stream;
 use futures::Future;
 use errors::{Error, Result};
-use common::logger::logger::QueryEvents;
+use common::logging::logger::QueryEvents;
 use super::logger::{Logger, SearchCriteria};
 
 use serde_json;

@@ -34,7 +34,7 @@ pub mod common;
 pub mod worker;
 pub mod server;
 
-pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const WORKER_PROTOCOL_VERSION: i32 = 0;
 pub const CLIENT_PROTOCOL_VERSION: i32 = 0;
 pub const SUBWORKER_PROTOCOL_VERSION: i32 = 0;

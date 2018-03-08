@@ -25,8 +25,8 @@ use hyper::server::Http;
 use server::http::RequestHandler;
 use server::testmode;
 
-use common::logger::logger::Logger;
-use common::logger::sqlite_logger::SQLiteLogger;
+use common::logging::logger::Logger;
+use common::logging::sqlite_logger::SQLiteLogger;
 
 const LOGGING_INTERVAL: u64 = 1; // Logging interval in seconds
 
@@ -386,9 +386,9 @@ impl State {
             None => {
                 let session = self.session_by_id(id.get_session_id())?;
                 if session.get().is_failed() {
-                    return Err(session.get().get_error().clone().unwrap().into());
+                    Err(session.get().get_error().clone().unwrap().into())
                 } else {
-                    return Err(format!("Object {:?} not found", id).into());
+                    Err(format!("Object {:?} not found", id).into())
                 }
             }
         }
@@ -416,9 +416,9 @@ impl State {
             None => {
                 let session = self.session_by_id(id.get_session_id())?;
                 if session.get().is_failed() {
-                    return Err(session.get().get_error().clone().unwrap().into());
+                    Err(session.get().get_error().clone().unwrap().into())
                 } else {
-                    return Err(format!("Task {:?} not found", id).into());
+                    Err(format!("Task {:?} not found", id).into())
                 }
             }
         }
@@ -542,12 +542,10 @@ impl State {
         wref.get_mut().assigned_objects.remove(object);
         object.get_mut().located.remove(wref); // may not be present
         wref.get_mut().located_objects.remove(object); // may not be present
-        if object.get().assigned.is_empty() {
-            if object.get().state == DataObjectState::Finished {
-                object.get_mut().state = DataObjectState::Removed;
-                assert!(object.get().scheduled.is_empty());
-                assert!(!object.get().client_keep);
-            }
+        if object.get().assigned.is_empty() && object.get().state == DataObjectState::Finished {
+            object.get_mut().state = DataObjectState::Removed;
+            assert!(object.get().scheduled.is_empty());
+            assert!(!object.get().client_keep);
         }
 
         object.check_consistency_opt().unwrap(); // non-recoverable
@@ -726,20 +724,20 @@ impl State {
             }
         }
 
-        if tref.get().state == TaskState::Assigned || tref.get().state == TaskState::Running {
-            if tref.get().assigned != tref.get().scheduled {
-                if let Some(_) = tref.get().assigned {
-                    // Unassign the task if assigned
-                    self.unassign_task(tref);
-                    // The state was assigned or running, now is ready
-                    assert_eq!(tref.get().state, TaskState::Ready);
-                }
-                if let Some(ref wref) = tref.get().scheduled {
-                    if tref.get().state == TaskState::Ready {
-                        // If reported as updated by mistake, the task may be already in the set
-                        let mut w = wref.get_mut();
-                        w.scheduled_ready_tasks.insert(tref.clone());
-                    }
+        if tref.get().state == TaskState::Assigned
+            || tref.get().state == TaskState::Running && tref.get().assigned != tref.get().scheduled
+        {
+            if let Some(_) = tref.get().assigned {
+                // Unassign the task if assigned
+                self.unassign_task(tref);
+                // The state was assigned or running, now is ready
+                assert_eq!(tref.get().state, TaskState::Ready);
+            }
+            if let Some(ref wref) = tref.get().scheduled {
+                if tref.get().state == TaskState::Ready {
+                    // If reported as updated by mistake, the task may be already in the set
+                    let mut w = wref.get_mut();
+                    w.scheduled_ready_tasks.insert(tref.clone());
                 }
             }
         }
@@ -776,12 +774,10 @@ impl State {
                         {
                             self.assign_object(oref, wref);
                         }
-                    } else {
-                        if wref.get().assigned_objects.contains(oref)
-                            && (oref.get().located.len() > 2 || !oref.get().located.contains(wref))
-                        {
-                            self.unassign_object(oref, wref);
-                        }
+                    } else if wref.get().assigned_objects.contains(oref)
+                        && (oref.get().located.len() > 2 || !oref.get().located.contains(wref))
+                    {
+                        self.unassign_object(oref, wref);
                     }
                 }
 
@@ -795,13 +791,10 @@ impl State {
                         }
                         oref.get_mut().state = DataObjectState::Removed;
                     }
-                } else {
-                    if oref.get().located.len() > oref.get().scheduled.len() {
-                        for wa in oref.get().located.clone() {
-                            if !oref.get().scheduled.contains(&wa) && oref.get().located.len() >= 2
-                            {
-                                self.unassign_object(oref, &wa);
-                            }
+                } else if oref.get().located.len() > oref.get().scheduled.len() {
+                    for wa in oref.get().located.clone() {
+                        if !oref.get().scheduled.contains(&wa) && oref.get().located.len() >= 2 {
+                            self.unassign_object(oref, &wa);
                         }
                     }
                 }

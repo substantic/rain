@@ -84,8 +84,7 @@ impl DataObject {
 
     pub fn remote(&self) -> Option<WorkerId> {
         match self.state {
-            DataObjectState::Remote(ref addr) => Some(*addr),
-            DataObjectState::Pulling(ref addr) => Some(*addr),
+            DataObjectState::Remote(ref addr) | DataObjectState::Pulling(ref addr) => Some(*addr),
             _ => None,
         }
     }
@@ -103,7 +102,7 @@ impl DataObjectRef {
     ) -> Self {
         debug!("New object id={}", id);
 
-        match graph.objects.entry(id.clone()) {
+        match graph.objects.entry(id) {
             ::std::collections::hash_map::Entry::Vacant(e) => {
                 let dataobj = Self::wrap(DataObject {
                     id,

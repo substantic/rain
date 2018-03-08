@@ -92,7 +92,7 @@ fn read_host_file(path: &Path) -> Result<Vec<String>> {
     for line in file.lines() {
         let line = line?;
         let trimmed_line = line.trim();
-        if !trimmed_line.is_empty() && !trimmed_line.starts_with("#") {
+        if !trimmed_line.is_empty() && !trimmed_line.starts_with('#') {
             result.push(trimmed_line.to_string());
         }
     }
@@ -102,7 +102,7 @@ fn read_host_file(path: &Path) -> Result<Vec<String>> {
 impl Starter {
     pub fn new(config: StarterConfig) -> Self {
         Self {
-            config: config,
+            config,
             processes: Vec::new(),
             remote_processes: Vec::new(),
             server_pid: 0,
@@ -166,7 +166,7 @@ impl Starter {
             Readiness::WaitingForReadyFile(ready_file.to_path_buf()),
             command,
         )?);
-        Ok(&self.processes.last().unwrap())
+        Ok(self.processes.last().unwrap())
     }
 
     /// Create a temporory filename
@@ -208,7 +208,7 @@ impl Starter {
         Ok(())
     }
 
-    fn start_remote_workers(&mut self, worker_hosts: &Vec<String>) -> Result<()> {
+    fn start_remote_workers(&mut self, worker_hosts: &[String]) -> Result<()> {
         info!("Starting {} remote worker(s)", worker_hosts.len());
         let (program, program_args) = self.local_rain_command();
         let dir = ::std::env::current_dir().unwrap(); // TODO: Do it configurable
@@ -274,7 +274,7 @@ impl Starter {
         let workers: Vec<_> = self.config
             .local_workers
             .iter()
-            .map(|x| x.clone())
+            .cloned()
             .enumerate()
             .collect();
         for (i, resource) in workers {

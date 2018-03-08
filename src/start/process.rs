@@ -7,7 +7,7 @@ use librain::errors::Result;
 use start::common::Readiness;
 
 /// Struct that represents a process running under a starter
-/// It is wrapper over std::process::Child with a string name
+/// It is wrapper over `std::process::Child` with a string name
 /// This string name indicates the name of logs in log dir
 /// The class also monitors readiness of the process signalled by
 /// ready file.
@@ -44,7 +44,7 @@ impl Process {
         Ok(Self {
             name: name.to_string(),
             child: command.spawn()?,
-            ready: ready,
+            ready,
         })
     }
 

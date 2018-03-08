@@ -396,7 +396,7 @@ impl State {
         label: String,
         attributes: Attributes,
     ) -> DataObjectRef {
-        let dataobj = DataObjectRef::new(
+        DataObjectRef::new(
             &mut self.graph,
             id,
             state,
@@ -404,11 +404,7 @@ impl State {
             size,
             label,
             attributes,
-        );
-        /*if dataobj.remote().is_some() {
-            self.fetch_dataobject(&dataobj)
-        }*/
-        dataobj
+        )
     }
 
     /// n_redirects is a protection against ifinite loop of redirections
@@ -896,7 +892,7 @@ impl StateRef {
             .for_each(move |()| {
                 debug!("Monitoring wakeup");
                 let mut s = state.get_mut();
-                let worker_id = s.worker_id.clone();
+                let worker_id = s.worker_id;
 
                 // Check that we already know our address
                 if worker_id.ip().is_unspecified() {

@@ -120,7 +120,7 @@ fn default_logging_directory(basename: &str) -> PathBuf {
 fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
     if !dir.exists() {
         debug!("{} not found, creating ... {:?}", name, dir);
-        if let Err(e) = std::fs::create_dir_all(dir.clone()) {
+        if let Err(e) = std::fs::create_dir_all(dir) {
             bail!(format!(
                 "{} {:?} cannot by created: {}",
                 name,
@@ -128,10 +128,8 @@ fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
                 e.description()
             ));
         }
-    } else {
-        if !dir.is_dir() {
-            bail!("{} {:?} exists but it is not a directory", name, dir);
-        }
+    } else if !dir.is_dir() {
+        bail!("{} {:?} exists but it is not a directory", name, dir);
     }
     Ok(())
 }
@@ -140,7 +138,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let ready_file = cmd_args.value_of("READY_FILE");
     let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_WORKER_PORT);
     let mut server_address = cmd_args.value_of("SERVER_ADDRESS").unwrap().to_string();
-    if !server_address.contains(":") {
+    if !server_address.contains(':') {
         server_address = format!("{}:{}", server_address, DEFAULT_SERVER_PORT);
     }
 
@@ -191,7 +189,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let work_dir = cmd_args
         .value_of("WORK_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|| default_working_directory());
+        .unwrap_or_else(default_working_directory);
 
     ensure_directory(&work_dir, "working directory").unwrap_or_else(|e| {
         error!("{}", e);
@@ -287,8 +285,8 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let run_prefix = cmd_args
         .value_of("RUN_PREFIX")
-        .map(|v| v.split(" ").map(|s| s.to_string()).collect())
-        .unwrap_or(Vec::new());
+        .map(|v| v.split(' ').map(|s| s.to_string()).collect())
+        .unwrap_or_else(Vec::new);
 
     if !run_prefix.is_empty() {
         info!("Command prefix: {:?}", run_prefix);
@@ -303,9 +301,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         run_prefix,
     );
 
-    config.worker_host_file = cmd_args
-        .value_of("WORKER_HOST_FILE")
-        .map(|s| PathBuf::from(s));
+    config.worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(PathBuf::from);
 
     // Autoconf
     match cmd_args.value_of("AUTOCONF") {
@@ -453,9 +449,9 @@ fn main() {
         .get_matches();
 
     match args.subcommand() {
-        ("server", Some(ref cmd_args)) => run_server(&args, cmd_args),
-        ("worker", Some(ref cmd_args)) => run_worker(&args, cmd_args),
-        ("start", Some(ref cmd_args)) => run_starter(&args, cmd_args),
+        ("server", Some(cmd_args)) => run_server(&args, cmd_args),
+        ("worker", Some(cmd_args)) => run_worker(&args, cmd_args),
+        ("start", Some(cmd_args)) => run_starter(&args, cmd_args),
         _ => {
             error!("No subcommand provided.");
             ::std::process::exit(1);

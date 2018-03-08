@@ -3,7 +3,7 @@ use futures::{unsync, Future, IntoFuture};
 
 /// This code serves for "async" initialization Item may be in state "Initing"
 /// that stores oneshots that are fired when the item is in ready state. The
-/// object becomes ready when "set_value" is called
+/// object becomes ready when `set_value` is called
 
 enum State<T> {
     // Object is still in initialization, vector contains callbacks when

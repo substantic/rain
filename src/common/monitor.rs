@@ -58,7 +58,7 @@ impl Monitor {
                 }
             }
         }
-        return cpu_time_vec;
+        cpu_time_vec
     }
 
     fn get_cpu_usage(&self, cpu_time: &CpuTimes, timestamp: DateTime<Utc>) -> Vec<CpuUsage> {
@@ -78,7 +78,7 @@ impl Monitor {
             let usage = (100_000 * cpu_time_diff) / factor;
             cpu_usage.push(usage as CpuUsage);
         }
-        return cpu_usage;
+        cpu_usage
     }
 
     fn get_mem_usage(&self) -> MemUsage {
@@ -87,7 +87,7 @@ impl Monitor {
             let meminfo = mem_info().unwrap();
             mem_usage = 100 * (meminfo.total - meminfo.free) / meminfo.total;
         }
-        return mem_usage as MemUsage;
+        mem_usage as MemUsage
     }
 
     fn get_net_stat(&self) -> HashMap<String, Vec<u64>> {
@@ -113,7 +113,7 @@ impl Monitor {
                 }
             }
         }
-        return net_stat;
+        net_stat
     }
 
     pub fn build_event(&mut self, worker_id: &WorkerId) -> ::common::events::Event {

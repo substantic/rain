@@ -23,10 +23,10 @@ pub struct RemoteProcess {
 impl RemoteProcess {
     pub fn new(name: String, host: &str, readiness: Readiness) -> Self {
         RemoteProcess {
-            name: name,
+            name,
             host: host.to_string(),
             pid: 0,
-            readiness: readiness,
+            readiness,
         }
     }
 

@@ -16,7 +16,7 @@ pub use self::attributes::Attributes;
 pub use self::resources::Resources;
 
 pub mod monitor;
-pub mod logger;
+pub mod logging;
 pub mod fs;
 
 pub type FinishHook = oneshot::Sender<()>;
