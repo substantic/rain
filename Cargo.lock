@@ -568,7 +568,7 @@ dependencies = [
 
 [[package]]
 name = "rain"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arrayref 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "atty 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",

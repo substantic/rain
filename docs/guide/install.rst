@@ -16,12 +16,12 @@ It can be downloaded and unpacked as follows:
 
 ::
 
-   $ wget https://github.com/substantic/rain/releases/download/v0.1.0/rain-v0.1.0-linux-x64.tar.xz
-   $ tar xvf rain-v0.1.0-linux-x64.tar.xz
+   $ wget https://github.com/substantic/rain/releases/download/v0.1.1/rain-v0.1.1-linux-x64.tar.xz
+   $ tar xvf rain-v0.1.1-linux-x64.tar.xz
 
 Installation of Python API::
 
-$ pip3 install https://github.com/substantic/rain/releases/download/v0.1.0/rain-0.1.0-py3-none-any.whl
+$ pip3 install https://github.com/substantic/rain/releases/download/v0.1.1/rain-0.1.1-py3-none-any.whl
 
 Build from sources
 ==================
