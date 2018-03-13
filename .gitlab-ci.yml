@@ -19,7 +19,7 @@ cargo:build:
     - apt-get update
     - apt-get install -y capnproto libsqlite3-dev
     - cargo install capnpc
-    - cargo build --all-features --release --verbose --jobs 1
+    - cargo build --all-features --verbose
   artifacts:
     paths:
       - target
