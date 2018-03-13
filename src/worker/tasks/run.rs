@@ -96,12 +96,12 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
                 let task = task_ref.get();
 
                 for (path, dataobj) in config.out_paths.iter().zip(&task.outputs) {
-                    let path = dir.path().join(path);
-                    if !path.is_file() {
-                        bail!("Output '{}' not found");
+                    let abs_path = dir.path().join(path);
+                    if !abs_path.is_file() {
+                        bail!("Output path '{}' not found", path);
                     }
                     let target_path = state.work_dir().new_path_for_dataobject();
-                    let data = Data::new_by_fs_move(&path, target_path)?;
+                    let data = Data::new_by_fs_move(&abs_path, target_path)?;
                     let mut obj = dataobj.get_mut();
                     obj.set_data(Arc::new(data));
                 }
