@@ -3,6 +3,7 @@
 using import "common.capnp".DataObjectId;
 using import "common.capnp".TaskId;
 using import "common.capnp".Attributes;
+using import "datastore.capnp".DataType;
 
 interface SubworkerControl {
     # This object serves also as bootstrap
@@ -73,6 +74,8 @@ struct LocalData {
         # This is used when subworker returns object to worker
         # we have just returned one of inputs
     }
+
+    dataType @6:  DataType;
 }
 
 struct RunResponse {

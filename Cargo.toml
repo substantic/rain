@@ -45,6 +45,7 @@ rusqlite = { version = "*", features = ["chrono", "serde_json"] }
 serde_derive = "*"
 serde = "*"
 serde_json = "*"
+tar = "*"
 
 [build-dependencies]
 capnpc = "0.8"

@@ -96,13 +96,32 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
                 let task = task_ref.get();
 
                 for (path, dataobj) in config.out_paths.iter().zip(&task.outputs) {
+                    let mut obj = dataobj.get_mut();
                     let abs_path = dir.path().join(path);
-                    if !abs_path.is_file() {
-                        bail!("Output path '{}' not found", path);
+                    let is_dir = obj.content_type().map(|c| c == "dir").unwrap_or(false);
+                    if is_dir {
+                        if !abs_path.is_dir() {
+                            if abs_path.is_file() {
+                                bail!(
+                                    "Output path '{}' is a file, but expected content type is dir",
+                                    path
+                                );
+                            } else {
+                                bail!("Output path '{}' not found", path);
+                            }
+                        }
+                    } else {
+                        if !abs_path.is_file() {
+                            if abs_path.is_dir() {
+                                let ct = obj.content_type().unwrap_or_else(|| "<None>".to_string());
+                                bail!("Output path '{}' is a directory, but expected content type is {}", path, ct);
+                            } else {
+                                bail!("Output path '{}' not found", path);
+                            }
+                        }
                     }
                     let target_path = state.work_dir().new_path_for_dataobject();
                     let data = Data::new_by_fs_move(&abs_path, target_path)?;
-                    let mut obj = dataobj.get_mut();
                     obj.set_data(Arc::new(data));
                 }
             }

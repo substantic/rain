@@ -7,6 +7,7 @@ pub mod events;
 pub mod asycinit;
 pub mod attributes;
 pub mod sys;
+pub mod datatype;
 
 use std::collections::HashSet;
 use futures::unsync::oneshot;
@@ -34,3 +35,5 @@ pub trait ConsistencyCheck {
         }
     }
 }
+
+pub use self::datatype::DataType;

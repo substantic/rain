@@ -14,7 +14,7 @@ impl WorkDir {
     pub fn new(path: PathBuf) -> Self {
         ::std::fs::create_dir(path.join("data")).unwrap();
         ::std::fs::create_dir(path.join("tasks")).unwrap();
-        ::std::fs::create_dir(path.join("transport")).unwrap();
+        ::std::fs::create_dir(path.join("tmp")).unwrap();
         ::std::fs::create_dir(path.join("subworkers")).unwrap();
         ::std::fs::create_dir(path.join("subworkers/work")).unwrap();
         WorkDir {
@@ -34,9 +34,8 @@ impl WorkDir {
             .map_err(|e| e.into())
     }
 
-    pub fn make_transport_temp_file(&self) -> TempFileName
-    {
-        TempFileName::new(self.path.join(format!("transport/{}", self.new_id())))
+    pub fn make_temp_file(&self) -> TempFileName {
+        TempFileName::new(self.path.join(format!("tmp/{}", self.new_id())))
     }
 
     /// Create temporary directory for task

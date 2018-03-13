@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use common::id::{DataObjectId, SubworkerId};
 use common::convert::FromCapnp;
+use common::DataType;
 use worker::{State, StateRef};
 use worker::data::{Data, Storage};
 use subworker_capnp::subworker_upstream;
@@ -76,9 +77,10 @@ pub fn data_from_capnp(
     reader: &::subworker_capnp::local_data::Reader,
 ) -> Result<Arc<Data>> {
     match reader.get_storage().which()? {
-        ::subworker_capnp::local_data::storage::Memory(data) => {
-            Ok(Arc::new(Data::new(Storage::Memory(data?.into()))))
-        }
+        ::subworker_capnp::local_data::storage::Memory(data) => Ok(Arc::new(Data::new(
+            Storage::Memory(data?.into()),
+            DataType::from_capnp(reader.get_data_type()?),
+        ))),
         ::subworker_capnp::local_data::storage::Path(data) => {
             let source_path = Path::new(data?);
             if !source_path.is_absolute() {

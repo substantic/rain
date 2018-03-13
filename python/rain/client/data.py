@@ -1,4 +1,6 @@
 import capnp
+import tarfile
+import io
 
 from .session import get_active_session
 from ..common import RainException, ids, ID
@@ -31,6 +33,7 @@ class DataObject:
         self.attributes = {
             "spec": {"content_type": content_type}
         }
+        self.is_directory = content_type == "dir"
 
     @property
     def content_type(self):
@@ -61,8 +64,10 @@ class DataObject:
             out.label = self.label
 
         if self.data is not None:
-            out.hasData = True
+            out.dataType = "directory" if self.is_directory else "blob"
             out.data = self.data
+        else:
+            out.dataType = "none"
 
         attributes_to_capnp(self.attributes, out.attributes)
 
@@ -159,6 +164,16 @@ def pickled(val, label="pickle"):
     The default label is "pickle".
     """
     return blob(val, encode='pickle', label=label)
+
+
+def directory(path=None, label="const_dir"):
+    f = io.BytesIO()
+    tf = tarfile.open(fileobj=f, mode="w")
+    tf.add(path, ".")
+    tf.close()
+    dataobj = DataObject(label, content_type="dir")
+    dataobj.data = f.getvalue()
+    return dataobj
 
 
 def to_data(obj):

@@ -26,7 +26,8 @@ impl data_store::Server for DataStoreImpl {
     ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let id = DataObjectId::from_capnp(&pry!(params.get_id()));
-        let object = match self.state.get().object_by_id(id) {
+        let state = self.state.get_mut();
+        let object = match state.object_by_id(id) {
             Ok(o) => o,
             Err(_) => {
                 debug!("Worker responding 'not here' for id={}", id);
@@ -41,7 +42,9 @@ impl data_store::Server for DataStoreImpl {
 
         assert!(offset == 0); // TODO: implement for different offset
 
-        let pack_stream = new_pack_stream(object.get().data().clone()).unwrap();
+        let data = object.get().data().clone();
+        let data_type = data.data_type();
+        let pack_stream = new_pack_stream(&state, data).unwrap();
         let reader = reader::ToClient::new(ReaderImpl::new(pack_stream))
             .from_server::<::capnp_rpc::Server>();
 
@@ -49,6 +52,7 @@ impl data_store::Server for DataStoreImpl {
         results.set_reader(reader);
         results.set_size(size);
         results.set_ok(());
+        results.set_data_type(data_type.to_capnp());
         Promise::ok(())
     }
 }

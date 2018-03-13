@@ -3,7 +3,7 @@
 cd `dirname $0`/../..
 
 # Python style check
-flake8 python || exit 1
+flake8 python/rain || exit 1
 flake8 tests || exit 1
 
 # Rust style check

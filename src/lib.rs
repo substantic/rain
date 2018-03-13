@@ -23,6 +23,7 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate sys_info;
 extern crate sysconf;
+extern crate tar;
 extern crate tempdir;
 extern crate tokio_core;
 extern crate tokio_io;

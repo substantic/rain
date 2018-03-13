@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::os::unix::fs::PermissionsExt;
 
+use common::DataType;
+
 use errors::Result;
 
 #[derive(Debug)]
@@ -19,16 +21,18 @@ pub enum Storage {
 #[derive(Debug)]
 pub struct Data {
     storage: Storage,
+    data_type: DataType,
 }
 
 impl Data {
     /// Create Data from vector
-    pub fn new(storage: Storage) -> Data {
-        Data { storage }
+    pub fn new(storage: Storage, data_type: DataType) -> Data {
+        Data { storage, data_type }
     }
 
-    pub fn new_from_path(path: PathBuf, size: usize) -> Data {
+    pub fn new_from_path(path: PathBuf, size: usize, data_type: DataType) -> Data {
         Data {
+            data_type,
             storage: Storage::Path(DataOnFs { path, size }),
         }
     }
@@ -38,10 +42,16 @@ impl Data {
         target_path: PathBuf,
     ) -> ::std::result::Result<Self, ::std::io::Error> {
         ::std::fs::rename(source_path, &target_path)?;
+        // TODO: If dir, set permissions recursively
         let metadata = ::std::fs::metadata(&target_path)?;
         metadata.permissions().set_mode(0o400);
         let size = metadata.len() as usize;
-        Ok(Data::new_from_path(target_path, size))
+        let datatype = if metadata.is_dir() {
+            DataType::Directory
+        } else {
+            DataType::Blob
+        };
+        Ok(Data::new_from_path(target_path, size, datatype))
     }
 
     pub fn new_by_fs_copy(
@@ -52,7 +62,12 @@ impl Data {
         let metadata = ::std::fs::metadata(&target_path)?;
         metadata.permissions().set_mode(0o400);
         let size = metadata.len() as usize;
-        Ok(Data::new_from_path(target_path, size))
+        let datatype = if metadata.is_dir() {
+            DataType::Directory
+        } else {
+            DataType::Blob
+        };
+        Ok(Data::new_from_path(target_path, size, datatype))
     }
 
     pub fn storage(&self) -> &Storage {
@@ -68,45 +83,65 @@ impl Data {
         }
     }
 
+    fn memory_to_fs(&self, data: &Vec<u8>, path: &Path) -> Result<()> {
+        use std::io::Write;
+        match self.data_type {
+            DataType::Blob => {
+                let mut file = ::std::fs::File::create(path)?;
+                file.write_all(data)?;
+                Ok(())
+            }
+            DataType::Directory => {
+                let cursor = ::std::io::Cursor::new(data);
+                ::tar::Archive::new(cursor).unpack(path)?;
+                Ok(())
+            }
+        }
+    }
+
     /// Map data object on a given path
     /// Caller is responsible for deletion of the path
     /// It creates a symlink to real data or new file if data only in memory
     pub fn map_to_path(&self, path: &Path) -> Result<()> {
-        use std::io::Write;
         use std::os::unix::fs::symlink;
 
         match self.storage {
             Storage::Memory(ref data) => {
-                let mut file = ::std::fs::File::create(path)?;
-                file.write_all(data)?;
+                self.memory_to_fs(data, path)
+                //let mut file = ::std::fs::File::create(path)?;
+                //file.write_all(data)?;
             }
             Storage::Path(ref data) => {
                 symlink(&data.path, path)?;
+                Ok(())
             }
-        };
-        Ok(())
+        }
     }
 
     /// Export data object on a given path
     pub fn export_to_path(&self, path: &Path) -> Result<()> {
-        use std::io::Write;
-
         match self.storage {
-            Storage::Memory(ref data) => {
-                let mut file = ::std::fs::File::create(path)?;
-                file.write_all(data)?;
-            }
+            Storage::Memory(ref data) => self.memory_to_fs(data, path),
             Storage::Path(ref data) => {
                 ::std::fs::copy(&data.path, path)?;
+                Ok(())
             }
-        };
-        Ok(())
+        }
     }
 
     #[inline]
     pub fn is_blob(&self) -> bool {
-        // TODO: Directories
-        true
+        self.data_type == DataType::Blob
+    }
+
+    #[inline]
+    pub fn is_directory(&self) -> bool {
+        self.data_type == DataType::Directory
+    }
+
+    #[inline]
+    pub fn data_type(&self) -> DataType {
+        self.data_type
     }
 
     pub fn to_subworker_capnp(&self, builder: &mut ::subworker_capnp::local_data::Builder) {
@@ -117,6 +152,7 @@ impl Data {
                 .get_storage()
                 .set_path(data.path.to_str().unwrap()),
         };
+        builder.borrow().set_data_type(self.data_type.to_capnp());
     }
 }
 

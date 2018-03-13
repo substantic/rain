@@ -1,8 +1,9 @@
-from rain.client import remote, Program, Input, Output, blob, pickled
+from rain.client import remote, Program, Input, Output, blob, pickled, directory
 from rain.client import TaskException, RainWarning
 from rain.common import DataInstance
 import pytest
 import pickle
+import os
 
 
 def test_remote_bytes_inout(test_env):
@@ -593,3 +594,67 @@ def test_debug_message(test_env):
         t.update()
         assert t.attributes["debug"] == \
             "This is first message\nThis is second message and variable a = 11"
+
+
+def test_python_dir(test_env):
+
+    @remote()
+    def remote_fn(ctx, input1, input2):
+        input2.write("mydir")
+        input1.write("myfile")
+        assert os.path.isfile("myfile")
+        assert os.path.isdir("mydir")
+        with open("mydir/a/b/g.txt") as f:
+            assert f.read() == "Hello 2"
+        with open("mydir/f.txt") as f:
+            assert f.read() == "Hello 1"
+
+        os.mkdir("test")
+        ctx.stage_directory("test")
+        return ctx.stage_directory("mydir/a")
+
+    path = os.path.join(test_env.work_dir, "test-dir")
+    os.mkdir(path)
+    os.mkdir(os.path.join(path, "a"))
+    os.mkdir(os.path.join(path, "a", "b"))
+
+    with open(os.path.join(path, "f.txt"), "w") as f:
+        f.write("Hello 1")
+
+    with open(os.path.join(path, "a", "b", "g.txt"), "w") as f:
+        f.write("Hello 2")
+
+    @remote()
+    def remote_fn2(ctx, input1):
+        return input1
+
+    @remote()
+    def remote_fn3(ctx, input1):
+        input1.write("x")
+        return ctx.stage_directory("x")
+
+    test_env.start(2)
+    with test_env.client.new_session() as s:
+        data = directory(path=path)
+        e = remote_fn(blob(b"Hello1"), data)
+
+        e1 = remote_fn2(e)
+        e1.keep_outputs()
+        e2 = remote_fn2(e)
+        e2.keep_outputs()
+
+        print("e1 = ", e1)
+        print("e2 = ", e2)
+
+        s.submit()
+        s.wait_all()
+
+        result = e1.output.fetch()
+        result.write(os.path.join(test_env.work_dir, "rdir1"))
+        with open(os.path.join(test_env.work_dir, "rdir1", "b", "g.txt")) as f:
+            assert f.read() == "Hello 2"
+
+        result = e2.output.fetch()
+        result.write(os.path.join(test_env.work_dir, "rdir2"))
+        with open(os.path.join(test_env.work_dir, "rdir2", "b", "g.txt")) as f:
+            assert f.read() == "Hello 2"

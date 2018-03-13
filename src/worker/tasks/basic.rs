@@ -2,13 +2,14 @@ use std::sync::Arc;
 use std::path::Path;
 
 use super::TaskResult;
+use common::DataType;
 use worker::state::State;
 use worker::graph::TaskRef;
 use worker::data::{Data, DataBuilder};
 use futures::{future, Future};
 
 /// Task that merge all input blobs and merge them into one blob
-pub fn task_concat(_state: &mut State, task_ref: TaskRef) -> TaskResult {
+pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {
     let inputs = {
         let task = task_ref.get();
         task.inputs_data()
@@ -20,10 +21,15 @@ pub fn task_concat(_state: &mut State, task_ref: TaskRef) -> TaskResult {
         }
     }
 
+    let state_ref = state.self_ref();
+
     Ok(Box::new(future::lazy(move || {
         let result_size: usize = inputs.iter().map(|d| d.size()).sum();
-        let mut builder = DataBuilder::new();
-        builder.set_size(result_size);
+        let mut builder = DataBuilder::new(
+            &state_ref.get().work_dir(),
+            DataType::Blob,
+            Some(result_size),
+        );
         for input in inputs {
             builder.write_blob(&input).unwrap();
         }
