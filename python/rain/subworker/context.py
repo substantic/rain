@@ -19,7 +19,7 @@ class Context:
     def stage_file(self, path, content_type=None):
         """Creates DataInstance from file.
 
-           The original file is moved from working directory.
+           The file is moved out of the working directory.
            Path must be relative path with respect to working directory
            of task.
         """
@@ -29,7 +29,24 @@ class Context:
         target = os.path.join(
             self._subworker.stage_path, str(self._id_counter))
         shutil.move(path, target)
-        data = DataInstance(path=target, content_type=content_type)
+        data = DataInstance(path=target, content_type=content_type, data_type="blob")
+        self._staged_paths.add(data)
+        return data
+
+    def stage_directory(self, path):
+        """Creates DataInstance from directory
+
+           The directory is moved out of the working directory.
+           Path must be relative path with respect to working directory
+           of task.
+        """
+        self._id_counter += 1
+        if os.path.isabs(path):
+            raise Exception("Path '{}' has to be relative")
+        target = os.path.join(
+            self._subworker.stage_path, str(self._id_counter))
+        shutil.move(path, target)
+        data = DataInstance(path=target, content_type="dir", data_type="directory")
         self._staged_paths.add(data)
         return data
 

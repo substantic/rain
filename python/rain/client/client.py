@@ -136,7 +136,8 @@ class Client:
         bytedata = b"".join(data)
         self._get_state((), (dataobj, ))
         return DataInstance(data=bytedata,
-                            data_object=dataobj)
+                            data_object=dataobj,
+                            data_type=str(result.dataType))
 
     def _wait(self, tasks, dataobjs):
         req = self._service.wait_request()

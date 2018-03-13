@@ -1,7 +1,7 @@
 
 from .input import Input  # noqa
 from .output import Output  # noqa
-from .data import blob, pickled, DataObject  # noqa
+from .data import blob, pickled, directory, DataObject  # noqa
 from .task import Task  # noqa
 from ..common import RainException, RainWarning, TaskException, SessionException # noqa
 from .pycode import remote, Remote  # noqa

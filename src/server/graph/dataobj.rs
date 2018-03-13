@@ -4,10 +4,33 @@ use std::fmt;
 use common::convert::ToCapnp;
 use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, SId};
+use common::DataType;
 use common::{Attributes, ConsistencyCheck, FinishHook, RcSet};
 use super::{SessionRef, TaskRef, TaskState, WorkerRef};
 pub use common_capnp::DataObjectState;
 use errors::Result;
+
+#[derive(Debug)]
+pub struct Data {
+    pub content: Vec<u8>,
+    pub data_type: DataType,
+}
+
+impl Data {
+    pub fn new(content: Vec<u8>, data_type: DataType) -> Self {
+        Data { content, data_type }
+    }
+
+    #[inline]
+    pub fn size(&self) -> usize {
+        self.content.len()
+    }
+
+    #[inline]
+    pub fn data_type(&self) -> DataType {
+        self.data_type
+    }
+}
 
 #[derive(Debug)]
 pub struct DataObject {
@@ -54,7 +77,7 @@ pub struct DataObject {
 
     /// Optinal *final* data when submitted from client or downloaded
     /// by the server (for any reason thinkable).
-    pub(in super::super) data: Option<Vec<u8>>,
+    pub(in super::super) data: Option<Data>,
 
     /// Attributes
     pub(in super::super) attributes: Attributes,
@@ -132,7 +155,7 @@ impl DataObjectRef {
         id: DataObjectId,
         client_keep: bool,
         label: String,
-        data: Option<Vec<u8>>,
+        data: Option<Data>,
         attributes: Attributes,
     ) -> Self {
         assert_eq!(id.get_session_id(), session.get_id());
@@ -153,7 +176,7 @@ impl DataObjectRef {
             session: session.clone(),
             client_keep: client_keep,
             finish_hooks: Vec::new(),
-            size: data.as_ref().map(|v| v.len()),
+            size: data.as_ref().map(|d| d.size()),
             data: data,
             attributes: attributes,
         });

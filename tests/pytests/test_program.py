@@ -1,4 +1,5 @@
-from rain.client import Program, Input, Output, tasks, blob, pickled
+from rain.client import Program, Input, Output
+from rain.client import tasks, blob, pickled, directory
 from rain.client import TaskException, RainException
 
 import os
@@ -304,3 +305,38 @@ def test_execute_cpus(test_env):
         tasks.execute("sleep 1", cpus=2)
         s.submit()
         test_env.assert_duration(1.9, 2.3, lambda: s.wait_all())
+
+
+def test_execute_with_dir(test_env):
+    path = os.path.join(test_env.work_dir, "test-dir")
+    os.mkdir(path)
+    os.mkdir(os.path.join(path, "a"))
+    os.mkdir(os.path.join(path, "a", "b"))
+
+    with open(os.path.join(path, "f.txt"), "w") as f:
+        f.write("Hello 1")
+
+    with open(os.path.join(path, "a", "b", "g.txt"), "w") as f:
+        f.write("Hello 2")
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        data = directory(path=path)
+        e = tasks.execute(
+            "find ./mydir",
+            input_files=[Input("mydir", dataobj=data)],
+            output_files=[Output("f", path="mydir/f.txt"),
+                          Output("a", path="mydir/a", content_type="dir")],
+            stdout=True)
+        e.keep_outputs()
+        s.submit()
+        s.wait_all()
+        result = set(e.outputs["stdout"].fetch().get_bytes().strip().split(b"\n"))
+        assert b"./mydir" in result
+        assert b"./mydir/a" in result
+        assert b"./mydir/a/b" in result
+        assert b"./mydir/f.txt" in result
+        assert b"./mydir/a/b/g.txt" in result
+        assert e.outputs["f"].fetch().get_bytes() == b"Hello 1"
+        e.outputs["a"].fetch().write(os.path.join(test_env.work_dir, "result"))
+        assert os.path.isfile(os.path.join(test_env.work_dir, "result", "b", "g.txt"))

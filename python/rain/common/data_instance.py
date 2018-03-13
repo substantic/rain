@@ -1,5 +1,8 @@
 
 import os
+import tarfile
+import io
+import shutil
 
 from .attributes import attributes_from_capnp
 from .attributes import attributes_to_capnp
@@ -47,7 +50,8 @@ class DataInstance:
                  data_object=None,
                  content_type=None,
                  attributes=None,
-                 object_id=None):
+                 object_id=None,
+                 data_type=None):
         if (path is None) == (data is None):
             raise RainException("provide either `data` or `path`")
         if data is not None:
@@ -55,6 +59,8 @@ class DataInstance:
             self._data = data
         else:
             self._path = path
+
+        self.data_type = data_type
 
         if data_object is not None:
             # At client
@@ -118,6 +124,20 @@ class DataInstance:
             with open(self._path, "rb") as f:
                 return f.read()
 
+    def write(self, path):
+        if self._data is None:
+            if self._path == path:
+                return
+            raise Exception("TODO implement copy")
+        else:
+            # TODO: Make security check that tarball does not contain absolute paths
+            if self.data_type == "blob":
+                with open(path, "wb") as f:
+                    f.write(self._data)
+            else:
+                f = tarfile.open(fileobj=io.BytesIO(self._data))
+                f.extractall(path)
+
     def _to_capnp(self, builder):
         "Internal serializer."
         if self._object_id:
@@ -142,7 +162,10 @@ class DataInstance:
         else:
             raise Exception("Invalid storage type")
         attributes = attributes_from_capnp(reader.attributes)
-        return cls(data=data, path=path, attributes=attributes)
+        return cls(data=data,
+                   path=path,
+                   attributes=attributes,
+                   data_type=str(reader.dataType))
 
     def __repr__(self):
         if self._data:
@@ -152,4 +175,7 @@ class DataInstance:
 
     def _remove(self):
         assert self._path
-        os.unlink(self._path)
+        if self.data_type == "blob":
+            os.unlink(self._path)
+        else:
+            shutil.rmtree(self._path)

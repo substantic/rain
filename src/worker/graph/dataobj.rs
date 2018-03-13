@@ -9,6 +9,11 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::fmt;
 
+#[derive(Deserialize)]
+pub struct DataObjectAttributeSpec {
+    pub content_type: Option<String>,
+}
+
 #[derive(Debug)]
 pub enum DataObjectState {
     Assigned,
@@ -65,6 +70,13 @@ impl DataObject {
     pub fn set_attributes(&mut self, attributes: Attributes) {
         // TODO Check content type
         self.new_attributes = attributes;
+    }
+
+    pub fn content_type(&self) -> Option<String> {
+        self.attributes
+            .get("spec")
+            .map(|spec: DataObjectAttributeSpec| spec.content_type)
+            .unwrap_or(None)
     }
 
     #[inline]

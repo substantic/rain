@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::fs::File;
 use errors::Result;
 use super::{Data, Storage};
+use super::super::State;
 
 // Serialization function object into data stream
 
@@ -10,19 +11,32 @@ pub trait PackStream {
 }
 
 // Create a new pack stream for given dataobject
-pub fn new_pack_stream(data: Arc<Data>) -> Result<Box<PackStream>> {
+pub fn new_pack_stream(state: &State, data: Arc<Data>) -> Result<Box<PackStream>> {
     let data_ref = data.clone();
     Ok(match data.storage() {
         &Storage::Memory(_) => Box::new(MemoryPackStream {
             data: data_ref,
             position: 0,
         }),
-        // TODO: Directory
-        &Storage::Path(ref p) => Box::new(MmapPackStream {
-            data: data_ref,
+        &Storage::Path(ref p) if data.is_blob() => Box::new(MmapPackStream {
             position: 0,
             mmap: unsafe { ::memmap::Mmap::map(&File::open(&p.path)?) }?,
         }),
+        &Storage::Path(ref p) => {
+            // TODO: Make tar in different thread
+            assert!(data.is_directory());
+            let temp_file = state.work_dir().make_temp_file();
+            {
+                let file = temp_file.create()?;
+                let mut tar_builder = ::tar::Builder::new(file);
+                tar_builder.append_dir_all(".", &p.path)?;
+                tar_builder.finish()?;
+            }
+            Box::new(MmapPackStream {
+                position: 0,
+                mmap: unsafe { ::memmap::Mmap::map(&temp_file.open()?) }?,
+            })
+        }
     })
 }
 
@@ -51,7 +65,6 @@ impl PackStream for MemoryPackStream {
 }
 
 struct MmapPackStream {
-    data: Arc<Data>,
     mmap: ::memmap::Mmap,
     position: usize,
 }
@@ -59,7 +72,7 @@ struct MmapPackStream {
 impl PackStream for MmapPackStream {
     fn read(&mut self, read_size: usize) -> (&[u8], bool) {
         let start = self.position;
-        let data_size = self.data.size();
+        let data_size = self.mmap.len();
         let (end, eof) = if start + read_size < data_size {
             (start + read_size, false)
         } else {

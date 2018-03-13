@@ -14,10 +14,11 @@ use common::monitor::Monitor;
 use common::Attributes;
 use common::fs::logdir::LogDir;
 use common::events;
+use common::DataType;
 
 use worker::graph::{subworker_command, DataObject, DataObjectRef, DataObjectState, Graph,
                     SubworkerRef, TaskInput, TaskRef, TaskState};
-use worker::data::Data;
+use worker::data::{Data, DataBuilder};
 use worker::tasks::TaskInstance;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
@@ -441,15 +442,18 @@ impl State {
                     match response.which().unwrap() {
                         ::datastore_capnp::reader_response::Which::Ok(()) => {
                             let size = response.get_size();
+                            let size = if size == -1 {
+                                None
+                            } else {
+                                Some(size as usize)
+                            };
+                            let builder = DataBuilder::new(
+                                &state.work_dir,
+                                DataType::from_capnp(response.get_data_type().unwrap()),
+                                size,
+                            );
                             let reader = response.get_reader().unwrap();
-                            ::worker::rpc::fetch::fetch_from_reader(
-                                reader,
-                                if size == -1 {
-                                    None
-                                } else {
-                                    Some(size as usize)
-                                },
-                            )
+                            ::worker::rpc::fetch::fetch_from_reader(reader, builder, size)
                         }
                         ::datastore_capnp::reader_response::Which::Redirect(w) => {
                             assert!(is_server);

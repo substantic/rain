@@ -105,10 +105,16 @@ struct Task {
     }
 }
 
+enum ClientDataType {
+    none @0;
+    blob @1;
+    directory @2;
+}
+
 struct DataObject {
     id @0 :DataObjectId;
     keep @1 :Bool;
-    hasData @2 :Bool;
+    dataType @2 :ClientDataType;
     data @3 :Data;
     label @4 :Text;
     attributes @5: Attributes;

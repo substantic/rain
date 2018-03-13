@@ -5,9 +5,9 @@ use errors::Error;
 // TODO: Remove box when impl Trait
 pub fn fetch_from_reader(
     reader: ::datastore_capnp::reader::Client,
+    builder: DataBuilder,
     size: Option<usize>,
 ) -> Box<Future<Item = Data, Error = Error>> {
-    let builder = DataBuilder::new();
     let fetch_size = size.unwrap_or(1 << 20 /* 1 MB */);
     Box::new(future::loop_fn(builder, move |mut builder| {
         let mut req = reader.read_request();
