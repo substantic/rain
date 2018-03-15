@@ -2,7 +2,7 @@ Overview
 ********
 
 **Rain** is an open-source distributed computational framework for large-scale
- task-based pipelines.
+task-based pipelines.
 
 Rain aims to lower the entry barrier to the world of distributed computing and
 to do so efficiently and within any scale. Our intention is to develop a light
@@ -75,7 +75,6 @@ Rain Core Infrastructure
 ------------------------
 
    * Basic schedulling heuristic respecting inter-task dependencies.
-   * Basic dashboard for execution monitoring.
    * Rust implementation enabling easy build, deployment, and reliable run.
    * Distributed as all-in-one binary.
    * Direct worker-to-worker communication.
