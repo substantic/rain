@@ -82,12 +82,14 @@ impl Monitor {
     }
 
     fn get_mem_usage(&self) -> MemUsage {
-        let mut mem_usage = 0;
         if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
-            let meminfo = mem_info().unwrap();
-            mem_usage = 100 * (meminfo.total - meminfo.free) / meminfo.total;
+            (match mem_info() {
+                Ok(meminfo) => 100 * (meminfo.total - meminfo.free) / meminfo.total,
+                Err(_) => 0,
+            }) as MemUsage
+        } else {
+            0 as MemUsage
         }
-        mem_usage as MemUsage
     }
 
     fn get_net_stat(&self) -> HashMap<String, Vec<u64>> {
