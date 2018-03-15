@@ -2,7 +2,6 @@
 
 using import "common.capnp".WorkerId;
 using import "common.capnp".DataObjectId;
-using import "common.capnp".DataObjectType;
 using import "common.capnp".Error;
 
 
