@@ -257,7 +257,7 @@ impl Starter {
 
     fn server_address(&self, localhost: bool) -> String {
         let hostname = if localhost {
-            "localhost".to_string()
+            "127.0.0.1".to_string()
         } else {
             ::librain::common::sys::get_hostname()
         };
