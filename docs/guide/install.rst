@@ -127,11 +127,13 @@ Synopsis
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
   rain start --autoconf=CONF [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
+           [--remote-init=COMMANDS]
   rain start --local-workers [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
   rain start --worker-host-file=FILE [-S] [--listen=ADDRESS]
            [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
+           [--remote-init=COMMANDS]
 
   rain server [--listen=LISTEN_ADDRESS] [--http-listen=LISTEN_ADDRESS]
               [--logdir=DIR] [--ready-file=<FILE>]
@@ -194,6 +196,10 @@ ready and terminates.
 
 **--workdir=DIR**
   The option is unchanged propagated into workers.
+
+**--remote-init=COMMAND**
+  Commands executed on each remote connection. For example:
+  ``--remote-init="export PATH=$PATH:/path/bin"``.
 
 Command: server
 ---------------

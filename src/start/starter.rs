@@ -26,8 +26,12 @@ pub struct StarterConfig {
 
     pub worker_host_file: Option<PathBuf>,
 
+    /// Shell command that is executed fist after ssh connection
+    pub remote_init: String,
+
     pub reserve_cpu_on_server: bool,
 
+    /// Rain will be executed with this prefix, used for debugging and profiling
     pub run_prefix: Vec<String>,
 }
 
@@ -37,6 +41,7 @@ impl StarterConfig {
         server_listen_address: SocketAddr,
         server_http_listen_address: SocketAddr,
         log_dir: &Path,
+        remote_init: String,
         reserve_cpu_on_server: bool,
         run_prefix: Vec<String>,
     ) -> Self {
@@ -46,6 +51,7 @@ impl StarterConfig {
             server_http_listen_address,
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
             worker_host_file: None,
+            remote_init,
             reserve_cpu_on_server,
             run_prefix,
         }
@@ -233,8 +239,10 @@ impl Starter {
                     else \n\
                     CPUS=detect \n\
                     fi \n\
+                    {remote_init}
                     {program} {program_args} worker {server_address} --cpus=$CPUS --ready-file {ready_file:?}",
                     program = program,
+                    remote_init = self.config.remote_init,
                     program_args = program_args.join(" "),
                     server_address = server_address,
                     ready_file = ready_file,
@@ -242,8 +250,9 @@ impl Starter {
                 )
             } else {
                 format!(
-                    "{program} {program_args} worker {server_address} --ready-file {ready_file:?}",
+                    "{remote_init}\n{program} {program_args} worker {server_address} --ready-file {ready_file:?}",
                     program = program,
+                    remote_init = self.config.remote_init,
                     program_args = program_args.join(" "),
                     server_address = server_address,
                     ready_file = ready_file,

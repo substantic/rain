@@ -300,6 +300,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         listen_address,
         http_listen_address,
         &log_dir,
+        cmd_args.value_of("REMOTE_INIT").unwrap_or("").to_string(),
         cmd_args.is_present("RCOS"),
         run_prefix,
     );
@@ -456,6 +457,11 @@ fn main() {
                     .long("--autoconf")
                     .help("Automatic configuration - possible values: pbs")
                     .possible_value("pbs")
+                     .takes_value(true))
+                .arg(Arg::with_name("REMOTE_INIT")
+                     .long("--remote-init")
+                     .help("Commands executed on each remote host")
+                     .value_name("COMMANDS")
                      .takes_value(true))
                 .arg(Arg::with_name("RCOS") // RCOS = Reserve CPUs on Server
                      .short("-S")
