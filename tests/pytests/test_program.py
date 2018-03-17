@@ -1,5 +1,5 @@
 from rain.client import Program, Input, Output, tasks, blob, pickled
-from rain.client import RainException
+from rain.client import TaskException, RainException
 
 import os
 import pytest
@@ -150,7 +150,7 @@ def test_execute_invalid_filename(test_env):
         t1 = tasks.execute(args, stdout="output")
         t1.output.keep()
         s.submit()
-        pytest.raises(RainException, lambda: t1.wait())
+        pytest.raises(TaskException, lambda: t1.wait())
 
 
 def test_program_invalid_filename(test_env):
@@ -162,7 +162,7 @@ def test_program_invalid_filename(test_env):
         t1 = program()
         t1.output.keep()
         s.submit()
-        pytest.raises(RainException, lambda: t1.wait())
+        pytest.raises(TaskException, lambda: t1.wait())
 
 
 def test_execute_fail(test_env):
@@ -172,7 +172,7 @@ def test_execute_fail(test_env):
     with test_env.client.new_session() as s:
         t1 = tasks.execute(args, stdout="output")
         s.submit()
-        pytest.raises(RainException, lambda: t1.wait())
+        pytest.raises(TaskException, lambda: t1.wait())
 
 
 def test_program_fail(test_env):
@@ -183,7 +183,7 @@ def test_program_fail(test_env):
     with test_env.client.new_session() as s:
         t1 = program()
         s.submit()
-        pytest.raises(RainException, lambda: t1.wait())
+        pytest.raises(TaskException, lambda: t1.wait())
 
 
 def test_execute_shell(test_env):

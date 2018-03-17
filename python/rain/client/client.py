@@ -1,6 +1,6 @@
 import capnp
 from rain.client import rpc
-from rain.common import RainException
+from rain.common import RainException, SessionException, TaskException
 from rain.client.task import Task
 from rain.client.data import DataObject
 from ..common import attributes, DataInstance
@@ -10,14 +10,38 @@ from .session import Session
 CLIENT_PROTOCOL_VERSION = 0
 
 
-def check_result(result):
+def check_result(sessions, result):
     if result.which() == "ok":
         return  # Do nothing
     elif result.which() == "error":
-        message = result.error.message
+        task_id = id_from_capnp(result.error.task)
+        message = []
+
+        if task_id.session_id == -1:
+            cls = SessionException
+        else:
+            cls = TaskException
+
+            for session in sessions:
+                if session.session_id == task_id.session_id:
+                    break
+            else:
+                raise Exception("Unknown session {} failed. Internal error".format(task_id))
+
+            for task in session._submitted_tasks:
+                if task.id.id == task_id.id:
+                    break
+            else:
+                raise Exception("Unknown task {} failed. Internal error".format(task_id))
+
+            message.append("Task {} failed".format(task))
+
+        message.append("Message: " + result.error.message)
+
         if result.error.debug:
-            message += "\nDebug:\n" + result.error.debug
-        raise RainException(message)
+            message.append("Debug:\n" + result.error.debug)
+        message = "\n".join(message)
+        raise cls(message)
     else:
         raise Exception("Invalid result")
 
@@ -95,7 +119,7 @@ class Client:
         id_to_capnp(dataobj.id, req.id)
         req.offset = 0
         result = req.send().wait()
-        check_result(result)
+        check_result((dataobj.session,), result)
 
         reader = result.reader
         FETCH_SIZE = 2 << 20  # 2MB
@@ -114,18 +138,21 @@ class Client:
         req = self._service.wait_request()
 
         req.init("taskIds", len(tasks))
+        sessions = []
         for i in range(len(tasks)):
             task = tasks[i]
             if task.state is None:
                 raise RainException("Task {} is not submitted".format(task))
             id_to_capnp(task.id, req.taskIds[i])
+            sessions.append(task.session)
 
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
             id_to_capnp(dataobjs[i].id, req.objectIds[i])
+            sessions.append(dataobjs[i].session)
 
         result = req.send().wait()
-        check_result(result)
+        check_result(sessions, result)
 
     def _close_session(self, session):
         self._service.closeSession(session.session_id).wait()
@@ -153,13 +180,13 @@ class Client:
 
         return finished_tasks, finished_dataobjs
 
-    def _wait_all(self, session_id):
+    def _wait_all(self, session):
         req = self._service.wait_request()
         req.init("taskIds", 1)
         req.taskIds[0].id = rpc.common.allTasksId
-        req.taskIds[0].sessionId = session_id
+        req.taskIds[0].sessionId = session.session_id
         result = req.send().wait()
-        check_result(result)
+        check_result((session,), result)
 
     def _unkeep(self, dataobjs):
         req = self._service.unkeep_request()
@@ -169,7 +196,7 @@ class Client:
             id_to_capnp(dataobjs[i].id, req.objectIds[i])
 
         result = req.send().wait()
-        check_result(result)
+        check_result([o.session for o in dataobjs], result)
 
     def update(self, items):
         tasks, dataobjects = split_items(items)
@@ -177,19 +204,21 @@ class Client:
 
     def _get_state(self, tasks, dataobjs):
         req = self._service.getState_request()
-
+        sessions = []
         req.init("taskIds", len(tasks))
         for i in range(len(tasks)):
             id_to_capnp(tasks[i].id, req.taskIds[i])
+            sessions.append(tasks[i].session)
 
         dataobjs_dict = {}
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
             dataobjs_dict[dataobjs[i].id.id] = dataobjs[i]
             id_to_capnp(dataobjs[i].id, req.objectIds[i])
+            sessions.append(dataobjs[i].session)
 
         results = req.send().wait()
-        check_result(results.state)
+        check_result(sessions, results.state)
 
         for task_update, task in zip(results.tasks, tasks):
             task.state = task_update.state

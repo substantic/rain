@@ -3,7 +3,8 @@ use std::fmt;
 
 use common::wrapped::WrappedRcRefCell;
 use common::{ConsistencyCheck, FinishHook, RcSet};
-use common::id::SessionId;
+use common::id::{TaskId, SessionId};
+use common::convert::ToCapnp;
 use super::{ClientRef, DataObjectRef, DataObjectState, TaskRef, TaskState};
 use errors::Result;
 
@@ -156,11 +157,12 @@ impl fmt::Debug for SessionRef {
 pub struct SessionError {
     message: String,
     debug: Option<String>,
+    task_id: TaskId,
 }
 
 impl SessionError {
-    pub fn new(message: String, debug: Option<String>) -> Self {
-        SessionError { message, debug }
+    pub fn new(message: String, debug: Option<String>, task_id: TaskId) -> Self {
+        SessionError { message, debug, task_id }
     }
 
     pub fn to_capnp(&self, builder: &mut ::common_capnp::error::Builder) {
@@ -168,6 +170,7 @@ impl SessionError {
         if let Some(ref m) = self.debug {
             builder.borrow().set_debug(&m);
         }
+        self.task_id.to_capnp(&mut builder.borrow().get_task().unwrap());
     }
 }
 

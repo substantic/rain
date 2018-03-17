@@ -67,6 +67,14 @@ pub trait SId
     fn new(session_id: SessionId, id: Id) -> Self;
     fn get_id(&self) -> Id;
     fn get_session_id(&self) -> SessionId;
+
+    fn invalid() -> Self {
+        Self::new(-1, 0)
+    }
+
+    fn is_invalid(&self) -> bool {
+        self.get_session_id() == -1
+    }
 }
 
 /// ID type for task objects.

@@ -1,4 +1,4 @@
-from rain.client import tasks, RainException, blob
+from rain.client import tasks, RainException, blob, TaskException
 import pytest
 
 
@@ -89,7 +89,7 @@ def test_task_open_not_absolute(test_env):
     with test_env.client.new_session() as s:
         t1 = tasks.open("not/absolute/path")
         s.submit()
-        pytest.raises(RainException, lambda: t1.wait())
+        pytest.raises(TaskException, lambda: t1.wait())
 
 
 def test_task_open_not_exists(test_env):
@@ -97,7 +97,7 @@ def test_task_open_not_exists(test_env):
     with test_env.client.new_session() as s:
         t1 = tasks.open("/not/exists")
         s.submit()
-        pytest.raises(RainException, lambda: t1.wait())
+        pytest.raises(TaskException, lambda: t1.wait())
 
 
 def test_task_open_ok(test_env):

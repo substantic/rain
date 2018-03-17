@@ -233,6 +233,7 @@ impl State {
         session: &SessionRef,
         cause: String,
         debug: Option<String>,
+        task_id: TaskId,
     ) -> Result<()> {
         debug!(
             "Failing session {} of client {} with cause {:?}",
@@ -241,7 +242,7 @@ impl State {
             cause
         );
         assert!(session.get_mut().error.is_none());
-        session.get_mut().error = Some(SessionError::new(cause, debug));
+        session.get_mut().error = Some(SessionError::new(cause, debug, task_id));
         // Remove all tasks + objects (with their finish hooks)
         self.clear_session(session)
     }
@@ -887,8 +888,8 @@ impl State {
                     tref.get_mut().state = state;
                     tref.get_mut().attributes = attributes;
                     let session = tref.get().session.clone();
-                    let error_message = format!("Task {} failed: {}", tref.get().id, error_message);
-                    self.fail_session(&session, error_message.clone(), debug_message)
+                    let task_id = tref.get().id;
+                    self.fail_session(&session, error_message.clone(), debug_message, task_id)
                         .unwrap();
                     self.logger.add_task_failed_event(
                         tref.get().id,

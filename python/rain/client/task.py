@@ -148,8 +148,8 @@ class Task:
         self.session.update((self,))
 
     def __repr__(self):
-        return "<Task id={}/{} type={}>".format(
-            self.session.session_id, self.id, self.task_type)
+        return "<Task id={} type={}>".format(
+            self.id, self.task_type)
 
     def __reduce__(self):
         """Speciaization to replace with subworker.unpickle_input_object

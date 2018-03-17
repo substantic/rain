@@ -1,5 +1,5 @@
 from rain.client import remote, Program, Input, Output, blob, pickled
-from rain.client import RainException, RainWarning
+from rain.client import TaskException, RainWarning
 from rain.common import DataInstance
 import pytest
 import pickle
@@ -79,11 +79,11 @@ def test_remote_exception(test_env):
             t1.output.keep()
             s.submit()
 
-            with pytest.raises(RainException, match='Hello'):
+            with pytest.raises(TaskException, match='Hello'):
                 t1.wait()
-            with pytest.raises(RainException, match='Hello'):
+            with pytest.raises(TaskException, match='Hello'):
                 t1.wait()
-            with pytest.raises(RainException, match='Hello'):
+            with pytest.raises(TaskException, match='Hello'):
                 t1.output.fetch()
 
 
@@ -100,11 +100,11 @@ def test_remote_exception_sleep(test_env):
         t1 = test()
         t1.output.keep()
         s.submit()
-        with pytest.raises(RainException, match='Hello'):
+        with pytest.raises(TaskException, match='Hello'):
             t1.wait()
-        with pytest.raises(RainException, match='Hello'):
+        with pytest.raises(TaskException, match='Hello'):
             t1.wait()
-        with pytest.raises(RainException, match='Hello'):
+        with pytest.raises(TaskException, match='Hello'):
             t1.output.fetch()
 
 
@@ -121,11 +121,11 @@ def test_remote_exception_fetch_after_delay(test_env):
         t1.output.keep()
         s.submit()
         time.sleep(0.6)
-        with pytest.raises(RainException, match='Hello'):
+        with pytest.raises(TaskException, match='Hello'):
             t1.output.fetch()
-        with pytest.raises(RainException, match='Hello'):
+        with pytest.raises(TaskException, match='Hello'):
             t1.output.fetch()
-        with pytest.raises(RainException, match='Hello'):
+        with pytest.raises(TaskException, match='Hello'):
             t1.wait()
 
 
@@ -142,11 +142,11 @@ def test_remote_exception_fetch_immediate(test_env):
         t1 = test()
         t1.output.keep()
         s.submit()
-        with pytest.raises(RainException, match='Hello'):
+        with pytest.raises(TaskException, match='Hello'):
             t1.output.fetch()
-        with pytest.raises(RainException, match='Hello'):
+        with pytest.raises(TaskException, match='Hello'):
             t1.output.fetch()
-        with pytest.raises(RainException, match='Hello'):
+        with pytest.raises(TaskException, match='Hello'):
             t1.wait()
 
 
@@ -162,7 +162,7 @@ def test_python_invalid_output(test_env):
     with test_env.client.new_session() as s:
         t1 = test()
         s.submit()
-        with pytest.raises(RainException):
+        with pytest.raises(TaskException):
             t1.wait()
 
 

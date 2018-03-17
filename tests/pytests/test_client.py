@@ -1,5 +1,5 @@
 from rain.client import rpc, session, tasks, blob
-from rain.client import RainException
+from rain.client import RainException, TaskException
 from rain.client import Program
 
 import pytest
@@ -156,7 +156,7 @@ def test_late_wait_all_failed(test_env):
         t1_output.keep()
         s.submit()
         time.sleep(0.3)
-        with pytest.raises(RainException):
+        with pytest.raises(TaskException):
             s.wait_all()
 
 
@@ -172,7 +172,7 @@ def test_early_wait_all_failed_(test_env):
         t1_output = t1.output
         t1_output.keep()
         s.submit()
-        with pytest.raises(RainException):
+        with pytest.raises(TaskException):
             s.wait_all()
 
 
@@ -253,9 +253,9 @@ def test_unkeep_failed(test_env):
 
         time.sleep(0.6)
 
-        with pytest.raises(RainException):
+        with pytest.raises(TaskException):
             t1_output.unkeep()
-        with pytest.raises(RainException):
+        with pytest.raises(TaskException):
             t1_output.unkeep()
 
 
@@ -303,9 +303,9 @@ def test_fetch_from_failed_session_immediate(test_env):
         t1 = program()
         t1.output.keep()
         s.submit()
-        with pytest.raises(RainException):
+        with pytest.raises(TaskException):
             t1.output.fetch()
-        with pytest.raises(RainException):
+        with pytest.raises(TaskException):
             t1.output.fetch()
 
 
@@ -319,9 +319,9 @@ def test_update_from_failed_session(test_env):
         t1.output.keep()
         s.submit()
         time.sleep(0.6)
-        with pytest.raises(RainException):
+        with pytest.raises(TaskException):
             t1.update()
-        with pytest.raises(RainException):
+        with pytest.raises(TaskException):
             t1.output.update()
 
 

@@ -113,8 +113,8 @@ class DataObject:
                  input_proto.load, input_proto.content_type))
 
     def __repr__(self):
-        return "<DObj {} {}:{} {}>".format(
-            self.label, self.session.session_id, self.id, self.attributes)
+        return "<DObj {} id={} {}>".format(
+            self.label, self.id, self.attributes)
 
 
 def blob(value, label="const", content_type=None, encode=None):

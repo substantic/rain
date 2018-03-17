@@ -164,10 +164,10 @@ class Session:
         self.client._submit(self._tasks, self._dataobjs)
         for task in self._tasks:
             task.state = rpc.common.TaskState.notAssigned
-            self._submitted_tasks.append(weakref.ref(task))
+            self._submitted_tasks.append(task)
         for dataobj in self._dataobjs:
             dataobj.state = rpc.common.DataObjectState.unfinished
-            self._submitted_dataobjs.append(weakref.ref(dataobj))
+            self._submitted_dataobjs.append(dataobj)
         self._tasks = []
         self._dataobjs = []
 
@@ -217,17 +217,13 @@ class Session:
 
     def wait_all(self):
         """Wait until all submitted tasks and objects are finished."""
-        self.client._wait_all(self.session_id)
+        self.client._wait_all(self)
 
         for task in self._submitted_tasks:
-            t = task()
-            if t:
-                t.state = rpc.common.TaskState.finished
+            task.state = rpc.common.TaskState.finished
 
         for dataobj in self._submitted_dataobjs:
-            o = dataobj()
-            if o:
-                o.state = rpc.common.DataObjectState.finished
+            dataobj.state = rpc.common.DataObjectState.finished
 
     def fetch(self, dataobject):
         """Wait for the object to finish, update its state and
@@ -307,13 +303,13 @@ class Session:
             add_obj(o)
 
         for o in self._submitted_dataobjs:
-            add_obj(o())
+            add_obj(o)
 
         for t in self._tasks:
             add_task(t)
 
         for t in self._submitted_tasks:
-            add_task(t())
+            add_task(t)
 
         return g
 
