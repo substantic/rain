@@ -19,6 +19,7 @@ def check_result(sessions, result):
 
         if task_id.session_id == -1:
             cls = SessionException
+            task = None
         else:
             cls = TaskException
 
@@ -37,6 +38,9 @@ def check_result(sessions, result):
             message.append("Task {} failed".format(task))
 
         message.append("Message: " + result.error.message)
+
+        if task:
+            message.append("Task created at:\n" + task.stack)
 
         if result.error.debug:
             message.append("Debug:\n" + result.error.debug)

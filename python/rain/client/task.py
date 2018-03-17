@@ -4,6 +4,7 @@ from .output import Output
 from ..common import RainException, ID, LabeledList, ids
 from ..common.attributes import attributes_to_capnp
 
+import traceback
 
 class Task:
     """
@@ -39,12 +40,14 @@ class Task:
         output (`DataObject`): Shortcut for `outputs[0]`. Raises Exception on multiple outputs.
         attributes (`dict`): Task attributes. See attributes_ for details.
         state (`TaskState` enum): Task state on last update.
+        stack (str): Text description of stack when task was created, used for debug messages
     """
     # State of object
     # None = Not submitted
     state = None
     id = None
     config = None
+    stack = None
 
     def __init__(self,
                  task_type,
@@ -97,6 +100,10 @@ class Task:
             else:
                 input_pairs.append((None, to_data(input)))
         self.inputs = LabeledList(pairs=input_pairs)
+
+        stack = traceback.extract_stack(None, 6)
+        stack.pop()  # Last entry is not usefull, it is actually line above
+        self.stack = "".join(traceback.format_list(stack))
 
     def keep_outputs(self):
         """Keep all output objects of the task."""
