@@ -1,4 +1,4 @@
-from rain.client import tasks, RainException, blob, TaskException
+from rain.client import tasks, blob, TaskException
 import pytest
 
 

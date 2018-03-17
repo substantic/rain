@@ -6,6 +6,7 @@ from ..common.attributes import attributes_to_capnp
 
 import traceback
 
+
 class Task:
     """
     A single task instance in the task graph.
