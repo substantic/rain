@@ -77,7 +77,8 @@ class TestEnv(Env):
               n_cpus=1,
               listen_addr=None,
               listen_port=None,
-              worker_defs=None):
+              worker_defs=None,
+              delete_list_timeout=None):
         """
         Start infrastructure: server & n workers
         """
@@ -87,6 +88,9 @@ class TestEnv(Env):
         env["RAIN_TEST_MODE"] = "1"
         env["RAIN_DEBUG_MODE"] = "1"
         env["PYTHONPATH"] = PYTHON_DIR
+
+        if delete_list_timeout is not None:
+            env["RAIN_DELETE_LIST_TIMEOUT"] = str(delete_list_timeout)
 
         if listen_addr:
             if listen_port:
@@ -231,6 +235,11 @@ def prepare():
     If it does not exists then it is created.
     """
     if os.path.isdir(WORK_DIR):
+        for root, dirs, files in os.walk(WORK_DIR):
+            for d in dirs:
+                os.chmod(os.path.join(root, d), 0o700)
+            for f in files:
+                os.chmod(os.path.join(root, f), 0o700)
         for item in os.listdir(WORK_DIR):
             path = os.path.join(WORK_DIR, item)
             if os.path.isfile(path):
@@ -239,6 +248,7 @@ def prepare():
                 shutil.rmtree(path)
     else:
         os.makedirs(WORK_DIR)
+    os.chdir(WORK_DIR)
 
 
 @pytest.yield_fixture(autouse=True, scope="function")

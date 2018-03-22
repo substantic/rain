@@ -39,6 +39,7 @@ use WORKER_PROTOCOL_VERSION;
 
 const MONITORING_INTERVAL: u64 = 5; // Monitoring interval in seconds
 const DELETE_WAIT_LIST_INTERVAL: u64 = 2; // How often is delete_wait_list checked in seconds
+const DEFAULT_DELETE_LIST_MAX_TIMEOUT: u32 = 5;
 
 pub struct State {
     pub(super) graph: Graph,
@@ -76,6 +77,8 @@ pub struct State {
     work_dir: WorkDir,
 
     log_dir: LogDir,
+
+    delete_list_max_timeout: u32,
 
     monitor: Monitor,
 
@@ -506,13 +509,13 @@ impl State {
     pub fn remove_dataobj_if_not_needed(&mut self, object: &mut DataObject) {
         if !object.assigned && object.consumers.is_empty() {
             debug!("Object id={} is not needed", object.id);
-            if self.graph.delete_wait_list.len() > 100 {
+            if self.graph.delete_wait_list.len() > 100 || self.delete_list_max_timeout == 0 {
                 // Instant deletion
                 self.remove_object(object);
             } else {
                 // Delayed deletion
                 let now = ::std::time::Instant::now();
-                let timeout = now + ::std::time::Duration::from_secs(2);
+                let timeout = now + ::std::time::Duration::from_secs(self.delete_list_max_timeout as u64);
                 let object_ref = self.graph.objects.get(&object.id).unwrap().clone();
                 let r = self.graph.delete_wait_list.insert(object_ref, timeout);
                 assert!(r.is_none()); // it should not be in delete list
@@ -724,6 +727,7 @@ impl StateRef {
             initializing_subworkers: Vec::new(),
             subworker_args: subworkers,
             self_ref: None,
+            delete_list_max_timeout: ::std::env::var("RAIN_DELETE_LIST_TIMEOUT").ok().and_then(|s| s.parse().ok()).unwrap_or(DEFAULT_DELETE_LIST_MAX_TIMEOUT),
         });
         state.get_mut().self_ref = Some(state.clone());
         state

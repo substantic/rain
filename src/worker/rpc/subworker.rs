@@ -89,10 +89,12 @@ pub fn data_from_capnp(
             if !source_path.starts_with(subworker_dir) {
                 bail!("Path of dataobject is not in subworker dir");
             }
-            let target_path = state.work_dir().new_path_for_dataobject();
+            let work_dir = state.work_dir();
+            let target_path = work_dir.new_path_for_dataobject();
             Ok(Arc::new(Data::new_by_fs_move(
                 &Path::new(source_path),
                 target_path,
+                work_dir.data_path(),
             )?))
         }
         ::subworker_capnp::local_data::storage::InWorker(data) => {

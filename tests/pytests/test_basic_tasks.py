@@ -1,5 +1,6 @@
-from rain.client import tasks, blob, TaskException
+from rain.client import tasks, blob, TaskException, directory, Input, Output
 import pytest
+import os
 
 
 def test_sleep1(test_env):
@@ -129,3 +130,47 @@ def test_task_export(test_env):
             assert f.read() == "Hello World!"
         with open(test2) as f:
             assert "bin" in f.read()
+
+
+def test_make_directory(test_env):
+    test_env.start(1, delete_list_timeout=10)
+
+    #  TODO: EMPTY DIR os.mkdir("empty")
+    os.mkdir("mydir3")
+    with open("mydir3/file.txt", "w") as f:
+        f.write("My data 4")
+
+    with test_env.client.new_session() as s:
+        b1 = blob(b"My data 1")
+        b2 = blob(b"My data 2")
+        b3 = blob(b"My data 3")
+        d1 = directory("mydir3")
+        #  TODO: EMPTY DIR d2 = directory("empty")
+
+        t0 = tasks.execute(["/bin/cat", b1], stdout=True,
+            input_files=[Input("d1", dataobj=d1)], output_files=[Output("d1", content_type="dir")])
+        r = tasks.make_directory([
+            ("myfile1", t0.outputs["stdout"]),
+            ("mydir/mydir2/myfile2", b2),
+            ("mydir/myfile3", b3),
+            ("mydir/d1a", d1),
+            #("mydir/d2", d2),
+            ("mydir/d1b", t0.outputs["d1"]),
+        ])
+        r.output.keep()
+        s.submit()
+        s.wait_all()
+        r.output.fetch().write("rdir")
+        with open(os.path.join(test_env.work_dir, "rdir", "myfile1")) as f:
+            assert f.read() == "My data 1"
+        with open(os.path.join(test_env.work_dir, "rdir", "mydir", "mydir2", "myfile2")) as f:
+            assert f.read() == "My data 2"
+        with open(os.path.join(test_env.work_dir, "rdir", "mydir", "myfile3")) as f:
+            assert f.read() == "My data 3"
+        with open(os.path.join(test_env.work_dir, "rdir", "mydir", "myfile3")) as f:
+            assert f.read() == "My data 3"
+        with open(os.path.join(test_env.work_dir, "rdir", "mydir", "d1a", "file.txt")) as f:
+            assert f.read() == "My data 4"
+        with open(os.path.join(test_env.work_dir, "rdir", "mydir", "d1b", "file.txt")) as f:
+            assert f.read() == "My data 4"
+        #  TODO: assert os.path.isdir(os.path.join(test_env.work_dir, "rdir", "mydir", "d2"))

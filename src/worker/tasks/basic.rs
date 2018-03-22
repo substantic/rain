@@ -116,3 +116,39 @@ pub fn task_export(_: &mut State, task_ref: TaskRef) -> TaskResult {
         input.export_to_path(path)
     })))
 }
+
+#[derive(Deserialize)]
+struct MakeDirectoryConfig {
+    paths: Vec<String>,
+}
+
+/// Make directory
+pub fn task_make_directory(state: &mut State, task_ref: TaskRef) -> TaskResult {
+    let state_ref = state.self_ref();
+    Ok(Box::new(future::lazy(move || {
+        let state = state_ref.get();
+        let task = task_ref.get();
+        let dir = state.work_dir().make_task_temp_dir(task.id)?;
+
+        let main_dir = dir.path().join("newdir");
+        ::std::fs::create_dir(&main_dir)?;
+
+        let config: MakeDirectoryConfig = task.attributes.get("config")?;
+        task.check_number_of_args(config.paths.len())?;
+        for (ref path, ref data) in config.paths.iter().zip(task.inputs_data().iter()) {
+            let p = Path::new(path);
+            if !p.is_relative() {
+                bail!("Path '{}' is not relative", path);
+            }
+            let target_path = main_dir.join(&p);
+            ::std::fs::create_dir_all(&target_path.parent().unwrap())?;
+            data.map_to_path(&target_path)?;
+        }
+        let target_path = state.work_dir().new_path_for_dataobject();
+
+        let data = Data::new_by_fs_move(&main_dir, target_path, state.work_dir().data_path())?;
+        let output = task.output(0);
+        output.get_mut().set_data(Arc::new(data));
+        Ok(())
+    })))
+}
