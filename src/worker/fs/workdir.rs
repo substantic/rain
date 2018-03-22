@@ -8,17 +8,20 @@ use super::tempfile::TempFileName;
 pub struct WorkDir {
     path: PathBuf,
     id_counter: Cell<u64>,
+    data_path: PathBuf,
 }
 
 impl WorkDir {
     pub fn new(path: PathBuf) -> Self {
-        ::std::fs::create_dir(path.join("data")).unwrap();
+        let data_path = path.join("data");
+        ::std::fs::create_dir(&data_path).unwrap();
         ::std::fs::create_dir(path.join("tasks")).unwrap();
         ::std::fs::create_dir(path.join("tmp")).unwrap();
         ::std::fs::create_dir(path.join("subworkers")).unwrap();
         ::std::fs::create_dir(path.join("subworkers/work")).unwrap();
         WorkDir {
             path,
+            data_path,
             id_counter: Cell::new(0),
         }
     }
@@ -53,7 +56,11 @@ impl WorkDir {
     }
 
     pub fn new_path_for_dataobject(&self) -> PathBuf {
-        self.path
-            .join(Path::new(&format!("data/{}", self.new_id())))
+        self.data_path
+            .join(Path::new(&format!("{}", self.new_id())))
+    }
+
+    pub fn data_path(&self) -> &Path {
+        &self.data_path
     }
 }

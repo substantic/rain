@@ -33,6 +33,12 @@ def export(dataobj, filename):
     return Task("!export", {"path": filename}, inputs=(dataobj,))
 
 
+def make_directory(dataobj_paths):
+    paths = [path for path, dataobj in dataobj_paths]
+    inputs = [to_data(dataobj) for path, dataobj in dataobj_paths]
+    return Task("!make_directory", {"paths": paths}, inputs=inputs, outputs=1)
+
+
 def execute(args,
             stdout=None,
             stdin=None,

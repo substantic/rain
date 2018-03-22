@@ -24,6 +24,65 @@ pub struct Data {
     data_type: DataType,
 }
 
+fn isolate_symlink(path: &Path, prefix_path: &Path, metadata: &::std::fs::Metadata)
+{
+    let link_target_path = ::std::fs::read_link(path).unwrap();
+    if link_target_path.starts_with(prefix_path) {
+        ::std::fs::remove_file(path).unwrap();
+        debug!("Expanding symlink to data dir {:?} to {:?}", link_target_path, path);
+        if link_target_path.is_dir() {
+            let mut flags = ::fs_extra::dir::CopyOptions::new();
+            flags.copy_inside = true;
+            ::fs_extra::dir::copy(&link_target_path, path, &flags).unwrap();
+        } else {
+            ::std::fs::copy(&link_target_path, path).unwrap();
+        }
+    } else {
+        let mut perms = metadata.permissions();
+        perms.set_readonly(true);
+        ::std::fs::set_permissions(path, perms).unwrap();
+    }
+}
+
+/** Replace all links to data with own copy &
+    sets all file items as readonly */
+fn isolate_directory(source_path: &Path, prefix_path: &Path) -> Result<()> {
+    for entry in ::walkdir::WalkDir::new(source_path).contents_first(true).into_iter() {
+        //let file_type = entry.file_type();
+        let entry = entry.unwrap();
+        let path = entry.path();
+        let metadata = entry.metadata().unwrap();
+        if !metadata.file_type().is_symlink() {
+            let mut perms = metadata.permissions();
+            perms.set_readonly(true);
+            ::std::fs::set_permissions(path, perms)?;
+        } else {
+            isolate_symlink(path, prefix_path, &metadata);
+        }
+    }
+    Ok(())
+}
+
+fn isolate_file(source_path: &Path, prefix_path: &Path, metadata: &::std::fs::Metadata) {
+    if !metadata.file_type().is_symlink() {
+        let mut perms = metadata.permissions();
+        perms.set_readonly(true);
+        ::std::fs::set_permissions(source_path, perms).unwrap();
+    } else {
+        isolate_symlink(source_path, prefix_path, metadata);
+    }
+}
+
+fn set_readonly_dir(path: &Path, value: bool) {
+    for entry in ::walkdir::WalkDir::new(path).contents_first(true).into_iter() {
+        let entry = entry.unwrap();
+        let metadata = entry.metadata().unwrap();
+        let mut perms = metadata.permissions();
+        perms.set_readonly(value);
+        ::std::fs::set_permissions(entry.path(), perms).unwrap();
+    }
+}
+
 impl Data {
     /// Create Data from vector
     pub fn new(storage: Storage, data_type: DataType) -> Data {
@@ -40,15 +99,16 @@ impl Data {
     pub fn new_by_fs_move(
         source_path: &Path,
         target_path: PathBuf,
-    ) -> ::std::result::Result<Self, ::std::io::Error> {
+        workdir_prefix: &Path,
+    ) -> Result<Self> {
+        let metadata = ::std::fs::metadata(source_path)?;
         ::std::fs::rename(source_path, &target_path)?;
-        // TODO: If dir, set permissions recursively
-        let metadata = ::std::fs::metadata(&target_path)?;
-        metadata.permissions().set_mode(0o400);
         let size = metadata.len() as usize;
         let datatype = if metadata.is_dir() {
+            isolate_directory(&target_path, workdir_prefix).unwrap();
             DataType::Directory
         } else {
+            isolate_file(&target_path, workdir_prefix, &metadata);
             DataType::Blob
         };
         Ok(Data::new_from_path(target_path, size, datatype))
@@ -159,7 +219,20 @@ impl Data {
 impl Drop for Data {
     fn drop(&mut self) {
         match self.storage {
-            Storage::Path(ref data) => ::std::fs::remove_file(&data.path).unwrap(),
+            Storage::Path(ref data) => {
+                match self.data_type {
+                    DataType::Blob => {
+                        let mut perms = data.path.metadata().unwrap().permissions();
+                        perms.set_readonly(false);
+                        ::std::fs::set_permissions(&data.path, perms).unwrap();
+                        ::std::fs::remove_file(&data.path).unwrap();
+                    },
+                    DataType::Directory => {
+                        set_readonly_dir(&data.path, false);
+                        ::std::fs::remove_dir_all(&data.path).unwrap();
+                    }
+                }
+            }
             Storage::Memory(_) => { /* Do nothing */ }
         }
     }

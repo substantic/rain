@@ -94,6 +94,7 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
             {
                 let state = state_ref.get();
                 let task = task_ref.get();
+                let data_path = state.work_dir().data_path();
 
                 for (path, dataobj) in config.out_paths.iter().zip(&task.outputs) {
                     let mut obj = dataobj.get_mut();
@@ -121,7 +122,7 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
                         }
                     }
                     let target_path = state.work_dir().new_path_for_dataobject();
-                    let data = Data::new_by_fs_move(&abs_path, target_path)?;
+                    let data = Data::new_by_fs_move(&abs_path, target_path, data_path)?;
                     obj.set_data(Arc::new(data));
                 }
             }

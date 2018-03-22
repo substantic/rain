@@ -80,9 +80,10 @@ impl TaskInstance {
                 task_type if !task_type.starts_with("!") => Self::start_task_in_subworker,
                 "!run" => tasks::run::task_run,
                 "!concat" => tasks::basic::task_concat,
-                "!sleep" => tasks::basic::task_sleep,
                 "!open" => tasks::basic::task_open,
                 "!export" => tasks::basic::task_export,
+                "!make_directory" => tasks::basic::task_make_directory,
+                "!sleep" => tasks::basic::task_sleep,
                 _ => fail_unknown_type,
             }
         };
