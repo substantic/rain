@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd `dirname $0`/..
+cd `dirname $0`/../..
 
 # Python style check
 flake8 python || exit 1

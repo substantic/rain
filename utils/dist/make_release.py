@@ -7,8 +7,8 @@ import github3
 import getpass
 import sys
 
-RAIN_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUILD_DIR = os.path.join(RAIN_ROOT, "dist", "build")
+RAIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BUILD_DIR = os.path.join(RAIN_ROOT, "utils", "dist", "build")
 
 
 class ReleaseBase:

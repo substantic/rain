@@ -4,7 +4,7 @@ cd `dirname $0`
 
 ./stylecheck.sh || exit 1
 
-cd .. || exit 1
+cd ../.. || exit 1
 
 # Build debug version
 cargo build || exit 1
