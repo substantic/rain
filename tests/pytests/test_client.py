@@ -345,7 +345,7 @@ def test_fetch_outputs(test_env):
     with test_env.client.new_session() as s:
         t0 = tasks.execute("ls /", stdout=True)
         t1 = tasks.execute(("split", "-d", "-n", "l/2", t0),
-                           output_files=["x00", "x01"])
+                           output_paths=["x00", "x01"])
         t2 = tasks.execute("ls /", stdout=True)
 
         t2.keep_outputs()

@@ -49,8 +49,8 @@ def slice_directory(dataobj, path, content_type=None):
 def execute(args,
             stdout=None,
             stdin=None,
-            input_files=(),
-            output_files=(),
+            input_paths=(),
+            output_paths=(),
             shell=False,
             cpus=1):
 
@@ -72,9 +72,9 @@ def execute(args,
         ins.append(stdin)
 
     ins += [Input._for_program(obj, execute=True, label_as_path=True)
-            for obj in input_files]
+            for obj in input_paths]
     outs += [Output._for_program(obj, execute=True, label_as_path=True)
-             for obj in output_files]
+             for obj in output_paths]
 
     if isinstance(args, str):
         args = shlex.split(args)

@@ -177,8 +177,8 @@ def test_slice_directory1(test_env):
         d = directory("toplevel")
         # Force fs mapping
         d = tasks.execute("ls",
-                          input_files=[Input("d", dataobj=d)],
-                          output_files=[Output("d", content_type="dir")])
+                          input_paths=[Input("d", dataobj=d)],
+                          output_paths=[Output("d", content_type="dir")])
         a1 = tasks.slice_directory(d, "file1.txt")
         a1.output.keep()
         a2 = tasks.slice_directory(d, "dir1", content_type="dir")
@@ -214,7 +214,8 @@ def test_make_directory(test_env):
         #  TODO: EMPTY DIR d2 = directory("empty")
 
         t0 = tasks.execute(["/bin/cat", b1], stdout=True,
-            input_files=[Input("d1", dataobj=d1)], output_files=[Output("d1", content_type="dir")])
+            input_paths=[Input("d1", dataobj=d1)],
+            output_paths=[Output("d1", content_type="dir")])
         r = tasks.make_directory([
             ("myfile1", t0.outputs["stdout"]),
             ("mydir/mydir2/myfile2", b2),

@@ -9,9 +9,9 @@ from copy import copy
 
 class Program:
     # Input filenames
-    input_files = ()
+    input_paths = ()
     # Output filenames
-    output_files = ()
+    output_paths = ()
     stdin = None
     stdout = None
     shell = False
@@ -19,7 +19,7 @@ class Program:
     def __init__(self,
                  args,
                  stdout=None, stdin=None,
-                 input_files=(), output_files=(),
+                 input_paths=(), output_paths=(),
                  shell=False,
                  cpus=1):
 
@@ -31,10 +31,10 @@ class Program:
                 stdout = "stdout"
             self.stdout = Output._for_program(stdout, label="stdout")
 
-        self.input_files = tuple(Input._for_program(obj, label_as_path=True)
-                                 for obj in input_files)
-        self.output_files = tuple(Output._for_program(obj, label_as_path=True)
-                                  for obj in output_files)
+        self.input_paths = tuple(Input._for_program(obj, label_as_path=True)
+                                 for obj in input_paths)
+        self.output_paths = tuple(Output._for_program(obj, label_as_path=True)
+                                  for obj in output_paths)
         self.cpus = cpus
 
         if isinstance(args, str):
@@ -72,7 +72,7 @@ class Program:
         return execute([apply_data(obj) for obj in self.args],
                        stdout=self.stdout,
                        stdin=apply_data(self.stdin),
-                       input_files=[apply_data(obj) for obj in self.input_files],
-                       output_files=[obj for obj in self.output_files],
+                       input_paths=[apply_data(obj) for obj in self.input_paths],
+                       output_paths=[obj for obj in self.output_paths],
                        shell=self.shell,
                        cpus=self.cpus)
