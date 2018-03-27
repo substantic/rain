@@ -12,7 +12,7 @@ def test_execute_positional_input(test_env):
     with test_env.client.new_session() as s:
         t0 = tasks.execute("ls /", stdout=True)
         t1 = tasks.execute(("split", "-d", "-n", "l/2", t0),
-                           output_files=["x00", "x01"])
+                           output_paths=["x00", "x01"])
         t1.outputs["x00"].keep()
         t1.outputs["x01"].keep()
         s.submit()
@@ -78,7 +78,7 @@ def test_execute_create_file(test_env):
     test_env.start(1)
     args = ("/bin/bash", "-c", "echo ABC > output.txt")
     with test_env.client.new_session() as s:
-        t1 = tasks.execute(args, output_files=[Output("my_output", path="output.txt")])
+        t1 = tasks.execute(args, output_paths=[Output("my_output", path="output.txt")])
         t1.outputs["my_output"].keep()
         s.submit()
         assert t1.outputs["my_output"].fetch().get_bytes() == b"ABC\n"
@@ -88,7 +88,7 @@ def test_program_create_file(test_env):
     """Capturing file"""
     test_env.start(1)
     args = ("/bin/bash", "-c", "echo ABC > output.txt")
-    program = Program(args, output_files=[Output("my_output", path="output.txt")])
+    program = Program(args, output_paths=[Output("my_output", path="output.txt")])
     with test_env.client.new_session() as s:
         t1 = program()
         t1.outputs["my_output"].keep()
@@ -324,8 +324,8 @@ def test_execute_with_dir(test_env):
         data = directory(path=path)
         e = tasks.execute(
             "find ./mydir",
-            input_files=[Input("mydir", dataobj=data)],
-            output_files=[Output("f", path="mydir/f.txt"),
+            input_paths=[Input("mydir", dataobj=data)],
+            output_paths=[Output("f", path="mydir/f.txt"),
                           Output("a", path="mydir/a", content_type="dir")],
             stdout=True)
         e.keep_outputs()
