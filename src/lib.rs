@@ -8,6 +8,7 @@ extern crate capnp_rpc;
 extern crate chrono;
 #[macro_use]
 extern crate error_chain;
+extern crate fs_extra;
 extern crate futures;
 extern crate hyper;
 #[macro_use]
@@ -31,7 +32,6 @@ extern crate tokio_process;
 extern crate tokio_timer;
 extern crate tokio_uds;
 extern crate walkdir;
-extern crate fs_extra;
 
 pub mod common;
 pub mod worker;
