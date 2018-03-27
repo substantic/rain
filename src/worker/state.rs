@@ -515,7 +515,8 @@ impl State {
             } else {
                 // Delayed deletion
                 let now = ::std::time::Instant::now();
-                let timeout = now + ::std::time::Duration::from_secs(self.delete_list_max_timeout as u64);
+                let timeout =
+                    now + ::std::time::Duration::from_secs(self.delete_list_max_timeout as u64);
                 let object_ref = self.graph.objects.get(&object.id).unwrap().clone();
                 let r = self.graph.delete_wait_list.insert(object_ref, timeout);
                 assert!(r.is_none()); // it should not be in delete list
@@ -727,7 +728,10 @@ impl StateRef {
             initializing_subworkers: Vec::new(),
             subworker_args: subworkers,
             self_ref: None,
-            delete_list_max_timeout: ::std::env::var("RAIN_DELETE_LIST_TIMEOUT").ok().and_then(|s| s.parse().ok()).unwrap_or(DEFAULT_DELETE_LIST_MAX_TIMEOUT),
+            delete_list_max_timeout: ::std::env::var("RAIN_DELETE_LIST_TIMEOUT")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(DEFAULT_DELETE_LIST_MAX_TIMEOUT),
         });
         state.get_mut().self_ref = Some(state.clone());
         state

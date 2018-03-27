@@ -95,7 +95,11 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
 
                 for (path, dataobj) in config.out_paths.iter().zip(&task.outputs) {
                     let abs_path = dir.path().join(path);
-                    dataobj.get_mut().set_data_by_fs_move(&abs_path, Some(path), &state.work_dir())?;
+                    dataobj.get_mut().set_data_by_fs_move(
+                        &abs_path,
+                        Some(path),
+                        &state.work_dir(),
+                    )?;
                 }
             }
             Ok(())

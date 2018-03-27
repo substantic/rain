@@ -86,11 +86,15 @@ pub fn task_open(state: &mut State, task_ref: TaskRef) -> TaskResult {
             if !path.is_absolute() {
                 bail!("Path {:?} is not absolute", path);
             }
-            let metadata = &::std::fs::metadata(&path).map_err(|_| {
-                ErrorKind::Msg(format!("Path '{}' not found", config.path))
-            })?;
+            let metadata = &::std::fs::metadata(&path)
+                .map_err(|_| ErrorKind::Msg(format!("Path '{}' not found", config.path)))?;
             let target_path = state_ref.get().work_dir().new_path_for_dataobject();
-            let data = Data::new_by_fs_copy(&path, metadata, target_path, state_ref.get().work_dir().data_path())?;
+            let data = Data::new_by_fs_copy(
+                &path,
+                metadata,
+                target_path,
+                state_ref.get().work_dir().data_path(),
+            )?;
             let output = task_ref.get().output(0);
             output.get_mut().set_data(Arc::new(data))?;
         }

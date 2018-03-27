@@ -163,7 +163,7 @@ def test_slice_directory1(test_env):
         assert b"My data 2" == a4.output.fetch().get_bytes()
 
 
-def test_slice_directory1(test_env):
+def test_slice_directory2(test_env):
     os.mkdir("toplevel")
     with open("toplevel/file1.txt", "w") as f:
         f.write("My data 1")
@@ -213,7 +213,9 @@ def test_make_directory(test_env):
         d1 = directory("mydir3")
         #  TODO: EMPTY DIR d2 = directory("empty")
 
-        t0 = tasks.execute(["/bin/cat", b1], stdout=True,
+        t0 = tasks.execute(
+            ["/bin/cat", b1],
+            stdout=True,
             input_paths=[Input("d1", dataobj=d1)],
             output_paths=[Output("d1", content_type="dir")])
         r = tasks.make_directory([
@@ -221,7 +223,7 @@ def test_make_directory(test_env):
             ("mydir/mydir2/myfile2", b2),
             ("mydir/myfile3", b3),
             ("mydir/d1a", d1),
-            #("mydir/d2", d2),
+            #  ("mydir/d2", d2),
             ("mydir/d1b", t0.outputs["d1"]),
         ])
         r.output.keep()
