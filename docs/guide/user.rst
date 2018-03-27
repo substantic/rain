@@ -124,8 +124,9 @@ intuitive example to demostrate the concept of task chaining::
       result = t2.output.fetch()  #  It will wait around 1 second
                                   #  and then returns b'Hello world'
 
-If a task produces only a single output, we can ommit ``.output`` and directly use the task
-as an input for another task. In our example, we can define ``t2`` as follows::
+If a task produces only a single output, we can ommit ``.output`` and directly
+use the task as an input for another task. In our example, we can define ``t2``
+as follows::
 
   t2 = tasks.concat((a, t1))
 
@@ -180,6 +181,7 @@ Recognized content types:
   * cbor - Object serialized into CBOR
   * text - UTF-8 string.
   * text:<ENCODING> - Text with specified encoding
+  * dir - Directory
   * mime:<MIME> - Content type defined as MIME type
   * user:<TYPE> - User defined type, <TYPE> may be arbitrary string
 
@@ -231,6 +233,12 @@ The following four tasks are supported directly by Rain worker:
   directory.
 * *sleep* (:func:`rain.client.tasks.sleep`) Task that forwards its input as its
   output after a specified delay.
+* *make_directory* (:func:`rain.client.tasks.make_directory`) Tasks that creates
+  a directory from inputs.
+* *split_directory* (:func:`rain.client.tasks.slice_directory`) Tasks that takes
+  a file/subdirectory from a directory object.
+
+
 
 ::
 
@@ -317,7 +325,7 @@ output of :func:`rain.cient.tasks.execute`. The following example calls program
 
   with client.new_session() as session:
       t = tasks.execute("wget https://github.com/",
-                         output_files=[Output("index", path="index.html")])
+                         output_paths=[Output("index", path="index.html")])
       t.output.keep()
 
       session.submit()
@@ -336,7 +344,7 @@ If we do not want to configure the output, it is possible to use just a string
 instead of instance of ``Output``. It creates the output with the same label and
 path as the given string. Therefore we can create the previous task as follows::
 
-  t = tasks.execute("wget https://github.com/", output_files=["index.html"])
+  t = tasks.execute("wget https://github.com/", output_paths=["index.html"])
 
 The only difference is that label of the output is now "index.html" (not
 "index").
@@ -345,17 +353,17 @@ Of course, more than one output may be specified. Program ``wget`` allows to
 redirect its log to a file through ``--output-file`` option::
 
   t = tasks.execute("wget https://github.com/ --output-file log",
-                    outputs_files=["index.html", "log"])
+                    outputs_paths=["index.html", "log"])
 
 This creates a task with two outputs with labels "index.html" and "log". The outputs
 are available using standard syntax, e.g. ``t.outputs["log"]``.
 
 Outputs can be also passed directly as program arguments. This is a shortcut for
 two actions: passing the output path as an argument and putting output into
-``output_files``. The example above can be written as follows::
+``output_paths``. The example above can be written as follows::
 
   t = tasks.execute(["wget", "https://github.com/", "--output-file", Output("log")],
-                    output_files=["index.html"])
+                    output_paths=["index.html"])
 
 The argument ``stdout`` allows to use program's standard output::
 
@@ -408,14 +416,14 @@ For additional settings and file name control, there is
     task = tasks.execute(["a-program", "argument1",
                           Input("my_label", path="myfile", dataobj=my_data)])
 
-The argument ``input_files`` of :func:`rain.client.tasks.execute` serves to map
+The argument ``input_paths`` of :func:`rain.client.tasks.execute` serves to map
 a data object into file without putting its filename into the program
 arguments::
 
   # It executes a program "a-program" with arguments "argument1"
   # and while it maps dataobject in variable 'data' into file 'myfile'
   tasks.execute(["a-program", "argument1"],
-                input_files=[Input("my_label", path="myfile", dataobj=my_data)])
+                input_paths=[Input("my_label", path="myfile", dataobj=my_data)])
 
 The argument ``stdin`` serves to map a data object on the standard input of the
 program::
@@ -450,7 +458,7 @@ the active session.
       task = rain_grep(my_input=data)
 
 ``Program`` accepts the same arguments as ``execute``, including
-``input_files``, ``output_files``, ``stdin``, and ``stdout``. The only
+``input_paths``, ``output_paths``, ``stdin``, and ``stdout``. The only
 difference is that in all places where data object could be used, ``Input``
 instance (without ``dataobj`` argument) has to be used, since ``Program``
 defines "pattern" indepedently on a particular session.
@@ -778,6 +786,54 @@ session::
   does not have to be marked as "kept".
 
 
+Directories
+===========
+
+Rain allows to use directories in similar way to blobs. Rain allows to create
+directory data objects that can be passed to ``tasks.execute()``, remote python
+code, and other places without any differences. There are only two specific
+features:
+
+  - If a directory dataobject is mapped to a file system it is mapped as directory
+    (not as a file as in the case of blobs).
+  - If a directory is viewed as raw bytes (e.g. method ``get_bytes`` on data instance), tar file is returned.
+
+::
+
+   from rain import
+
+   from rain.client import Client, tasks, blob, Output, directory
+
+   client = Client("localhost", 7210)
+
+   with client.new_session() as session:
+
+       # Creates a directory object from client's local file system
+       # Recursively collects all files and directories in /path/to/dir
+       d = directory("/path/to/dir")
+
+       # Create blob data objects
+       data1 = blob(b"12345")
+       data2 = blob(b"67890")
+
+       # Task that creates a directory from data objects
+       d2 = tasks.make_directory(tasks.make_directory([
+            ("myfile.txt", data1),  # Map 'data1' as file 'myfile.txt' into directory
+            ("adir", d),  # Map directory 'd' as subdir named 'adir'
+            ("a/deep/path/x", data2),  # Map 'data2' as a file 'x'; all subdirs on path is created
+       ])
+
+       # Task taking a file from a directory data object
+       d3 = tasks.slice_directory(d2, "a/deep/path/x")
+
+       # Task taking a directory from a directory data object
+       d3 = tasks.slice_directory(d2, "a/deep", content_type="dir")
+
+       # Taking directory as outpout of task.execute
+       tasks.execute("git clone https://github.com/substantic/rain",
+                     output_paths=[Output("rain", content_type="dir")])
+
+
 .. _sessions:
 
 Sessions
@@ -892,9 +948,3 @@ they have to be marked as "kept" explicitly.
 
 Let us remind that method ``wait_all()`` waits until all currently running task
 are finished, regardless in which submit they arrived to the server.
-
-
-Directories
------------
-
-TODO: Not implemented yet
