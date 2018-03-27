@@ -13,15 +13,17 @@ pub struct WorkDir {
 
 impl WorkDir {
     pub fn new(path: PathBuf) -> Self {
-        let data_path = path.join("data");
-        ::std::fs::create_dir(&data_path).unwrap();
+        ::std::fs::create_dir(path.join("data")).unwrap();
         ::std::fs::create_dir(path.join("tasks")).unwrap();
         ::std::fs::create_dir(path.join("tmp")).unwrap();
         ::std::fs::create_dir(path.join("subworkers")).unwrap();
         ::std::fs::create_dir(path.join("subworkers/work")).unwrap();
+        // Canonilize is very imporant here,
+        // We often check if symlinks goes to data dir
+        let path = ::std::fs::canonicalize(path).unwrap();
         WorkDir {
+            data_path: path.join("data"),
             path,
-            data_path,
             id_counter: Cell::new(0),
         }
     }

@@ -45,7 +45,7 @@ def test_cpu_resources4(test_env):
 
 def test_number_of_tasks_and_objects(test_env):
     """Sleep followed by wait"""
-    test_env.start(1)
+    test_env.start(1, delete_list_timeout=0)
     with test_env.client.new_session() as s:
         t1 = tasks.sleep(0.4, blob("abc123456"))
         t1.output.keep()
@@ -62,7 +62,7 @@ def test_number_of_tasks_and_objects(test_env):
 
         # Timeout is expected as big as necessary to cleanup
         # Worker caches
-        time.sleep(4)
+        time.sleep(2)
 
         info = test_env.client.get_server_info()
         workers = info["workers"]

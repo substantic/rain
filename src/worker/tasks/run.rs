@@ -1,5 +1,4 @@
 use std::fs::File;
-use std::sync::Arc;
 use std::process::{Command, Stdio};
 use tokio_process::CommandExt;
 use futures::Future;
@@ -10,7 +9,6 @@ use std::io::Read;
 use super::TaskResult;
 use worker::graph::TaskRef;
 use worker::state::State;
-use worker::data::Data;
 use errors::Result;
 
 fn read_stderr(path: &Path) -> Result<String> {
@@ -94,36 +92,10 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
             {
                 let state = state_ref.get();
                 let task = task_ref.get();
-                let data_path = state.work_dir().data_path();
 
                 for (path, dataobj) in config.out_paths.iter().zip(&task.outputs) {
-                    let mut obj = dataobj.get_mut();
                     let abs_path = dir.path().join(path);
-                    let is_dir = obj.content_type().map(|c| c == "dir").unwrap_or(false);
-                    if is_dir {
-                        if !abs_path.is_dir() {
-                            if abs_path.is_file() {
-                                bail!(
-                                    "Output path '{}' is a file, but expected content type is dir",
-                                    path
-                                );
-                            } else {
-                                bail!("Output path '{}' not found", path);
-                            }
-                        }
-                    } else {
-                        if !abs_path.is_file() {
-                            if abs_path.is_dir() {
-                                let ct = obj.content_type().unwrap_or_else(|| "<None>".to_string());
-                                bail!("Output path '{}' is a directory, but expected content type is {}", path, ct);
-                            } else {
-                                bail!("Output path '{}' not found", path);
-                            }
-                        }
-                    }
-                    let target_path = state.work_dir().new_path_for_dataobject();
-                    let data = Data::new_by_fs_move(&abs_path, target_path, data_path)?;
-                    obj.set_data(Arc::new(data));
+                    dataobj.get_mut().set_data_by_fs_move(&abs_path, Some(path), &state.work_dir())?;
                 }
             }
             Ok(())

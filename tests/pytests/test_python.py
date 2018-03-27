@@ -643,9 +643,6 @@ def test_python_dir(test_env):
         e2 = remote_fn2(e)
         e2.keep_outputs()
 
-        print("e1 = ", e1)
-        print("e2 = ", e2)
-
         s.submit()
         s.wait_all()
 

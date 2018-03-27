@@ -82,6 +82,7 @@ impl TaskInstance {
                 "!concat" => tasks::basic::task_concat,
                 "!open" => tasks::basic::task_open,
                 "!export" => tasks::basic::task_export,
+                "!slice_directory" => tasks::basic::task_slice_directory,
                 "!make_directory" => tasks::basic::task_make_directory,
                 "!sleep" => tasks::basic::task_sleep,
                 _ => fail_unknown_type,
@@ -254,7 +255,7 @@ impl TaskInstance {
 
                                     let mut o = output.get_mut();
                                     o.set_attributes(attributes);
-                                    o.set_data(data);
+                                    o.set_data(data)?;
                                 }
                             } else {
                                 debug!("Task id={} failed in subworker", task.id);

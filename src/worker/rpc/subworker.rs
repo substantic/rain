@@ -93,6 +93,7 @@ pub fn data_from_capnp(
             let target_path = work_dir.new_path_for_dataobject();
             Ok(Arc::new(Data::new_by_fs_move(
                 &Path::new(source_path),
+                &::std::fs::metadata(source_path)?,
                 target_path,
                 work_dir.data_path(),
             )?))

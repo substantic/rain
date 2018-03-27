@@ -4,7 +4,10 @@ use common::{Attributes, RcSet};
 use super::{Graph, TaskRef};
 use worker::data::Data;
 use worker::graph::SubworkerRef;
+use worker::WorkDir;
+use errors::{ErrorKind, Result};
 
+use std::path::Path;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::fmt;
@@ -61,10 +64,28 @@ pub struct DataObject {
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
 impl DataObject {
-    pub fn set_data(&mut self, data: Arc<Data>) {
+
+    pub fn set_data(&mut self, data: Arc<Data>) -> Result<()> {
         assert!(!self.is_finished());
+
+        let is_dir = self.content_type().map(|c| c == "dir");
+        match is_dir {
+            Some(true) => {
+                if !data.is_directory() {
+                    bail!("Output '{}' has content 'dir', but blob is provided", self.label)
+                }
+            },
+            Some(false) => {
+                if !data.is_blob() {
+                    let ct = self.content_type().unwrap_or_else(|| "<None>".to_string());
+                    bail!("Output '{}' has content '{}', but directory is provided", self.label, ct)
+                }
+            }
+            None => { /* No check */ }
+        }
         self.size = Some(data.size());
         self.state = DataObjectState::Finished(data);
+        Ok(())
     }
 
     pub fn set_attributes(&mut self, attributes: Attributes) {
@@ -99,6 +120,15 @@ impl DataObject {
             DataObjectState::Remote(ref addr) | DataObjectState::Pulling(ref addr) => Some(*addr),
             _ => None,
         }
+    }
+
+    pub fn set_data_by_fs_move(&mut self, source_path: &Path, info_path: Option<&str>, work_dir: &WorkDir) -> Result<()> {
+        let metadata = ::std::fs::metadata(source_path).map_err(|_| {
+            ErrorKind::Msg(format!("Path '{}' now found.", info_path.unwrap_or_else(|| source_path.to_str().unwrap())))
+        })?;
+        let target_path = work_dir.new_path_for_dataobject();
+        let data = Data::new_by_fs_move(source_path, &metadata, target_path, work_dir.data_path())?;
+        self.set_data(Arc::new(data))
     }
 }
 

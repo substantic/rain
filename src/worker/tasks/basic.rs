@@ -7,6 +7,7 @@ use worker::state::State;
 use worker::graph::TaskRef;
 use worker::data::{Data, DataBuilder};
 use futures::{future, Future};
+use errors::ErrorKind;
 
 /// Task that merge all input blobs and merge them into one blob
 pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {
@@ -35,7 +36,7 @@ pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {
         }
         let result = builder.build();
         let output = task_ref.get().output(0);
-        output.get_mut().set_data(Arc::new(result));
+        output.get_mut().set_data(Arc::new(result))?;
         Ok(())
     })))
 }
@@ -54,13 +55,13 @@ pub fn task_sleep(state: &mut State, task_ref: TaskRef) -> TaskResult {
             .timer()
             .sleep(duration)
             .map_err(|e| e.into())
-            .map(move |()| {
+            .and_then(move |()| {
                 {
                     let task = task_ref.get();
                     let output = task.output(0);
-                    output.get_mut().set_data(task.input_data(0));
+                    output.get_mut().set_data(task.input_data(0))?;
                 }
-                ()
+                Ok(())
             }),
     ))
 }
@@ -85,10 +86,13 @@ pub fn task_open(state: &mut State, task_ref: TaskRef) -> TaskResult {
             if !path.is_absolute() {
                 bail!("Path {:?} is not absolute", path);
             }
+            let metadata = &::std::fs::metadata(&path).map_err(|_| {
+                ErrorKind::Msg(format!("Path '{}' not found", config.path))
+            })?;
             let target_path = state_ref.get().work_dir().new_path_for_dataobject();
-            let data = Data::new_by_fs_copy(&path, target_path)?;
+            let data = Data::new_by_fs_copy(&path, metadata, target_path, state_ref.get().work_dir().data_path())?;
             let output = task_ref.get().output(0);
-            output.get_mut().set_data(Arc::new(data));
+            output.get_mut().set_data(Arc::new(data))?;
         }
         Ok(())
     })))
@@ -129,7 +133,6 @@ pub fn task_make_directory(state: &mut State, task_ref: TaskRef) -> TaskResult {
         let state = state_ref.get();
         let task = task_ref.get();
         let dir = state.work_dir().make_task_temp_dir(task.id)?;
-
         let main_dir = dir.path().join("newdir");
         ::std::fs::create_dir(&main_dir)?;
 
@@ -144,11 +147,32 @@ pub fn task_make_directory(state: &mut State, task_ref: TaskRef) -> TaskResult {
             ::std::fs::create_dir_all(&target_path.parent().unwrap())?;
             data.map_to_path(&target_path)?;
         }
-        let target_path = state.work_dir().new_path_for_dataobject();
-
-        let data = Data::new_by_fs_move(&main_dir, target_path, state.work_dir().data_path())?;
         let output = task.output(0);
-        output.get_mut().set_data(Arc::new(data));
-        Ok(())
+        let mut obj = output.get_mut();
+        obj.set_data_by_fs_move(&main_dir, None, state.work_dir())
+    })))
+}
+
+#[derive(Deserialize)]
+struct SliceDirectoryConfig {
+    path: String,
+}
+
+/// Make directory
+pub fn task_slice_directory(state: &mut State, task_ref: TaskRef) -> TaskResult {
+    let state_ref = state.self_ref();
+    Ok(Box::new(future::lazy(move || {
+        let state = state_ref.get();
+        let task = task_ref.get();
+        task.check_number_of_args(1)?;
+        let config: SliceDirectoryConfig = task.attributes.get("config")?;
+        let data = task.input_data(0);
+        let dir = state.work_dir().make_task_temp_dir(task.id)?;
+        let main_dir = dir.path().join("newdir");
+        data.map_to_path(&main_dir).unwrap();
+        let path = main_dir.join(&config.path);
+        let output = task.output(0);
+        let mut obj = output.get_mut();
+        obj.set_data_by_fs_move(&path, Some(&config.path), state.work_dir())
     })))
 }
