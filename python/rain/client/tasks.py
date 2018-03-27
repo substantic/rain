@@ -36,7 +36,14 @@ def export(dataobj, filename):
 def make_directory(dataobj_paths):
     paths = [path for path, dataobj in dataobj_paths]
     inputs = [to_data(dataobj) for path, dataobj in dataobj_paths]
-    return Task("!make_directory", {"paths": paths}, inputs=inputs, outputs=1)
+    return Task("!make_directory", {"paths": paths}, inputs=inputs,
+                outputs=(Output("output", content_type="dir"),))
+
+
+def slice_directory(dataobj, path, content_type=None):
+    return Task("!slice_directory", {"path": path},
+                inputs=(dataobj,),
+                outputs=(Output("output", content_type=content_type),))
 
 
 def execute(args,

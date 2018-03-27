@@ -132,8 +132,74 @@ def test_task_export(test_env):
             assert "bin" in f.read()
 
 
+def test_slice_directory1(test_env):
+    os.mkdir("toplevel")
+    with open("toplevel/file1.txt", "w") as f:
+        f.write("My data 1")
+    os.mkdir("toplevel/dir1")
+    os.mkdir("toplevel/dir1/dir2")
+    with open("toplevel/dir1/dir2/file2.txt", "w") as f:
+        f.write("My data 2")
+
+    test_env.start(1, delete_list_timeout=0)
+    with test_env.client.new_session() as s:
+        d = directory("toplevel")
+        a1 = tasks.slice_directory(d, "file1.txt")
+        a1.output.keep()
+        a2 = tasks.slice_directory(d, "dir1", content_type="dir")
+        a2.output.keep()
+        a3 = tasks.slice_directory(d, "dir1", content_type="dir")
+        a3.output.keep()
+        a4 = tasks.slice_directory(d, "dir1/dir2/file2.txt")
+        a4.output.keep()
+        s.submit()
+        assert b"My data 1" == a1.output.fetch().get_bytes()
+        a2.output.fetch().write("result2")
+        with open("result2/dir2/file2.txt") as f:
+            assert f.read() == "My data 2"
+        a3.output.fetch().write("result3")
+        with open("result2/dir2/file2.txt") as f:
+            assert f.read() == "My data 2"
+        assert b"My data 2" == a4.output.fetch().get_bytes()
+
+
+def test_slice_directory1(test_env):
+    os.mkdir("toplevel")
+    with open("toplevel/file1.txt", "w") as f:
+        f.write("My data 1")
+    os.mkdir("toplevel/dir1")
+    os.mkdir("toplevel/dir1/dir2")
+    with open("toplevel/dir1/dir2/file2.txt", "w") as f:
+        f.write("My data 2")
+
+    test_env.start(1, delete_list_timeout=0)
+    with test_env.client.new_session() as s:
+        d = directory("toplevel")
+        # Force fs mapping
+        d = tasks.execute("ls",
+                          input_files=[Input("d", dataobj=d)],
+                          output_files=[Output("d", content_type="dir")])
+        a1 = tasks.slice_directory(d, "file1.txt")
+        a1.output.keep()
+        a2 = tasks.slice_directory(d, "dir1", content_type="dir")
+        a2.output.keep()
+        a3 = tasks.slice_directory(d, "dir1", content_type="dir")
+        a3.output.keep()
+        a4 = tasks.slice_directory(d, "dir1/dir2/file2.txt")
+        a4.output.keep()
+        s.submit()
+        assert b"My data 1" == a1.output.fetch().get_bytes()
+        a2.output.fetch().write("result2")
+        with open("result2/dir2/file2.txt") as f:
+            assert f.read() == "My data 2"
+        a3.output.fetch().write("result3")
+        with open("result2/dir2/file2.txt") as f:
+            assert f.read() == "My data 2"
+        assert b"My data 2" == a4.output.fetch().get_bytes()
+
+
 def test_make_directory(test_env):
-    test_env.start(1, delete_list_timeout=10)
+    test_env.start(1, delete_list_timeout=0)
 
     #  TODO: EMPTY DIR os.mkdir("empty")
     os.mkdir("mydir3")

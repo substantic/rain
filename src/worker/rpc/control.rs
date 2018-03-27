@@ -179,7 +179,7 @@ impl worker_control::Server for WorkerControlImpl {
             let future = state
                 .fetch_from_datastore(&worker_id, object_id, 0)
                 .map(move |data| {
-                    object_ref.get_mut().set_data(Arc::new(data));
+                    object_ref.get_mut().set_data(Arc::new(data)).unwrap();
                     state_ref.get_mut().object_is_finished(&object_ref);
                 });
             state.handle().spawn(future.map_err(move |e| {

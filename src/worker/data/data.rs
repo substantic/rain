@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::os::unix::fs::PermissionsExt;
 
 use common::DataType;
 
@@ -98,33 +97,55 @@ impl Data {
 
     pub fn new_by_fs_move(
         source_path: &Path,
+        metadata: &::std::fs::Metadata,
         target_path: PathBuf,
         workdir_prefix: &Path,
     ) -> Result<Self> {
-        let metadata = ::std::fs::metadata(source_path)?;
-        ::std::fs::rename(source_path, &target_path)?;
-        let size = metadata.len() as usize;
-        let datatype = if metadata.is_dir() {
-            isolate_directory(&target_path, workdir_prefix).unwrap();
-            DataType::Directory
+        let source_path = ::std::fs::canonicalize(source_path).unwrap();
+        let datatype = if source_path.starts_with(workdir_prefix) {
+            // Source path acutally points inside data dir
+            // So we cannot move data, however
+            // permissions & links are already resolved
+            // so we need just bare copy
+            if metadata.is_dir() {
+                let mut flags = ::fs_extra::dir::CopyOptions::new();
+                flags.copy_inside = true;
+                ::fs_extra::dir::copy(source_path, &target_path, &flags).unwrap();
+                DataType::Directory
+            } else {
+                ::std::fs::copy(source_path, &target_path)?;
+                DataType::Blob
+            }
         } else {
-            isolate_file(&target_path, workdir_prefix, &metadata);
-            DataType::Blob
+            ::std::fs::rename(source_path, &target_path)?;
+            if metadata.is_dir() {
+                isolate_directory(&target_path, workdir_prefix).unwrap();
+                DataType::Directory
+            } else {
+                isolate_file(&target_path, workdir_prefix, &metadata);
+                DataType::Blob
+            }
         };
+        let size = metadata.len() as usize;
         Ok(Data::new_from_path(target_path, size, datatype))
     }
 
     pub fn new_by_fs_copy(
         source_path: &Path,
+        metadata: &::std::fs::Metadata,
         target_path: PathBuf,
+        workdir_prefix: &Path,
     ) -> ::std::result::Result<Self, ::std::io::Error> {
-        ::std::fs::copy(source_path, &target_path)?;
-        let metadata = ::std::fs::metadata(&target_path)?;
-        metadata.permissions().set_mode(0o400);
         let size = metadata.len() as usize;
         let datatype = if metadata.is_dir() {
+            let mut flags = ::fs_extra::dir::CopyOptions::new();
+            flags.copy_inside = true;
+            ::fs_extra::dir::copy(source_path, &target_path, &flags).unwrap();
+            isolate_directory(&target_path, workdir_prefix).unwrap();
             DataType::Directory
         } else {
+            ::std::fs::copy(source_path, &target_path)?;
+            isolate_file(&target_path, workdir_prefix, metadata);
             DataType::Blob
         };
         Ok(Data::new_from_path(target_path, size, datatype))
