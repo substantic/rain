@@ -10,10 +10,11 @@ Tasks are executed on computational nodes (computers where Rain workers are
 running). Tasks can be external programs, python functions, and basic build-in
 operations.
 
-**Data objects** are objects that are read and created by tasks. Data objects
-are immutable, once they are created they cannot be modified. They are generic
-data blobs with accompanying metadata. It is upto tasks to interpret the data
-object content.
+**Data objects** are objects that are read and created by tasks. Data
+instances are immutable, once they are created they cannot be modified. They are
+generic data blobs (or directories) with accompanying metadata. It is upto tasks
+to interpret the data object content.
+
 
 
 Task definition and submission
@@ -383,7 +384,9 @@ Inputs
 Data objects can be mapped into the working directory of
 :func:`rain.client.tasks`. The simplest case is to use a data object directly as
 arguments for a program. In such case, the data object is mapped into randomly
-named file and the name is placed into program arguments.
+named file and the name is placed into program arguments. Note that files are by
+default mapped only for reading (and proctected by setting file permissions).
+More options of mapping is described in :ref:`fs_mapping`.
 
 ::
 
@@ -833,6 +836,34 @@ features:
        tasks.execute("git clone https://github.com/substantic/rain",
                      output_paths=[Output("rain", content_type="dir")])
 
+
+.. _fs_mappings:
+
+Mapping data objects onto filesystem
+====================================
+
+Rain knows two methods of maping a data objects onto filesystem.
+
+* **write** - creates a fresh copy of data objects is created on filesystem that
+  can be freely modified.
+* **link** - symlink to the internal storage of worker. The user can only read
+this data. This method may silently fallback to 'write' when worker has no file
+system representation of the object.
+
+Data instance has methods ``write(path)`` and ``link(path)`` that performs the
+mapping to a given path. They can be used on both in subworker and in client.
+Let us note that in the current version **link** in client always fallbacks
+to **write**.
+
+.. warning::
+
+   Read-only property in linking method is forced by setting up file rights.
+   Therefore, as far you do not change permissions of files/directories, you are
+   proctected against accidental modifications of data objects. If you change
+   permissions or content of linked data objects, the behavior is undefined. Let
+   us remind that Rain is designed only for execution of trusted code. Obviously
+   this kind of isolation is **not** a protection against malicious users.
+   
 
 .. _sessions:
 

@@ -10,6 +10,7 @@ from .content_type import decode_value, merge_content_types
 from .errors import RainException
 from .utils import format_size
 from .ids import id_to_capnp, ID
+from .fs import fresh_copy_dir
 
 
 class DataInstance:
@@ -124,11 +125,21 @@ class DataInstance:
             with open(self._path, "rb") as f:
                 return f.read()
 
+    def link(self, path):
+        if self._data is None:
+            os.symlink(self._path, path)
+        else:
+            self.write(path)
+
     def write(self, path):
+        """Write fresh copy of data into target path."""
         if self._data is None:
             if self._path == path:
                 return
-            raise Exception("TODO implement copy")
+            if self.data_type == "directory":
+                fresh_copy_dir(self._path, path)
+            else:
+                shutil.copyfile(self._path, path)
         else:
             # TODO: Make security check that tarball does not contain absolute paths
             if self.data_type == "blob":
