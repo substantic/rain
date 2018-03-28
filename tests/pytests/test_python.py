@@ -1,4 +1,4 @@
-from rain.client import remote, Program, Input, Output, blob, pickled, directory
+from rain.client import remote, Program, Input, Output, blob, pickled, directory, tasks
 from rain.client import TaskException, RainWarning
 from rain.common import DataInstance
 import pytest
@@ -594,6 +594,97 @@ def test_debug_message(test_env):
         t.update()
         assert t.attributes["debug"] == \
             "This is first message\nThis is second message and variable a = 11"
+
+
+def test_python_datainstance_write(test_env):
+
+    @remote()
+    def remote_fn(ctx, input1, input2):
+        input1.write("test1")
+        input2.write("test2")
+
+        with open("test1") as f:
+            assert f.read() == "Data 1"
+
+        with open("test1", "w") as f:
+            f.write("New data 1")
+
+        with open("test1") as f:
+            assert f.read() == "New data 1"
+
+        with open("test2/file") as f:
+            assert f.read() == "Data 2"
+
+        with open("test2/file", "w") as f:
+            f.write("New data 2")
+
+        with open("test2/file") as f:
+            assert f.read() == "New data 2"
+
+        os.mkdir("test2/testdir")
+        os.unlink("test1")
+        os.unlink("test2/file")
+        return b""
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        d1 = blob(b"Data 1")
+        os.mkdir("dir")
+        with open("dir/file", "w") as f:
+            f.write("Data 2")
+        d2 = directory("dir")
+        remote_fn(d1, d2)
+        s.submit()
+        s.wait_all()
+
+        x = tasks.execute("ls", input_paths=[Input("d1", dataobj=d1), Input("d2", dataobj=d2)],
+                                output_paths=[Output("d1"), Output("d2")])
+        remote_fn(x.outputs["d1"], x.outputs["d2"])
+        s.submit()
+        s.wait_all()
+
+
+def test_python_datainstance_link(test_env):
+
+    @remote()
+    def remote_fn(ctx, input1, input2):
+        input1.link("test1")
+        input2.link("test2")
+
+        with open("test1") as f:
+            assert f.read() == "Data 1"
+
+        with open("test2/file") as f:
+            assert f.read() == "Data 2"
+
+        if os.path.islink("test1"):
+            with pytest.raises(PermissionError):
+                with open("test1", "w") as f:
+                    pass
+
+        if os.path.islink("test2"):
+            with pytest.raises(PermissionError):
+                with open("test2/file", "w") as f:
+                    pass
+        return b""
+
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        d1 = blob(b"Data 1")
+        os.mkdir("dir")
+        with open("dir/file", "w") as f:
+            f.write("Data 2")
+        d2 = directory("dir")
+        remote_fn(d1, d2)
+        s.submit()
+        s.wait_all()
+
+        x = tasks.execute("ls", input_paths=[Input("d1", dataobj=d1), Input("d2", dataobj=d2)],
+                                output_paths=[Output("d1"), Output("d2")])
+        remote_fn(x.outputs["d1"], x.outputs["d2"])
+        s.submit()
+        s.wait_all()
 
 
 def test_python_dir(test_env):

@@ -95,12 +95,6 @@ class DataObject:
                 # called when connection is closed
                 pass
 
-    def is_blob(self):
-        return self.content_type != "dir"
-
-    def is_directory(self):
-        return self.content_type == "dir"
-
     def __reduce__(self):
         """Speciaization to replace with subworker.unpickle_input_object
         in Python task args while (cloud)pickling."""
