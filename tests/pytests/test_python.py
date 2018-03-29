@@ -637,8 +637,10 @@ def test_python_datainstance_write(test_env):
         s.submit()
         s.wait_all()
 
-        x = tasks.execute("ls", input_paths=[Input("d1", dataobj=d1), Input("d2", dataobj=d2)],
-                                output_paths=[Output("d1"), Output("d2")])
+        x = tasks.execute(
+            "ls",
+            input_paths=[Input("d1", dataobj=d1), Input("d2", dataobj=d2)],
+            output_paths=[Output("d1"), Output("d2")])
         remote_fn(x.outputs["d1"], x.outputs["d2"])
         s.submit()
         s.wait_all()
@@ -668,7 +670,6 @@ def test_python_datainstance_link(test_env):
                     pass
         return b""
 
-
     test_env.start(1)
     with test_env.client.new_session() as s:
         d1 = blob(b"Data 1")
@@ -680,8 +681,9 @@ def test_python_datainstance_link(test_env):
         s.submit()
         s.wait_all()
 
-        x = tasks.execute("ls", input_paths=[Input("d1", dataobj=d1), Input("d2", dataobj=d2)],
-                                output_paths=[Output("d1"), Output("d2")])
+        x = tasks.execute("ls",
+                          input_paths=[Input("d1", dataobj=d1), Input("d2", dataobj=d2)],
+                          output_paths=[Output("d1"), Output("d2")])
         remote_fn(x.outputs["d1"], x.outputs["d2"])
         s.submit()
         s.wait_all()

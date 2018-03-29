@@ -191,15 +191,11 @@ impl Data {
     /// Map data object on a given path
     /// Caller is responsible for deletion of the path
     /// It creates a symlink to real data or new file if data only in memory
-    pub fn map_to_path(&self, path: &Path) -> Result<()> {
+    pub fn link_to_path(&self, path: &Path) -> Result<()> {
         use std::os::unix::fs::symlink;
 
         match self.storage {
-            Storage::Memory(ref data) => {
-                self.memory_to_fs(data, path)
-                //let mut file = ::std::fs::File::create(path)?;
-                //file.write_all(data)?;
-            }
+            Storage::Memory(ref data) => self.memory_to_fs(data, path),
             Storage::Path(ref data) => {
                 symlink(&data.path, path)?;
                 Ok(())
@@ -207,14 +203,26 @@ impl Data {
         }
     }
 
-    /// Export data object on a given path
-    pub fn export_to_path(&self, path: &Path) -> Result<()> {
+    pub fn write_to_path(&self, path: &Path) -> Result<()> {
         match self.storage {
             Storage::Memory(ref data) => self.memory_to_fs(data, path),
-            Storage::Path(ref data) => {
-                ::std::fs::copy(&data.path, path)?;
-                Ok(())
-            }
+            Storage::Path(ref data) => match self.data_type {
+                DataType::Blob => {
+                    ::std::fs::copy(&data.path, path)?;
+                    let metadata = ::std::fs::metadata(path)?;
+                    let mut perms = metadata.permissions();
+                    perms.set_readonly(false);
+                    ::std::fs::set_permissions(path, perms)?;
+                    Ok(())
+                }
+                DataType::Directory => {
+                    let mut flags = ::fs_extra::dir::CopyOptions::new();
+                    flags.copy_inside = true;
+                    ::fs_extra::dir::copy(&data.path, path, &flags).unwrap();
+                    set_readonly_dir(path, false);
+                    Ok(())
+                }
+            },
         }
     }
 

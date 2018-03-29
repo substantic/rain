@@ -10,7 +10,13 @@ class Input:
     load = None
     content_type = None
 
-    def __init__(self, label=None, path=None, dataobj=None, load=None, content_type=None):
+    def __init__(self,
+                 label=None,
+                 path=None,
+                 dataobj=None,
+                 load=None,
+                 content_type=None,
+                 write=False):
 
         if label is not None and not isinstance(label, str):
             raise Exception("Label has to be string, not {!r}".format(label))
@@ -25,6 +31,7 @@ class Input:
             self.dataobj = to_data(dataobj)
         self.load = load
         self.content_type = content_type
+        self.write = write
 
     def __repr__(self):
         args = []
