@@ -121,7 +121,7 @@ pub fn task_export(_: &mut State, task_ref: TaskRef) -> TaskResult {
             bail!("Path {:?} is not absolute", path);
         }
         let input = task.input_data(0);
-        input.export_to_path(path)
+        input.write_to_path(path)
     })))
 }
 
@@ -149,7 +149,7 @@ pub fn task_make_directory(state: &mut State, task_ref: TaskRef) -> TaskResult {
             }
             let target_path = main_dir.join(&p);
             ::std::fs::create_dir_all(&target_path.parent().unwrap())?;
-            data.map_to_path(&target_path)?;
+            data.link_to_path(&target_path)?;
         }
         let output = task.output(0);
         let mut obj = output.get_mut();
@@ -173,7 +173,7 @@ pub fn task_slice_directory(state: &mut State, task_ref: TaskRef) -> TaskResult 
         let data = task.input_data(0);
         let dir = state.work_dir().make_task_temp_dir(task.id)?;
         let main_dir = dir.path().join("newdir");
-        data.map_to_path(&main_dir).unwrap();
+        data.link_to_path(&main_dir).unwrap();
         let path = main_dir.join(&config.path);
         let output = task.output(0);
         let mut obj = output.get_mut();

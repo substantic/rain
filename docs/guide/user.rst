@@ -845,15 +845,37 @@ Mapping data objects onto filesystem
 Rain knows two methods of maping a data objects onto filesystem.
 
 * **write** - creates a fresh copy of data objects is created on filesystem that
-  can be freely modified.
+  can be freely modified. Changes of the file is *not* propagated back to data
+  object.
 * **link** - symlink to the internal storage of worker. The user can only read
-this data. This method may silently fallback to 'write' when worker has no file
+this data. This method may silently fall back to 'write' when worker has no file
 system representation of the object.
 
+Task :func:`tasks.execute` maps files by **link** method. It can be changed by
+``write`` argument of ``Input``::
+
+  # Let 'obj' contains a data object
+
+  # THIS IS INVALID! You cannot modified linked objects
+  tasks.execute("echo 'New line' >> myfile", shell=True,
+                input_paths=[Input("myfile", dataobj=obj)])
+
+  # This is ok. Writable copy of 'obj' is created.
+  tasks.execute("echo 'New line' >> myfile", shell=True,
+                input_paths=[Input("myfile", dataobj=obj, write=True)])
+ 
 Data instance has methods ``write(path)`` and ``link(path)`` that performs the
 mapping to a given path. They can be used on both in subworker and in client.
-Let us note that in the current version **link** in client always fallbacks
-to **write**.
+Let us note that in the current version **link** in the client always falls back
+to **write**. Example::
+
+  @remote()
+  def my_remote_function(ctx, input1):
+      input1.write("myfile")  # Writes data into 'myfile' that can be edited
+                              # without change of the original object
+      input1.link("myfile2")  # Creates a read-only file system representation
+                              # of data object
+
 
 .. warning::
 
@@ -861,8 +883,9 @@ to **write**.
    Therefore, as far you do not change permissions of files/directories, you are
    proctected against accidental modifications of data objects. If you change
    permissions or content of linked data objects, the behavior is undefined. Let
-   us remind that Rain is designed only for execution of trusted code. Obviously
-   this kind of isolation is **not** a protection against malicious users.
+   us remind that Rain is designed only for execution of trusted codes.
+   Obviously this kind of isolation is **not** a protection against malicious
+   users.
    
 
 .. _sessions:

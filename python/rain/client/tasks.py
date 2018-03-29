@@ -104,7 +104,7 @@ def execute(args,
     return Task("!run",
                 {
                     "args": proc_args,
-                    "in_paths": [obj.path for obj in ins],
+                    "in_paths": [{"path": obj.path, "write": obj.write} for obj in ins],
                     "out_paths": [obj.path for obj in outs],
                 },
                 inputs=task_inputs,

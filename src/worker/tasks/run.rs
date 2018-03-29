@@ -19,10 +19,16 @@ fn read_stderr(path: &Path) -> Result<String> {
     Ok(s)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
+struct RunConfigInput {
+    pub path: String,
+    pub write: bool,
+}
+
+#[derive(Deserialize)]
 struct RunConfig {
     pub args: Vec<String>,
-    pub in_paths: Vec<String>,
+    pub in_paths: Vec<RunConfigInput>,
     pub out_paths: Vec<String>,
 }
 
@@ -40,10 +46,14 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
         // Map inputs
         let mut in_io = Stdio::null();
 
-        for (path, input) in config.in_paths.iter().zip(&task.inputs) {
+        for (iconfig, input) in config.in_paths.iter().zip(&task.inputs) {
             let obj = input.object.get();
-            obj.data().map_to_path(&dir.path().join(path))?;
-            if path == "+in" {
+            if iconfig.write {
+                obj.data().write_to_path(&dir.path().join(&iconfig.path))?;
+            } else {
+                obj.data().link_to_path(&dir.path().join(&iconfig.path))?;
+            }
+            if iconfig.path == "+in" {
                 let in_id = File::open(dir.path().join("+in"))?.into_raw_fd();
                 in_io = unsafe { Stdio::from_raw_fd(in_id) };
             }

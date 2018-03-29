@@ -340,3 +340,34 @@ def test_execute_with_dir(test_env):
         assert e.outputs["f"].fetch().get_bytes() == b"Hello 1"
         e.outputs["a"].fetch().write(os.path.join(test_env.work_dir, "result"))
         assert os.path.isfile(os.path.join(test_env.work_dir, "result", "b", "g.txt"))
+
+
+def test_program_link_readonly(test_env):
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        x = blob(b"abc")
+        t = tasks.execute("ls", input_paths=[Input("x", dataobj=x)], output_paths=["x"])
+        t.output.keep()
+        s.submit()
+        s.wait_all()
+        tasks.execute("ls > x",
+                      input_paths=[Input("x", dataobj=t.output)],
+                      output_paths=["x"], shell=True)
+        s.submit()
+        with pytest.raises(TaskException):
+            s.wait_all()
+
+
+def test_program_write_input(test_env):
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        x = blob(b"abc")
+        t = tasks.execute("ls", input_paths=[Input("x", dataobj=x)], output_paths=["x"]).output
+        t.keep()
+        t2 = tasks.execute("echo 'xyz' > x",
+                           input_paths=[Input("x", dataobj=t, write=True)],
+                           output_paths=["x"], shell=True).output
+        t2.keep()
+        s.submit()
+        assert t2.fetch().get_bytes() == b"xyz\n"
+        assert t.fetch().get_bytes() == b"abc"
