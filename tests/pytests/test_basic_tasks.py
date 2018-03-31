@@ -52,14 +52,15 @@ def test_concat2(test_env):
 def test_concat3(test_env):
     """Merge large blobs"""
     test_env.start(1)
-    a = b"a123" * 1000000
+    a = b"a123456789" * 1024 * 1024
     b = b"b43" * 2500000
     c = b"c" * 1000
+    d = b"x"
     with test_env.client.new_session() as s:
-        t1 = tasks.concat((blob(a), blob(c), blob(b), blob(c), blob(a)))
+        t1 = tasks.concat((blob(a), blob(c), blob(d), blob(b), blob(c), blob(a)))
         t1.output.keep()
         s.submit()
-        assert t1.output.fetch().get_bytes() == a + c + b + c + a
+        assert t1.output.fetch().get_bytes() == a + c + d + b + c + a
 
 
 def test_chain_concat(test_env):

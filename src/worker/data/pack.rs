@@ -78,6 +78,7 @@ impl PackStream for MmapPackStream {
         } else {
             (data_size, true)
         };
+        self.position = end;
         (&self.mmap[start..end], eof)
     }
 }

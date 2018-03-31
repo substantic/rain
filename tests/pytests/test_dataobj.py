@@ -1,8 +1,9 @@
-from rain.client import blob, RainException, pickled
+from rain.client import blob, RainException, pickled, tasks, directory, Input, Output
 import rain
 import pytest
 import json
 import pickle
+import os
 
 
 def test_blob_construction(fake_session):
@@ -33,3 +34,26 @@ def test_blob_construction(fake_session):
 
         with pytest.raises(RainException):
             blob(123)
+
+
+def test_dir_big(test_env):
+
+    data = b"01234567890" * 1024 * 1024
+
+    os.mkdir("dir")
+    with open("dir/file1", "wb") as f:
+        f.write(data)
+
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        d = directory("dir")
+        t = tasks.execute("cat d/file1",
+                          input_paths=[Input("d", dataobj=d)],
+                          stdout=True,
+                          output_paths=[Output("d", content_type="dir")])
+        t.keep_outputs()
+        s.submit()
+        assert t.outputs["stdout"].fetch().get_bytes() == data
+        t.outputs["d"].fetch().write("result")
+        with open("result/file1", "rb") as f:
+            assert f.read() == data
