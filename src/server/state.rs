@@ -1102,7 +1102,6 @@ impl StateRef {
                 panic!("Listening failed {:?}", e);
             });
         handle.spawn(future);
-        info!("Start listening on address={}", listen_address);
 
         // ---- Start HTTP server ----
         //let listener = TcpListener::bind(&http_listen_address, &handle).unwrap();
@@ -1126,12 +1125,12 @@ impl StateRef {
 
         let hostname = ::common::sys::get_hostname();
         info!(
-            "Dashboard is running at http://{}:{}/",
+            "Dashboard: http://{}:{}/",
             hostname,
             http_listen_address.port()
         );
         info!(
-            "Lite dashboard is running at http://{}:{}/lite/",
+            "Lite dashboard: http://{}:{}/lite/",
             hostname,
             http_listen_address.port()
         );

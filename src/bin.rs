@@ -52,10 +52,9 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let http_listen_address =
         parse_listen_arg("HTTP_LISTEN_ADDRESS", cmd_args, DEFAULT_HTTP_SERVER_PORT);
     let ready_file = cmd_args.value_of("READY_FILE");
-    info!(
-        "Starting Rain {} server at port {}",
-        VERSION, listen_address
-    );
+
+    info!("Starting Rain {} server", VERSION);
+    info!("Listen address: {}", listen_address);
 
     let log_dir = cmd_args
         .value_of("LOG_DIR")
@@ -209,7 +208,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         exit(1);
     });
 
-    info!("Starting Rain {} as worker", VERSION);
+    info!("Starting Rain {} worker", VERSION);
     info!("Resources: {} cpus", cpus);
     info!("Working directory: {:?}", work_dir);
     info!(
@@ -255,6 +254,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         .map(PathBuf::from)
         .unwrap_or_else(|| default_logging_directory("worker"));
 
+    info!("Starting Rain {}", VERSION);
     info!("Log directory: {}", log_dir.to_str().unwrap());
 
     ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
