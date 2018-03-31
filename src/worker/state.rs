@@ -456,7 +456,7 @@ impl State {
                                 size,
                             );
                             let reader = response.get_reader().unwrap();
-                            ::worker::rpc::fetch::fetch_from_reader(reader, builder, size)
+                            ::worker::rpc::fetch::fetch_from_reader(&state, reader, builder, size)
                         }
                         ::datastore_capnp::reader_response::Which::Redirect(w) => {
                             assert!(is_server);

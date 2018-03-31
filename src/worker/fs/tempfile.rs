@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::fs::File;
 use errors::Result;
 
@@ -17,6 +17,10 @@ impl TempFileName {
 
     pub fn open(&self) -> Result<File> {
         Ok(File::open(&self.path)?)
+    }
+
+    pub fn path(&self) -> &Path {
+        &self.path
     }
 }
 
