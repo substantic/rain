@@ -2,7 +2,7 @@ import shutil
 import os.path
 
 from ..common.data_instance import DataInstance
-from ..common import RainException
+from ..common import RainException, DataType
 from ..common.content_type import (check_content_type, encode_value)
 
 
@@ -29,7 +29,7 @@ class Context:
         target = os.path.join(
             self._subworker.stage_path, str(self._id_counter))
         shutil.move(path, target)
-        data = DataInstance(path=target, content_type=content_type, data_type="blob")
+        data = DataInstance(path=target, content_type=content_type, data_type=DataType.BLOB)
         self._staged_paths.add(data)
         return data
 
@@ -46,7 +46,7 @@ class Context:
         target = os.path.join(
             self._subworker.stage_path, str(self._id_counter))
         os.rename(path, target)
-        data = DataInstance(path=target, content_type="dir", data_type="directory")
+        data = DataInstance(path=target, content_type="dir", data_type=DataType.DIRECTORY)
         self._staged_paths.add(data)
         return data
 
@@ -68,7 +68,7 @@ class Context:
             raise RainException(
               "Invalid blob type (only str or bytes allowed without `encode`)")
 
-        return DataInstance(data=value, content_type=content_type)
+        return DataInstance(data=value, content_type=content_type, data_type=DataType.BLOB)
 
     def pickled(self, obj, content_type="pickle"):
         return self.blob(obj, encode="pickle")

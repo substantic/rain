@@ -1,21 +1,12 @@
 import capnp
 import tarfile
 import io
-import enum
 
 from .session import get_active_session
 from ..common import RainException, ids, ID
 from ..common.attributes import attributes_to_capnp
 from ..common.content_type import check_content_type, encode_value
-
-
-class DataType(enum.Enum):
-
-    BLOB = "blob"
-    DIRECTORY = "directory"
-
-    def to_capnp(self):
-        return self.value
+from ..common import DataType
 
 
 class DataObject:
