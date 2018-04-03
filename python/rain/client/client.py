@@ -3,7 +3,7 @@ from rain.client import rpc
 from rain.common import RainException, SessionException, TaskException
 from rain.client.task import Task
 from rain.client.data import DataObject
-from ..common import attributes, DataInstance
+from ..common import attributes, DataInstance, DataType
 from ..common.ids import id_from_capnp, id_to_capnp, worker_id_from_capnp
 from .session import Session
 
@@ -137,7 +137,7 @@ class Client:
         self._get_state((), (dataobj, ))
         return DataInstance(data=bytedata,
                             data_object=dataobj,
-                            data_type=str(result.dataType))
+                            data_type=DataType.from_capnp(result.dataType))
 
     def _wait(self, tasks, dataobjs):
         req = self._service.wait_request()

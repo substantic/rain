@@ -11,6 +11,7 @@ from .errors import RainException
 from .utils import format_size
 from .ids import id_to_capnp, ID
 from .fs import fresh_copy_dir
+from .datatype import DataType
 
 
 class DataInstance:
@@ -45,14 +46,15 @@ class DataInstance:
     # Will always at least contain "config" and "content_type" under "config".
     attributes = {}
 
-    def __init__(self, *,
+    def __init__(self,
+                 data_type,
+                 *,
                  data=None,
                  path=None,
                  data_object=None,
                  content_type=None,
                  attributes=None,
-                 object_id=None,
-                 data_type=None):
+                 object_id=None):
         if (path is None) == (data is None):
             raise RainException("provide either `data` or `path`")
         if data is not None:
@@ -61,6 +63,7 @@ class DataInstance:
         else:
             self._path = path
 
+        assert isinstance(data_type, DataType)
         self.data_type = data_type
 
         if data_object is not None:
@@ -136,13 +139,13 @@ class DataInstance:
         if self._data is None:
             if self._path == path:
                 return
-            if self.data_type == "directory":
+            if self.data_type == DataType.DIRECTORY:
                 fresh_copy_dir(self._path, path)
             else:
                 shutil.copyfile(self._path, path)
         else:
             # TODO: Make security check that tarball does not contain absolute paths
-            if self.data_type == "blob":
+            if self.data_type == DataType.BLOB:
                 with open(path, "wb") as f:
                     f.write(self._data)
             else:
@@ -176,7 +179,7 @@ class DataInstance:
         return cls(data=data,
                    path=path,
                    attributes=attributes,
-                   data_type=str(reader.dataType))
+                   data_type=DataType.from_capnp(reader.dataType))
 
     def __repr__(self):
         if self._data:
