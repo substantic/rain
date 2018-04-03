@@ -6,10 +6,9 @@ use common::DataType;
 use worker::fs::tempfile::TempFileName;
 use std::io::Write;
 
-
 enum BuilderStorage {
     Memory(Vec<u8>),
-    File((File, TempFileName))
+    File((File, TempFileName)),
 }
 
 pub struct DataBuilder {
@@ -19,7 +18,6 @@ pub struct DataBuilder {
 
 impl DataBuilder {
     pub fn new(workdir: &WorkDir, data_type: DataType, expected_size: Option<usize>) -> Self {
-
         fn file_storage(workdir: &WorkDir) -> BuilderStorage {
             let f = workdir.make_temp_file();
             BuilderStorage::File((File::create(f.path()).unwrap(), f))
@@ -59,15 +57,18 @@ impl DataBuilder {
 
     pub fn build(&mut self, workdir: &WorkDir) -> Data {
         match self.storage {
-            BuilderStorage::Memory(ref mut buffer) =>
-                Data::new(Storage::Memory(::std::mem::replace(buffer, Vec::new())), self.data_type),
+            BuilderStorage::Memory(ref mut buffer) => Data::new(
+                Storage::Memory(::std::mem::replace(buffer, Vec::new())),
+                self.data_type,
+            ),
             BuilderStorage::File((ref mut file, ref mut tmpfile)) => {
                 file.flush().unwrap();
                 let target = workdir.new_path_for_dataobject();
                 match self.data_type {
-                    DataType::Blob =>  {
+                    DataType::Blob => {
                         let metadata = ::std::fs::metadata(tmpfile.path()).unwrap();
-                        Data::new_by_fs_move(tmpfile.path(), &metadata, target, workdir.data_path()).unwrap()
+                        Data::new_by_fs_move(tmpfile.path(), &metadata, target, workdir.data_path())
+                            .unwrap()
                     }
                     DataType::Directory => {
                         let dir = workdir.make_temp_dir("build-dir").unwrap();
@@ -75,11 +76,10 @@ impl DataBuilder {
                         let archive = File::open(&tmpfile.path()).unwrap();
                         ::tar::Archive::new(archive).unpack(&unpacked_path).unwrap();
                         let metadata = ::std::fs::metadata(&unpacked_path).unwrap();
-                        Data::new_by_fs_move(&unpacked_path, &metadata, target, workdir.data_path()).unwrap()
+                        Data::new_by_fs_move(&unpacked_path, &metadata, target, workdir.data_path())
+                            .unwrap()
                     }
-
                 }
-
             }
         }
     }

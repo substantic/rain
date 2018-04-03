@@ -51,6 +51,11 @@ enum DataObjectState {
     removed @2;
 }
 
+enum DataType {
+    blob @0;
+    directory @1;
+}
+
 struct Attributes {
     items @0 :List(Item);
 

@@ -1,13 +1,14 @@
-from .data import to_data, DataObject
+from .data import to_data, DataObject, DataType
 from .task import Task
 
 
-class Input:
+class InputBase:
 
     dataobj = None
     label = None
     path = None
     load = None
+    data_type = None
     content_type = None
 
     def __init__(self,
@@ -17,9 +18,10 @@ class Input:
                  load=None,
                  content_type=None,
                  write=False):
-
+        assert self.data_type is not None
         if label is not None and not isinstance(label, str):
             raise Exception("Label has to be string, not {!r}".format(label))
+
         self.label = label
         if path is None:
             if label:
@@ -28,7 +30,12 @@ class Input:
                 path = "input_{}".format(id(self))
         self.path = path
         if dataobj is not None:
-            self.dataobj = to_data(dataobj)
+            dataobj = to_data(dataobj)
+            if dataobj.data_type != self.data_type:
+                raise Exception(
+                    "Input exects data type {}, but provided data object has type {}"
+                    .format(self.data_type, dataobj.data_type))
+            self.dataobj = dataobj
         self.load = load
         self.content_type = content_type
         self.write = write
@@ -44,7 +51,12 @@ class Input:
     @classmethod
     def _for_data_object(cls, do):
         assert isinstance(do, DataObject)
-        return cls(label=do.label, dataobj=do, content_type=do.content_type)
+        if do.data_type == DataType.BLOB:
+            c = Input
+        else:
+            assert do.data_type == DataType.DIRECTORY
+            c = InputDir
+        return c(label=do.label, dataobj=do, content_type=do.content_type)
 
     @classmethod
     def _for_program(cls, inp, label=None, execute=False, label_as_path=False):
@@ -54,12 +66,12 @@ class Input:
         """
         inp0 = inp
         if isinstance(inp, str):
-            inp = cls(inp)
+            inp = Input(inp)
         if isinstance(inp, Task):
             inp = inp.output
         if isinstance(inp, DataObject):
             inp = Input._for_data_object(inp)
-        if not isinstance(inp, Input):
+        if not isinstance(inp, InputBase):
             raise TypeError("Object {!r} cannot be used as input".format(inp0))
         if inp.label is None:
             inp.label = label
@@ -79,3 +91,13 @@ class Input:
                 inp.path = "in_{}_{}".format(inp.label, inp.dataobj.id[1])
 
         return inp
+
+
+class Input(InputBase):
+
+    data_type = DataType.BLOB
+
+
+class InputDir(InputBase):
+
+    data_type = DataType.DIRECTORY

@@ -1,6 +1,6 @@
 from .session import get_active_session
 from .data import DataObject, to_data
-from .output import Output
+from .output import OutputBase
 from ..common import RainException, ID, LabeledList, ids
 from ..common.attributes import attributes_to_capnp
 
@@ -77,7 +77,7 @@ class Task:
                 o = "out{}".format(o)
             if isinstance(o, str):
                 return DataObject(label=o, session=session)
-            if isinstance(o, Output):
+            if isinstance(o, OutputBase):
                 return o.create_data_object(session=session)
             if isinstance(o, DataObject):
                 return o

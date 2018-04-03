@@ -1,4 +1,5 @@
-from rain.client import remote, Program, Input, Output, blob, pickled, directory, tasks
+from rain.client import remote, Program, blob, pickled, directory, tasks
+from rain.client import InputDir, Input, Output, OutputDir
 from rain.client import TaskException, RainWarning
 from rain.common import DataInstance
 import pytest
@@ -639,8 +640,8 @@ def test_python_datainstance_write(test_env):
 
         x = tasks.execute(
             "ls",
-            input_paths=[Input("d1", dataobj=d1), Input("d2", dataobj=d2)],
-            output_paths=[Output("d1"), Output("d2")])
+            input_paths=[Input("d1", dataobj=d1), InputDir("d2", dataobj=d2)],
+            output_paths=[Output("d1"), OutputDir("d2")])
         remote_fn(x.outputs["d1"], x.outputs["d2"])
         s.submit()
         s.wait_all()
@@ -682,8 +683,8 @@ def test_python_datainstance_link(test_env):
         s.wait_all()
 
         x = tasks.execute("ls",
-                          input_paths=[Input("d1", dataobj=d1), Input("d2", dataobj=d2)],
-                          output_paths=[Output("d1"), Output("d2")])
+                          input_paths=[Input("d1", dataobj=d1), InputDir("d2", dataobj=d2)],
+                          output_paths=[Output("d1"), OutputDir("d2")])
         remote_fn(x.outputs["d1"], x.outputs["d2"])
         s.submit()
         s.wait_all()
@@ -691,7 +692,7 @@ def test_python_datainstance_link(test_env):
 
 def test_python_dir(test_env):
 
-    @remote()
+    @remote(outputs=[OutputDir("output")])
     def remote_fn(ctx, input1, input2):
         input2.write("mydir")
         input1.write("myfile")
@@ -717,11 +718,11 @@ def test_python_dir(test_env):
     with open(os.path.join(path, "a", "b", "g.txt"), "w") as f:
         f.write("Hello 2")
 
-    @remote()
+    @remote(outputs=[OutputDir("output")])
     def remote_fn2(ctx, input1):
         return input1
 
-    @remote()
+    @remote(outputs=[OutputDir("output")])
     def remote_fn3(ctx, input1):
         input1.write("x")
         return ctx.stage_directory("x")

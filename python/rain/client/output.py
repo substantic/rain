@@ -1,12 +1,12 @@
 
-from .data import DataObject
+from .data import DataObject, DataType
 from ..common.content_type import check_content_type, merge_content_types
 from ..common import LabeledList
 from copy import copy
 import collections
 
 
-class Output:
+class OutputBase:
     """
     A multi-purpose object for specifying output data objects of tasks.
 
@@ -16,9 +16,11 @@ class Output:
     A default label is the number of the output in the task.
     """
 
+    data_type = None
+
     def __init__(self, label=None, *, size_hint=None, content_type=None,
                  mode=None, encode=None, path=None):
-
+        assert self.data_type is not None
         self.label = label
         self.size_hint = size_hint
         self.content_type = content_type
@@ -46,15 +48,9 @@ class Output:
         if self.path is not None:
             raise ValueError("Python remote task Outputs do not accept `path`.")
 
-    def __repr__(self):
-        if self.path is not None:
-            return "<Output {!r} path={!r}>".format(self.label, self.path)
-        else:
-            return "<Output {!r}>".format(self.label)
-
     def merge_with_prototype(self, proto):
         "Return a copy of self updated with `Output` `proto` properties."
-        assert isinstance(proto, Output)
+        assert isinstance(proto, OutputBase)
         o = copy(self)
         if o.size_hint is None:
             o.size_hint == proto.size_hint
@@ -67,7 +63,10 @@ class Output:
         return o
 
     def create_data_object(self, session=None):
-        d = DataObject(label=self.label, session=session, content_type=self.content_type)
+        d = DataObject(label=self.label,
+                       session=session,
+                       data_type=self.data_type,
+                       content_type=self.content_type)
         if self.size_hint is not None:
             d.attributes['size_hint'] = self.size_hint
         return d
@@ -78,8 +77,8 @@ class Output:
         Create `Output` from `Output` or `str` for `Program` or `execute`.
         """
         if isinstance(out, str):
-            out = cls(out)
-        if not isinstance(out, Output):
+            out = Output(out)
+        if not isinstance(out, OutputBase):
             raise TypeError("Object {!r} cannot be used as output".format(out))
         if out.label is None:
             out.label = label
@@ -97,8 +96,28 @@ class Output:
         return out
 
 
+class Output(OutputBase):
+    data_type = DataType.BLOB
+
+    def __repr__(self):
+        if self.path is not None:
+            return "<Output {!r} path={!r}>".format(self.label, self.path)
+        else:
+            return "<Output {!r}>".format(self.label)
+
+
+class OutputDir(OutputBase):
+    data_type = DataType.DIRECTORY
+
+    def __repr__(self):
+        if self.path is not None:
+            return "<OutputDir {!r} path={!r}>".format(self.label, self.path)
+        else:
+            return "<OutputDir {!r}>".format(self.label)
+
+
 def to_output(obj):
-    if isinstance(obj, Output):
+    if isinstance(obj, OutputBase):
         return obj
     if isinstance(obj, str):
         return Output(obj)
@@ -134,7 +153,7 @@ class OutputSpec:
         for i, (label, output) in enumerate(self.outputs.items()):
             if isinstance(output, str):
                 self.outputs.set(i, Output(label=output), label=output)
-            elif not isinstance(output, Output):
+            elif not isinstance(output, OutputBase):
                 raise TypeError("Only string labels and `Output` accepted in output list.")
 
     def instantiate(self, outputs=None, output=None, session=None):
@@ -171,7 +190,7 @@ class OutputSpec:
                 out = Output(label=out)
             if out is None:
                 out = Output()
-            if not isinstance(out, Output):
+            if not isinstance(out, OutputBase):
                 raise TypeError("Only `Output` and `str` instances accepted in output list.")
             out_merged = out.merge_with_prototype(proto)
             if out_merged.label is None:

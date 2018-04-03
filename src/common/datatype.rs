@@ -7,24 +7,33 @@ pub enum DataType {
 }
 
 impl DataType {
-    pub fn from_capnp(value: ::datastore_capnp::DataType) -> DataType {
+    pub fn from_capnp(value: ::common_capnp::DataType) -> DataType {
         match value {
-            ::datastore_capnp::DataType::Blob => DataType::Blob,
-            ::datastore_capnp::DataType::Directory => DataType::Directory,
+            ::common_capnp::DataType::Blob => DataType::Blob,
+            ::common_capnp::DataType::Directory => DataType::Directory,
         }
     }
 
-    pub fn to_capnp(&self) -> ::datastore_capnp::DataType {
+    pub fn to_capnp(&self) -> ::common_capnp::DataType {
         match self {
-            &DataType::Blob => ::datastore_capnp::DataType::Blob,
-            &DataType::Directory => ::datastore_capnp::DataType::Directory,
+            &DataType::Blob => ::common_capnp::DataType::Blob,
+            &DataType::Directory => ::common_capnp::DataType::Directory,
+        }
+    }
+}
+
+impl ::std::fmt::Display for DataType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            &DataType::Blob => write!(f, "blob"),
+            &DataType::Directory => write!(f, "directory"),
         }
     }
 }
 
 /*
 impl<'a> ToCapnp<'a> for DataType {
-    type Builder = ::datastore_capnp::DataType::Builder<'a>;
+    type Builder = ::common_capnp::DataType::Builder<'a>;
 
     fn to_capnp(self: &Self, build: &mut Self::Builder) {
 
@@ -32,11 +41,11 @@ impl<'a> ToCapnp<'a> for DataType {
 }
 
 impl<'a> FromCapnp<'a> for DataType {
-    type Reader = ::datastore_capnp::DataType::Reader<'a>;
+    type Reader = ::common_capnp::DataType::Reader<'a>;
 
     fn from_capnp(reader: &'a Self::Reader) -> Self {
         match reader {
-            ::datastore_capnp::DataType::Blob => DataType::Blob,
+            ::common_capnp::DataType::Blob => DataType::Blob,
         }
     }
 }*/

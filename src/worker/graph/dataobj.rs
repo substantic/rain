@@ -1,6 +1,6 @@
 use common::id::{DataObjectId, WorkerId};
 use common::wrapped::WrappedRcRefCell;
-use common::{Attributes, RcSet};
+use common::{Attributes, DataType, RcSet};
 use super::{Graph, TaskRef};
 use worker::data::Data;
 use worker::graph::SubworkerRef;
@@ -56,6 +56,8 @@ pub struct DataObject {
     /// the name of the initial uploaded object.
     pub(in super::super) label: String,
 
+    pub(in super::super) data_type: DataType,
+
     pub(in super::super) attributes: Attributes,
 
     pub(in super::super) new_attributes: Attributes,
@@ -67,27 +69,14 @@ impl DataObject {
     pub fn set_data(&mut self, data: Arc<Data>) -> Result<()> {
         assert!(!self.is_finished());
 
-        let is_dir = self.content_type().map(|c| c == "dir");
-        match is_dir {
-            Some(true) => {
-                if !data.is_directory() {
-                    bail!(
-                        "Output '{}' has content 'dir', but blob is provided",
-                        self.label
-                    )
-                }
-            }
-            Some(false) => {
-                if !data.is_blob() {
-                    let ct = self.content_type().unwrap_or_else(|| "<None>".to_string());
-                    bail!(
-                        "Output '{}' has content '{}', but directory is provided",
-                        self.label,
-                        ct
-                    )
-                }
-            }
-            None => { /* No check */ }
+        if self.data_type != data.data_type() {
+            bail!(
+                "Output '{}' (content_type={}) expects type {}, but {} is provided",
+                self.label,
+                self.display_content_type(),
+                self.data_type,
+                data.data_type(),
+            )
         }
         self.size = Some(data.size());
         self.state = DataObjectState::Finished(data);
@@ -97,6 +86,10 @@ impl DataObject {
     pub fn set_attributes(&mut self, attributes: Attributes) {
         // TODO Check content type
         self.new_attributes = attributes;
+    }
+
+    pub fn display_content_type(&self) -> String {
+        self.content_type().unwrap_or_else(|| "<None>".to_string())
     }
 
     pub fn content_type(&self) -> Option<String> {
@@ -154,6 +147,7 @@ impl DataObjectRef {
         assigned: bool,
         size: Option<usize>,
         label: String,
+        data_type: DataType,
         attributes: Attributes,
     ) -> Self {
         debug!("New object id={}", id);
@@ -168,6 +162,7 @@ impl DataObjectRef {
                     consumers: Default::default(),
                     label,
                     attributes,
+                    data_type,
                     new_attributes: Attributes::new(),
                     subworker_cache: Default::default(),
                 });

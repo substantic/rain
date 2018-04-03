@@ -398,6 +398,7 @@ impl State {
         assigned: bool,
         size: Option<usize>,
         label: String,
+        data_type: DataType,
         attributes: Attributes,
     ) -> DataObjectRef {
         DataObjectRef::new(
@@ -407,6 +408,7 @@ impl State {
             assigned,
             size,
             label,
+            data_type,
             attributes,
         )
     }

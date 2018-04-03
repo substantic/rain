@@ -1,4 +1,4 @@
-from rain.client import Program, Input, Output
+from rain.client import Program, Input, InputDir, Output, OutputDir
 from rain.client import tasks, blob, pickled, directory
 from rain.client import TaskException, RainException
 
@@ -324,9 +324,9 @@ def test_execute_with_dir(test_env):
         data = directory(path=path)
         e = tasks.execute(
             "find ./mydir",
-            input_paths=[Input("mydir", dataobj=data)],
+            input_paths=[InputDir("mydir", dataobj=data)],
             output_paths=[Output("f", path="mydir/f.txt"),
-                          Output("a", path="mydir/a", content_type="dir")],
+                          OutputDir("a", path="mydir/a")],
             stdout=True)
         e.keep_outputs()
         s.submit()

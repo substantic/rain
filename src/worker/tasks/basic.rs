@@ -28,11 +28,7 @@ pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {
         let result_size: usize = inputs.iter().map(|d| d.size()).sum();
         let state = state_ref.get();
         let work_dir = state.work_dir();
-        let mut builder = DataBuilder::new(
-            work_dir,
-            DataType::Blob,
-            Some(result_size),
-        );
+        let mut builder = DataBuilder::new(work_dir, DataType::Blob, Some(result_size));
         for input in inputs {
             builder.write_blob(&input).unwrap();
         }

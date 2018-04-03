@@ -1,4 +1,5 @@
-from rain.client import tasks, blob, TaskException, directory, Input, Output
+from rain.client import tasks, blob, TaskException, directory
+from rain.client import InputDir, OutputDir
 import pytest
 import os
 
@@ -147,9 +148,9 @@ def test_slice_directory1(test_env):
         d = directory("toplevel")
         a1 = tasks.slice_directory(d, "file1.txt")
         a1.output.keep()
-        a2 = tasks.slice_directory(d, "dir1", content_type="dir")
+        a2 = tasks.slice_directory(d, "dir1/")
         a2.output.keep()
-        a3 = tasks.slice_directory(d, "dir1", content_type="dir")
+        a3 = tasks.slice_directory(d, "dir1/")
         a3.output.keep()
         a4 = tasks.slice_directory(d, "dir1/dir2/file2.txt")
         a4.output.keep()
@@ -178,13 +179,13 @@ def test_slice_directory2(test_env):
         d = directory("toplevel")
         # Force fs mapping
         d = tasks.execute("ls",
-                          input_paths=[Input("d", dataobj=d)],
-                          output_paths=[Output("d", content_type="dir")])
+                          input_paths=[InputDir("d", dataobj=d)],
+                          output_paths=[OutputDir("d")])
         a1 = tasks.slice_directory(d, "file1.txt")
         a1.output.keep()
-        a2 = tasks.slice_directory(d, "dir1", content_type="dir")
+        a2 = tasks.slice_directory(d, "dir1/")
         a2.output.keep()
-        a3 = tasks.slice_directory(d, "dir1", content_type="dir")
+        a3 = tasks.slice_directory(d, "dir1/")
         a3.output.keep()
         a4 = tasks.slice_directory(d, "dir1/dir2/file2.txt")
         a4.output.keep()
@@ -217,8 +218,8 @@ def test_make_directory(test_env):
         t0 = tasks.execute(
             ["/bin/cat", b1],
             stdout=True,
-            input_paths=[Input("d1", dataobj=d1)],
-            output_paths=[Output("d1", content_type="dir")])
+            input_paths=[InputDir("d1", dataobj=d1)],
+            output_paths=[OutputDir("d1")])
         r = tasks.make_directory([
             ("myfile1", t0.outputs["stdout"]),
             ("mydir/mydir2/myfile2", b2),

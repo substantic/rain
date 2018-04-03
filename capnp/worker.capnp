@@ -5,6 +5,7 @@
 using import "datastore.capnp".DataStore;
 using import "common.capnp".WorkerId;
 using import "common.capnp".TaskId;
+using import "common.capnp".DataType;
 using import "common.capnp".DataObjectId;
 using import "common.capnp".Attributes;
 using import "common.capnp".TaskState;
@@ -136,6 +137,8 @@ struct DataObject {
     assigned @4 :Bool;
 
     label @5 :Text;
+
+    dataType @7 :DataType;
 
     attributes @6 :Attributes;
 }

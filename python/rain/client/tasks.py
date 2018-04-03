@@ -1,7 +1,7 @@
 from .task import Task
 from .data import to_data
-from .input import Input
-from .output import Output
+from .input import Input, InputBase
+from .output import Output, OutputBase, OutputDir
 from .data import DataObject
 
 import shlex
@@ -37,13 +37,17 @@ def make_directory(dataobj_paths):
     paths = [path for path, dataobj in dataobj_paths]
     inputs = [to_data(dataobj) for path, dataobj in dataobj_paths]
     return Task("!make_directory", {"paths": paths}, inputs=inputs,
-                outputs=(Output("output", content_type="dir"),))
+                outputs=(OutputDir("output"),))
 
 
 def slice_directory(dataobj, path, content_type=None):
+    if path.endswith("/"):
+        c = OutputDir
+    else:
+        c = Output
     return Task("!slice_directory", {"path": path},
                 inputs=(dataobj,),
-                outputs=(Output("output", content_type=content_type),))
+                outputs=(c("output", content_type=content_type),))
 
 
 def execute(args,
@@ -60,20 +64,20 @@ def execute(args,
     if stdout is not None:
         if stdout is True:
             stdout = "stdout"
-        stdout = Output._for_program(stdout, label="stdout", execute=True)
+        stdout = OutputBase._for_program(stdout, label="stdout", execute=True)
         # '+out' is the file name of where stdout is redirected
         stdout.path = "+out"
         outs.append(stdout)
 
     if stdin is not None:
         # '+in' is the file name of where stdin is redirected
-        stdin = Input._for_program(stdin, label="stdin", execute=True)
+        stdin = InputBase._for_program(stdin, label="stdin", execute=True)
         stdin.path = "+in"
         ins.append(stdin)
 
-    ins += [Input._for_program(obj, execute=True, label_as_path=True)
+    ins += [InputBase._for_program(obj, execute=True, label_as_path=True)
             for obj in input_paths]
-    outs += [Output._for_program(obj, execute=True, label_as_path=True)
+    outs += [OutputBase._for_program(obj, execute=True, label_as_path=True)
              for obj in output_paths]
 
     if isinstance(args, str):
@@ -84,12 +88,12 @@ def execute(args,
         argname = "arg{}".format(i)
         if isinstance(a, str):
             proc_args.append(a)
-        elif isinstance(a, Input) or isinstance(a, DataObject) or isinstance(a, Task):
+        elif isinstance(a, InputBase) or isinstance(a, DataObject) or isinstance(a, Task):
             arg = Input._for_program(a, execute=True, label=argname)
             ins.append(arg)
             proc_args.append(arg.path)
-        elif isinstance(a, Output):
-            arg = Output._for_program(a, execute=True, label=argname)
+        elif isinstance(a, OutputBase):
+            arg = OutputBase._for_program(a, execute=True, label=argname)
             outs.append(arg)
             proc_args.append(arg.path)
         else:

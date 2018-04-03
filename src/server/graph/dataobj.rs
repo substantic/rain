@@ -11,28 +11,6 @@ pub use common_capnp::DataObjectState;
 use errors::Result;
 
 #[derive(Debug)]
-pub struct Data {
-    pub content: Vec<u8>,
-    pub data_type: DataType,
-}
-
-impl Data {
-    pub fn new(content: Vec<u8>, data_type: DataType) -> Self {
-        Data { content, data_type }
-    }
-
-    #[inline]
-    pub fn size(&self) -> usize {
-        self.content.len()
-    }
-
-    #[inline]
-    pub fn data_type(&self) -> DataType {
-        self.data_type
-    }
-}
-
-#[derive(Debug)]
 pub struct DataObject {
     /// Unique ID within a `Session`
     pub(in super::super) id: DataObjectId,
@@ -75,9 +53,11 @@ pub struct DataObject {
     /// Final size if known. Must match `data` size when `data` present.
     pub(in super::super) size: Option<usize>,
 
+    pub(in super::super) data_type: DataType,
+
     /// Optinal *final* data when submitted from client or downloaded
     /// by the server (for any reason thinkable).
-    pub(in super::super) data: Option<Data>,
+    pub(in super::super) data: Option<Vec<u8>>,
 
     /// Attributes
     pub(in super::super) attributes: Attributes,
@@ -93,6 +73,7 @@ impl DataObject {
         self.size.map(|s| builder.set_size(s as i64));
         builder.set_label(&self.label);
         builder.set_state(self.state);
+        builder.set_data_type(self.data_type.to_capnp());
     }
 
     /// Inform observers that task is finished
@@ -155,7 +136,8 @@ impl DataObjectRef {
         id: DataObjectId,
         client_keep: bool,
         label: String,
-        data: Option<Data>,
+        data_type: DataType,
+        data: Option<Vec<u8>>,
         attributes: Attributes,
     ) -> Self {
         assert_eq!(id.get_session_id(), session.get_id());
@@ -176,7 +158,8 @@ impl DataObjectRef {
             session: session.clone(),
             client_keep: client_keep,
             finish_hooks: Vec::new(),
-            size: data.as_ref().map(|d| d.size()),
+            size: data.as_ref().map(|d| d.len()),
+            data_type,
             data: data,
             attributes: attributes,
         });

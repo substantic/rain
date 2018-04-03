@@ -9,11 +9,11 @@ use tokio_core::net::{TcpListener, TcpStream};
 use tokio_timer;
 
 use errors::Result;
-use common::RcSet;
+use common::{DataType, RcSet};
 use common::id::{ClientId, DataObjectId, SId, SessionId, TaskId, WorkerId};
 use common::rpc::new_rpc_system;
-use server::graph::{ClientRef, Data, DataObjectRef, DataObjectState, Graph, SessionError,
-                    SessionRef, TaskInput, TaskRef, TaskState, WorkerRef};
+use server::graph::{ClientRef, DataObjectRef, DataObjectState, Graph, SessionError, SessionRef,
+                    TaskInput, TaskRef, TaskState, WorkerRef};
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{ReactiveScheduler, UpdatedIn};
 use common::convert::ToCapnp;
@@ -254,13 +254,14 @@ impl State {
         id: DataObjectId,
         client_keep: bool,
         label: String,
-        data: Option<Data>,
+        data_type: DataType,
+        data: Option<Vec<u8>>,
         attributes: Attributes,
     ) -> Result<DataObjectRef> {
         if self.graph.objects.contains_key(&id) {
             bail!("State already contains object with id {}", id);
         }
-        let oref = DataObjectRef::new(session, id, client_keep, label, data, attributes);
+        let oref = DataObjectRef::new(session, id, client_keep, label, data_type, data, attributes);
         // add to graph
         self.graph.objects.insert(oref.get_id(), oref.clone());
         // add to updated objects
@@ -436,7 +437,7 @@ impl State {
                     "Object {} submitted with both producer task {} and data of size {}",
                     o.id,
                     o.producer.as_ref().unwrap().get_id(),
-                    o.data.as_ref().unwrap().content.len()
+                    o.data.as_ref().unwrap().len()
                 );
             }
             if o.producer.is_none() && o.data.is_none() {
