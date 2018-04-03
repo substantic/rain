@@ -7,7 +7,7 @@ use common::id::{DataObjectId, SId, TaskId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
 use server::state::StateRef;
-use server::graph::{ClientRef, Data, DataObjectRef, SessionError, TaskInput, TaskRef};
+use server::graph::{ClientRef, DataObjectRef, SessionError, TaskInput, TaskRef};
 use errors::{Error, ErrorKind, Result};
 use common::{Attributes, DataType};
 use common::RcSet;
@@ -127,14 +127,11 @@ impl client_service::Server for ClientServiceImpl {
             for co in objects.iter() {
                 let id = DataObjectId::from_capnp(&co.borrow().get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
-                let data = match co.get_data_type()? {
-                    ::client_capnp::ClientDataType::None => None,
-                    ::client_capnp::ClientDataType::Blob => {
-                        Some(Data::new(co.get_data()?.into(), DataType::Blob))
-                    }
-                    ::client_capnp::ClientDataType::Directory => {
-                        Some(Data::new(co.get_data()?.into(), DataType::Directory))
-                    }
+                let data_type = DataType::from_capnp(co.get_data_type().unwrap());
+                let data = if co.get_has_data() {
+                    Some(co.get_data()?.into())
+                } else {
+                    None
                 };
                 let attributes = Attributes::from_capnp(&co.get_attributes()?);
                 let o = s.add_object(
@@ -142,6 +139,7 @@ impl client_service::Server for ClientServiceImpl {
                     id,
                     co.get_keep(),
                     co.get_label()?.to_string(),
+                    data_type,
                     data,
                     attributes,
                 )?;

@@ -9,6 +9,7 @@ using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
 using import "common.capnp".UnitResult;
 using import "common.capnp".Resources;
+using import "common.capnp".DataType;
 using import "datastore.capnp".DataStore;
 
 struct WorkerInfo {
@@ -105,17 +106,12 @@ struct Task {
     }
 }
 
-enum ClientDataType {
-    none @0;
-    blob @1;
-    directory @2;
-}
-
 struct DataObject {
     id @0 :DataObjectId;
     keep @1 :Bool;
-    dataType @2 :ClientDataType;
-    data @3 :Data;
-    label @4 :Text;
-    attributes @5: Attributes;
+    dataType @2 :DataType;
+    hasData @3: Bool;
+    data @4 :Data;
+    label @5 :Text;
+    attributes @6: Attributes;
 }

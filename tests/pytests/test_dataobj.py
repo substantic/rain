@@ -1,4 +1,6 @@
-from rain.client import blob, RainException, pickled, tasks, directory, Input, Output
+from rain.client import blob, RainException, pickled, tasks, directory
+from rain.client import OutputDir, InputDir
+
 import rain
 import pytest
 import json
@@ -48,9 +50,9 @@ def test_dir_big(test_env):
     with test_env.client.new_session() as s:
         d = directory("dir")
         t = tasks.execute("cat d/file1",
-                          input_paths=[Input("d", dataobj=d)],
+                          input_paths=[InputDir("d", dataobj=d)],
                           stdout=True,
-                          output_paths=[Output("d", content_type="dir")])
+                          output_paths=[OutputDir("d")])
         t.keep_outputs()
         s.submit()
         assert t.outputs["stdout"].fetch().get_bytes() == data

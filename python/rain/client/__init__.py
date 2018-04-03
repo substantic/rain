@@ -1,6 +1,6 @@
 
-from .input import Input  # noqa
-from .output import Output  # noqa
+from .input import Input, InputDir, InputBase  # noqa
+from .output import Output, OutputDir, OutputBase  # noqa
 from .data import blob, pickled, directory, DataObject  # noqa
 from .task import Task  # noqa
 from ..common import RainException, RainWarning, TaskException, SessionException # noqa

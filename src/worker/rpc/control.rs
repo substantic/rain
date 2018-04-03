@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use common::Attributes;
-use common::Resources;
+use common::{Attributes, DataType, Resources};
 use common::convert::{FromCapnp, ToCapnp};
 use common::id::{DataObjectId, TaskId, WorkerId};
 use worker::graph::{DataObjectState, TaskInput};
@@ -122,9 +121,17 @@ impl worker_control::Server for WorkerControlImpl {
             let label = pry!(co.get_label()).to_string();
 
             let assigned = co.get_assigned();
+            let data_type = DataType::from_capnp(co.get_data_type().unwrap());
             let attributes = Attributes::from_capnp(&co.get_attributes().unwrap());
-            let dataobject =
-                state.add_dataobject(id, object_state, assigned, size, label, attributes);
+            let dataobject = state.add_dataobject(
+                id,
+                object_state,
+                assigned,
+                size,
+                label,
+                data_type,
+                attributes,
+            );
 
             debug!(
                 "Received DataObject {:?}, is_remote: {}",

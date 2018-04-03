@@ -3,6 +3,7 @@
 using import "common.capnp".WorkerId;
 using import "common.capnp".DataObjectId;
 using import "common.capnp".Error;
+using import "common.capnp".DataType;
 
 
 struct ReadReply {
@@ -30,11 +31,6 @@ interface Reader {
 
     # TODO: Push API??
     # startPushing(size: UInt64, pushCallback: PushCallback);
-}
-
-enum DataType {
-    blob @0;
-    directory @1;
 }
 
 struct ReaderResponse {

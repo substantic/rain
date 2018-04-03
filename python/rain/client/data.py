@@ -1,11 +1,21 @@
 import capnp
 import tarfile
 import io
+import enum
 
 from .session import get_active_session
 from ..common import RainException, ids, ID
 from ..common.attributes import attributes_to_capnp
 from ..common.content_type import check_content_type, encode_value
+
+
+class DataType(enum.Enum):
+
+    BLOB = "blob"
+    DIRECTORY = "directory"
+
+    def to_capnp(self):
+        return self.value
 
 
 class DataObject:
@@ -23,7 +33,8 @@ class DataObject:
     # or by fetching from server)
     data = None
 
-    def __init__(self, label=None, session=None, content_type=None):
+    def __init__(self, label=None, session=None, data_type=DataType.BLOB, content_type=None):
+        assert isinstance(data_type, DataType)
         if session is None:
             session = get_active_session()
         self.session = session
@@ -33,7 +44,7 @@ class DataObject:
         self.attributes = {
             "spec": {"content_type": content_type}
         }
-        self.is_directory = content_type == "dir"
+        self.data_type = data_type
 
     @property
     def content_type(self):
@@ -63,12 +74,12 @@ class DataObject:
         if self.label:
             out.label = self.label
 
+        out.dataType = self.data_type.to_capnp()
         if self.data is not None:
-            out.dataType = "directory" if self.is_directory else "blob"
             out.data = self.data
+            out.hasData = True
         else:
-            out.dataType = "none"
-
+            out.hasData = False
         attributes_to_capnp(self.attributes, out.attributes)
 
     def wait(self):
@@ -112,8 +123,9 @@ class DataObject:
                  input_proto.load, input_proto.content_type))
 
     def __repr__(self):
-        return "<DObj {} id={} {}>".format(
-            self.label, self.id, self.attributes)
+        t = " [D]" if self.data_type == DataType.DIRECTORY else ""
+        return "<DObj {}{} id={} {}>".format(
+            self.label, t, self.id, self.attributes)
 
 
 def blob(value, label="const", content_type=None, encode=None):
@@ -165,8 +177,9 @@ def directory(path=None, label="const_dir"):
     tf = tarfile.open(fileobj=f, mode="w")
     tf.add(path, ".")
     tf.close()
-    dataobj = DataObject(label, content_type="dir")
-    dataobj.data = f.getvalue()
+    data = f.getvalue()
+    dataobj = DataObject(label, data_type=DataType.DIRECTORY)
+    dataobj.data = data
     return dataobj
 
 

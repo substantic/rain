@@ -156,7 +156,7 @@ impl data_store::Server for WorkerDataStoreImpl {
             return Promise::ok(());
         };
         let size = object.get().size.map(|s| s as i64).unwrap_or(-1i64);
-        let data_type = object.get().data.as_ref().unwrap().data_type;
+        let data_type = object.get().data_type;
 
         let offset = params.get_offset();
         let reader = reader::ToClient::new(LocalReaderImpl::new(object, offset as usize))
@@ -181,7 +181,7 @@ pub struct LocalReaderImpl {
 
 impl LocalReaderImpl {
     pub fn new(object: DataObjectRef, offset: usize) -> Self {
-        let size = object.get().data.as_ref().unwrap().size();
+        let size = object.get().data.as_ref().unwrap().len();
         Self {
             object,
             offset,
@@ -205,7 +205,7 @@ impl reader::Server for LocalReaderImpl {
             self.size
         };
 
-        results.set_data(&self.object.get().data.as_ref().unwrap().content[start..end]);
+        results.set_data(&self.object.get().data.as_ref().unwrap()[start..end]);
         results.set_status(if end < self.size {
             read_reply::Status::Ok
         } else {

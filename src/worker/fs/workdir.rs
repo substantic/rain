@@ -44,15 +44,16 @@ impl WorkDir {
     }
 
     pub fn make_temp_dir(&self, prefix: &str) -> Result<::tempdir::TempDir> {
-        ::tempdir::TempDir::new_in(
-            self.path.join("tmp"),
-            prefix
-        ).map_err(|e| e.into())
+        ::tempdir::TempDir::new_in(self.path.join("tmp"), prefix).map_err(|e| e.into())
     }
 
     /// Create temporary directory for task
     pub fn make_task_temp_dir(&self, task_id: TaskId) -> Result<::tempdir::TempDir> {
-        self.make_temp_dir(&format!("{}-{}", task_id.get_session_id(), task_id.get_id()))
+        self.make_temp_dir(&format!(
+            "{}-{}",
+            task_id.get_session_id(),
+            task_id.get_id()
+        ))
     }
 
     fn new_id(&self) -> u64 {
