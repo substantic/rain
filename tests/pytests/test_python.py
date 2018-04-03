@@ -733,7 +733,7 @@ def test_python_dir(test_env):
 
         e1 = remote_fn2(e)
         e1.keep_outputs()
-        e2 = remote_fn2(e)
+        e2 = remote_fn3(e)
         e2.keep_outputs()
 
         s.submit()

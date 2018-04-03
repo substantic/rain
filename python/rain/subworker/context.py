@@ -45,7 +45,7 @@ class Context:
             raise Exception("Path '{}' has to be relative")
         target = os.path.join(
             self._subworker.stage_path, str(self._id_counter))
-        shutil.move(path, target)
+        os.rename(path, target)
         data = DataInstance(path=target, content_type="dir", data_type="directory")
         self._staged_paths.add(data)
         return data
