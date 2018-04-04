@@ -27,6 +27,7 @@ impl Graph {
 }
 
 #[cfg(test)]
+
 mod tests {
     use super::super::{ClientRef, DataObjectRef, Graph, SessionRef, TaskInput, TaskRef, WorkerRef};
     use common::id::{DataObjectId, SId, TaskId};
@@ -40,6 +41,8 @@ mod tests {
         tasks: usize,
         objects: usize,
     ) -> Graph {
+        use common::DataType;
+
         let g = Graph::new();
         for wi in 0..workers {
             WorkerRef::new(
@@ -59,6 +62,7 @@ mod tests {
                         DataObjectId::new(s.get_id(), oi as i32),
                         Default::default(),
                         "label".to_string(),
+                        DataType::Blob,
                         None,
                         Default::default(),
                     );
