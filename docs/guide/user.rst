@@ -182,7 +182,6 @@ Recognized content types:
   * cbor - Object serialized into CBOR
   * text - UTF-8 string.
   * text:<ENCODING> - Text with specified encoding
-  * dir - Directory
   * mime:<MIME> - Content type defined as MIME type
   * user:<TYPE> - User defined type, <TYPE> may be arbitrary string
 
@@ -235,11 +234,11 @@ The following four tasks are supported directly by Rain worker:
 * *sleep* (:func:`rain.client.tasks.sleep`) Task that forwards its input as its
   output after a specified delay.
 * *make_directory* (:func:`rain.client.tasks.make_directory`) Tasks that creates
-  a directory from inputs.
+  a directory from input data objects.
 * *split_directory* (:func:`rain.client.tasks.slice_directory`) Tasks that takes
   a file/subdirectory from a directory object.
 
-
+(Examples for last two tasks are in section :ref:`directories`)
 
 ::
 
@@ -788,24 +787,31 @@ session::
   Note that in the case of ``wait()`` (in contrast with ``fetch()``), object
   does not have to be marked as "kept".
 
+.. _directories:
 
 Directories
 ===========
 
-Rain allows to use directories in similar way to blobs. Rain allows to create
-directory data objects that can be passed to ``tasks.execute()``, remote python
-code, and other places without any differences. There are only two specific
-features:
+Rain allows to use directories in the similar way to blobs. Rain allows to
+create directory data objects that can be passed to ``tasks.execute()``, remote
+python code, and other places without any differences. There are only two
+specific features:
 
   - If a directory dataobject is mapped to a file system it is mapped as directory
     (not as a file as in the case of blobs).
-  - If a directory is viewed as raw bytes (e.g. method ``get_bytes`` on data instance), tar file is returned.
+  - If a directory is viewed as raw bytes (e.g. method ``get_bytes`` on data
+    instance), tar file is returned.
+
+A data type of an object (blob/directory) is a part of the
+task graph and has to be determinated during its construction. To specify it in
+places where ``Input`` and ``Output`` classes are used, there are classes
+:class:`rain.client.InputDir` and :class:`rain.client.OutputDir`.
 
 ::
 
    from rain import
 
-   from rain.client import Client, tasks, blob, Output, directory
+   from rain.client import Client, tasks, blob, OutputDir, directory
 
    client = Client("localhost", 7210)
 
@@ -830,11 +836,12 @@ features:
        d3 = tasks.slice_directory(d2, "a/deep/path/x")
 
        # Task taking a directory from a directory data object
-       d3 = tasks.slice_directory(d2, "a/deep", content_type="dir")
+       # This is indicated by  '/' at the end of the path.
+       d3 = tasks.slice_directory(d2, "a/deep/")
 
        # Taking directory as outpout of task.execute
        tasks.execute("git clone https://github.com/substantic/rain",
-                     output_paths=[Output("rain", content_type="dir")])
+                     output_paths=[OutputDir("rain")])
 
 
 .. _fs_mappings:
@@ -863,7 +870,7 @@ Task :func:`tasks.execute` maps files by **link** method. It can be changed by
   # This is ok. Writable copy of 'obj' is created.
   tasks.execute("echo 'New line' >> myfile", shell=True,
                 input_paths=[Input("myfile", dataobj=obj, write=True)])
- 
+
 Data instance has methods ``write(path)`` and ``link(path)`` that performs the
 mapping to a given path. They can be used on both in subworker and in client.
 Let us note that in the current version **link** in the client always falls back
@@ -886,7 +893,7 @@ to **write**. Example::
    us remind that Rain is designed only for execution of trusted codes.
    Obviously this kind of isolation is **not** a protection against malicious
    users.
-   
+
 
 .. _sessions:
 
@@ -997,7 +1004,7 @@ they have to be marked as "kept" explicitly.
 
       t3 = tasks.sleep(1.0, t1.output)
 
-      session.submit()  # This submit
+      session.submit()  # Third submit
       session.wait_all()  # Wait again until everything is finished
 
 Let us remind that method ``wait_all()`` waits until all currently running task
