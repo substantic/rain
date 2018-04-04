@@ -198,9 +198,13 @@ TODO
 Roadmap
 =======
 
-v0.2
+v0.3
 ----
 
 * Worker/Subworker crash resilience
 * More clever scheduler
+
+v0.2
+----
+
 * Directories as blobs
