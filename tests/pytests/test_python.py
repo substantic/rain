@@ -707,6 +707,20 @@ def test_python_dir(test_env):
         ctx.stage_directory("test")
         return ctx.stage_directory("mydir/a")
 
+    @remote(outputs=[OutputDir("output")])
+    def remote_fn2(ctx, input1):
+        return input1
+
+    @remote(outputs=[OutputDir("output")])
+    def remote_fn3(ctx, input1):
+        input1.write("x")
+
+        with open(os.path.join("x", "b", "g.txt"), "w") as f:
+            f.write("Hello 3")
+        os.mkdir("x/test3")
+
+        return ctx.stage_directory("x")
+
     path = os.path.join(test_env.work_dir, "test-dir")
     os.mkdir(path)
     os.mkdir(os.path.join(path, "a"))
@@ -717,15 +731,6 @@ def test_python_dir(test_env):
 
     with open(os.path.join(path, "a", "b", "g.txt"), "w") as f:
         f.write("Hello 2")
-
-    @remote(outputs=[OutputDir("output")])
-    def remote_fn2(ctx, input1):
-        return input1
-
-    @remote(outputs=[OutputDir("output")])
-    def remote_fn3(ctx, input1):
-        input1.write("x")
-        return ctx.stage_directory("x")
 
     test_env.start(2)
     with test_env.client.new_session() as s:
@@ -748,4 +753,5 @@ def test_python_dir(test_env):
         result = e2.output.fetch()
         result.write(os.path.join(test_env.work_dir, "rdir2"))
         with open(os.path.join(test_env.work_dir, "rdir2", "b", "g.txt")) as f:
-            assert f.read() == "Hello 2"
+            assert f.read() == "Hello 3"
+        assert os.path.isdir("rdir2/test3")

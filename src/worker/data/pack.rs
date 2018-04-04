@@ -29,6 +29,7 @@ pub fn new_pack_stream(state: &State, data: Arc<Data>) -> Result<Box<PackStream>
             {
                 let file = temp_file.create()?;
                 let mut tar_builder = ::tar::Builder::new(file);
+                tar_builder.mode(::tar::HeaderMode::Deterministic);
                 tar_builder.append_dir_all(".", &p.path)?;
                 tar_builder.finish()?;
             }
