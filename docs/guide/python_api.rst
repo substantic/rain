@@ -77,11 +77,25 @@ input and output attributes. In particular, specifying
 an `Output` is the preferred way to set properties of the
 output `DataObject`.
 
+.. autoclass:: InputBase
+   :members:
+
 .. autoclass:: Input
+   :members:
+
+.. autoclass:: InputDir
+   :members:
+
+.. autoclass:: OutputBase
    :members:
 
 .. autoclass:: Output
    :members:
+
+.. autoclass:: OutputDir
+   :members:
+
+
 
 Builtin tasks and external programs
 -----------------------------------
