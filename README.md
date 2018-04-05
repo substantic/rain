@@ -36,7 +36,7 @@ insightful monitoring on top.
 - **Rust core, Python API.** Rain is written in Rust for safety and efficiency
   and has a high-level Python API to Rain core infrastructure, and even supports
   Python tasks out-of-the-box. Nevertheless, Rain core infrastructure provides
-  language-indepedent inteface that does not prevent adding support for other
+  language-independent interface that does not prevent adding support for other
   languages in the future.
 
 - **Monitoring.** Rain is designed to support both online and postmortem
