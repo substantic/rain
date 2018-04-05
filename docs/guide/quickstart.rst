@@ -53,7 +53,7 @@ a simple "Hello world" application.
         session.submit()
 
         # Wait for completion of task and fetch results and get it as bytes
-        result = task.outout.fetch().get_bytes()
+        result = task.output.fetch().get_bytes()
 
         # Prints 'Hello world!'
         print(result)

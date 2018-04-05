@@ -80,7 +80,7 @@ with client.new_session() as session:
     task = tasks.concat(blob("Hello "), blob("world!"))
     task.output.keep()
     session.submit()
-    result = task.outout.fetch().get_bytes()
+    result = task.output.fetch().get_bytes()
     print(result)
 ```
 
