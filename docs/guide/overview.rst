@@ -33,8 +33,8 @@ straightforward installation and deployment with insightful monitoring on top.
 * **Rust core, Python API.** Rain is written in Rust_ for safety and efficiency
   and has a high-level Python API to Rain core infrastructure, and even supports
   Python tasks out-of-the-box. Nevertheless, Rain core infrastructure provides
-  language-indepedent inteface that does not prevent adding support for other
-  languages in the future.
+  a language-independent interface that does not prevent adding support for
+  other languages in the future.
 
 * **Monitoring** Rain is designed to support both online and postmortem
   monitoring.
@@ -60,7 +60,7 @@ Users interacts with server via
 
 
 .. figure:: imgs/arch.svg
-   :alt: Connection between basic compoenents of Rain
+   :alt: Connection between basic components of Rain
 
 
 Python Client
@@ -74,7 +74,7 @@ Python Client
 Rain Core Infrastructure
 ------------------------
 
-   * Basic schedulling heuristic respecting inter-task dependencies.
+   * Basic scheduling heuristic respecting inter-task dependencies.
    * Rust implementation enabling easy build, deployment, and reliable run.
    * Distributed as all-in-one binary.
    * Direct worker-to-worker communication.
@@ -84,8 +84,8 @@ Rain Core Infrastructure
 Future directions
 =================
 
-There are many things to improve, and even more new things to add. To work
-efficiently, we need to prioritize and for that we need your feedback and use
+There are many things to improve and even more new things to add. To work
+efficiently we need to prioritize, and for that we need your feedback and use
 cases. Which features would you like to see and put to good use? What kind of
 pipelines do you run?
 
@@ -140,11 +140,11 @@ and resiliency.
 Plain C/C++ tasks and subworkers
 --------------------------------
 
-Right now, the availabe tasks are either built in, external programs or python
+Right now, the available tasks are either built in, external programs or python
 routines. It should be possible and straightforward to turn your C or C++ (or
 other language) function to a custom task by creating a new subworker. We plan a
 simple C library subworker scaffold that will allow easy gray-box subworkers.
-You do not have to link agains Rain, which should make deployment easier.
+You do not have to link against Rain, which should make deployment easier.
 
 
 REST client interface
@@ -159,7 +159,7 @@ convenient for many users and they do not seem to be a performance bottleneck.
 Easier Deployment in cloud settings
 -----------------------------------
 
-The Rust binary is already one staically linked file and one python-only
+The Rust binary is already one statically linked file and one python-only
 library, making distribution easy and running on PBS is already supported. We
 would like to add better support for cloud settings, e.g. AWS and Kubernetes.
 
@@ -187,7 +187,7 @@ Fair user scheduling, accounting and quotas
 -------------------------------------------
 
 When running multiple sessions, there is no intention to fairly schedule or
-prioritize them. The objective is only overally efficient resource usage.
+prioritize them. The objective is only overall efficient resource usage.
 
 
 Comparison with similar tools
