@@ -252,7 +252,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let log_dir = cmd_args
         .value_of("LOG_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|| default_logging_directory("worker"));
+        .unwrap_or_else(|| default_logging_directory("rain"));
 
     info!("Starting Rain {}", VERSION);
     info!("Log directory: {}", log_dir.to_str().unwrap());
