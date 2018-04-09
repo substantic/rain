@@ -18,6 +18,9 @@ pub fn new_pack_stream(state: &State, data: Arc<Data>) -> Result<Box<PackStream>
             data: data_ref,
             position: 0,
         }),
+        &Storage::Path(_) if data.size() == 0 => Box::new(EmptyPackStream {
+            dummy: Default::default(),
+        }),
         &Storage::Path(ref p) if data.is_blob() => Box::new(MmapPackStream {
             position: 0,
             mmap: unsafe { ::memmap::Mmap::map(&File::open(&p.path)?) }?,
@@ -39,6 +42,16 @@ pub fn new_pack_stream(state: &State, data: Arc<Data>) -> Result<Box<PackStream>
             })
         }
     })
+}
+
+struct EmptyPackStream {
+    dummy: [u8; 0]
+}
+
+impl PackStream for EmptyPackStream {
+    fn read(&mut self, _read_size: usize) -> (&[u8], bool) {
+        (&self.dummy, true)
+    }
 }
 
 struct MemoryPackStream {

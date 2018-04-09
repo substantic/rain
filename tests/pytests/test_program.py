@@ -371,3 +371,12 @@ def test_program_write_input(test_env):
         s.submit()
         assert t2.fetch().get_bytes() == b"xyz\n"
         assert t.fetch().get_bytes() == b"abc"
+
+
+def test_program_empty_output(test_env):
+    test_env.start(1)
+    with test_env.client.new_session() as s:
+        task = tasks.execute(["echo", "-n"], stdout=True)
+        task.output.keep()
+        s.submit()
+        print(task.output.fetch().get_bytes())  # Should print b""
