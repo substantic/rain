@@ -19,7 +19,7 @@ class Scenario:
         self.client = test_env.client
 
         ws = list(self.workers)
-        for worker_info in self.client.get_server_info()["workers"]:
+        for i, worker_info in enumerate(self.client.get_server_info()["workers"]):
             cpus = int(worker_info["resources"]["cpus"])
 
             for w in ws:
@@ -46,9 +46,11 @@ class Scenario:
         return obj
 
     # TODO: Configurable size of output, now output has zero size
-    def new_task(self, inputs, cpus=1, expect_worker=None):
+    def new_task(self, inputs, cpus=1, expect_worker=None, label=None):
         with self.session.bind_only():
             task = testing_task(inputs)
+            task.test_label = label
+            print("Creating task {} as {}".format(label, task))
             if cpus != 1:
                 task.attributes["resources"]["cpus"] = cpus
             if expect_worker:
@@ -65,8 +67,9 @@ class Scenario:
             error = False
             for task, expected_workers in self.task_expected_placement.items():
                 placement = task.attributes["info"]["worker"]
+                print("Task {} computed on {}".format(task.test_label, placement))
                 if placement not in [w.worker_id for w in expected_workers]:
-                    print("Task: ",
+                    print("!!! Task: ",
                           task.id,
                           "was computed on",
                           placement,

@@ -62,17 +62,22 @@ def test_scheduler_biggest_irrelevant(test_env):
     s = Scenario(test_env, workers)
     r.shuffle(workers)
     w0, w1, w2 = workers
+
+    print("w0 =", w0.worker_id)
+    print("w1 =", w1.worker_id)
+    print("w2 =", w2.worker_id)
+
     o1 = s.new_object(workers=workers, size=10*BIG)
     o2 = s.new_object(workers=workers, size=10*BIG)
     o3 = s.new_object(workers=w0, size=BIG)
 
-    s.new_task([o1, o2, o3], expect_worker=w0)  # t0
-    s.new_task([o1, o2, o3], expect_worker=w0)  # t1
-    s.new_task([o1], expect_worker=[w1, w2])    # t2
+    s.new_task([o1, o2, o3], expect_worker=w0, label="t0")  # t0
+    s.new_task([o1, o2, o3], expect_worker=w0, label="t1")  # t1
+    # s.new_task([o1], expect_worker=[w1, w2], label="t2")    # t2
 
     # t3 - t10
     for w in range(3, 11):
-        s.new_task([])
+        s.new_task([], label="t" + str(w))
     s.run()
 
 
