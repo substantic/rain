@@ -379,4 +379,4 @@ def test_program_empty_output(test_env):
         task = tasks.execute(["echo", "-n"], stdout=True)
         task.output.keep()
         s.submit()
-        print(task.output.fetch().get_bytes())  # Should print b""
+        assert task.output.fetch().get_bytes() == b""

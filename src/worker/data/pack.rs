@@ -18,7 +18,7 @@ pub fn new_pack_stream(state: &State, data: Arc<Data>) -> Result<Box<PackStream>
             data: data_ref,
             position: 0,
         }),
-        &Storage::Path(_) if data.size() == 0 => Box::new(EmptyPackStream {
+        &Storage::Path(_) if data.is_blob() && data.size() == 0 => Box::new(EmptyPackStream {
             dummy: Default::default(),
         }),
         &Storage::Path(ref p) if data.is_blob() => Box::new(MmapPackStream {
