@@ -21,68 +21,31 @@ cert = /path/to/client_exoscale.pem
 
 `python3 exoscale.py create --help`
 
-```
-usage: exoscale.py create [-h] [--n N] [--name NAME] [--env ENV] --keypair
-                          {key1,key2}
-                          [--offering {micro,tiny,small,medium,large,extra-large,huge,mega,titan,gpu-small,gpu-huge}]
-                          [--zone {ch-gva-2,ch-dk-2,at-vie-1,de-fra-1}]
-                          [--rain RAIN]
+### Install Rain
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --n N                 Number of virtual machines
-  --name NAME           Virtual machine name prefix
-  --env ENV             Path to environment file
-  --keypair {key1,key2}
-                        SSH key name
-  --offering {micro,tiny,small,medium,large,extra-large,huge,mega,titan,gpu-small,gpu-huge}
-                        Service offering
-  --zone {ch-gva-2,ch-dk-2,at-vie-1,de-fra-1}
-                        Zone
-  --rain RAIN           Rain version
-```
+`python3 exoscale.py install --help`
 
-All VMs created will have Rain binary located in `/usr/local/bin/rain`.
+### Start Rain
+
+`python3 exoscale.py install --help`
 
 ### Destroy an environment
 
 `python3 exoscale.py destroy --help`
 
-```
-usage: exoscale.py destroy [-h] --env ENV
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --env ENV   Path to .env file
-```
-
 ### SSH into a VM in an environment
 
 `python3 exoscale.py ssh --help`
-
-```
-usage: exoscale.py ssh [-h] --env ENV n
-
-positional arguments:
-  n           Node index
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --env ENV   Path to .env file
-```
 
 ### List environment IP Adresses
 
 `python3 exoscale.py list-ips --help`
 
-```
-usage: exoscale.py list-ips [-h] --env ENV
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --env ENV   Path to .env file
-```
-
 ## Example
 
-To spawn an environment with two (`--n`) tiny (default value for `--offering`) VMs, both accessible using `mykey` keypair (`--keypair`) run `python3 exoscale.py create --n 2 --name test --keypair mykey`. This will also create a local environment file `./test.env` which is then used as a reference to the created environment using `--env` switch. Each of the created VMs can be easily SSH-ed into using `python3 exoscale.py ssh 0 --env test.env` or `python3 exoscale.py ssh 1 --env test.env`, respectively. All of the VMs have Rain binary available at `/usr/local/bin/rain`. To list IP adresses of all VMs within the environment use `python3 exoscale.py list-ips --env test.env`. To destroy all VMs within the environment including the environment file run `python3 exoscale.py destroy --env test.env`.
+```
+python3 exoscale.py create -n 2 --keypair <KEYPAIR-NAME>
+python3 exoscale.py install --env default.env --rain-download 0.2.1.dev20180430
+python3 exoscale.py start --env default.env
+python3 exoscale.py destroy --env default.env
+```
