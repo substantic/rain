@@ -178,6 +178,10 @@ impl State {
 
     pub fn object_is_finished(&mut self, dataobj: &DataObjectRef) {
         let mut dataobject = dataobj.get_mut();
+        if dataobject.is_removed() {
+            debug!("Removed object finished id={}", dataobject.id);
+            return;
+        }
         debug!("Object id={} is finished", dataobject.id);
         self.updated_objects.insert(dataobj.clone());
 
@@ -498,6 +502,7 @@ impl State {
             }
             self.spawn_panic_on_error(req.send().promise.map(|_| ()).map_err(|e| e.into()));
         }
+        object.set_as_removed();
         self.graph.objects.remove(&object.id);
     }
 
@@ -510,8 +515,11 @@ impl State {
 
     pub fn remove_dataobj_if_not_needed(&mut self, object: &mut DataObject) {
         if !object.assigned && object.consumers.is_empty() {
-            debug!("Object id={} is not needed", object.id);
-            if self.graph.delete_wait_list.len() > 100 || self.delete_list_max_timeout == 0 {
+            debug!("Object {:?} is not needed", object);
+            assert!(!object.is_removed());
+            if !object.is_finished() || self.graph.delete_wait_list.len() > 100
+                || self.delete_list_max_timeout == 0
+            {
                 // Instant deletion
                 self.remove_object(object);
             } else {

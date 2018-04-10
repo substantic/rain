@@ -45,7 +45,7 @@ pub fn new_pack_stream(state: &State, data: Arc<Data>) -> Result<Box<PackStream>
 }
 
 struct EmptyPackStream {
-    dummy: [u8; 0]
+    dummy: [u8; 0],
 }
 
 impl PackStream for EmptyPackStream {

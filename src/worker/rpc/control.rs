@@ -180,7 +180,8 @@ impl worker_control::Server for WorkerControlImpl {
             let mut o = object.get_mut();
             let worker_id = o.remote().unwrap();
             let object_id = o.id;
-            o.state = DataObjectState::Pulling(worker_id.clone());
+            let (sender, receiver) = ::futures::unsync::oneshot::channel();
+            o.state = DataObjectState::Pulling((worker_id.clone(), sender));
 
             let state_ref = self.state.clone();
             let future = state
@@ -189,12 +190,20 @@ impl worker_control::Server for WorkerControlImpl {
                     object_ref.get_mut().set_data(Arc::new(data)).unwrap();
                     state_ref.get_mut().object_is_finished(&object_ref);
                 });
-            state.handle().spawn(future.map_err(move |e| {
-                match e {
-                    Error(ErrorKind::Ignored, _) => { /* do nothing, it is safe */ }
-                    e => panic!("Fetch dataobject failed {:?}", e),
-                }
-            }));
+            state.handle().spawn(
+                future
+                    .map_err(move |e| {
+                        match e {
+                            Error(ErrorKind::Ignored, _) => { /* do nothing, it is safe */ }
+                            e => panic!("Fetch dataobject failed {:?}", e),
+                        }
+                    })
+                    .select(receiver.then(move |_| {
+                        debug!("Terminating fetching of data object id={}", object_id);
+                        Ok(())
+                    }))
+                    .then(|_| Ok(())),
+            );
         }
         state.need_scheduling();
         Promise::ok(())

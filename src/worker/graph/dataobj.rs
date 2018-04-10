@@ -22,15 +22,11 @@ pub enum DataObjectState {
     Assigned,
     Remote(SocketAddr),
 
-    /// Data object is remote, but we currently don't know where they are placed; however
-    /// server was asked for real data placement
-    /// This state can happen when remote worker replied by "notHere"
-    RemoteRedirecting,
-
-    /// Data transfer is in progress
-    Pulling(SocketAddr),
-
+    /// Data transfer is in progress; if oneshot is finished or dropped then pulling is
+    /// canceled
+    Pulling((SocketAddr, ::futures::unsync::oneshot::Sender<()>)),
     Finished(Arc<Data>),
+    Removed,
 }
 
 #[derive(Debug)]
@@ -66,7 +62,15 @@ pub struct DataObject {
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
 
 impl DataObject {
+    pub fn set_as_removed(&mut self) {
+        self.state = DataObjectState::Removed;
+    }
+
     pub fn set_data(&mut self, data: Arc<Data>) -> Result<()> {
+        if self.is_removed() {
+            return Ok(());
+        }
+
         assert!(!self.is_finished());
 
         if self.data_type != data.data_type() {
@@ -107,6 +111,14 @@ impl DataObject {
         }
     }
 
+    #[inline]
+    pub fn is_removed(&self) -> bool {
+        match self.state {
+            DataObjectState::Removed => true,
+            _ => false,
+        }
+    }
+
     pub fn data(&self) -> &Arc<Data> {
         match self.state {
             DataObjectState::Finished(ref data) => data,
@@ -116,7 +128,9 @@ impl DataObject {
 
     pub fn remote(&self) -> Option<WorkerId> {
         match self.state {
-            DataObjectState::Remote(ref addr) | DataObjectState::Pulling(ref addr) => Some(*addr),
+            DataObjectState::Remote(ref addr) | DataObjectState::Pulling((ref addr, _)) => {
+                Some(*addr)
+            }
             _ => None,
         }
     }
