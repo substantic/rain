@@ -95,6 +95,7 @@ impl RemoteProcess {
 
         let shell_cmd = format!(
             "\n
+mkdir -p {log_dir:?} || (echo \"Error: Cannot create log directory\"; exit 1)\n
 touch {log_out:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
 touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
 ({{\n
@@ -105,6 +106,7 @@ touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
     ",
             cwd = cwd,
             command = command,
+            log_dir = log_dir,
             log_out = log_out,
             log_err = log_err
         );
