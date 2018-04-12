@@ -33,6 +33,7 @@ impl RemoteProcess {
     fn create_ssh_command(&self) -> Command {
         let mut command = Command::new("ssh");
         command
+            .arg("-o StrictHostKeyChecking=no")
             .arg(&self.host)
             .arg("/bin/sh")
             .stdin(Stdio::piped())
