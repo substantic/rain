@@ -38,13 +38,13 @@ a simple "Hello world" application.
     from rain.client import Client, tasks, blob
 
     # Connect to server
-    client = Client("localhost")
+    client = Client("localhost", 7210)
 
     # Create a new session
     with client.new_session() as session:
 
         # Create task (and two data objects)
-        task = tasks.concat(blob("Hello "), blob("world!"))
+        task = tasks.concat((blob("Hello "), blob("world!"),))
 
         # Mark that the output should be kept after submit
         task.output.keep()
