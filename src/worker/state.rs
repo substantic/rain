@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 use std::process::exit;
+use std::rc::Rc;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use std::collections::HashMap;
@@ -18,7 +19,8 @@ use common::DataType;
 
 use worker::graph::{subworker_command, DataObject, DataObjectRef, DataObjectState, Graph,
                     SubworkerRef, TaskInput, TaskRef, TaskState};
-use worker::data::{Data, DataBuilder};
+use worker::data::Data;
+use worker::data::transport::TransportView;
 use worker::tasks::TaskInstance;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
@@ -33,13 +35,14 @@ use tokio_timer;
 use tokio_uds::{UnixListener, UnixStream};
 use capnp_rpc::rpc_twoparty_capnp;
 use capnp::capability::Promise;
-use errors::{Error, ErrorKind, Result};
+use errors::{Error, Result};
 
 use WORKER_PROTOCOL_VERSION;
 
 const MONITORING_INTERVAL: u64 = 5; // Monitoring interval in seconds
 const DELETE_WAIT_LIST_INTERVAL: u64 = 2; // How often is delete_wait_list checked in seconds
 const DEFAULT_DELETE_LIST_MAX_TIMEOUT: u32 = 5;
+const DEFAULT_TRANSPORT_VIEW_TIMEOUT: u32 = 10;
 
 pub struct State {
     pub(super) graph: Graph,
@@ -53,11 +56,13 @@ pub struct State {
     /// Handle to WorkerUpstream (that resides in server)
     upstream: Option<::worker_capnp::worker_upstream::Client>,
 
-    /// Handle to DataStore (that resides in server)
-    datastores: HashMap<WorkerId, AsyncInitWrapper<::datastore_capnp::data_store::Client>>,
+    remote_workers: HashMap<WorkerId, AsyncInitWrapper<::worker_capnp::worker_bootstrap::Client>>,
 
     updated_objects: RcSet<DataObjectRef>,
     updated_tasks: RcSet<TaskRef>,
+
+    /// Transport views (2nd element of tuple is timeout)
+    transport_views: HashMap<DataObjectId, (Rc<TransportView>, ::std::time::Instant)>,
 
     /// A worker assigned to this worker
     worker_id: WorkerId,
@@ -125,6 +130,11 @@ impl State {
         &self.timer
     }
 
+    #[inline]
+    pub fn upstream(&self) -> &Option<::worker_capnp::worker_upstream::Client> {
+        &self.upstream
+    }
+
     pub fn plan_scheduling(&mut self) {
         unimplemented!();
     }
@@ -136,6 +146,27 @@ impl State {
     /// Start scheduler in next loop
     pub fn need_scheduling(&mut self) {
         self.need_scheduling = true;
+    }
+
+    pub fn get_transport_view(&mut self, id: DataObjectId) -> Option<Rc<TransportView>> {
+        let now = ::std::time::Instant::now();
+        let new_timeout =
+            now + ::std::time::Duration::from_secs(DEFAULT_TRANSPORT_VIEW_TIMEOUT as u64);
+
+        if let ::std::collections::hash_map::Entry::Occupied(mut e) = self.transport_views.entry(id)
+        {
+            debug!("Getting transport view from cache id={}", id);
+            let &mut (ref tw, ref mut timeout) = e.get_mut();
+            *timeout = new_timeout;
+            return Some(tw.clone());
+        }
+        self.graph.objects.get(&id).cloned().map(|obj_ref| {
+            debug!("Creating new transport view for object id={}", id);
+            let transport_view = Rc::new(TransportView::from(self, obj_ref.get().data()).unwrap());
+            self.transport_views
+                .insert(id, (transport_view.clone(), new_timeout));
+            transport_view
+        })
     }
 
     pub fn add_task(
@@ -382,11 +413,6 @@ impl State {
         Ok(())
     }
 
-    /// You can call this ONLY when wait_for_datastore was successfully finished
-    pub fn get_datastore(&self, worker_id: &WorkerId) -> &::datastore_capnp::data_store::Client {
-        self.datastores.get(worker_id).unwrap().get()
-    }
-
     pub fn spawn_panic_on_error<F>(&self, f: F)
     where
         F: Future<Item = (), Error = Error> + 'static,
@@ -418,77 +444,32 @@ impl State {
     }
 
     /// n_redirects is a protection against ifinite loop of redirections
-    pub fn fetch_from_datastore(
+    pub fn fetch_object(
         &mut self,
         worker_id: &WorkerId,
         dataobj_id: DataObjectId,
-        n_redirects: i32,
     ) -> Box<Future<Item = Data, Error = Error>> {
-        if n_redirects > 32 {
-            panic!("Too many redirections; dataobj_id={}", dataobj_id);
+        let is_server = worker_id.ip().is_unspecified();
+        let mut context = ::worker::rpc::fetch::FetchContext {
+            state_ref: self.self_ref(),
+            dataobj_id: dataobj_id,
+            remote: None,
+            builder: None,
+            size: 0,
+            offset: 0,
+            n_redirects: 0,
+        };
+        if is_server {
+            ::worker::rpc::fetch::fetch(context)
+        } else {
+            Box::new(
+                self.wait_for_remote_worker(&worker_id)
+                    .and_then(move |remote_worker| {
+                        context.remote = Some(remote_worker);
+                        ::worker::rpc::fetch::fetch(context)
+                    }),
+            )
         }
-        let state_ref = self.self_ref();
-        let worker_id = worker_id.clone();
-        Box::new(self.wait_for_datastore(&worker_id).and_then(move |()| {
-            let is_server = worker_id.ip().is_unspecified();
-            let mut req = {
-                let state = state_ref.get();
-                let datastore = state.get_datastore(&worker_id);
-                datastore.create_reader_request()
-            };
-            {
-                let mut params = req.get();
-                params.set_offset(0);
-                dataobj_id.to_capnp(&mut params.get_id().unwrap());
-            }
-
-            req.send()
-                .promise
-                .map_err(|e| Error::with_chain(e, "Send failed"))
-                .and_then(move |r| {
-                    let response = r.get().unwrap();
-                    let mut state = state_ref.get_mut();
-                    match response.which().unwrap() {
-                        ::datastore_capnp::reader_response::Which::Ok(()) => {
-                            let size = response.get_size();
-                            let size = if size == -1 {
-                                None
-                            } else {
-                                Some(size as usize)
-                            };
-                            let builder = DataBuilder::new(
-                                &state.work_dir,
-                                DataType::from_capnp(response.get_data_type().unwrap()),
-                                size,
-                            );
-                            let reader = response.get_reader().unwrap();
-                            ::worker::rpc::fetch::fetch_from_reader(&state, reader, builder, size)
-                        }
-                        ::datastore_capnp::reader_response::Which::Redirect(w) => {
-                            assert!(is_server);
-                            let worker_id = WorkerId::from_capnp(&w.unwrap());
-                            debug!(
-                                "Datastore redirection; id={}, worker={}",
-                                dataobj_id, worker_id
-                            );
-                            state.fetch_from_datastore(&worker_id, dataobj_id, n_redirects + 1)
-                        }
-                        ::datastore_capnp::reader_response::Which::NotHere(()) => {
-                            assert!(!is_server);
-                            debug!("Datastore redirection to server; id={}", dataobj_id);
-                            // Ask for server for placing of data object
-                            let worker_id = empty_worker_id();
-                            state.fetch_from_datastore(&worker_id, dataobj_id, n_redirects + 1)
-                        }
-                        ::datastore_capnp::reader_response::Which::Ignored(()) => {
-                            assert!(is_server);
-                            debug!("Datastore ignore occured; id={}", dataobj_id);
-                            Box::new(Err(Error::from(ErrorKind::Ignored)).into_future())
-                        }
-                        _ => panic!("Invalid reposponse from datastore"),
-                    }
-                })
-        }))
     }
 
     pub fn remove_object(&mut self, object: &mut DataObject) {
@@ -631,53 +612,37 @@ impl State {
         }
     }
 
-    pub fn wait_for_datastore(
+    pub fn wait_for_remote_worker(
         &mut self,
         worker_id: &WorkerId,
-    ) -> Box<Future<Item = (), Error = Error>> {
-        if let Some(ref mut wrapper) = self.datastores.get_mut(worker_id) {
+    ) -> Box<Future<Item = Rc<::worker_capnp::worker_bootstrap::Client>, Error = Error>> {
+        if let Some(ref mut wrapper) = self.remote_workers.get_mut(worker_id) {
             return wrapper.wait();
         }
 
         let wrapper = AsyncInitWrapper::new();
-        self.datastores.insert(worker_id.clone(), wrapper);
+        self.remote_workers.insert(worker_id.clone(), wrapper);
 
         let state = self.self_ref();
         let worker_id = worker_id.clone();
 
-        if worker_id.ip().is_unspecified() {
-            // Data are on server
-            let req = self.upstream.as_ref().unwrap().get_data_store_request();
-            Box::new(
-                req.send()
-                    .promise
-                    .map(move |r| {
-                        debug!("Obtained datastore from server");
-                        let datastore = r.get().unwrap().get_store().unwrap();
-                        let mut inner = state.get_mut();
-                        let wrapper = inner.datastores.get_mut(&worker_id).unwrap();
-                        wrapper.set_value(datastore);
-                    })
-                    .map_err(|e| e.into()),
-            )
-        } else {
-            Box::new(
-                TcpStream::connect(&worker_id, &self.handle)
-                    .map(move |stream| {
-                        debug!("Connection to worker {} established", worker_id);
-                        let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
-                        let datastore: ::datastore_capnp::data_store::Client = rpc_system.bootstrap(
-                            rpc_twoparty_capnp::Side::Server);
-                        let mut s = state.get_mut();
-                        {
-                            let wrapper = s.datastores.get_mut(&worker_id).unwrap();
-                            wrapper.set_value(datastore);
-                        }
-                        s.spawn_panic_on_error(rpc_system.map_err(|e| e.into()));
-                    })
-                    .map_err(|e| e.into()),
-            )
-        }
+        Box::new(
+            TcpStream::connect(&worker_id, &self.handle)
+                .map(move |stream| {
+                    debug!("Connection to worker {} established", worker_id);
+                    let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
+                    let bootstrap: Rc<::worker_capnp::worker_bootstrap::Client> =
+                        Rc::new(rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server));
+                    let mut s = state.get_mut();
+                    {
+                        let wrapper = s.remote_workers.get_mut(&worker_id).unwrap();
+                        wrapper.set_value(bootstrap.clone());
+                    }
+                    s.spawn_panic_on_error(rpc_system.map_err(|e| e.into()));
+                    bootstrap
+                })
+                .map_err(|e| e.into()),
+        )
     }
 
     pub fn monitor_mut(&mut self) -> &mut Monitor {
@@ -722,7 +687,7 @@ impl StateRef {
             resources: resources.clone(),
             free_resources: resources,
             upstream: None,
-            datastores: HashMap::new(),
+            remote_workers: HashMap::new(),
             updated_objects: Default::default(),
             updated_tasks: Default::default(),
             timer: tokio_timer::wheel()
@@ -742,6 +707,7 @@ impl StateRef {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(DEFAULT_DELETE_LIST_MAX_TIMEOUT),
+            transport_views: Default::default(),
         });
         state.get_mut().self_ref = Some(state.clone());
         state
@@ -754,8 +720,8 @@ impl StateRef {
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
 
-        let bootstrap = ::datastore_capnp::data_store::ToClient::new(
-            ::worker::rpc::datastore::DataStoreImpl::new(self),
+        let bootstrap = ::worker_capnp::worker_bootstrap::ToClient::new(
+            ::worker::rpc::bootstrap::WorkerBootstrapImpl::new(self),
         ).from_server::<::capnp_rpc::Server>();
         let rpc_system = ::common::rpc::new_rpc_system(stream, Some(bootstrap.client));
         self.get()
@@ -950,8 +916,22 @@ impl StateRef {
                     .map(|pair| pair.0.clone())
                     .collect();
                 for obj in to_delete {
-                    s.remove_object(&mut obj.get_mut());
+                    {
+                        let mut o = obj.get_mut();
+                        s.remove_object(&mut o);
+                        s.transport_views.remove(&o.id);
+                    }
                     s.graph.delete_wait_list.remove(&obj);
+                }
+
+                let to_delete: Vec<DataObjectId> = s.transport_views
+                    .iter()
+                    .filter(|pair| (pair.1).1 < now)
+                    .map(|pair| *pair.0)
+                    .collect();
+
+                for id in to_delete {
+                    s.transport_views.remove(&id);
                 }
                 Ok(())
             })

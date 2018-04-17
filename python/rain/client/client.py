@@ -8,6 +8,7 @@ from ..common.ids import id_from_capnp, id_to_capnp, worker_id_from_capnp
 from .session import Session
 
 CLIENT_PROTOCOL_VERSION = 0
+FETCH_SIZE = 8 << 20  # 8MB
 
 
 def check_result(sessions, result):
@@ -47,7 +48,7 @@ def check_result(sessions, result):
         message = "\n".join(message)
         raise cls(message)
     else:
-        raise Exception("Invalid result")
+        raise Exception("Invalid result: {}".format(result))
 
 
 class Client:
@@ -63,7 +64,6 @@ class Client:
             rpc.server.ServerBootstrap)
         registration = bootstrap.registerAsClient(CLIENT_PROTOCOL_VERSION)
         self._service = registration.wait().service
-        self._datastore = self._service.getDataStore().wait().store
 
     def new_session(self):
         """
@@ -119,25 +119,37 @@ class Client:
             raise RainException(
                 "Object {} is not submitted.".format(dataobj))
 
-        req = self._datastore.createReader_request()
+        req = self._service.fetch_request()
         id_to_capnp(dataobj.id, req.id)
         req.offset = 0
+        req.size = FETCH_SIZE
+        req.includeMetadata = True
         result = req.send().wait()
-        check_result((dataobj.session,), result)
+        check_result((dataobj.session,), result.status)
 
-        reader = result.reader
-        FETCH_SIZE = 2 << 20  # 2MB
-        eof = False
-        data = []
-        while not eof:
-            r = reader.read(FETCH_SIZE).wait()
+        size = result.metadata.size
+        offset = len(result.data)
+        data = [result.data]
+
+        while offset < size:
+            req = self._service.fetch_request()
+            id_to_capnp(dataobj.id, req.id)
+            req.offset = offset
+            req.size = FETCH_SIZE
+            req.includeMetadata = False
+            r = req.send().wait()
+            check_result((dataobj.session,), r.status)
             data.append(r.data)
-            eof = r.status == "eof"
-        bytedata = b"".join(data)
-        self._get_state((), (dataobj, ))
-        return DataInstance(data=bytedata,
+            offset += len(r.data)
+
+        rawdata = b"".join(data)
+
+        dataobj.attributes.update(attributes.attributes_from_capnp(
+            result.metadata.attributes))
+
+        return DataInstance(data=rawdata,
                             data_object=dataobj,
-                            data_type=DataType.from_capnp(result.dataType))
+                            data_type=DataType.from_capnp(result.metadata.dataType))
 
     def _wait(self, tasks, dataobjs):
         req = self._service.wait_request()

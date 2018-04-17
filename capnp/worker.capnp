@@ -2,7 +2,6 @@
 
 # Worker <-> Server and Worker <-> Worker communication.
 
-using import "datastore.capnp".DataStore;
 using import "common.capnp".WorkerId;
 using import "common.capnp".TaskId;
 using import "common.capnp".DataType;
@@ -12,21 +11,15 @@ using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
 using import "common.capnp".Resources;
 using import "common.capnp".Event;
+using import "common.capnp".FetchResult;
 using import "monitor.capnp".MonitoringFrames;
-
 
 
 interface WorkerBootstrap {
     # Interface for entities connecting directly to the worker.
     # Currently only workers would do this but in the future, other entities may do this.
 
-    getDataStore @0 () -> (store :DataStore);
-    # Returns the data handle of the server. It does not make sense to take more
-    # than one instance of this.
-
-    getWorkerControl @1 () -> (control :WorkerControl);
-    # Directly get control interface of the worker. Not normally used but may be
-    # internally handy.
+    fetch @0 (id :DataObjectId, includeMetadata :Bool, offset :UInt64, size :UInt64) -> FetchResult;
 }
 
 struct WorkerStateUpdate {
@@ -58,9 +51,7 @@ interface WorkerUpstream {
     # Every worker has one connection to the server. This is the interface that server
     # provides for messages from the worker.
 
-    getDataStore @0 () -> (store :DataStore);
-    # Returns the data handle of the server. It does not make sense to take more
-    # than one instance of this.
+    fetch @0 (id :DataObjectId, includeMetadata :Bool, offset :UInt64, size :UInt64) -> FetchResult;
 
     updateStates @1 (update: WorkerStateUpdate) -> ();
     # Notify server about object state changes. The sizes are reported for
@@ -78,23 +69,15 @@ interface WorkerControl {
     # The server holds this interface at every worker, using it for all worker control
     # except for data pulls.
 
-    getDataStore @0 () -> (store :DataStore);
-    # Returns the data handle of the worker. It does not make sense to take more than
-    # one instance of this per worker.
+    addNodes @0 (newTasks :List(Task), newObjects :List(DataObject)) -> ();
 
-    addNodes @1 (newTasks :List(Task), newObjects :List(DataObject)) -> ();
+    unassignObjects @1 (objects :List(DataObjectId)) -> ();
 
-    unassignObjects @2 (objects :List(DataObjectId)) -> ();
+    stopTasks @2 (tasks :List(TaskId)) -> ();
 
-    stopTasks @3 (tasks :List(TaskId)) -> ();
+    getWorkerResources @3 () -> Resources;
 
-    getWorkerResources @4 () -> Resources;
-
-    getInfo @5 () -> WorkerInfo;
-
-    # TODO: actual status: CPU, resources, counters, ...
-
-    # TODO: Control worker (shutdown, pause) etc ...
+    getInfo @4 () -> WorkerInfo;
 }
 
 # Task instance

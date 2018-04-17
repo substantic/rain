@@ -98,10 +98,6 @@ pub mod worker_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/worker_capnp.rs"));
 }
 
-pub mod datastore_capnp {
-    include!(concat!(env!("OUT_DIR"), "/capnp/datastore_capnp.rs"));
-}
-
 pub mod subworker_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/subworker_capnp.rs"));
 }

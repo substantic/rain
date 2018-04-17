@@ -88,8 +88,8 @@ impl DataObject {
     }
 
     pub fn set_attributes(&mut self, attributes: Attributes) {
-        // TODO Check content type
-        self.new_attributes = attributes;
+        self.attributes.update(attributes.clone());
+        self.new_attributes.update(attributes);
     }
 
     pub fn display_content_type(&self) -> String {

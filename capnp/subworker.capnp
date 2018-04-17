@@ -3,7 +3,7 @@
 using import "common.capnp".DataObjectId;
 using import "common.capnp".TaskId;
 using import "common.capnp".Attributes;
-using import "datastore.capnp".DataType;
+using import "common.capnp".DataType;
 
 interface SubworkerControl {
     # This object serves also as bootstrap

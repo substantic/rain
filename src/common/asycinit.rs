@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use errors::Error;
 use futures::{unsync, Future, IntoFuture};
 
@@ -8,17 +9,17 @@ use futures::{unsync, Future, IntoFuture};
 enum State<T> {
     // Object is still in initialization, vector contains callbacks when
     // object is ready
-    Initing(Vec<unsync::oneshot::Sender<()>>),
+    Initing(Vec<unsync::oneshot::Sender<Rc<T>>>),
 
     // Value is ready
-    Ready(T),
+    Ready(Rc<T>),
 }
 
 pub struct AsyncInitWrapper<T> {
     state: State<T>,
 }
 
-impl<T> AsyncInitWrapper<T> {
+impl<T: 'static> AsyncInitWrapper<T> {
     pub fn new() -> Self {
         Self {
             state: State::Initing(Vec::new()),
@@ -32,19 +33,13 @@ impl<T> AsyncInitWrapper<T> {
         }
     }
 
-    pub fn get(&self) -> &T {
-        match self.state {
-            State::Ready(ref value) => &value,
-            State::Initing(_) => panic!("Element is not ready"),
-        }
-    }
-
     /// Function that sets the value of the object when it is finally ready
     /// It triggers all waiting oneshots
-    pub fn set_value(&mut self, value: T) {
-        match ::std::mem::replace(&mut self.state, State::Ready(value)) {
+    pub fn set_value(&mut self, value: Rc<T>) {
+        match ::std::mem::replace(&mut self.state, State::Ready(value.clone())) {
             State::Initing(senders) => for sender in senders {
-                sender.send(()).unwrap();
+                // We do not care if send fails
+                let _ = sender.send(value.clone());
             },
             State::Ready(_) => panic!("Element is already finished"),
         }
@@ -52,9 +47,9 @@ impl<T> AsyncInitWrapper<T> {
 
     /// Returns future that is finished when object is ready,
     /// If object is already prepared than future is finished immediately
-    pub fn wait(&mut self) -> Box<Future<Item = (), Error = Error>> {
+    pub fn wait(&mut self) -> Box<Future<Item = Rc<T>, Error = Error>> {
         match self.state {
-            State::Ready(_) => Box::new(Ok(()).into_future()),
+            State::Ready(ref v) => Box::new(Ok(v.clone()).into_future()),
             State::Initing(ref mut senders) => {
                 let (sender, receiver) = unsync::oneshot::channel();
                 senders.push(sender);
