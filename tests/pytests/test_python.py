@@ -444,7 +444,6 @@ def test_output_detailed_specs(test_env):
             t.keep_outputs()
             s.submit()
             (a, b, c, d) = t.fetch_outputs()
-            print(t.outputs)
             assert t.outputs['foo'].label == "foo"
             assert a.load() == obj
             assert b.load() == 'ášďë'

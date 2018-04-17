@@ -184,12 +184,10 @@ impl worker_control::Server for WorkerControlImpl {
             o.state = DataObjectState::Pulling((worker_id.clone(), sender));
 
             let state_ref = self.state.clone();
-            let future = state
-                .fetch_from_datastore(&worker_id, object_id, 0)
-                .map(move |data| {
-                    object_ref.get_mut().set_data(Arc::new(data)).unwrap();
-                    state_ref.get_mut().object_is_finished(&object_ref);
-                });
+            let future = state.fetch_object(&worker_id, object_id).map(move |data| {
+                object_ref.get_mut().set_data(Arc::new(data)).unwrap();
+                state_ref.get_mut().object_is_finished(&object_ref);
+            });
             state.handle().spawn(
                 future
                     .map_err(move |e| {

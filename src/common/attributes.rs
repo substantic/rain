@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use errors::Result;
 use std::error::Error;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Attributes {
     // TODO: Int & Float types
     items: HashMap<String, String>,

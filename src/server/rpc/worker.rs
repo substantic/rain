@@ -5,7 +5,6 @@ use server::state::StateRef;
 use server::graph::{Worker, WorkerRef};
 use worker_capnp::worker_upstream;
 use capnp::capability::Promise;
-use server::rpc::WorkerDataStoreImpl;
 use chrono::TimeZone;
 
 pub struct WorkerUpstreamImpl {
@@ -32,19 +31,6 @@ impl Drop for WorkerUpstreamImpl {
 }
 
 impl worker_upstream::Server for WorkerUpstreamImpl {
-    fn get_data_store(
-        &mut self,
-        _params: worker_upstream::GetDataStoreParams,
-        mut results: worker_upstream::GetDataStoreResults,
-    ) -> Promise<(), ::capnp::Error> {
-        debug!("server data store requested from worker");
-        let datastore = ::datastore_capnp::data_store::ToClient::new(WorkerDataStoreImpl::new(
-            &self.state,
-        )).from_server::<::capnp_rpc::Server>();
-        results.get().set_store(datastore);
-        Promise::ok(())
-    }
-
     fn update_states(
         &mut self,
         params: worker_upstream::UpdateStatesParams,
@@ -116,6 +102,52 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
                 ::chrono::Utc.timestamp(seconds, subsec_nanos),
             );
         }
+        Promise::ok(())
+    }
+
+    fn fetch(
+        &mut self,
+        params: worker_upstream::FetchParams,
+        mut results: worker_upstream::FetchResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let id = DataObjectId::from_capnp(&pry!(params.get_id()));
+        let mut results = results.get();
+
+        if self.state.get().is_object_ignored(&id) {
+            results.get_status().set_ignored(());
+            return Promise::ok(());
+        }
+
+        let object_ref = if let Ok(o) = self.state.get().object_by_id(id) {
+            o
+        } else {
+            results.get_status().set_removed(());
+            return Promise::ok(());
+        };
+
+        let obj = object_ref.get();
+        let data = obj.data.as_ref().unwrap();
+        let offset = params.get_offset() as usize;
+        let size = params.get_size() as usize;
+
+        if offset < data.len() {
+            let end = if offset + size < data.len() {
+                offset + size
+            } else {
+                data.len()
+            };
+            results.set_data(&data[offset..end]);
+        }
+
+        if params.get_include_metadata() {
+            let mut metadata = results.get_metadata().unwrap();
+            metadata.set_size(data.len() as i64);
+            metadata.set_data_type(obj.data_type.to_capnp());
+            obj.attributes
+                .to_capnp(&mut metadata.get_attributes().unwrap());
+        }
+
         Promise::ok(())
     }
 }

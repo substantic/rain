@@ -1,8 +1,8 @@
 use capnp::capability::Promise;
-use capnp;
-use worker_capnp::{worker_bootstrap, worker_control};
+use worker_capnp::worker_bootstrap;
+use common::id::DataObjectId;
+use common::convert::FromCapnp;
 use worker::StateRef;
-use super::WorkerControlImpl;
 
 impl WorkerBootstrapImpl {
     pub fn new(state: &StateRef) -> Self {
@@ -17,24 +17,51 @@ pub struct WorkerBootstrapImpl {
 }
 
 impl worker_bootstrap::Server for WorkerBootstrapImpl {
-    fn get_data_store(
+    fn fetch(
         &mut self,
-        _arg: worker_bootstrap::GetDataStoreParams,
-        _res: worker_bootstrap::GetDataStoreResults,
-    ) -> Promise<(), capnp::Error> {
-        ::capnp::capability::Promise::err(::capnp::Error::unimplemented(
-            "get_data_store yet not implemented".to_string(),
-        ))
-    }
-
-    fn get_worker_control(
-        &mut self,
-        _arg: worker_bootstrap::GetWorkerControlParams,
-        mut res: worker_bootstrap::GetWorkerControlResults,
+        params: worker_bootstrap::FetchParams,
+        mut results: worker_bootstrap::FetchResults,
     ) -> Promise<(), ::capnp::Error> {
-        let control = worker_control::ToClient::new(WorkerControlImpl::new(&self.state))
-            .from_server::<::capnp_rpc::Server>();
-        res.get().set_control(control);
+        let params = pry!(params.get());
+        let id = DataObjectId::from_capnp(&pry!(params.get_id()));
+        let offset = params.get_offset() as usize;
+        let size = params.get_size() as usize;
+        let mut state = self.state.get_mut();
+
+        let transport_view = state.get_transport_view(id);
+        let mut results = results.get();
+
+        if transport_view.is_none() {
+            debug!("Worker responding 'not here' for id={}", id);
+            results.get_status().set_not_here(());
+            return Promise::ok(());
+        }
+        let transport_view = transport_view.unwrap();
+        let slice = transport_view.get_slice();
+
+        results.borrow().get_status().set_ok(());
+
+        if offset < slice.len() {
+            let end = if offset + size < slice.len() {
+                offset + size
+            } else {
+                slice.len()
+            };
+            debug!("Sending range [{}..{}]", offset, end);
+            results.set_data(slice[offset..end].into());
+        } else {
+            debug!("Fetch out of range");
+        }
+
+        if params.get_include_metadata() {
+            let mut metadata = results.get_metadata().unwrap();
+            metadata.set_size(slice.len() as i64);
+            let obj_ref = state.graph.objects.get(&id).unwrap();
+            let obj = obj_ref.get();
+            metadata.set_data_type(obj.data_type.to_capnp());
+            obj.attributes
+                .to_capnp(&mut metadata.get_attributes().unwrap());
+        }
         Promise::ok(())
     }
 }

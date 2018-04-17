@@ -7,11 +7,11 @@ use common::id::{DataObjectId, SId, TaskId};
 use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
 use server::state::StateRef;
-use server::graph::{ClientRef, DataObjectRef, SessionError, TaskInput, TaskRef};
+use server::graph::{ClientRef, SessionError, TaskInput, TaskRef};
+use server::graph::{DataObjectRef, DataObjectState};
 use errors::{Error, ErrorKind, Result};
 use common::{Attributes, DataType};
 use common::RcSet;
-use server::rpc::ClientDataStoreImpl;
 use common::events::{ObjectDescriptor, TaskDescriptor};
 
 pub struct ClientServiceImpl {
@@ -202,19 +202,6 @@ impl client_service::Server for ClientServiceImpl {
         Promise::ok(())
     }
 
-    fn get_data_store(
-        &mut self,
-        _params: client_service::GetDataStoreParams,
-        mut results: client_service::GetDataStoreResults,
-    ) -> Promise<(), ::capnp::Error> {
-        debug!("server data store requested from client");
-        let datastore = ::datastore_capnp::data_store::ToClient::new(ClientDataStoreImpl::new(
-            &self.state,
-        )).from_server::<::capnp_rpc::Server>();
-        results.get().set_store(datastore);
-        Promise::ok(())
-    }
-
     fn wait(
         &mut self,
         params: client_service::WaitParams,
@@ -362,6 +349,107 @@ impl client_service::Server for ClientServiceImpl {
         s.logger
             .add_client_unkeep_event(objects.iter().map(|o| o.get().id).collect());
         Promise::ok(())
+    }
+
+    fn fetch(
+        &mut self,
+        params: client_service::FetchParams,
+        mut results: client_service::FetchResults,
+    ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
+        let id = DataObjectId::from_capnp(&pry!(params.get_id()));
+
+        debug!("Client fetch for object id={}", id);
+
+        let object = match self.state.get().object_by_id_check_session(id) {
+            Ok(t) => t,
+            Err(Error(ErrorKind::SessionErr(ref e), _)) => {
+                e.to_capnp(&mut results.get().get_status().init_error());
+                return Promise::ok(());
+            }
+            Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string())),
+        };
+        let object2 = object.clone();
+        let mut obj = object2.get_mut();
+        if obj.state == DataObjectState::Removed {
+            return Promise::err(::capnp::Error::failed(format!(
+                "create_reader on removed object {:?}",
+                object.get()
+            )));
+        }
+
+        let size = params.get_size();
+
+        if size > 32 << 20
+        /* 32 MB */
+        {
+            let mut err = results.get().get_status().init_error();
+            err.set_message("Fetch size is too big.");
+            return Promise::ok(());
+        }
+
+        let offset = params.get_offset();
+        let include_metadata = params.get_include_metadata();
+        let session = obj.session.clone();
+        let state_ref = self.state.clone();
+
+        Promise::from_future(
+            obj.wait()
+                .then(move |r| -> future::Either<_, _> {
+                    if r.is_err() {
+                        let session = session.get();
+                        session
+                            .get_error()
+                            .as_ref()
+                            .unwrap()
+                            .to_capnp(&mut results.get().get_status().init_error());
+                        return future::Either::A(future::result(Ok(())));
+                    }
+                    let obj = object.get();
+                    if obj.state == DataObjectState::Removed {
+                        let session = session.get();
+                        session
+                            .get_error()
+                            .as_ref()
+                            .unwrap()
+                            .to_capnp(&mut results.get().get_status().init_error());
+                        return future::Either::A(future::result(Ok(())));
+                    }
+                    assert_eq!(
+                        obj.state,
+                        DataObjectState::Finished,
+                        "triggered finish hook on unfinished object"
+                    );
+
+                    if obj.data.is_some() {
+                        // Fetching uploaded objects is not implemented yet
+                        unimplemented!();
+                    }
+                    let worker_ref = obj.located.iter().next().unwrap().clone();
+                    let mut worker = worker_ref.get_mut();
+                    future::Either::B(
+                        worker
+                            .wait_for_data_connection(&worker_ref, &state_ref)
+                            .and_then(move |data_conn| {
+                                let mut req = data_conn.fetch_request();
+                                {
+                                    let mut request = req.get();
+                                    request.set_offset(offset);
+                                    request.set_size(size);
+                                    request.set_include_metadata(include_metadata);
+                                    id.to_capnp(&mut request.get_id().unwrap());
+                                }
+                                req.send()
+                                    .promise
+                                    .map(move |r| {
+                                        results.set(r.get().unwrap()).unwrap();
+                                    })
+                                    .map_err(|e| e.into())
+                            }),
+                    )
+                })
+                .map_err(|e| panic!("Fetch failed: {:?}", e)),
+        )
     }
 
     fn get_state(

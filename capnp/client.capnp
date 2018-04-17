@@ -10,7 +10,7 @@ using import "common.capnp".DataObjectState;
 using import "common.capnp".UnitResult;
 using import "common.capnp".Resources;
 using import "common.capnp".DataType;
-using import "datastore.capnp".DataStore;
+using import "common.capnp".FetchResult;
 
 struct WorkerInfo {
     workerId @0: WorkerId;
@@ -64,12 +64,10 @@ interface ClientService {
     # Get current state of tasks and objects
     # allTaskId / allDataObjectsId is allowed
 
-    getDataStore @8 () -> (store :DataStore);
-    # Returns the data handle of the server. It does not make sense to take more
-    # than one instance of this.
-
-    terminateServer @9 () -> ();
+    terminateServer @8 () -> ();
     # Quit server; the connection to the server will be closed after this call
+
+    fetch @9 (id :DataObjectId, includeMetadata :Bool, offset :UInt64, size :UInt64) -> FetchResult;
 }
 
 struct Update {

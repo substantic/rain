@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 use std::fmt;
+use std::rc::Rc;
 
 use futures::Future;
 
@@ -10,6 +11,7 @@ use common::{ConsistencyCheck, RcSet};
 use common::id::WorkerId;
 use common::resources::Resources;
 use super::{DataObjectRef, TaskRef};
+use super::super::state::StateRef;
 use errors::Result;
 
 pub struct Worker {
@@ -46,7 +48,7 @@ pub struct Worker {
     /// Control interface. Optional for testing and modelling.
     pub(in super::super) control: Option<::worker_capnp::worker_control::Client>,
 
-    datastore: Option<AsyncInitWrapper<::datastore_capnp::data_store::Client>>,
+    data_connection: Option<AsyncInitWrapper<::worker_capnp::worker_bootstrap::Client>>,
 
     pub(in super::super) resources: Resources,
 }
@@ -59,42 +61,38 @@ impl Worker {
         &self.id
     }
 
-    /// Get datastore of worker,
-    /// First you have to call wait_for_datastore to make sure that
-    /// datastore exists
-    pub fn get_datastore(&self) -> &::datastore_capnp::data_store::Client {
-        self.datastore.as_ref().unwrap().get()
-    }
-
     /// Create a future that completes when datastore is available
-    pub fn wait_for_datastore(
+    pub fn wait_for_data_connection(
         &mut self,
         worker_ref: &WorkerRef,
-        handle: &::tokio_core::reactor::Handle,
-    ) -> Box<Future<Item = (), Error = Error>> {
-        if let Some(ref mut store) = self.datastore {
+        state_ref: &StateRef,
+    ) -> Box<Future<Item = Rc<::worker_capnp::worker_bootstrap::Client>, Error = Error>> {
+        if let Some(ref mut store) = self.data_connection {
             return store.wait();
         }
-
-        self.datastore = Some(AsyncInitWrapper::new());
-
+        self.data_connection = Some(AsyncInitWrapper::new());
         let worker_ref = worker_ref.clone();
-        let handle = handle.clone();
-
+        let state_ref2 = state_ref.clone();
+        let state = state_ref.get();
         Box::new(
-            ::tokio_core::net::TcpStream::connect(&self.id, &handle)
+            ::tokio_core::net::TcpStream::connect(&self.id, state.handle())
                 .map(move |stream| {
                     stream.set_nodelay(true).unwrap();
                     let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
-                    let bootstrap: ::datastore_capnp::data_store::Client =
+                    let bootstrap: ::worker_capnp::worker_bootstrap::Client =
                         rpc_system.bootstrap(::capnp_rpc::rpc_twoparty_capnp::Side::Server);
-                    handle.spawn(rpc_system.map_err(|e| panic!("Rpc system error: {:?}", e)));
+                    let bootstrap_rc = Rc::new(bootstrap);
+                    state_ref2
+                        .get()
+                        .handle()
+                        .spawn(rpc_system.map_err(|e| panic!("Rpc system error: {:?}", e)));
                     worker_ref
                         .get_mut()
-                        .datastore
+                        .data_connection
                         .as_mut()
                         .unwrap()
-                        .set_value(bootstrap);
+                        .set_value(bootstrap_rc.clone());
+                    bootstrap_rc
                 })
                 .map_err(|e| e.into()),
         )
@@ -119,7 +117,7 @@ impl WorkerRef {
             control: control,
             active_resources: 0,
             resources: resources,
-            datastore: None,
+            data_connection: None,
         })
     }
 
