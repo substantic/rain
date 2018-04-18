@@ -10,8 +10,11 @@ extern crate librain;
 extern crate log;
 extern crate nix;
 extern crate num_cpus;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 extern crate tokio_core;
+extern crate toml;
 
 pub mod start;
 
@@ -21,6 +24,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::io::Write;
+use std::io::Read;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use nix::unistd::getpid;
@@ -136,17 +140,42 @@ fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
     Ok(())
 }
 
+// TODO: Do some serious configuration file and unify configurations
+// Right now, it is just a quick hack for supporting subworkers
+
+#[derive(Deserialize)]
+struct SubworkerConfig {
+    command: String,
+}
+
+#[derive(Deserialize)]
+struct WorkerConfig {
+    subworkers: HashMap<String, SubworkerConfig>,
+}
+
+impl WorkerConfig {
+    pub fn read_file(path: &Path) -> Result<Self> {
+        let mut file = ::std::fs::File::open(path)?;
+        let mut content = String::new();
+        file.read_to_string(&mut content)?;
+        toml::from_str(&content).map_err(|e| format!("Cannot parse toml: {:?}", e).into())
+    }
+}
+
 fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
+    info!("Starting Rain {} worker", VERSION);
     let ready_file = cmd_args.value_of("READY_FILE");
     let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_WORKER_PORT);
+    let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
     let mut server_address = cmd_args.value_of("SERVER_ADDRESS").unwrap().to_string();
+
     if !server_address.contains(':') {
         server_address = format!("{}:{}", server_address, DEFAULT_SERVER_PORT);
     }
 
     let server_addr = match server_address.to_socket_addrs() {
         Err(_) => {
-            error!("Cannot resolve server address");
+            error!("Cannot resolve server address: ");
             exit(1);
         }
         Ok(mut addrs) => match addrs.next() {
@@ -158,84 +187,104 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         },
     };
 
-    fn detect_cpus() -> i32 {
-        debug!("Detecting number of cpus");
-        let cpus = num_cpus::get();
-        if cpus < 1 {
-            error!("Autodetection of CPUs failed. Use --cpus with a positive argument.");
-            exit(1);
-        }
-        cpus as i32
-    }
+    let state = {
+        let config = cmd_args.value_of("WORKER_CONFIG").map(|path| {
+            info!("Reading config file: {}", path);
+            WorkerConfig::read_file(Path::new(path)).unwrap_or_else(|e| {
+                error!("Reading config file failed: {}", e.description());
+                exit(1);
+            })
+        });
 
-    let cpus = if cmd_args.value_of("CPUS") != Some("detect") {
-        let value = value_t_or_exit!(cmd_args, "CPUS", i32);
-        if value < 0 {
-            let cpus = detect_cpus();
-            if cpus <= -value {
-                error!(
-                    "{} cpus detected and {} is subtracted via --cpus. No cpus left.",
-                    cpus, -value
-                );
+        fn detect_cpus() -> i32 {
+            debug!("Detecting number of cpus");
+            let cpus = num_cpus::get();
+            if cpus < 1 {
+                error!("Autodetection of CPUs failed. Use --cpus with a positive argument.");
                 exit(1);
             }
-            detect_cpus() + value
-        } else {
-            value
+            cpus as i32
         }
-    } else {
-        detect_cpus()
+
+        let cpus = if cmd_args.value_of("CPUS") != Some("detect") {
+            let value = value_t_or_exit!(cmd_args, "CPUS", i32);
+            if value < 0 {
+                let cpus = detect_cpus();
+                if cpus <= -value {
+                    error!(
+                        "{} cpus detected and {} is subtracted via --cpus. No cpus left.",
+                        cpus, -value
+                    );
+                    exit(1);
+                }
+                detect_cpus() + value
+            } else {
+                value
+            }
+        } else {
+            detect_cpus()
+        };
+        assert!(cpus >= 0);
+
+        let work_dir = cmd_args
+            .value_of("WORK_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(default_working_directory);
+
+        ensure_directory(&work_dir, "working directory").unwrap_or_else(|e| {
+            error!("{}", e);
+            exit(1);
+        });
+
+        let log_dir = cmd_args
+            .value_of("LOG_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| default_logging_directory("worker"));
+
+        ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
+            error!("{}", e);
+            exit(1);
+        });
+
+        info!("Resources: {} cpus", cpus);
+        info!("Working directory: {:?}", work_dir);
+        info!(
+            "Server address {} was resolved as {}",
+            server_address, server_addr
+        );
+
+        let mut subworkers = HashMap::new();
+
+        // Default Python subworker
+        subworkers.insert(
+            "py".to_string(),
+            vec![
+                "python3".to_string(),
+                "-m".to_string(),
+                "rain.subworker".to_string(),
+            ],
+        );
+
+        config.map(|config| {
+            for (name, swconfig) in &config.subworkers {
+                info!("Registering subworker {}", name);
+                debug!("Subworker command: {}", swconfig.command);
+                subworkers.insert(
+                    name.to_string(),
+                    swconfig.command.split(" ").map(|s| s.to_string()).collect(),
+                );
+            }
+        });
+
+        worker::state::StateRef::new(
+            tokio_core.handle(),
+            work_dir,
+            log_dir,
+            cpus as u32,
+            // Python subworker
+            subworkers,
+        )
     };
-    assert!(cpus >= 0);
-
-    let work_dir = cmd_args
-        .value_of("WORK_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(default_working_directory);
-
-    ensure_directory(&work_dir, "working directory").unwrap_or_else(|e| {
-        error!("{}", e);
-        exit(1);
-    });
-
-    let log_dir = cmd_args
-        .value_of("LOG_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| default_logging_directory("worker"));
-
-    ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
-        error!("{}", e);
-        exit(1);
-    });
-
-    info!("Starting Rain {} worker", VERSION);
-    info!("Resources: {} cpus", cpus);
-    info!("Working directory: {:?}", work_dir);
-    info!(
-        "Server address {} was resolved as {}",
-        server_address, server_addr
-    );
-
-    let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
-
-    let mut subworkers = HashMap::new();
-    subworkers.insert(
-        "py".to_string(),
-        vec![
-            "python3".to_string(),
-            "-m".to_string(),
-            "rain.subworker".to_string(),
-        ],
-    );
-
-    let state = worker::state::StateRef::new(
-        tokio_core.handle(),
-        work_dir,
-        log_dir,
-        cpus as u32,
-        // Python subworker
-        subworkers,
-    );
 
     state.start(server_addr, listen_address, ready_file);
 
@@ -423,6 +472,10 @@ fn main() {
                     .help("Number of cpus or 'detect' (default = detect)")
                     .value_name("N")
                     .default_value("detect"))
+                .arg(Arg::with_name("WORKER_CONFIG")
+                    .long("--config")
+                    .help("Path to configuration file")
+                    .takes_value(true))
                 .arg(Arg::with_name("WORK_DIR")
                     .long("--workdir")
                     .help("Workding directory (default /tmp/rain-work/worker-$HOSTANE-$PID)")
