@@ -84,7 +84,7 @@ impl Monitor {
     fn get_mem_usage(&self) -> MemUsage {
         if cfg!(target_os = "linux") || cfg!(target_os = "macos") {
             (match mem_info() {
-                Ok(meminfo) => 100 * (meminfo.total - meminfo.free) / meminfo.total,
+                Ok(meminfo) => 100 * (meminfo.total - meminfo.avail) / meminfo.total,
                 Err(_) => 0,
             }) as MemUsage
         } else {
