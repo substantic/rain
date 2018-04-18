@@ -181,4 +181,4 @@ class Remote:
             'encode_outputs': [o.attributes['spec'].get('encode') for o in output_objs]
         }
 
-        return Task("py", task_config, input_objs, output_objs, cpus=self.cpus)
+        return Task("py/", task_config, input_objs, output_objs, cpus=self.cpus)

@@ -39,6 +39,8 @@ struct Task {
 
     attributes @3 :Attributes;
 
+    method @4 :Text;
+
     struct InDataObject {
         id @0 :DataObjectId;
         data @1 :LocalData;

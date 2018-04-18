@@ -168,7 +168,14 @@ impl TaskInstance {
     }
 
     fn start_task_in_subworker(state: &mut State, task_ref: TaskRef) -> TaskResult {
-        let future = state.get_subworker(task_ref.get().task_type.as_ref())?;
+        let (future, method_name) = {
+            let task = task_ref.get();
+            let tokens : Vec<_> = task.task_type.split('/').collect();
+            if tokens.len() != 2 {
+                bail!("Invalid task_type, does not contain '/'");
+            }
+            (state.get_subworker(tokens.get(0).unwrap())?, tokens.get(1).unwrap().to_string())
+        };
         let state_ref = state.self_ref();
         Ok(Box::new(future.and_then(move |subworker| {
             // Run task in subworker
@@ -187,6 +194,8 @@ impl TaskInstance {
 
                 task.attributes
                     .to_capnp(&mut param_task.borrow().get_attributes().unwrap());
+
+                param_task.set_method(&method_name);
 
                 param_task.borrow().init_inputs(task.inputs.len() as u32);
                 {
