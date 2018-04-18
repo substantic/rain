@@ -170,11 +170,14 @@ impl TaskInstance {
     fn start_task_in_subworker(state: &mut State, task_ref: TaskRef) -> TaskResult {
         let (future, method_name) = {
             let task = task_ref.get();
-            let tokens : Vec<_> = task.task_type.split('/').collect();
+            let tokens: Vec<_> = task.task_type.split('/').collect();
             if tokens.len() != 2 {
                 bail!("Invalid task_type, does not contain '/'");
             }
-            (state.get_subworker(tokens.get(0).unwrap())?, tokens.get(1).unwrap().to_string())
+            (
+                state.get_subworker(tokens.get(0).unwrap())?,
+                tokens.get(1).unwrap().to_string(),
+            )
         };
         let state_ref = state.self_ref();
         Ok(Box::new(future.and_then(move |subworker| {

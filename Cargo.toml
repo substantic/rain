@@ -47,6 +47,7 @@ serde_derive = "*"
 serde = "*"
 serde_json = "*"
 tar = "*"
+toml = "*"
 walkdir = "*"
 
 [build-dependencies]
