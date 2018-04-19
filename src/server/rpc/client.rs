@@ -66,13 +66,13 @@ impl client_service::Server for ClientServiceImpl {
             let results = results.get();
             let mut workers = results.init_workers(rs.len() as u32);
             for (i, &(ref worker_id, ref r, ref resources)) in rs.iter().enumerate() {
-                let mut w = workers.borrow().get(i as u32);
+                let mut w = workers.reborrow().get(i as u32);
                 let r = r.get().unwrap();
                 w.set_tasks(r.get_tasks().unwrap()).unwrap();
                 w.set_objects(r.get_objects().unwrap()).unwrap();
                 w.set_objects_to_delete(r.get_objects_to_delete().unwrap())
                     .unwrap();
-                resources.to_capnp(&mut w.borrow().get_resources().unwrap());
+                resources.to_capnp(&mut w.reborrow().get_resources().unwrap());
                 worker_id.to_capnp(&mut w.get_worker_id().unwrap());
             }
             ()
@@ -125,7 +125,7 @@ impl client_service::Server for ClientServiceImpl {
         let res: Result<()> = (|| {
             // first create the objects
             for co in objects.iter() {
-                let id = DataObjectId::from_capnp(&co.borrow().get_id()?);
+                let id = DataObjectId::from_capnp(&co.reborrow().get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
                 let data_type = DataType::from_capnp(co.get_data_type().unwrap());
                 let data = if co.get_has_data() {
@@ -209,7 +209,7 @@ impl client_service::Server for ClientServiceImpl {
     ) -> Promise<(), ::capnp::Error> {
         // Set error from session to result
         fn set_error(result: &mut ::common_capnp::unit_result::Builder, error: &SessionError) {
-            error.to_capnp(&mut result.borrow().init_error());
+            error.to_capnp(&mut result.reborrow().init_error());
         }
 
         let s = self.state.get_mut();
@@ -496,22 +496,22 @@ impl client_service::Server for ClientServiceImpl {
         let mut results = results.get();
 
         {
-            let mut task_updates = results.borrow().init_tasks(tasks.len() as u32);
+            let mut task_updates = results.reborrow().init_tasks(tasks.len() as u32);
             for (i, task) in tasks.iter().enumerate() {
-                let mut update = task_updates.borrow().get(i as u32);
+                let mut update = task_updates.reborrow().get(i as u32);
                 let t = task.get();
-                t.id.to_capnp(&mut update.borrow().get_id().unwrap());
+                t.id.to_capnp(&mut update.reborrow().get_id().unwrap());
                 t.attributes.to_capnp(&mut update.get_attributes().unwrap());
             }
         }
 
         {
-            let mut obj_updates = results.borrow().init_objects(objects.len() as u32);
+            let mut obj_updates = results.reborrow().init_objects(objects.len() as u32);
             for (i, obj) in objects.iter().enumerate() {
-                let mut update = obj_updates.borrow().get(i as u32);
+                let mut update = obj_updates.reborrow().get(i as u32);
                 let o = obj.get();
                 o.attributes
-                    .to_capnp(&mut update.borrow().get_attributes().unwrap());
+                    .to_capnp(&mut update.reborrow().get_attributes().unwrap());
                 o.id.to_capnp(&mut update.get_id().unwrap());
             }
         }

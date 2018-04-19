@@ -39,7 +39,7 @@ impl worker_bootstrap::Server for WorkerBootstrapImpl {
         let transport_view = transport_view.unwrap();
         let slice = transport_view.get_slice();
 
-        results.borrow().get_status().set_ok(());
+        results.reborrow().get_status().set_ok(());
 
         if offset < slice.len() {
             let end = if offset + size < slice.len() {

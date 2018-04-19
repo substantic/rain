@@ -59,7 +59,7 @@ pub mod errors {
             Io(::std::io::Error);
             Capnp(::capnp::Error);
             CapnpNotInSchema(::capnp::NotInSchema);
-            Timer(::tokio_timer::TimerError);
+            Timer(::tokio_timer::Error);
             SessionErr(::server::graph::SessionError);
             Utf8Err(::std::str::Utf8Error);
             Json(::serde_json::Error);

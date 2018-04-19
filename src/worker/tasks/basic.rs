@@ -40,20 +40,17 @@ pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {
 }
 
 /// Task that returns the input argument after a given number of milliseconds
-pub fn task_sleep(state: &mut State, task_ref: TaskRef) -> TaskResult {
+pub fn task_sleep(_state: &mut State, task_ref: TaskRef) -> TaskResult {
     let sleep_ms: u64 = {
         let task = task_ref.get();
         task.check_number_of_args(1)?;
         task.attributes.get("config")?
     };
+    let now = ::std::time::Instant::now();
     debug!("Starting sleep task for {} ms", sleep_ms);
     let duration = ::std::time::Duration::from_millis(sleep_ms);
     Ok(Box::new(
-        state
-            .timer()
-            .sleep(duration)
-            .map_err(|e| e.into())
-            .and_then(move |()| {
+        ::tokio_timer::Delay::new(now + duration).map_err(|e| e.into()).and_then(move |()| {
                 {
                     let task = task_ref.get();
                     let output = task.output(0);

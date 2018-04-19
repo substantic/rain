@@ -1,12 +1,11 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Instant, Duration};
 use std::collections::HashSet;
 
 use futures::{Future, Stream};
 use tokio_core::reactor::Handle;
 use tokio_core::net::{TcpListener, TcpStream};
-use tokio_timer;
 
 use errors::Result;
 use common::{DataType, RcSet};
@@ -59,8 +58,6 @@ pub struct State {
     self_ref: Option<StateRef>,
 
     pub logger: Box<Logger>,
-
-    timer: tokio_timer::Timer,
 
     /// Listening port and address.
     listen_address: SocketAddr,
@@ -177,9 +174,9 @@ impl State {
 
         let state_ref = self.self_ref.clone().unwrap();
         assert!(self.ignored_sessions.insert(session_id));
+        let now = ::std::time::Instant::now();
         let duration = ::std::time::Duration::from_secs(IGNORE_ID_TIME_SECONDS);
-        let clean_id_future = self.timer
-            .sleep(duration)
+        let clean_id_future = ::tokio_timer::Delay::new(now + duration)
             .map(move |()| {
                 debug!("Cleaning ignored session id {}", session_id);
                 state_ref.get_mut().ignored_sessions.remove(&session_id);
@@ -470,7 +467,7 @@ impl State {
         let mut req = wref.get().control.as_ref().unwrap().add_nodes_request();
         {
             let mut new_objects = req.get().init_new_objects(1);
-            let mut co = &mut new_objects.borrow().get(0);
+            let mut co = &mut new_objects.reborrow().get(0);
             let o = object.get();
             o.to_worker_capnp(&mut co);
             let placement = o.located
@@ -482,7 +479,7 @@ impl State {
                     assert!(o.data.is_some());
                     empty_worker_id.clone()
                 });
-            placement.to_capnp(&mut co.borrow().get_placement().unwrap());
+            placement.to_capnp(&mut co.reborrow().get_placement().unwrap());
             co.set_assigned(true);
         }
 
@@ -524,7 +521,7 @@ impl State {
             .unassign_objects_request();
         {
             let mut objects = req.get().init_objects(1);
-            let co = &mut objects.borrow().get(0);
+            let co = &mut objects.reborrow().get(0);
             object.get_id().to_capnp(co);
         }
 
@@ -605,8 +602,8 @@ impl State {
             {
                 let mut new_objects = req.get().init_new_objects(objects.len() as u32);
                 for (i, &(ref object, placement)) in objects.iter().enumerate() {
-                    let mut co = &mut new_objects.borrow().get(i as u32);
-                    placement.to_capnp(&mut co.borrow().get_placement().unwrap());
+                    let mut co = &mut new_objects.reborrow().get(i as u32);
+                    placement.to_capnp(&mut co.reborrow().get_placement().unwrap());
                     let obj = object.get();
                     obj.to_worker_capnp(&mut co);
                     // only assign output tasks - they are all assigned
@@ -658,7 +655,7 @@ impl State {
         let mut req = wref.get().control.as_ref().unwrap().stop_tasks_request();
         {
             let mut tasks = req.get().init_tasks(1);
-            let ct = &mut tasks.borrow().get(0);
+            let ct = &mut tasks.reborrow().get(0);
             task.get_id().to_capnp(ct);
         }
 
@@ -924,7 +921,7 @@ impl State {
                     }
                     oref.get_mut().located.insert(worker.clone());
                     worker.get_mut().located_objects.insert(oref.clone());
-                    let cur_state = oref.get().state; // To satisfy the borrow checker
+                    let cur_state = oref.get().state; // To satisfy the reborrow checker
                     match cur_state {
                         DataObjectState::Unfinished => {
                             {
@@ -1076,10 +1073,6 @@ impl StateRef {
             stop_server: false,
             self_ref: None,
             logger: Box::new(SQLiteLogger::new(&log_dir).unwrap()),
-            timer: tokio_timer::wheel()
-                .tick_duration(Duration::from_millis(100))
-                .num_slots(512)
-                .build(),
             ignored_sessions: Default::default(),
         });
         s.get_mut().self_ref = Some(s.clone());
@@ -1138,11 +1131,10 @@ impl StateRef {
 
         // ---- Start logging ----
         let state = self.clone();
-        let timer = state.get().timer.clone();
-        let interval = timer.interval(Duration::from_secs(LOGGING_INTERVAL));
+        let interval = ::tokio_timer::Interval::new(Instant::now(), Duration::from_secs(LOGGING_INTERVAL));
 
         let logging = interval
-            .for_each(move |()| {
+            .for_each(move |_| {
                 state.get_mut().logger.flush_events();
                 Ok(())
             })

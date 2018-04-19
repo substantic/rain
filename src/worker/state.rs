@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::process::exit;
 use std::rc::Rc;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Instant, Duration};
 use std::collections::HashMap;
 
 use common::asycinit::AsyncInitWrapper;
@@ -31,7 +31,6 @@ use futures::IntoFuture;
 use tokio_core::reactor::Handle;
 use tokio_core::net::TcpListener;
 use tokio_core::net::TcpStream;
-use tokio_timer;
 use tokio_uds::{UnixListener, UnixStream};
 use capnp_rpc::rpc_twoparty_capnp;
 use capnp::capability::Promise;
@@ -66,8 +65,6 @@ pub struct State {
 
     /// A worker assigned to this worker
     worker_id: WorkerId,
-
-    timer: tokio_timer::Timer,
 
     /// This is hard limit for number of simultaneously executed tasks
     /// The purpose is to limit task with empty resources
@@ -123,11 +120,6 @@ impl State {
     #[inline]
     pub fn worker_id(&self) -> &WorkerId {
         &self.worker_id
-    }
-
-    #[inline]
-    pub fn timer(&self) -> &tokio_timer::Timer {
-        &self.timer
     }
 
     #[inline]
@@ -247,7 +239,7 @@ impl State {
             let mut req_objs = req_update.init_objects(self.updated_objects.len() as u32);
 
             for (i, object) in self.updated_objects.iter().enumerate() {
-                let mut co = req_objs.borrow().get(i as u32);
+                let mut co = req_objs.reborrow().get(i as u32);
                 let mut object = object.get_mut();
 
                 if object.is_finished() {
@@ -261,7 +253,7 @@ impl State {
                 if !object.new_attributes.is_empty() {
                     object
                         .new_attributes
-                        .to_capnp(&mut co.borrow().get_attributes().unwrap());
+                        .to_capnp(&mut co.reborrow().get_attributes().unwrap());
                     object.new_attributes.clear();
                 }
                 object.id.to_capnp(&mut co.get_id().unwrap());
@@ -276,7 +268,7 @@ impl State {
             let mut req_tasks = req_update.init_tasks(self.updated_tasks.len() as u32);
 
             for (i, task) in self.updated_tasks.iter().enumerate() {
-                let mut ct = req_tasks.borrow().get(i as u32);
+                let mut ct = req_tasks.reborrow().get(i as u32);
                 let mut task = task.get_mut();
 
                 ct.set_state(match task.state {
@@ -288,7 +280,7 @@ impl State {
 
                 if !task.new_attributes.is_empty() {
                     task.new_attributes
-                        .to_capnp(&mut ct.borrow().get_attributes().unwrap());
+                        .to_capnp(&mut ct.reborrow().get_attributes().unwrap());
                     task.new_attributes.clear();
                 }
                 task.id.to_capnp(&mut ct.get_id().unwrap());
@@ -479,7 +471,7 @@ impl State {
             {
                 debug!("Removing object from subworker {}", sw.get().id());
                 let mut object_ids = req.get().init_object_ids(1);
-                object.id.to_capnp(&mut object_ids.borrow().get(0));
+                object.id.to_capnp(&mut object_ids.reborrow().get(0));
             }
             self.spawn_panic_on_error(req.send().promise.map(|_| ()).map_err(|e| e.into()));
         }
@@ -656,7 +648,7 @@ impl State {
         let mut req = self.upstream.as_ref().unwrap().push_events_request();
         {
             let mut req_events = req.get().init_events(1);
-            let mut capnp_event = req_events.borrow().get(0);
+            let mut capnp_event = req_events.reborrow().get(0);
             capnp_event.set_event(&::serde_json::to_string(&event).unwrap());
             let mut capnp_ts = capnp_event.init_timestamp();
             capnp_ts.set_seconds(now.timestamp() as u64);
@@ -690,10 +682,6 @@ impl StateRef {
             remote_workers: HashMap::new(),
             updated_objects: Default::default(),
             updated_tasks: Default::default(),
-            timer: tokio_timer::wheel()
-                .tick_duration(Duration::from_millis(100))
-                .num_slots(256)
-                .build(),
             work_dir: WorkDir::new(work_dir),
             log_dir: LogDir::new(log_dir),
             worker_id: empty_worker_id(),
@@ -871,13 +859,11 @@ impl StateRef {
 
         // --- Start monitoring ---
         let state = self.clone();
+        let now = Instant::now();
 
-        let interval = state
-            .get()
-            .timer
-            .interval(Duration::from_secs(MONITORING_INTERVAL));
+        let interval = ::tokio_timer::Interval::new(now, Duration::from_secs(MONITORING_INTERVAL));
         let monitoring = interval
-            .for_each(move |()| {
+            .for_each(move |_| {
                 debug!("Monitoring wakeup");
                 let mut s = state.get_mut();
                 let worker_id = s.worker_id;
@@ -897,12 +883,9 @@ impl StateRef {
 
         // --- Start checking wait list ----
         let state = self.clone();
-        let interval = state
-            .get()
-            .timer
-            .interval(Duration::from_secs(DELETE_WAIT_LIST_INTERVAL));
+        let interval = ::tokio_timer::Interval::new(now, Duration::from_secs(DELETE_WAIT_LIST_INTERVAL));
         let check_list = interval
-            .for_each(move |()| {
+            .for_each(move |_| {
                 debug!("Checking wait list wakeup");
                 let mut s = state.get_mut();
                 if s.graph.delete_wait_list.is_empty() {

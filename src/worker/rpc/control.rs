@@ -215,20 +215,20 @@ impl worker_control::Server for WorkerControlImpl {
         let mut result = results.get();
         let state = self.state.get();
         {
-            let mut tasks = result.borrow().init_tasks(state.graph.tasks.len() as u32);
+            let mut tasks = result.reborrow().init_tasks(state.graph.tasks.len() as u32);
             for (i, task) in state.graph.tasks.values().enumerate() {
-                task.get().id.to_capnp(&mut tasks.borrow().get(i as u32))
+                task.get().id.to_capnp(&mut tasks.reborrow().get(i as u32))
             }
         }
         {
             let mut objects = result
-                .borrow()
+                .reborrow()
                 .init_objects(state.graph.objects.len() as u32);
             for (i, object) in state.graph.objects.values().enumerate() {
                 object
                     .get()
                     .id
-                    .to_capnp(&mut objects.borrow().get(i as u32))
+                    .to_capnp(&mut objects.reborrow().get(i as u32))
             }
         }
         {
@@ -238,7 +238,7 @@ impl worker_control::Server for WorkerControlImpl {
                 object
                     .get()
                     .id
-                    .to_capnp(&mut objects.borrow().get(i as u32))
+                    .to_capnp(&mut objects.reborrow().get(i as u32))
             }
         }
         Promise::ok(())

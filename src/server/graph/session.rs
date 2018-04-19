@@ -170,12 +170,12 @@ impl SessionError {
     }
 
     pub fn to_capnp(&self, builder: &mut ::common_capnp::error::Builder) {
-        builder.borrow().set_message(&self.message);
+        builder.reborrow().set_message(&self.message);
         if let Some(ref m) = self.debug {
-            builder.borrow().set_debug(&m);
+            builder.reborrow().set_debug(&m);
         }
         self.task_id
-            .to_capnp(&mut builder.borrow().get_task().unwrap());
+            .to_capnp(&mut builder.reborrow().get_task().unwrap());
     }
 }
 

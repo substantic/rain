@@ -243,13 +243,13 @@ impl Data {
 
     pub fn to_subworker_capnp(&self, builder: &mut ::subworker_capnp::local_data::Builder) {
         match self.storage {
-            Storage::Memory(ref data) => builder.borrow().get_storage().set_memory(&data),
+            Storage::Memory(ref data) => builder.reborrow().get_storage().set_memory(&data),
             Storage::Path(ref data) => builder
-                .borrow()
+                .reborrow()
                 .get_storage()
                 .set_path(data.path.to_str().unwrap()),
         };
-        builder.borrow().set_data_type(self.data_type.to_capnp());
+        builder.reborrow().set_data_type(self.data_type.to_capnp());
     }
 }
 

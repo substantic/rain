@@ -68,11 +68,11 @@ pub type TaskRef = WrappedRcRefCell<Task>;
 impl Task {
     // To capnp for worker message
     pub fn to_worker_capnp(&self, builder: &mut ::worker_capnp::task::Builder) {
-        self.id.to_capnp(&mut builder.borrow().get_id().unwrap());
+        self.id.to_capnp(&mut builder.reborrow().get_id().unwrap());
         {
-            let mut cinputs = builder.borrow().init_inputs(self.inputs.len() as u32);
+            let mut cinputs = builder.reborrow().init_inputs(self.inputs.len() as u32);
             for (i, input) in self.inputs.iter().enumerate() {
-                let mut ci = cinputs.borrow().get(i as u32);
+                let mut ci = cinputs.reborrow().get(i as u32);
                 ci.set_label(&input.label);
                 ci.set_path(&input.path);
                 input.object.get().id.to_capnp(&mut ci.get_id().unwrap());
@@ -80,15 +80,15 @@ impl Task {
         }
 
         {
-            let mut coutputs = builder.borrow().init_outputs(self.outputs.len() as u32);
+            let mut coutputs = builder.reborrow().init_outputs(self.outputs.len() as u32);
             for (i, output) in self.outputs.iter().enumerate() {
-                let mut co = coutputs.borrow().get(i as u32);
+                let mut co = coutputs.reborrow().get(i as u32);
                 output.get().id.to_capnp(&mut co);
             }
         }
 
         self.attributes
-            .to_capnp(&mut builder.borrow().get_attributes().unwrap());
+            .to_capnp(&mut builder.reborrow().get_attributes().unwrap());
 
         builder.set_task_type(&self.task_type);
     }

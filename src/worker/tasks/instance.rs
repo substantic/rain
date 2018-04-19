@@ -193,24 +193,24 @@ impl TaskInstance {
                 debug!("Starting task id={} in subworker", task.id);
                 // Serialize task
                 let mut param_task = req.get().get_task().unwrap();
-                task.id.to_capnp(&mut param_task.borrow().get_id().unwrap());
+                task.id.to_capnp(&mut param_task.reborrow().get_id().unwrap());
 
                 task.attributes
-                    .to_capnp(&mut param_task.borrow().get_attributes().unwrap());
+                    .to_capnp(&mut param_task.reborrow().get_attributes().unwrap());
 
                 param_task.set_method(&method_name);
 
-                param_task.borrow().init_inputs(task.inputs.len() as u32);
+                param_task.reborrow().init_inputs(task.inputs.len() as u32);
                 {
                     // Serialize inputs of task
-                    let mut p_inputs = param_task.borrow().get_inputs().unwrap();
+                    let mut p_inputs = param_task.reborrow().get_inputs().unwrap();
                     for (i, input) in task.inputs.iter().enumerate() {
-                        let mut p_input = p_inputs.borrow().get(i as u32);
+                        let mut p_input = p_inputs.reborrow().get(i as u32);
                         p_input.set_label(&input.label);
                         let mut obj = input.object.get_mut();
 
                         if obj.subworker_cache.contains(&subworker) {
-                            let mut p_data = p_input.borrow().get_data().unwrap();
+                            let mut p_data = p_input.reborrow().get_data().unwrap();
                             p_data.get_storage().set_cache(());
                         } else {
                             // This is caching hack, since we know that 1st argument is function
@@ -221,26 +221,26 @@ impl TaskInstance {
                             }
 
                             {
-                                let mut p_data = p_input.borrow().get_data().unwrap();
-                                obj.data().to_subworker_capnp(&mut p_data.borrow());
+                                let mut p_data = p_input.reborrow().get_data().unwrap();
+                                obj.data().to_subworker_capnp(&mut p_data.reborrow());
                                 obj.attributes
-                                    .to_capnp(&mut p_data.borrow().get_attributes().unwrap());
+                                    .to_capnp(&mut p_data.reborrow().get_attributes().unwrap());
                             }
                         }
                         obj.id.to_capnp(&mut p_input.get_id().unwrap());
                     }
                 }
 
-                param_task.borrow().init_outputs(task.outputs.len() as u32);
+                param_task.reborrow().init_outputs(task.outputs.len() as u32);
                 {
                     // Serialize outputs of task
                     let mut p_outputs = param_task.get_outputs().unwrap();
                     for (i, output) in task.outputs.iter().enumerate() {
-                        let mut p_output = p_outputs.borrow().get(i as u32);
+                        let mut p_output = p_outputs.reborrow().get(i as u32);
                         let obj = output.get();
                         p_output.set_label(&obj.label);
                         obj.attributes
-                            .to_capnp(&mut p_output.borrow().get_attributes().unwrap());
+                            .to_capnp(&mut p_output.reborrow().get_attributes().unwrap());
                         obj.id.to_capnp(&mut p_output.get_id().unwrap());
                     }
                 }

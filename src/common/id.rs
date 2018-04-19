@@ -45,7 +45,7 @@ impl<'a> ToCapnp<'a> for SocketAddr {
 
     fn to_capnp(self: &WorkerId, build: &mut Self::Builder) {
         build.set_port(self.port());
-        let build_addr = &mut build.borrow().get_address();
+        let build_addr = &mut build.reborrow().get_address();
         match self {
             &SocketAddr::V4(ref ipv4) => build_addr.set_ipv4(&ipv4.ip().octets()),
             &SocketAddr::V6(ref ipv6) => build_addr.set_ipv6(&ipv6.ip().octets()),

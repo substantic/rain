@@ -54,9 +54,9 @@ impl Attributes {
     }
 
     pub fn to_capnp(&self, builder: &mut ::common_capnp::attributes::Builder) {
-        let mut items = builder.borrow().init_items(self.items.len() as u32);
+        let mut items = builder.reborrow().init_items(self.items.len() as u32);
         for (i, (key, value)) in self.items.iter().enumerate() {
-            let mut item = items.borrow().get(i as u32);
+            let mut item = items.reborrow().get(i as u32);
             item.set_key(&key);
             item.set_value(&value);
         }
