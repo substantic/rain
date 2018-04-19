@@ -50,7 +50,9 @@ pub fn task_sleep(_state: &mut State, task_ref: TaskRef) -> TaskResult {
     debug!("Starting sleep task for {} ms", sleep_ms);
     let duration = ::std::time::Duration::from_millis(sleep_ms);
     Ok(Box::new(
-        ::tokio_timer::Delay::new(now + duration).map_err(|e| e.into()).and_then(move |()| {
+        ::tokio_timer::Delay::new(now + duration)
+            .map_err(|e| e.into())
+            .and_then(move |()| {
                 {
                     let task = task_ref.get();
                     let output = task.output(0);

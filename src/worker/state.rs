@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::process::exit;
 use std::rc::Rc;
 use std::path::{Path, PathBuf};
-use std::time::{Instant, Duration};
+use std::time::{Duration, Instant};
 use std::collections::HashMap;
 
 use common::asycinit::AsyncInitWrapper;
@@ -883,7 +883,8 @@ impl StateRef {
 
         // --- Start checking wait list ----
         let state = self.clone();
-        let interval = ::tokio_timer::Interval::new(now, Duration::from_secs(DELETE_WAIT_LIST_INTERVAL));
+        let interval =
+            ::tokio_timer::Interval::new(now, Duration::from_secs(DELETE_WAIT_LIST_INTERVAL));
         let check_list = interval
             .for_each(move |_| {
                 debug!("Checking wait list wakeup");

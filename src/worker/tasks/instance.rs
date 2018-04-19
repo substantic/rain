@@ -193,7 +193,8 @@ impl TaskInstance {
                 debug!("Starting task id={} in subworker", task.id);
                 // Serialize task
                 let mut param_task = req.get().get_task().unwrap();
-                task.id.to_capnp(&mut param_task.reborrow().get_id().unwrap());
+                task.id
+                    .to_capnp(&mut param_task.reborrow().get_id().unwrap());
 
                 task.attributes
                     .to_capnp(&mut param_task.reborrow().get_attributes().unwrap());
@@ -231,7 +232,9 @@ impl TaskInstance {
                     }
                 }
 
-                param_task.reborrow().init_outputs(task.outputs.len() as u32);
+                param_task
+                    .reborrow()
+                    .init_outputs(task.outputs.len() as u32);
                 {
                     // Serialize outputs of task
                     let mut p_outputs = param_task.get_outputs().unwrap();

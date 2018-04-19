@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
-use std::time::{Instant, Duration};
+use std::time::{Duration, Instant};
 use std::collections::HashSet;
 
 use futures::{Future, Stream};
@@ -1131,7 +1131,8 @@ impl StateRef {
 
         // ---- Start logging ----
         let state = self.clone();
-        let interval = ::tokio_timer::Interval::new(Instant::now(), Duration::from_secs(LOGGING_INTERVAL));
+        let interval =
+            ::tokio_timer::Interval::new(Instant::now(), Duration::from_secs(LOGGING_INTERVAL));
 
         let logging = interval
             .for_each(move |_| {
