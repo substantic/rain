@@ -49,6 +49,8 @@ serde_json = "*"
 tar = "*"
 toml = "*"
 walkdir = "*"
+rmp-serde = "*"
+rmp = "*"
 
 [build-dependencies]
 capnpc = "0.8"

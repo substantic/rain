@@ -32,6 +32,7 @@ extern crate tokio_process;
 extern crate tokio_timer;
 extern crate tokio_uds;
 extern crate walkdir;
+extern crate rmp_serde;
 
 pub mod common;
 pub mod worker;
