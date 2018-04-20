@@ -4,6 +4,7 @@ use super::convert::{FromCapnp, ReadCapnp, ToCapnp, WriteCapnp};
 use std::io::Read;
 use capnp::serialize;
 use std::fmt;
+use serde::{Serialize, Serializer, Deserialize, Deserializer};
 
 /// Generic ID type. Negative values have special meaning.
 pub type Id = i32;
@@ -78,7 +79,7 @@ pub trait SId
 }
 
 /// ID type for task objects.
-#[derive(Copy, Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Hash)]
 pub struct TaskId {
     session_id: SessionId,
     id: Id,
@@ -143,7 +144,7 @@ impl<'a> FromCapnp<'a> for TaskId {
 }
 
 /// ID type for task objects.
-#[derive(Copy, Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Hash, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Ord, Eq, PartialEq, PartialOrd, Hash)]
 pub struct DataObjectId {
     session_id: SessionId,
     id: Id,
@@ -168,6 +169,28 @@ impl SId for DataObjectId {
         self.session_id
     }
 }
+
+macro_rules! serde_for_id {
+    ($T:ty) => {
+impl Serialize for $T {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        (self.get_session_id(), self.get_id()).serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for $T {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where D: Deserializer<'de>
+    {
+        let tup: (SessionId, Id) = Deserialize::deserialize(deserializer)?;
+        Ok(Self::new(tup.0, tup.1))
+    }
+}}}
+
+serde_for_id!(TaskId);
+serde_for_id!(DataObjectId);
 
 impl<'a> ToCapnp<'a> for DataObjectId {
     type Builder = data_object_id::Builder<'a>;
