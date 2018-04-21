@@ -12,6 +12,7 @@ from .control import ControlImpl
 from ..common.fs import remove_dir_content
 from ..common import DataInstance, RainException
 from ..common.content_type import merge_content_types
+from ..common.comm import SocketWrapper
 
 SUBWORKER_PROTOCOL_VERSION = 0
 
@@ -63,19 +64,18 @@ class Subworker:
         finally:
             os.chdir(backup)
 
-        self.rpc_client = capnp.TwoPartyClient(sock)
+        self.socket = SocketWrapper(sock)
+        self.socket.send_message({"version": 0,
+                                  "subworker_id": subworker_id,
+                                  "subworker_type": "py"})
 
-        upstream = self.rpc_client.bootstrap().cast_as(
-            rpc_subworker.SubworkerUpstream)
-        self.upstream = upstream
+    def run(self):
+        while True:
+            message = self.socket.receive_message()
+            self.process_message(message)
 
-        control = ControlImpl(self)
-        register = upstream.register_request()
-        register.version = SUBWORKER_PROTOCOL_VERSION
-        register.subworkerId = subworker_id
-        register.subworkerType = "py"
-        register.control = control
-        register.send().wait()
+    def process_message(self, message):
+        pass  # TODO
 
     def run_task(self, context, inputs, outputs):
         """
@@ -161,11 +161,11 @@ def main():
     stage_path = os.path.abspath("stage")
     task_path = os.path.abspath("task")
 
-    Subworker(get_environ("RAIN_SUBWORKER_SOCKET"),
-              subworker_id,
-              task_path,
-              stage_path)
-
+    subworker = Subworker(get_environ("RAIN_SUBWORKER_SOCKET"),
+                          subworker_id,
+                          task_path,
+                          stage_path)
     print("Subworker initialized")
     sys.stdout.flush()
-    capnp.wait_forever()
+    subworker.run()
+

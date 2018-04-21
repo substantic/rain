@@ -31,12 +31,14 @@ use futures::IntoFuture;
 use tokio_core::reactor::Handle;
 use tokio_core::net::TcpListener;
 use tokio_core::net::TcpStream;
+use tokio_core::io::Io;
 use tokio_uds::{UnixListener, UnixStream};
 use capnp_rpc::rpc_twoparty_capnp;
 use capnp::capability::Promise;
 use errors::{Error, Result};
 
 use WORKER_PROTOCOL_VERSION;
+use SUBWORKER_PROTOCOL_VERSION;
 
 const MONITORING_INTERVAL: u64 = 5; // Monitoring interval in seconds
 const DELETE_WAIT_LIST_INTERVAL: u64 = 2; // How often is delete_wait_list checked in seconds
@@ -773,8 +775,52 @@ impl StateRef {
     }
 
     pub fn on_subworker_connection(&self, stream: UnixStream) {
-        info!("New subworker connected");
 
+        #[derive(Deserialize)]
+        struct RegistrationMessage {
+            version: i32,
+            subworker_id: u32,
+            subworker_type: String,
+        };
+
+        info!("New subworker connected");
+        let state_ref = self.clone();
+        let stream = ::common::comm::create_protocol_stream(stream);
+        let future = stream.into_future().then(|r| {
+            match(r) {
+                Ok((Some(data), stream)) => {
+                    let text_data = ::std::str::from_utf8(&data).unwrap();
+                    let msg : RegistrationMessage = ::serde_json::from_str(text_data).unwrap();
+                    debug!("Subworker registered: version={} id={} type={}", msg.version, msg.subworker_id, msg.subworker_type);
+
+                    if msg.version != SUBWORKER_PROTOCOL_VERSION {
+                        error!(
+                            "Invalid subworker protocol; expected = {}",
+                            SUBWORKER_PROTOCOL_VERSION
+                        );
+                    } else {
+                        /*
+                        state_ref.get_mut()
+                            .add_subworker(msg.subworker_id, msg.subworker_type, stream)
+                            .unwrap()*/
+                    }
+                },
+                Ok((None, _stream)) => {
+                    warn!("Closed subworker connection without registration");
+                },
+                Err(_) => {
+                    warn!("Error on unregistered subworker connection");
+                }
+            }
+            Ok(())
+        });
+
+        self.get().handle().spawn(future);
+
+        //let length_delimited = Builder::new().new_framed(stream);
+        //let (read, write) = length_delimited.split();
+
+        /*
         let up_impl = SubworkerUpstreamImpl::new(self);
         let subworker_id_rc = up_impl.subworker_id_rc();
         let upstream = ::subworker_capnp::subworker_upstream::ToClient::new(up_impl)
@@ -801,7 +847,7 @@ impl StateRef {
                         }
                         result
                     }),
-            );
+            );*/
     }
 
     pub fn start(
