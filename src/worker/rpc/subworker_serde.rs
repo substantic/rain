@@ -1,10 +1,10 @@
 use common::id::{TaskId, DataObjectId};
-use serde::{Serialize, Deserialize, Serializer,
-            Deserializer, de, ser::SerializeSeq};
 use common::Attributes;
-use std::fmt;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", content = "data")]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub enum SubworkerMessage {
     Register(RegisterMsg),
     Call(CallMsg),
@@ -14,6 +14,7 @@ pub enum SubworkerMessage {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct RegisterMsg {
     pub version: u32,
     pub subworker_id: u32,
@@ -22,6 +23,7 @@ pub struct RegisterMsg {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct CallMsg {
     pub task: TaskId,
     pub method: String,
@@ -32,6 +34,7 @@ pub struct CallMsg {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct ResultMsg {
     pub task: TaskId,
     pub success: bool,
@@ -42,13 +45,14 @@ pub struct ResultMsg {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct DataObjectSpec {
     id: DataObjectId,
     #[serde(default)]
     label: Option<String>,
     attributes: Attributes,
-    #[serde(flatten)]
-    location: DataLocation,
+    #[serde(default)]
+    location: Option<DataLocation>,
     #[serde(default)]
     cache_hint: Option<f32>,
 }
@@ -58,14 +62,20 @@ pub struct DataObjectSpec {
 pub enum DataLocation {
     Path(String),
     Memory(Vec<u8>),
-    Object(DataObjectId),
+    ObjectData(DataObjectId),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct DropCachedMsg {
     drop: Vec<DataObjectId>,
 }
+
+/*
+use std::fmt;
+use serde::{Serialize, Deserialize, Serializer,
+            Deserializer, de, ser::SerializeSeq};
 
 impl Serialize for SubworkerMessage {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -127,10 +137,10 @@ impl<'de> Deserialize<'de> for SubworkerMessage {
             }
         }
 
-        deserializer.deserialize_any(SubworkerMessageVisitor)
+        deserializer.deserialize_seq(SubworkerMessageVisitor)
     }
 }
-
+*/
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -140,45 +150,58 @@ mod tests {
     fn test_ser_de_eq(m: &SubworkerMessage) {
         let json = serde_json::to_string(m).unwrap();
         assert_eq!(m, &serde_json::from_str::<SubworkerMessage>(&json).unwrap());
-        let mp = rmp_serde::to_vec(m).unwrap();
-        assert_eq!(m, &rmp_serde::from_slice::<SubworkerMessage>(&mp).unwrap());
+        println!("JSON: {} {}", json.len(), json);
         let mpn = rmp_serde::to_vec_named(m).unwrap();
         assert_eq!(m, &rmp_serde::from_slice::<SubworkerMessage>(&mpn).unwrap());
+        println!("MPN: {} {}", mpn.len(), String::from_utf8_lossy(&mpn));
+        let mp = rmp_serde::to_vec(m).unwrap();
+        assert_eq!(m, &rmp_serde::from_slice::<SubworkerMessage>(&mp).unwrap());
+        println!("MP: {} {}", mp.len(), String::from_utf8_lossy(&mp));
+    }
+
+    #[test]
+    fn test_print() {
+        println!("JSON: {}", serde_json::to_string(&SubworkerMessage::DropCached(DropCachedMsg { drop: vec![] } )).unwrap());
     }
 
     #[test]
     fn test_register() {
-        let s = r#"["not0", "register", {"version": 1, "subworkerId": 42, "subworkerType": "dummy"}]"#;
+        let s = r#"{"type": "register", "data": {"version": 1, "subworkerId": 42, "subworkerType": "dummy"}}"#;
         let m: SubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
+//                {"id": [3,6], "label": "in1", "attributes": {}, "location": {"memory": [0,0,0]}, "cacheHint": 0.9},
+  //              {"id": [3,7], "label": "in2", "attributes": {}, "location": {"path": "in1.txt"}, "cacheHint": 0.9}
     #[test]
     fn test_call() {
-        // TODO: Add content
-        let s = r#"["not0", "call", {"method": "foo", "task": [42, 48],
-            "attributes": { "items": {} },
-            "inputs": [],
-            "outputs": []
-            }]"#;
+        let s = r#"{"type": "call", "data": {"method": "foo", "task": [42, 48],
+            "attributes": {},
+            "inputs": [
+            ],
+            "outputs": [
+                {"id": [3,11], "label": "out1", "attributes": {}, "location": {"path": "tmp/"}, "cacheHint": 0.9}
+            ]
+            }}"#;
         let m: SubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
     #[test]
     fn test_result() {
-        // TODO: Add content
-        let s = r#"["not0", "result", {"task": [42, 48], "success": true,
-            "attributes": { "items": {} },
-            "outputs": []
-            }]"#;
+        let s = r#"{"type": "result", "data": {"task": [42, 48], "success": true,
+            "attributes": {},
+            "outputs": [
+                {"id": [3,11], "attributes": {}, "location": {"path": "tmp/out.txt"}}
+            ]
+            }}"#;
         let m: SubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
     #[test]
     fn test_drop_cached() {
-        let s = r#"["not0", "dropCached", { "drop": [[1,2], [4,5]]}]"#;
+        let s = r#"{"type": "dropCached", "data": {"drop": [[1,2], [4,5]]}}"#;
         let m: SubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
