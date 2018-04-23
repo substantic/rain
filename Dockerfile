@@ -8,7 +8,7 @@ RUN apt-get update && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y && \
     . $HOME/.cargo/env && \
     cargo install capnpc && \
-    pip3 install pycapnp cloudpickle pytest pytest-timeout cbor pytest-timeout && \
+    pip3 install pycapnp cloudpickle pytest pytest-timeout cbor pyarrow && \
     cargo build --all-features --release --verbose && \
     cd python && \
     python3 setup.py install

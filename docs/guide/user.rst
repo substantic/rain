@@ -180,6 +180,7 @@ Recognized content types:
   * cloudpickle - Serialized Python object via Cloudpickle
   * json - Object serialized into JSON
   * cbor - Object serialized into CBOR
+  * arrow - Object serialized with Apache Arrow
   * text - UTF-8 string.
   * text:<ENCODING> - Text with specified encoding
   * mime:<MIME> - Content type defined as MIME type

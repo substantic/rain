@@ -4,7 +4,7 @@ import pickle
 
 
 def check_content_type(name):
-    if name in [None, "pickle", "json", "dir", "text", "cbor",
+    if name in [None, "pickle", "json", "dir", "text", "cbor", "arrow",
                 "protobuf", "cloudpickle"]:
         return True
     if (name.startswith("text:") or
@@ -64,6 +64,9 @@ def encode_value(val, content_type):
     elif content_type == "cbor":
         import cbor
         d = cbor.dumps(val)
+    elif content_type == "arrow":
+        import pyarrow
+        d = pyarrow.serialize(val).to_buffer().to_pybytes()
     elif content_type.startswith("text"):
         if not isinstance(val, str):
             raise RainException("Encoding {!r} can only encode `str` objects."
@@ -102,6 +105,9 @@ def decode_value(data, content_type):
     elif content_type == "cbor":
         import cbor
         return cbor.loads(data)
+    elif content_type == "arrow":
+        import pyarrow
+        return pyarrow.deserialize(data)
     elif content_type.startswith("text"):
         if content_type == "text":
             enc = "utf-8"
