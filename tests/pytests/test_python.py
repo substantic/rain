@@ -479,6 +479,7 @@ def test_input_detailed_specs(test_env):
         assert kwargs['kwA'] == ["A"]
         assert kwargs['kwB'] == ["B"]
         assert kwargs['kwC'] == ["C"]
+        assert kwargs['kwD'] == ["D"]
 
     @remote(inputs={'in1': Input(content_type='json'),
                     'in2': Input(content_type='pickle', load=True),
@@ -526,7 +527,9 @@ def test_input_detailed_specs(test_env):
                 ina=blob("barbar", encode='cbor'),
                 kwA=pickled(["A"]),
                 kwB=blob(["B"], encode="json"),
-                kwC=blob(["C"], encode="cbor"))
+                kwC=blob(["C"], encode="cbor"),
+                kwD=blob(["D"], encode="arrow")
+            )
             s.submit()
             t1.wait()
 

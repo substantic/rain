@@ -1,3 +1,4 @@
 cbor
 cloudpickle
+pyarrow
 pycapnp
