@@ -119,7 +119,7 @@ pub enum DataLocation {
 #[serde(deny_unknown_fields)]
 pub struct DropCachedMsg {
     /// List of object ids to drop
-    drop: Vec<DataObjectId>,
+    pub drop: Vec<DataObjectId>,
 }
 
 #[cfg(test)]

@@ -4,28 +4,75 @@ extern crate byteorder;
 extern crate log;
 #[macro_use]
 extern crate error_chain;
+extern crate rmp_serde;
 
-use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 use std::collections::HashMap;
 use std::env;
 use std::path::PathBuf;
 use std::os::unix::net::UnixStream;
-use std::io::ErrorKind;
-use std::io::{Read, Write};
+use std::io;
 use std::default::Default;
 
-pub type SubworkerId = u32;
-#[derive(Debug, Default)]
-struct Attributes;
 
-pub struct Subworker {
-    subworker_id: SubworkerId,
-    socket_path: PathBuf,
-    tasks: HashMap<String, Box<TaskFn>>,
+use librain::common::id::{TaskId, DataObjectId, SubworkerId};
+use librain::common::Attributes;
+use librain::worker::rpc::subworker_serde::*;
+
+mod socket {
+    use std::os::unix::net::UnixStream;
+    use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
+    use super::{Result, SubworkerMessage};
+    use rmp_serde;
+    use std::io::{Read, Write};
+
+    pub const MAX_MSG_SIZE: usize = 128 * 1024 * 1024;
+    pub const MSG_PROTOCOL: &str = "mp-1";
+
+    pub(crate) trait SocketExt {
+        fn write_frame(&mut self, &[u8]) -> Result<()>;
+        fn read_frame(&mut self) -> Result<Vec<u8>>; 
+        fn write_msg(&mut self, &SubworkerMessage) -> Result<()>;
+        fn read_msg(&mut self) -> Result<SubworkerMessage>; 
+    }
+
+    impl SocketExt for UnixStream {
+        fn write_msg(&mut self, m: &SubworkerMessage) -> Result<()> {
+            let data = rmp_serde::to_vec_named(m)?;
+            self.write_frame(&data)
+        }
+
+        fn read_msg(&mut self) -> Result<SubworkerMessage> {
+            let data = self.read_frame()?;
+            let msg = rmp_serde::from_slice::<SubworkerMessage>(&data)?;
+            Ok(msg)
+        }
+
+        fn write_frame(&mut self, data: &[u8]) -> Result<()> {
+            if data.len() > MAX_MSG_SIZE {
+                bail!("write_frame: message too long ({} bytes of {} allowed)", data.len(), MAX_MSG_SIZE);
+            }
+            self.write_u32::<LittleEndian>(data.len() as u32)?;
+            self.write_all(data)?;
+            Ok(())
+        }
+
+        fn read_frame(&mut self) -> Result<Vec<u8>> {
+            let len = self.read_u32::<LittleEndian>()? as usize;
+            if len > MAX_MSG_SIZE {
+                bail!("read_frame: message too long ({} bytes of {} allowed)", len, MAX_MSG_SIZE);
+            }
+            let mut data = vec![0; len];
+            self.read_exact(&mut data)?;
+            Ok(data)
+        }
+    }
 }
 
-#[allow(unused_doc_comment)]
+use socket::*;
+
+
 pub mod errors {
+    use rmp_serde;
     // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain!{
         types {
@@ -33,6 +80,8 @@ pub mod errors {
         }
         foreign_links {
             Io(::std::io::Error);
+            DecodeMP(rmp_serde::decode::Error);
+            EncodeMP(rmp_serde::encode::Error);
             Utf8Err(::std::str::Utf8Error);
         }
     }
@@ -42,9 +91,18 @@ pub mod errors {
 
 pub use errors::*;
 
+
+pub struct Subworker {
+    subworker_id: SubworkerId,
+    subworker_type: String,
+    socket_path: PathBuf,
+    tasks: HashMap<String, Box<TaskFn>>,
+}
+
 impl Subworker {
-    pub fn new() -> Self {
-        Subworker::with_params( 
+    pub fn new(subworker_type: &str) -> Self {
+        Subworker::with_params(
+            subworker_type, 
             env::var("RAIN_SUBWORKER_ID")
                 .expect("Env variable RAIN_SUBWORKER_ID required")
                 .parse()
@@ -54,8 +112,9 @@ impl Subworker {
                 .into())
     }
 
-    pub fn with_params(subworker_id: SubworkerId, socket_path: PathBuf) -> Self {
-        Subworker { 
+    pub fn with_params(subworker_type: &str, subworker_id: SubworkerId, socket_path: PathBuf) -> Self {
+        Subworker {
+            subworker_type: subworker_type.into(),
             subworker_id: subworker_id,
             socket_path: socket_path,
             tasks: HashMap::new()
@@ -72,28 +131,50 @@ impl Subworker {
     }
 
     pub fn run(&mut self) -> Result<()> {
+        let res = self.run_wrap();
+        // TODO: catch connection closed gracefully
+        /*
+        Err(Error(ErrorKind::Io(ref e), _)) if e.kind() == io::ErrorKind::ConnectionAborted => {
+            info!("Connection closed, shutting down");
+            return Ok(());
+        }
+        */
+        res
+    }
+
+    fn run_wrap(&mut self) -> Result<()> {
         info!("Connecting to worker at socket {:?} with ID {}", self.socket_path, self.subworker_id);
         let mut sock = UnixStream::connect(&self.socket_path)?;
         self.register(&mut sock)?;
         loop {
-            match sock.read_u32::<LittleEndian>() {
-                Ok(len) => {
-
+            match sock.read_msg()? {
+                SubworkerMessage::Call(call_msg) => {
+                    let reply = self.handle_call(call_msg)?;
+                    sock.write_msg(&SubworkerMessage::Result(reply))?;
                 },
-                Err(ref e) if e.kind() == ErrorKind::ConnectionAborted => {
-                    info!("Connection closed, shutting down");
-                    return Ok(());
-                }
-                Err(e) => {
-                    Err(e)?;
+                SubworkerMessage::DropCached(drop_msg) => {
+                    if !drop_msg.drop.is_empty() {
+                        bail!("received nonempty dropCached request with no cached objects");
+                    }
+                },
+                msg => {
+                    bail!("received invalid message {:?}", msg);
                 }
             }
         }
     }
 
     fn register(&mut self, sock: &mut UnixStream) -> Result<()> {
-        sock.write_all(&[])?; // TODO
-        Ok(())
+        let msg = SubworkerMessage::Register(RegisterMsg {
+            protocol: MSG_PROTOCOL.into(),
+            subworker_id: self.subworker_id,
+            subworker_type: self.subworker_type.clone(),
+        });
+        sock.write_msg(&msg)
+    }
+
+    fn handle_call(&mut self, call_msg: CallMsg) -> Result<ResultMsg> {
+        Ok(unimplemented!()) // TODO: Implement
     }
 
     #[allow(dead_code)]
@@ -183,7 +264,7 @@ mod tests {
 
     #[test]
     fn session_add() {
-        let mut s = Subworker::with_params(42, "/tmp/sock".into());
+        let mut s = Subworker::with_params("dummy", 42, "/tmp/sock".into());
         s.add_task("task1", task1);
         s.add_task("task2", |_ctx, _ins, _outs| Ok(()));
         //s.add_task2("task1b", task1).unwrap();
