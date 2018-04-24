@@ -1,8 +1,10 @@
-use common::id::{TaskId, DataObjectId};
+use common::id::{TaskId, DataObjectId, SubworkerId};
 use common::Attributes;
 
+/// Subworker message, in JSON serialized as
+/// `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "type", content = "data")]
+#[serde(tag = "message", content = "data")]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub enum SubworkerMessage {
@@ -12,12 +14,17 @@ pub enum SubworkerMessage {
     DropCached(DropCachedMsg),
 }
 
+/// First message sent from subworker to verify the protocol version,
+/// subworker ID and subworker type.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct RegisterMsg {
-    pub version: u32,
-    pub subworker_id: u32,
+    /// Subworker protocol version
+    pub protocol: String,
+    /// SUbworker ID as assigned to the worker
+    pub subworker_id: SubworkerId,
+    /// Subworker task name prefix in task names
     pub subworker_type: String,
 }
 
@@ -25,10 +32,17 @@ pub struct RegisterMsg {
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct CallMsg {
+    /// Task ID
     pub task: TaskId,
+    /// Requested task type name (without `subworker_type` prefix)
     pub method: String,
+    /// Task attributes
     pub attributes: Attributes,
+    /// Task input descriptions. In this context, all fields of `DataObjectSpec` are valid.
     pub inputs: Vec<DataObjectSpec>,
+    /// Task outputt descriptions. In this context,
+    /// `DataObjectSpec::location` should not be present (and ignored if present), all other
+    /// fields are valid.
     pub outputs: Vec<DataObjectSpec>,
 }
 
@@ -36,111 +50,78 @@ pub struct CallMsg {
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct ResultMsg {
+    /// Task ID (must match `CallMsg::task`)
     pub task: TaskId,
+    /// Task success. On `false`, attributes error must be set.
     pub success: bool,
+    /// Resulting Task attributes. The `spec` and `user_spec` part is ignored.
     pub attributes: Attributes,
-    #[serde(default)]
+    /// Task outputt descriptions. In this context, `DataObjectSpec::label` should not be present,
+    /// `DataObjectSpec::cache_hint` should be missing or false.
+    /// In `DataObjectSpec::attributes`, `spec` and `user_spec` are ignored if present.
+    /// The list must match `CallMsg::outputs` lengts and on `id`s.
     pub outputs: Vec<DataObjectSpec>,
+    /// If any objects with `cache_hint` were sent, report which were cached.
+    /// It is always allowed to cache no object and even omit this field (for simpler subworkers).
+    #[serde(skip_serializing_if="Vec::is_empty")]
+    #[serde(default)]
+    pub cached_objects: Vec<DataObjectId>,
 }
 
+/// Data object information in `CallMsg` and `ResultMsg`. See the corresponding
+/// fields there for precise semantics.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct DataObjectSpec {
+    /// Data object ID
     id: DataObjectId,
+    /// Object label within the task inputs or outputs
+    #[serde(skip_serializing_if="Option::is_none")]
     #[serde(default)]
     label: Option<String>,
+    /// Object attributes
     attributes: Attributes,
+    /// Object data location
+    #[serde(skip_serializing_if="Option::is_none")]
     #[serde(default)]
     location: Option<DataLocation>,
+    /// If able, the subworker should cache this object, preferably in the 
+    /// unpacked form to save repeated unpacking (e.g. python cloudpickle).
+    /// If the subworker decides to cache the object, it must add it to
+    /// `ResultMsg::cached_objects`.
+    #[serde(skip_serializing_if="::std::ops::Not::not")]
     #[serde(default)]
-    cache_hint: Option<f32>,
+    cache_hint: bool,
 }
 
+/// Data location of inputs and outputs in `DataObjectSpec::location`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum DataLocation {
+    /// The data is present in the given path that is relative to the subworker working directory.
     Path(String),
+    /// The data is directly contained in the message. Only reccomended for
+    /// small objects (under cca 128kB).
     Memory(Vec<u8>),
+    /// The data is identical to one of input objects. 
+    /// Only valid in `ResultMsg`.
     ObjectData(DataObjectId),
+    /// The data should be cached (and possibly unpacked) in the subworker.
+    /// Only valid in `CallMsg::inputs`.
+    Cached,
 }
 
+/// Instruct the subworker to drop the given cached objects.
+/// It is an error to request dropping an object that is not cached.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct DropCachedMsg {
+    /// List of object ids to drop
     drop: Vec<DataObjectId>,
 }
 
-/*
-use std::fmt;
-use serde::{Serialize, Deserialize, Serializer,
-            Deserializer, de, ser::SerializeSeq};
-
-impl Serialize for SubworkerMessage {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer
-    {
-        let mut seq = serializer.serialize_seq(Some(3))?;
-        seq.serialize_element("not0")?;
-        match *self {
-            SubworkerMessage::Register(ref v) => {
-                seq.serialize_element("register")?;
-                seq.serialize_element(v)?;
-            }
-            SubworkerMessage::Call(ref v) => {
-                seq.serialize_element("call")?;
-                seq.serialize_element(v)?;
-            }
-            SubworkerMessage::Result(ref v) => {
-                seq.serialize_element("result")?;
-                seq.serialize_element(v)?;
-            }
-            SubworkerMessage::DropCached(ref v) => {
-                seq.serialize_element("dropCached")?;
-                seq.serialize_element(v)?;
-            }
-        }
-        seq.end()
-    }    
-}
-
-impl<'de> Deserialize<'de> for SubworkerMessage {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
-    {
-        struct SubworkerMessageVisitor;
-
-        impl<'de> de::Visitor<'de> for SubworkerMessageVisitor {
-            type Value = SubworkerMessage;
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("tuple (version, msg_type, data)")
-            }
-            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-                where A: de::SeqAccess<'de> {
-                if seq.next_element()? != Some("not0") {
-                    return Err(de::Error::custom("Missing or invalid version"));
-                }
-                let err = || de::Error::custom("Missing data field");
-                match seq.next_element()? {
-                    Some("register") => 
-                        Ok(SubworkerMessage::Register(seq.next_element()?.ok_or_else(err)?)),
-                    Some("call") => 
-                        Ok(SubworkerMessage::Call(seq.next_element()?.ok_or_else(err)?)),
-                    Some("result") => 
-                        Ok(SubworkerMessage::Result(seq.next_element()?.ok_or_else(err)?)),
-                    Some("dropCached") => 
-                        Ok(SubworkerMessage::DropCached(seq.next_element()?.ok_or_else(err)?)),
-                    Some(val) => Err(de::Error::custom(format!("Unknown message type {:?}", val))),
-                    None => Err(de::Error::custom("Missing message type")),
-                }
-            }
-        }
-
-        deserializer.deserialize_seq(SubworkerMessageVisitor)
-    }
-}
-*/
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,21 +147,21 @@ mod tests {
 
     #[test]
     fn test_register() {
-        let s = r#"{"type": "register", "data": {"version": 1, "subworkerId": 42, "subworkerType": "dummy"}}"#;
+        let s = r#"{"message": "register", "data": {"protocol": "swp1", "subworkerId": 42, "subworkerType": "dummy"}}"#;
         let m: SubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
-//                {"id": [3,6], "label": "in1", "attributes": {}, "location": {"memory": [0,0,0]}, "cacheHint": 0.9},
-  //              {"id": [3,7], "label": "in2", "attributes": {}, "location": {"path": "in1.txt"}, "cacheHint": 0.9}
+//                {"id": [3,6], "label": "in1", "attributes": {}, "location": {"memory": [0,0,0]}},
+  //              {"id": [3,7], "label": "in2", "attributes": {}, "location": {"path": "in1.txt"}, "cacheHint": true}
     #[test]
     fn test_call() {
-        let s = r#"{"type": "call", "data": {"method": "foo", "task": [42, 48],
+        let s = r#"{"message": "call", "data": {"method": "foo", "task": [42, 48],
             "attributes": {},
             "inputs": [
             ],
             "outputs": [
-                {"id": [3,11], "label": "out1", "attributes": {}, "location": {"path": "tmp/"}, "cacheHint": 0.9}
+                {"id": [3,11], "label": "out1", "attributes": {}, "location": {"path": "tmp/"}, "cacheHint": true}
             ]
             }}"#;
         let m: SubworkerMessage = serde_json::from_str(s).unwrap();
@@ -189,10 +170,10 @@ mod tests {
 
     #[test]
     fn test_result() {
-        let s = r#"{"type": "result", "data": {"task": [42, 48], "success": true,
+        let s = r#"{"message": "result", "data": {"task": [42, 48], "success": true,
             "attributes": {},
             "outputs": [
-                {"id": [3,11], "attributes": {}, "location": {"path": "tmp/out.txt"}}
+                {"id": [3,11], "attributes": {}}
             ]
             }}"#;
         let m: SubworkerMessage = serde_json::from_str(s).unwrap();
@@ -201,7 +182,7 @@ mod tests {
 
     #[test]
     fn test_drop_cached() {
-        let s = r#"{"type": "dropCached", "data": {"drop": [[1,2], [4,5]]}}"#;
+        let s = r#"{"message": "dropCached", "data": {"drop": [[1,2], [4,5]]}}"#;
         let m: SubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
