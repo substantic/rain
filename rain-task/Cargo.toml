@@ -5,10 +5,15 @@ authors = ["Tomas Gavenciak <gavento@ucw.cz>"]
 
 [dependencies]
 rain = { path = ".." }
+log = ">=0.4"
+serde_derive = "*"
+serde = "*"
+serde_json = "*"
+byteorder = "*"
+
 atty="*"
 error-chain="*"
 clap = "*"
-log = ">=0.4"
 futures="0.1"
 tokio-core="*"
 tokio-io="*"
@@ -26,9 +31,6 @@ memmap = "*"
 sysconf = "*"
 sys-info = "*"
 chrono = { version = "*", features = ["serde"] }
-serde_derive = "*"
-serde = "*"
-serde_json = "*"
 tar = "*"
 toml = "*"
 walkdir = "*"
