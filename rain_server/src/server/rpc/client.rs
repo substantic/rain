@@ -489,4 +489,13 @@ impl client_service::Server for ClientServiceImpl {
         results.get_state().unwrap().set_ok(());
         Promise::ok(())
     }
+
+    fn terminate_server(
+        &mut self,
+        params: client_service::TerminateServerParams,
+        results: client_service::TerminateServerResults,
+    ) -> Promise<(), ::capnp::Error> {
+        exit(0);
+        Promise::ok(())
+    }
 }

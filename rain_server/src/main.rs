@@ -191,6 +191,22 @@ impl GovernorConfig {
     }
 }
 
+fn resolve_server_address(address: &str) -> SocketAddr {
+    match address.to_socket_addrs() {
+        Err(_) => {
+            error!("Cannot resolve server address");
+            exit(1);
+        }
+        Ok(mut addrs) => match addrs.next() {
+            None => {
+                error!("Cannot resolve server address");
+                exit(1);
+            }
+            Some(ref addr) => *addr,
+        },
+    }
+}
+
 fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     info!("Starting Rain {} governor", VERSION);
     let ready_file = cmd_args.value_of("READY_FILE");
@@ -202,19 +218,7 @@ fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         server_address = format!("{}:{}", server_address, DEFAULT_SERVER_PORT);
     }
 
-    let server_addr = match server_address.to_socket_addrs() {
-        Err(_) => {
-            error!("Cannot resolve server address: ");
-            exit(1);
-        }
-        Ok(mut addrs) => match addrs.next() {
-            None => {
-                error!("Cannot resolve server address");
-                exit(1);
-            }
-            Some(ref addr) => *addr,
-        },
-    };
+    let server_addr = resolve_server_address(&server_address);
 
     let state = {
         let config = cmd_args.value_of("GOVERNOR_CONFIG").map(|path| {
@@ -415,6 +419,30 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 }
 
+fn stop_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
+    let default_address = format!("localhost:{}", DEFAULT_SERVER_PORT);
+    let mut address = cmd_args
+        .value_of("SERVER_ADDRESS")
+        .unwrap_or(&default_address)
+        .to_string();
+
+    if !address.contains(':') {
+        address = format!("{}:{}", address, DEFAULT_SERVER_PORT);
+    }
+
+    let scheduler: SocketAddr = resolve_server_address(&address);
+    let mut client = Client::new(&scheduler).unwrap_or_else(|err| {
+        error!("Couldn't connect to server at {}: {}", address, err);
+        exit(1);
+    });
+    client.terminate_server().unwrap_or_else(|err| {
+        error!("Couldn't stop server: {}", err);
+        exit(1);
+    });
+
+    println!("Server at {} was successfully stopped", address);
+}
+
 fn init_log() {
     // T    emporary simple logger for better module log control, default level is INFO
     // TODO: replace with Fern or log4rs later
@@ -577,15 +605,22 @@ fn main() {
                     .long("--logdir")
                     .help("Logging directory for governors & server (default /tmp/rain-logs/run-$HOSTANE-$PID)")
                     .takes_value(true)))
+        .subcommand( // ---- STOP ----
+            SubCommand::with_name("stop")
+                .about("Stop server and all workers connected to it")
+                .arg(Arg::with_name("SERVER_ADDRESS")
+                    .help("Address of the server (default = localhost:7210)")
+                    .takes_value(true)))
         .get_matches();
 
     match args.subcommand() {
         ("server", Some(cmd_args)) => run_server(&args, cmd_args),
         ("governor", Some(cmd_args)) => run_governor(&args, cmd_args),
         ("start", Some(cmd_args)) => run_starter(&args, cmd_args),
+        ("stop", Some(cmd_args)) => stop_server(&args, cmd_args),
         _ => {
             error!("No subcommand provided.");
-            ::std::process::exit(1);
+            exit(1);
         }
     }
 }
