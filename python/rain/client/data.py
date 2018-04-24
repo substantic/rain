@@ -119,7 +119,7 @@ class DataObject:
             self.label, t, self.id, self.attributes)
 
 
-def blob(value, label="const", content_type=None, encode=None):
+def blob(value, label="const", content_type=None, encode=None, session=None):
     """
     Create a constant data object with accompanying data.
 
@@ -148,7 +148,7 @@ def blob(value, label="const", content_type=None, encode=None):
         raise RainException(
             "Invalid blob type (only str or bytes are allowed without `encode`)")
 
-    dataobj = DataObject(label, content_type=content_type)
+    dataobj = DataObject(label, content_type=content_type, session=session)
     dataobj.data = value
     return dataobj
 

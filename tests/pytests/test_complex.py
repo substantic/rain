@@ -155,3 +155,27 @@ def test_separated_lines(test_env):
 
         assert results1 == [d * STEPS + d for d in initial_data]
         assert results2 == [d * STEPS * 3 + d for d in initial_data]
+
+
+def test_same_input_twice(test_env):
+
+    test_env.start(2)
+    with test_env.client.new_session() as s:
+
+        d0 = blob(b'B')
+        d1 = tasks.concat([d0, d0]).output
+        d2 = tasks.concat([d1, d1]).output
+        d2.keep()
+        s.submit()
+        s.wait_all()
+        d3 = tasks.concat([d2, d2]).output
+        d4 = tasks.concat([d3, d3]).output
+        d4.keep()
+        s.submit()
+        d5 = tasks.concat([d4, d4]).output
+        d6 = tasks.concat([d5, d5]).output
+        d6.keep()
+        s.submit()
+        df = d6.fetch().get_bytes()
+        assert df == b'B' * 64
+        s.wait_all()

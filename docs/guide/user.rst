@@ -709,14 +709,71 @@ cpus for a task::
 Attributes
 ==========
 
-Each task and data object has an assigned *attributes* a dictionary of JSON
-serializable values. Some attributes are set when task/object is created, some
-are added when object is computed or finished. When an object/task is finished,
+Each task and data object has certain *attributes*. Each attribute is an JSON
+serializable value. Every attribute is set at one point and not modified
+afterwards (with the exception of `debug`). When an object/task is finished,
 attributes are no longer changed.
 
-A client may ask for attributes of any task/object as long as session is open;
-"keep" flag is not necessary. Attributes are not updated automatically,
-``fetch()`` or ``update()`` has to be called to update attributes.
+The allowed attributes and their origin are:
+
+`spec` (set at the client by the task/object constructor)
+  A dict of attributes common for all tasks or all data objects. For Tasks that is:
+
+  * `resources` - resources needed (optional, default 1 CPU).
+  * `time_hint` - estimation of time needed in seconds (wall time, optional).
+  * Testing and debugging flags such as worker pinning.
+
+  For DataObjects that is:
+
+  * `object_type` - a blob or a directory (required).
+  * `content_type` - expected blob content type (optional).
+  * `size_hint` - size estimation (optional, in bytes).
+  * Testing and debugging flags such as worker pinning.
+
+`config` (set at the client by the task/object constructor)
+  Task configuration specific to the task type.
+
+`user_spec` (set at the client by user)
+  Any data set by the user as a dictionary. Accessible from the Python
+  subworker.
+
+`info` (set at the worker by the worker process)
+  Information on the finished task or data object. For tasks that is:
+
+  * `worker` - worker the task was computed at (worker id, optional).
+  * `start_time` - computation start (timestamp, optional).
+  * `finish_time` - computation end (timestamp, optional).
+  * Further resources and statistics.
+
+  For DataObjects that is:
+
+  * `size` - total size in bytes (required).
+  * `content_type` - final blob content type (optional).
+    Must be a subtype of `spec.content_type`.
+  * `worker` - worker the object was computed at (worker id, optional).
+  * `finish_time` - time of computation (timestamp, optional).
+  * Further resources and statistics.
+
+`user_info` (set at the subworker by the user function)
+  Any data set by the user-defined task as a dictionary.
+  May be set from the Python subworker.
+
+`error` (set anytime an error happens)
+  A string description of the error of a task in `failed` state.
+
+`debug` (appended to at any time)
+  A string containing arbitrary debugging logs. This is the only attribute
+  that is being modified after being first set (appending only).
+  May contain logs from rolled-back operations.
+  Note that the debug information may considerably slow down large
+  computations.
+
+TODO: Specify resource specification.
+
+A client may ask for attributes of any task/object as long as the session is
+open; "keep" flag is not necessary. Attributes are not updated automatically,
+``fetch()`` or ``update()`` has to be called to update task or object
+attributes.
 
 ::
 
@@ -732,11 +789,9 @@ A client may ask for attributes of any task/object as long as session is open;
         # Print name of worker where task was executed
         print(task.attributes["info"]["worker"])
 
-TODO: List of build-in attributes
-
-Users are allowed to store arbitrary information under keys "user_spec" and "user_info".
-The former serves for task configuration, the latter serves for information generated
-during task execution.
+Users are allowed to store arbitrary information under keys "user_spec" and
+"user_info". The former serves for task configuration, the latter serves for
+information generated during task execution.
 
 ::
 
