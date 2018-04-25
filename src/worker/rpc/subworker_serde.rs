@@ -1,16 +1,23 @@
 use common::id::{TaskId, DataObjectId, SubworkerId};
 use common::Attributes;
 
-/// Subworker message, in JSON serialized as
-/// `{"message": "register", "data": { ... }}`.
+/// Message from subworker to worker.
+/// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "message", content = "data")]
 #[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-pub enum SubworkerMessage {
+pub enum SubworkerToWorkerMessage {
     Register(RegisterMsg),
-    Call(CallMsg),
     Result(ResultMsg),
+}
+
+/// Message from worker to subworker.
+/// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "message", content = "data")]
+#[serde(rename_all = "camelCase")]
+pub enum WorkerToSubworkerMessage {
+    Call(CallMsg),
     DropCached(DropCachedMsg),
 }
 
@@ -126,46 +133,25 @@ pub struct DropCachedMsg {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde::{Serialize, de::DeserializeOwned};
     use serde_json;
-    use rmp_serde;
-    use rmpv;
-    use std::io::Cursor;
     use serde_cbor;
+    use std::fmt::Debug;
 
-    fn test_ser_de_eq(m: &SubworkerMessage) {
+    fn test_ser_de_eq<'a, T: Serialize + DeserializeOwned + Debug + PartialEq>(m: &T) {
         let json = serde_json::to_string(m).unwrap();
         println!("JSON: {} {}", json.len(), json);
-        assert_eq!(m, &serde_json::from_str::<SubworkerMessage>(&json).unwrap());
+        assert_eq!(m, &serde_json::from_str::<T>(&json).unwrap());
 
         let cb = serde_cbor::to_vec(m).unwrap();
         println!("CB: {} {}", cb.len(), String::from_utf8_lossy(&cb));
-        assert_eq!(m, &serde_cbor::from_slice::<SubworkerMessage>(&cb).unwrap());
-/*
-        let mpn = rmp_serde::to_vec_named(m).unwrap();
-        println!("MPN: {} {}", mpn.len(), String::from_utf8_lossy(&mpn));
-        let mut mpnc = Cursor::new(&mpn);
-        let mpn_dec = rmpv::decode::read_value(&mut mpnc).unwrap();
-        println!("MPN dec: {:#?}", &mpn_dec);
-        let mut mpn_enc = Vec::new();
-        rmpv::encode::write_value(&mut mpn_enc, &mpn_dec).unwrap();
-        assert_eq!(mpn_enc, mpn);
-        assert_eq!(m, &rmp_serde::from_slice::<SubworkerMessage>(&mpn).unwrap());
-
-        let mp = rmp_serde::to_vec(m).unwrap();
-        println!("MP: {} {}", mp.len(), String::from_utf8_lossy(&mp));
-        assert_eq!(m, &rmp_serde::from_slice::<SubworkerMessage>(&mp).unwrap());
-        */
-    }
-
-    #[test]
-    fn test_print() {
-        println!("JSON: {}", serde_json::to_string(&SubworkerMessage::DropCached(DropCachedMsg { drop: vec![] } )).unwrap());
+        assert_eq!(m, &serde_cbor::from_slice::<T>(&cb).unwrap());
     }
 
     #[test]
     fn test_register() {
         let s = r#"{"message": "register", "data": {"protocol": "swp1", "subworkerId": 42, "subworkerType": "dummy"}}"#;
-        let m: SubworkerMessage = serde_json::from_str(s).unwrap();
+        let m: SubworkerToWorkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
@@ -183,7 +169,7 @@ mod tests {
                 {"id": [3,12], "label": "out1", "attributes": {}, "cacheHint": true}
             ]
             }}"#;
-        let m: SubworkerMessage = serde_json::from_str(s).unwrap();
+        let m: WorkerToSubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
@@ -196,14 +182,14 @@ mod tests {
                 {"id": [3,12], "attributes": {}, "location": {"otherObject": [3, 6]}}
             ]
             }}"#;
-        let m: SubworkerMessage = serde_json::from_str(s).unwrap();
+        let m: SubworkerToWorkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
     #[test]
     fn test_drop_cached() {
         let s = r#"{"message": "dropCached", "data": {"drop": [[1,2], [4,5]]}}"#;
-        let m: SubworkerMessage = serde_json::from_str(s).unwrap();
+        let m: WorkerToSubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
