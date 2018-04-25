@@ -6,3 +6,5 @@ notifications:
     slack: substantic:FJsopazpmJ5siyjfWCW36CVj
 script:
   - docker run -u 123 -e RAIN_TEST_BIN=/rain/target/release/rain rain pytest -x -v --timeout=300
+  - docker run rain /bin/bash -c '. $HOME/.cargo/env && cargo test'
+  - docker run rain /bin/bash -c '. $HOME/.cargo/env && utils/checks/stylecheck.sh'
