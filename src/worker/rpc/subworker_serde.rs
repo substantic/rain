@@ -61,7 +61,8 @@ pub struct ResultMsg {
     /// In `DataObjectSpec::attributes`, `spec` and `user_spec` are ignored if present.
     /// The list must match `CallMsg::outputs` lengts and on `id`s.
     pub outputs: Vec<DataObjectSpec>,
-    /// If any objects with `cache_hint` were sent, report which were cached.
+    /// If any objects with `cache_hint` were sent, report which were newly cached
+    /// (does not include objects previously cached and now reported with `DataLocation::Cached`).
     /// It is always allowed to cache no object and even omit this field (for simpler subworkers).
     #[serde(skip_serializing_if="Vec::is_empty")]
     #[serde(default)]
@@ -106,8 +107,8 @@ pub enum DataLocation {
     Memory(Vec<u8>),
     /// The data is identical to one of input objects. 
     /// Only valid in `ResultMsg`.
-    ObjectData(DataObjectId),
-    /// The data should be cached (and possibly unpacked) in the subworker.
+    OtherObject(DataObjectId),
+    /// The input data is already cached (and possibly unpacked) in the subworker.
     /// Only valid in `CallMsg::inputs`.
     Cached,
 }
@@ -127,17 +128,33 @@ mod tests {
     use super::*;
     use serde_json;
     use rmp_serde;
+    use rmpv;
+    use std::io::Cursor;
+    use serde_cbor;
 
     fn test_ser_de_eq(m: &SubworkerMessage) {
         let json = serde_json::to_string(m).unwrap();
-        assert_eq!(m, &serde_json::from_str::<SubworkerMessage>(&json).unwrap());
         println!("JSON: {} {}", json.len(), json);
+        assert_eq!(m, &serde_json::from_str::<SubworkerMessage>(&json).unwrap());
+
+        let cb = serde_cbor::to_vec(m).unwrap();
+        println!("CB: {} {}", cb.len(), String::from_utf8_lossy(&cb));
+        assert_eq!(m, &serde_cbor::from_slice::<SubworkerMessage>(&cb).unwrap());
+/*
         let mpn = rmp_serde::to_vec_named(m).unwrap();
-        assert_eq!(m, &rmp_serde::from_slice::<SubworkerMessage>(&mpn).unwrap());
         println!("MPN: {} {}", mpn.len(), String::from_utf8_lossy(&mpn));
+        let mut mpnc = Cursor::new(&mpn);
+        let mpn_dec = rmpv::decode::read_value(&mut mpnc).unwrap();
+        println!("MPN dec: {:#?}", &mpn_dec);
+        let mut mpn_enc = Vec::new();
+        rmpv::encode::write_value(&mut mpn_enc, &mpn_dec).unwrap();
+        assert_eq!(mpn_enc, mpn);
+        assert_eq!(m, &rmp_serde::from_slice::<SubworkerMessage>(&mpn).unwrap());
+
         let mp = rmp_serde::to_vec(m).unwrap();
-        assert_eq!(m, &rmp_serde::from_slice::<SubworkerMessage>(&mp).unwrap());
         println!("MP: {} {}", mp.len(), String::from_utf8_lossy(&mp));
+        assert_eq!(m, &rmp_serde::from_slice::<SubworkerMessage>(&mp).unwrap());
+        */
     }
 
     #[test]
@@ -152,16 +169,18 @@ mod tests {
         test_ser_de_eq(&m);
     }
 
-//                {"id": [3,6], "label": "in1", "attributes": {}, "location": {"memory": [0,0,0]}},
-  //              {"id": [3,7], "label": "in2", "attributes": {}, "location": {"path": "in1.txt"}, "cacheHint": true}
     #[test]
     fn test_call() {
         let s = r#"{"message": "call", "data": {"method": "foo", "task": [42, 48],
             "attributes": {},
             "inputs": [
+                {"id": [3,6], "label": "in1", "attributes": {}, "location": {"memory": [0,0,0,0,0]}},
+                {"id": [3,7], "label": "in2", "attributes": {}, "location": {"path": "in1.txt"}, "cacheHint": true},
+                {"id": [3,8], "attributes": {}, "location": "cached"}
             ],
             "outputs": [
-                {"id": [3,11], "label": "out1", "attributes": {}, "location": {"path": "tmp/"}, "cacheHint": true}
+                {"id": [3,11], "label": "out1", "attributes": {}, "cacheHint": true},
+                {"id": [3,12], "label": "out1", "attributes": {}, "cacheHint": true}
             ]
             }}"#;
         let m: SubworkerMessage = serde_json::from_str(s).unwrap();
@@ -173,7 +192,8 @@ mod tests {
         let s = r#"{"message": "result", "data": {"task": [42, 48], "success": true,
             "attributes": {},
             "outputs": [
-                {"id": [3,11], "attributes": {}}
+                {"id": [3,11], "attributes": {}, "location": {"path": "in1.txt"}},
+                {"id": [3,12], "attributes": {}, "location": {"otherObject": [3, 6]}}
             ]
             }}"#;
         let m: SubworkerMessage = serde_json::from_str(s).unwrap();
