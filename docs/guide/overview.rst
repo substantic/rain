@@ -21,7 +21,7 @@ straightforward installation and deployment with insightful monitoring on top.
   requests at GitHub_ or even contribute with pull requests.
 
 * **Dataflow programming.** Computation in Rain is defined as a flow graph of
-  tasks. Tasks may be build-in functions, Python code, or an external
+  tasks. Tasks may be built-in functions, Python code, or an external
   applications, short and light or long-running and heavy. The system is
   designed to integrate any code into a pipeline, respecting its resource
   requirements, and to handle very large task graphs (hundreds thousands tasks).

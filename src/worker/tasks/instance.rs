@@ -75,7 +75,7 @@ impl TaskInstance {
         let task_fn = {
             let task = task_ref.get();
             let task_type: &str = task.task_type.as_ref();
-            // Build-in task
+            // Built-in task
             match task_type {
                 task_type if !task_type.starts_with("!") => Self::start_task_in_subworker,
                 "!run" => tasks::run::task_run,

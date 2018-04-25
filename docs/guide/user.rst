@@ -7,7 +7,7 @@ Basic terms
 
 **Task** is a basic unit of work in Rain, it reads inputs and produces outputs.
 Tasks are executed on computational nodes (computers where Rain workers are
-running). Tasks can be external programs, python functions, and basic build-in
+running). Tasks can be external programs, python functions, and basic built-in
 operations.
 
 **Data objects** are objects that are read and created by tasks. Data
@@ -217,7 +217,7 @@ the task graph.
    pickled([1, 2, 3, 4])  # Short-cut for blob(..., encode="pickle")
 
 
-Build-in tasks
+Built-in tasks
 ==============
 
 The following four tasks are supported directly by Rain worker:
@@ -243,7 +243,7 @@ The following four tasks are supported directly by Rain worker:
 
 ::
 
-  # This example demonstrates usage of four build-in tasks
+  # This example demonstrates usage of four built-in tasks
 
   from rain.client import tasks, Client, blob
 
@@ -277,7 +277,7 @@ Running external programs
 Task ``tasks.execute``
 ----------------------
 
-The whole functionality is built around build-in task
+The whole functionality is built around built-in task
 :func:`rain.client.tasks.execute`. When a program is executed through
 :func:`rain.client.tasks.execute`, then a new temporary directory is created.
 This directory will be removed at the end of program execution. The current
@@ -470,7 +470,7 @@ defines "pattern" indepedently on a particular session.
 Python tasks
 ============
 
-Among build-in tasks, Rain allows to run additional types of tasks via
+In addition to built-in tasks, Rain allows to run additional types of tasks via
 subworkers. Rain is shipped with Python subworker, that allows to execute
 arbitrary Python code.
 
@@ -732,7 +732,7 @@ A client may ask for attributes of any task/object as long as session is open;
         # Print name of worker where task was executed
         print(task.attributes["info"]["worker"])
 
-TODO: List of build-in attributes
+TODO: List of built-in attributes
 
 Users are allowed to store arbitrary information under keys "user_spec" and "user_info".
 The former serves for task configuration, the latter serves for information generated
