@@ -9,10 +9,10 @@ contant us via email; this part of documentation is quite sparse.
 Scripts
 =======
 
-* `utils/stylecheck.sh` -- Runs code style checks (flake8 & dry cargo fmt)
-* `utils/fullcheck.sh` -- Runs stylecheck.sh + all available tests
-* `dist/make_release.sh` -- Compiles release binary of Rain, creates Python package and
-  publish release on GitHub
+* `utils/checks/stylecheck.sh` -- Runs code style checks (flake8 & dry cargo fmt)
+* `utils/checks/fullcheck.sh` -- Runs stylecheck.sh + all available tests
+* `utils/dist/make_release.py` -- Compiles release binary of Rain, creates Python package and
+  publishes release on GitHub
 
 
 Testing
