@@ -94,7 +94,7 @@ pub struct DataObjectSpec {
     #[serde(skip_serializing_if="Option::is_none")]
     #[serde(default)]
     pub location: Option<DataLocation>,
-    /// If able, the subworker should cache this object, preferably in the 
+    /// If able, the subworker should cache this object, preferably in the
     /// unpacked form to save repeated unpacking (e.g. python cloudpickle).
     /// If the subworker decides to cache the object, it must add it to
     /// `ResultMsg::cached_objects`.
@@ -113,7 +113,7 @@ pub enum DataLocation {
     /// small objects (under cca 128kB).
     #[serde(with="serde_bytes")]
     Memory(Vec<u8>),
-    /// The data is identical to one of input objects. 
+    /// The data is identical to one of input objects.
     /// Only valid in `ResultMsg`.
     OtherObject(DataObjectId),
     /// The input data is already cached (and possibly unpacked) in the subworker.

@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use common::DataType;
+use worker::rpc::subworker_serde::DataLocation;
 
 use errors::Result;
 
@@ -239,6 +240,13 @@ impl Data {
     #[inline]
     pub fn data_type(&self) -> DataType {
         self.data_type
+    }
+
+    pub fn create_location(&self) -> DataLocation {
+        match self.storage {
+            Storage::Memory(ref data) => DataLocation::Memory(data.clone()),
+            Storage::Path(ref data) => DataLocation::Path(data.path.clone()),
+        }
     }
 
     pub fn to_subworker_capnp(&self, builder: &mut ::subworker_capnp::local_data::Builder) {

@@ -2,6 +2,7 @@
 import struct
 import json
 
+
 class SocketWrapper:
 
     header = struct.Struct("<I")
@@ -25,14 +26,13 @@ class SocketWrapper:
         while True:
             size = len(self._buffer)
             if size >= header_size:
-                msg_size = u64.unpack(self._buffer[:header_size])[0] + header_size
+                msg_size = self.header.unpack(self._buffer[:header_size])[0] + header_size
                 if size >= msg_size:
                     message = self._buffer[header_size:msg_size]
                     self._buffer = self._buffer[msg_size:]
                     return json.loads(message.decode())
+
             new_data = self.socket.recv(self.read_buffer_size)
             if not new_data:
                 raise Exception("Connection to server lost")
             self._buffer += new_data
-
-

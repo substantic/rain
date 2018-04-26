@@ -4,10 +4,12 @@ use chrono::{DateTime, Utc};
 use worker::graph::{SubworkerRef, TaskRef, TaskState};
 use worker::state::State;
 use worker::tasks;
-use worker::rpc::subworker::data_from_capnp;
+use worker::rpc::subworker::data_output_from_spec;
 use common::Attributes;
 use common::convert::ToCapnp;
 use errors::{Error, Result};
+use worker::rpc::subworker_serde::{DataObjectSpec, DataLocation, ResultMsg};
+
 
 /// Instance represents a running task. It contains resource allocations and
 /// allows to signal finishing of data objects.
@@ -180,13 +182,48 @@ impl TaskInstance {
             )
         };
         let state_ref = state.self_ref();
-        Ok(Box::new(future.and_then(move |subworker| {
+        Ok(Box::new(future.and_then(move |subworker_ref| {
             // Run task in subworker
 
             // We wrap subworker into special struct that kill subworker when dropped
             // This is can happen when task is terminated and feature dropped without finishhing
-            let mut sw_wrapper = KillOnDrop::new(subworker.clone());
+            let mut sw_wrapper = KillOnDrop::new(subworker_ref.clone());
+            let task_ref2 = task_ref.clone();
+            let task = task_ref2.get();
+            let subworker_ref2 = subworker_ref.clone();
+            let mut subworker = subworker_ref2.get_mut();
+            subworker.send_task(&task, method_name).then(move |r| {
+                sw_wrapper.deactive();
+                match r {
+                    Ok(ResultMsg {task: task_id, attributes, success, outputs, cached_objects}) => {
+                        let mut task = task_ref.get_mut();
+                        let subworker = subworker_ref.get();
+                        let work_dir = subworker.work_dir();
 
+                        assert!(task.id == task_id);
+                        task.new_attributes.update(attributes);
+                        if success {
+                            debug!("Task id={} finished in subworker", task.id);
+                            for (co, output) in outputs.into_iter().zip(&task.outputs) {
+                                let attributes = co.attributes.clone();
+                                let data = data_output_from_spec(&state_ref.get(), work_dir, co)?;
+                                let mut o = output.get_mut();
+                                o.set_attributes(attributes);
+                                o.set_data(data)?;
+                            }
+                        } else {
+                            debug!("Task id={} failed in subworker", task.id);
+                            panic!("FAIL NOT IMPLEMETED");
+                            //bail!(response.get_error_message()?);
+                        }
+                        Ok(())
+                    }
+                    Err(_) => {
+                        panic!("Task canceled!");
+                    }
+                }
+            })
+            /*
             let mut req = subworker.get().control().run_task_request();
             {
                 let task = task_ref.get();
@@ -286,7 +323,7 @@ impl TaskInstance {
                         .idle_subworkers
                         .insert(subworker_ref);
                     result
-                })
+                })*/
         })))
     }
 }

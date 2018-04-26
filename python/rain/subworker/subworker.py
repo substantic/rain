@@ -1,6 +1,6 @@
 import os
 import sys
-import capnp
+import json
 import socket
 import base64
 import cloudpickle
@@ -13,8 +13,11 @@ from ..common.fs import remove_dir_content
 from ..common import DataInstance, RainException
 from ..common.content_type import merge_content_types
 from ..common.comm import SocketWrapper
+from .context import Context
+from ..common.datatype import DataType
 
-SUBWORKER_PROTOCOL_VERSION = 0
+
+SUBWORKER_PROTOCOL = "xxx"
 
 
 # List of input data objects while Py task arguments are unpickled.
@@ -49,11 +52,60 @@ def unpickle_input_object(name, index, load, content_type):
         return input
 
 
+def load_attributes(data):
+    return dict((k, json.loads(v)) for k, v in data.items())
+
+
+def store_attributes(attributes):
+    return dict((k, json.dumps(v)) for k, v in attributes.items())
+
+
+def load_worker_object(data, cache):
+    object_id = tuple(data["id"])
+    attributes = load_attributes(data["attributes"])
+
+    location = data["location"]
+    path = None
+    data = None
+    if "memory" in location:
+        data = bytes(location["memory"])  # TODO: remove bytes
+    elif "path" in location:
+        path = location["path"]
+
+    # TODO: data type
+    data = DataInstance(data=data, path=path, attributes=attributes, data_type=DataType.BLOB)
+    data._object_id = object_id
+    return data
+
+
+def store_result(instance, id):
+
+    if instance._object_id:
+        location = {"objectData": instance._object_id}
+    elif instance._path:
+        location = {"path": instance._path}
+    else:
+        location = {"memory": list(instance._data)}  # TODO: remove list
+
+    return {
+        "id": id,
+        "attributes": store_attributes(instance.attributes),
+        "location": location,
+        "cacheHint": False,
+    }
+
+
+OutputSpec = collections.namedtuple(
+    'OutputSpec', ['label', 'id', 'encode', 'attributes'])
+
+
 class Subworker:
 
     def __init__(self, address, subworker_id, task_path, stage_path):
         self.task_path = task_path
         self.stage_path = stage_path
+        self.cache = {}
+
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
         # Protection against long filenames, socket names are limitted
@@ -65,16 +117,72 @@ class Subworker:
             os.chdir(backup)
 
         self.socket = SocketWrapper(sock)
-        self.socket.send_message({"version": 0,
-                                  "subworker_id": subworker_id,
-                                  "subworker_type": "py"})
+        self.socket.send_message({"message": "register",
+                                  "data": {
+                                    "protocol": SUBWORKER_PROTOCOL,
+                                    "subworkerId": subworker_id,
+                                    "subworkerType": "py"}})
 
     def run(self):
         while True:
             message = self.socket.receive_message()
             self.process_message(message)
 
+    def unpack_and_run_task(self, data):
+        task_context = Context(self, tuple(data["task"]))
+
+        class XXX(Exception):
+            pass
+
+        try:
+            task_context.attributes = load_attributes(data["attributes"])
+            cfg = task_context.attributes["config"]
+
+            inputs = []
+            for dataobj in data["inputs"]:
+                obj = load_worker_object(dataobj, self.cache)
+                #TODO if reader.saveInCache:
+                #TODO    self.cache[obj._object_id] = obj
+                inputs.append(obj)
+
+            # List of OutputSpec
+            outputs = [OutputSpec(
+                            label=d.get("label"),
+                            id=tuple(d["id"]),
+                            attributes=load_attributes(d["attributes"]),
+                            encode=encode)
+                       for d, encode in zip(data["outputs"],
+                                            cfg['encode_outputs'])]
+
+            del data  # We do not need reference to raw data anymore
+
+            task_results = self.run_task(task_context, inputs, outputs)
+            self.socket.send_message({"message": "result", "data": {
+                "task": task_context.task_id,
+                "success": True,
+                "attributes": store_attributes(task_context.attributes),
+                "outputs": [store_result(data, output.id) for data, output in zip(task_results, outputs)]
+            }})
+
+            #results = _context.results.init("data", len(task_results))
+            #for i, data in enumerate(task_results):
+            #    data._to_capnp(results[i])
+            #task_context._cleanup(task_results)
+            #write_attributes(task_context, _context.results.taskAttributes)
+            #_context.results.ok = True
+
+        except XXX:
+            task_context._cleanup_on_fail()
+            _context.results.errorMessage = traceback.format_exc()
+            write_attributes(task_context, _context.results.taskAttributes)
+            _context.results.ok = False
+
     def process_message(self, message):
+        if message["message"] == "call":
+            self.unpack_and_run_task(message["data"])
+        else:
+            raise Exception("Unknown message")
+        sys.stdout.flush()
         pass  # TODO
 
     def run_task(self, context, inputs, outputs):
@@ -101,7 +209,7 @@ class Subworker:
 
         if len(outputs) == 0:
             if result is not None and result != ():
-                raise RainException("No returned value allowed (0 outputs declared")
+                raise RainException("No returned value allowed (0 outputs declared)")
             result = []
         if len(outputs) == 1:
             result = [result]

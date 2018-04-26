@@ -16,6 +16,7 @@ use common::Attributes;
 use common::fs::logdir::LogDir;
 use common::events;
 use common::DataType;
+use common::comm::{Connection, SendType};
 
 use worker::graph::{subworker_command, DataObject, DataObjectRef, DataObjectState, Graph,
                     SubworkerRef, TaskInput, TaskRef, TaskState};
@@ -24,6 +25,7 @@ use worker::data::transport::TransportView;
 use worker::tasks::TaskInstance;
 use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
+use worker::rpc::subworker_serde::{WorkerToSubworkerMessage, SubworkerToWorkerMessage};
 
 use futures::Future;
 use futures::Stream;
@@ -376,12 +378,17 @@ impl State {
         &mut self,
         subworker_id: SubworkerId,
         subworker_type: String,
-        control: ::subworker_capnp::subworker_control::Client,
-    ) -> Result<()> {
+        stream: ::tokio_io::codec::length_delimited::Framed<UnixStream, SendType>,
+    ) {
         let index = self.initializing_subworkers
             .iter()
-            .position(|&(id, _, _, _, _)| id == subworker_id)
-            .ok_or("Subworker registered under unexpected id")?;
+            .position(|&(id, _, _, _, _)| id == subworker_id);
+
+        if index.is_none() {
+            warn!("Unexpected subworker registered, dropping subworker");
+            return;
+        }
+        let index = index.unwrap();
 
         info!("Subworker registered (subworker_id={})", subworker_id);
 
@@ -389,11 +396,34 @@ impl State {
             self.initializing_subworkers.remove(index);
 
         if sw_type != subworker_type {
-            bail!("Unexpected type of worker registered");
+            warn!("Unexpected type of worker registered");
+            return;
         }
 
+        let connection = Connection::from(stream);
+
         let subworker =
-            SubworkerRef::new(subworker_id, subworker_type, control, work_dir, kill_sender);
+            SubworkerRef::new(subworker_id, subworker_type, connection.sender(), work_dir, kill_sender);
+        let subworker2 = subworker.clone();
+
+        connection.start(self.handle(), move |data| {
+            let message: SubworkerToWorkerMessage = ::serde_json::from_str(::std::str::from_utf8(&data).unwrap()).unwrap();
+            match message {
+                SubworkerToWorkerMessage::Result(msg) => {
+                    let mut sw = subworker2.get_mut();
+                    match sw.pick_finish_sender() {
+                        Some(sender) => { sender.send(msg) },
+                        None => { panic!("No task is currentl running in subworker, but 'result' received")}
+                    };
+                }
+                SubworkerToWorkerMessage::Register(_) => {
+                    panic!("Subworker already registered!");
+                }
+            }
+            Ok(())
+        }, |error| {
+            panic!("Subworker connection failed! {}", error);
+        });
 
         let r = self.graph
             .subworkers
@@ -404,7 +434,6 @@ impl State {
             debug!("Failed to inform about new subworker");
             self.graph.idle_subworkers.insert(subworker);
         }
-        Ok(())
     }
 
     pub fn spawn_panic_on_error<F>(&self, f: F)
@@ -468,14 +497,16 @@ impl State {
 
     pub fn remove_object(&mut self, object: &mut DataObject) {
         debug!("Removing object {}", object.id);
+        let id_list = [object.id];
         for sw in ::std::mem::replace(&mut object.subworker_cache, Default::default()) {
-            let mut req = sw.get().control().remove_cached_objects_request();
+            /*let mut req = sw.get().control().remove_cached_objects_request();
             {
                 debug!("Removing object from subworker {}", sw.get().id());
                 let mut object_ids = req.get().init_object_ids(1);
                 object.id.to_capnp(&mut object_ids.reborrow().get(0));
             }
-            self.spawn_panic_on_error(req.send().promise.map(|_| ()).map_err(|e| e.into()));
+            self.spawn_panic_on_error(req.send().promise.map(|_| ()).map_err(|e| e.into()));*/
+            sw.get().send_remove_cached_objects(&id_list);
         }
         object.set_as_removed();
         self.graph.objects.remove(&object.id);
@@ -776,33 +807,29 @@ impl StateRef {
 
     pub fn on_subworker_connection(&self, stream: UnixStream) {
 
-        #[derive(Deserialize)]
-        struct RegistrationMessage {
-            version: i32,
-            subworker_id: u32,
-            subworker_type: String,
-        };
-
         info!("New subworker connected");
         let state_ref = self.clone();
         let stream = ::common::comm::create_protocol_stream(stream);
-        let future = stream.into_future().then(|r| {
-            match(r) {
+        let future = stream.into_future().then(move |r| {
+            match r {
                 Ok((Some(data), stream)) => {
                     let text_data = ::std::str::from_utf8(&data).unwrap();
-                    let msg : RegistrationMessage = ::serde_json::from_str(text_data).unwrap();
-                    debug!("Subworker registered: version={} id={} type={}", msg.version, msg.subworker_id, msg.subworker_type);
+                    let message: SubworkerToWorkerMessage = ::serde_json::from_str(text_data).unwrap();
 
-                    if msg.version != SUBWORKER_PROTOCOL_VERSION {
-                        error!(
-                            "Invalid subworker protocol; expected = {}",
-                            SUBWORKER_PROTOCOL_VERSION
-                        );
+                    if let SubworkerToWorkerMessage::Register(msg) = message {
+
+                        debug!("Subworker registered: protocol={} id={} type={}", msg.protocol, msg.subworker_id, msg.subworker_type);
+
+                        if msg.protocol != "xxx" {
+                            error!(
+                                "Invalid subworker protocol; expected = xxx"
+                            );
+                        } else {
+                            state_ref.get_mut()
+                                .add_subworker(msg.subworker_id, msg.subworker_type, stream)
+                        }
                     } else {
-                        /*
-                        state_ref.get_mut()
-                            .add_subworker(msg.subworker_id, msg.subworker_type, stream)
-                            .unwrap()*/
+                        warn!("Subworker does not send registration message first");
                     }
                 },
                 Ok((None, _stream)) => {

@@ -8,13 +8,14 @@ from ..common.content_type import (check_content_type, encode_value)
 
 class Context:
 
-    def __init__(self, subworker):
+    def __init__(self, subworker, task_id):
         self._subworker = subworker
         self._id_counter = 0
         self._staged_paths = set()
         self._debug_messages = []
         self.attributes = {}
         self.function = None
+        self.task_id = task_id
 
     def stage_file(self, path, content_type=None):
         """Creates DataInstance from file.

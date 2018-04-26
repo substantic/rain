@@ -3,19 +3,26 @@ use std::fs::File;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 
-use common::id::SubworkerId;
+use common::id::{DataObjectId, SubworkerId};
 use common::wrapped::WrappedRcRefCell;
 use common::fs::LogDir;
+use common::comm::Sender;
+use worker::graph::Task;
 use worker::fs::workdir::WorkDir;
+use worker::rpc::subworker_serde::{CallMsg, ResultMsg, DataLocation};
+use worker::rpc::subworker_serde::{WorkerToSubworkerMessage, SubworkerToWorkerMessage};
+
 
 use errors::Result;
+
 
 pub struct Subworker {
     subworker_id: SubworkerId,
     subworker_type: String,
-    control: ::subworker_capnp::subworker_control::Client,
+    control: Sender,
     work_dir: ::tempdir::TempDir,
     kill_sender: Option<::futures::unsync::oneshot::Sender<()>>,
+    finish_sender: Option<::futures::unsync::oneshot::Sender<ResultMsg>>,
 }
 
 pub type SubworkerRef = WrappedRcRefCell<Subworker>;
@@ -37,7 +44,7 @@ impl Subworker {
     }
 
     #[inline]
-    pub fn control(&self) -> &::subworker_capnp::subworker_control::Client {
+    pub fn control(&self) -> &Sender {
         &self.control
     }
 }
@@ -45,10 +52,35 @@ impl Subworker {
 impl Subworker {
     // Kill subworker, if the process is already killed than nothing happens
     pub fn kill(&mut self) {
+        self.finish_sender = None;
         let sender = ::std::mem::replace(&mut self.kill_sender, None);
         if let Some(s) = sender {
             s.send(()).unwrap();
         }
+    }
+
+    pub fn pick_finish_sender(&mut self) -> Option<::futures::unsync::oneshot::Sender<ResultMsg>> {
+        ::std::mem::replace(&mut self.finish_sender, None)
+    }
+
+    pub fn send_remove_cached_objects(&self, object_ids: &[DataObjectId]) {
+        panic!("send_remove_chached_objects NOT IMPLEMENTED");
+    }
+
+    pub fn send_task(&mut self, task: &Task, method: String) -> ::futures::unsync::oneshot::Receiver<ResultMsg> {
+        let message = WorkerToSubworkerMessage::Call(CallMsg {
+            task: task.id,
+            method,
+            attributes: task.attributes.clone(),
+            inputs: task.inputs.iter().map(|i| i.object.get().create_input_spec(&i.label)).collect(),
+            outputs: task.outputs.iter().map(|o| o.get().create_output_spec()).collect(),
+        });
+        self.control.send(::serde_json::to_vec(&message).unwrap());
+
+        assert!(self.finish_sender.is_none()); // Not task is running
+        let (sender, receiver) = ::futures::unsync::oneshot::channel();
+        self.finish_sender = Some(sender);
+        receiver
     }
 }
 
@@ -62,7 +94,7 @@ impl SubworkerRef {
     pub fn new(
         subworker_id: SubworkerId,
         subworker_type: String,
-        control: ::subworker_capnp::subworker_control::Client,
+        control: Sender,
         work_dir: ::tempdir::TempDir,
         kill_sender: ::futures::unsync::oneshot::Sender<()>,
     ) -> Self {
@@ -72,6 +104,7 @@ impl SubworkerRef {
             control,
             work_dir,
             kill_sender: Some(kill_sender),
+            finish_sender: None,
         })
     }
 }
