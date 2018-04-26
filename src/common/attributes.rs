@@ -30,6 +30,10 @@ impl Attributes {
         Default::default()
     }
 
+    pub fn contains(&self, key: &str) -> bool {
+        self.items.contains_key(key)
+    }
+
     pub fn find<'a, D>(&'a self, key: &str) -> Result<Option<D>>
     where
         D: ::serde::de::Deserialize<'a>,

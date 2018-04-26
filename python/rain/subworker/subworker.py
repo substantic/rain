@@ -7,8 +7,6 @@ import cloudpickle
 import contextlib
 import collections
 
-from .rpc import subworker as rpc_subworker
-from .control import ControlImpl
 from ..common.fs import remove_dir_content
 from ..common import DataInstance, RainException
 from ..common.content_type import merge_content_types
@@ -189,7 +187,7 @@ class Subworker:
         """
         Args:
             inputs: is a list of `DataInstance`.
-            outputs: is list of `ControlImpl.OutputSpec`.
+            outputs: is list of `OutputSpec`.
         Returns:
             list(DataInstance)
         """

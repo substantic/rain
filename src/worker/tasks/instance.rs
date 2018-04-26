@@ -7,7 +7,7 @@ use worker::tasks;
 use worker::rpc::subworker::data_output_from_spec;
 use common::Attributes;
 use common::convert::ToCapnp;
-use errors::{Error, Result};
+use errors::{Error, Result, ErrorKind};
 use worker::rpc::subworker_serde::{DataObjectSpec, DataLocation, ResultMsg};
 
 
@@ -138,7 +138,7 @@ impl TaskInstance {
                         Ok((true, _)) => {
                             let all_finished = task.outputs.iter().all(|o| o.get().is_finished());
                             if !all_finished {
-                                task.set_failed("Some of outputs were not produced".to_string());
+                                task.set_failed("Some of outputs were not produced".into());
                             } else {
                                 for output in &task.outputs {
                                     state.object_is_finished(output);
@@ -196,30 +196,37 @@ impl TaskInstance {
                 sw_wrapper.deactive();
                 match r {
                     Ok(ResultMsg {task: task_id, attributes, success, outputs, cached_objects}) => {
-                        let mut task = task_ref.get_mut();
-                        let subworker = subworker_ref.get();
-                        let work_dir = subworker.work_dir();
-
-                        assert!(task.id == task_id);
-                        task.new_attributes.update(attributes);
-                        if success {
-                            debug!("Task id={} finished in subworker", task.id);
-                            for (co, output) in outputs.into_iter().zip(&task.outputs) {
-                                let attributes = co.attributes.clone();
-                                let data = data_output_from_spec(&state_ref.get(), work_dir, co)?;
-                                let mut o = output.get_mut();
-                                o.set_attributes(attributes);
-                                o.set_data(data)?;
+                        let result : Result<()> = {
+                            let mut task = task_ref.get_mut();
+                            let subworker = subworker_ref.get();
+                            let work_dir = subworker.work_dir();
+                            assert!(task.id == task_id);
+                            if success {
+                                task.new_attributes.update(attributes);
+                                debug!("Task id={} finished in subworker", task.id);
+                                for (co, output) in outputs.into_iter().zip(&task.outputs) {
+                                    let attributes = co.attributes.clone();
+                                    let data = data_output_from_spec(&state_ref.get(), work_dir, co)?;
+                                    let mut o = output.get_mut();
+                                    o.set_attributes(attributes);
+                                    o.set_data(data)?;
+                                }
+                                Ok(())
+                            } else {
+                                debug!("Task id={} failed in subworker", task.id);
+                                Err("Task failed in subworker".into())
                             }
-                        } else {
-                            debug!("Task id={} failed in subworker", task.id);
-                            panic!("FAIL NOT IMPLEMETED");
-                            //bail!(response.get_error_message()?);
-                        }
-                        Ok(())
+                        };
+                        state_ref
+                            .get_mut()
+                            .graph
+                            .idle_subworkers
+                            .insert(subworker_ref);
+
+                        result
                     }
                     Err(_) => {
-                        panic!("Task canceled!");
+                        Err("Lost connection to subworker".into())
                     }
                 }
             })
