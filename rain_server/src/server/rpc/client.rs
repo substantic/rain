@@ -490,10 +490,11 @@ impl client_service::Server for ClientServiceImpl {
         Promise::ok(())
     }
 
+    #[allow(unreachable_code)]
     fn terminate_server(
         &mut self,
-        params: client_service::TerminateServerParams,
-        results: client_service::TerminateServerResults,
+        _params: client_service::TerminateServerParams,
+        _results: client_service::TerminateServerResults,
     ) -> Promise<(), ::capnp::Error> {
         exit(0);
         Promise::ok(())
