@@ -83,24 +83,24 @@ pub struct ResultMsg {
 #[serde(deny_unknown_fields)]
 pub struct DataObjectSpec {
     /// Data object ID
-    id: DataObjectId,
+    pub id: DataObjectId,
     /// Object label within the task inputs or outputs
     #[serde(skip_serializing_if="Option::is_none")]
     #[serde(default)]
-    label: Option<String>,
+    pub label: Option<String>,
     /// Object attributes
-    attributes: Attributes,
+    pub attributes: Attributes,
     /// Object data location
     #[serde(skip_serializing_if="Option::is_none")]
     #[serde(default)]
-    location: Option<DataLocation>,
+    pub location: Option<DataLocation>,
     /// If able, the subworker should cache this object, preferably in the 
     /// unpacked form to save repeated unpacking (e.g. python cloudpickle).
     /// If the subworker decides to cache the object, it must add it to
     /// `ResultMsg::cached_objects`.
     #[serde(skip_serializing_if="::std::ops::Not::not")]
     #[serde(default)]
-    cache_hint: bool,
+    pub cache_hint: bool,
 }
 
 /// Data location of inputs and outputs in `DataObjectSpec::location`.

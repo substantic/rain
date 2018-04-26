@@ -10,6 +10,7 @@ serde_derive = "*"
 serde = "*"
 serde_json = "*"
 byteorder = "*"
+serde_cbor = "*"
 
 atty="*"
 error-chain="*"
