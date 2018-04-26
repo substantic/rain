@@ -100,10 +100,6 @@ pub mod worker_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/worker_capnp.rs"));
 }
 
-pub mod subworker_capnp {
-    include!(concat!(env!("OUT_DIR"), "/capnp/subworker_capnp.rs"));
-}
-
 pub mod monitor_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/monitor_capnp.rs"));
 }

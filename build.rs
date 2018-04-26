@@ -6,7 +6,6 @@ fn main() {
         .file("capnp/server.capnp")
         .file("capnp/client.capnp")
         .file("capnp/worker.capnp")
-        .file("capnp/subworker.capnp")
         .file("capnp/monitor.capnp")
         .run()
         .expect("schema compiler command");

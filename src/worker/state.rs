@@ -23,7 +23,7 @@ use worker::graph::{subworker_command, DataObject, DataObjectRef, DataObjectStat
 use worker::data::Data;
 use worker::data::transport::TransportView;
 use worker::tasks::TaskInstance;
-use worker::rpc::{SubworkerUpstreamImpl, WorkerControlImpl};
+use worker::rpc::{WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
 use worker::rpc::subworker_serde::{WorkerToSubworkerMessage, SubworkerToWorkerMessage};
 
