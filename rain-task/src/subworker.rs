@@ -7,11 +7,16 @@ use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 use super::*;
 
+/// Alias type for a subworker task function with arbitrary number of inputs
+/// and outputs.
+pub type TaskFn = Fn(&Context, &[DataInstance], &[Output]) -> Result<()>;
+
 pub struct Subworker {
     subworker_id: SubworkerId,
     subworker_type: String,
     socket_path: PathBuf,
     tasks: HashMap<String, Box<TaskFn>>,
+    working_path: PathBuf,
 }
 
 impl Subworker {
@@ -32,12 +37,13 @@ impl Subworker {
             subworker_type: subworker_type.into(),
             subworker_id: subworker_id,
             socket_path: socket_path,
-            tasks: HashMap::new()
+            tasks: HashMap::new(),
+            working_path: env::current_dir().unwrap(),
         }
     }
 
     pub fn add_task<S, F>(&mut self, task_name: S, task_fun: F)
-        where S: Into<String>, F: 'static + Fn(&mut Context, &[DataInstance], &mut [Output]) -> Result<()> {
+        where S: Into<String>, F: 'static + Fn(&Context, &[DataInstance], &[Output]) -> Result<()> {
         let key: String = task_name.into();
         if self.tasks.contains_key(&key) {
             panic!("can't add task {:?}: already present", &key);
@@ -86,9 +92,24 @@ impl Subworker {
     }
 
     fn handle_call(&mut self, call_msg: CallMsg) -> Result<ResultMsg> {
-        Ok(unimplemented!()) // TODO: Implement
-    }
+        // TODO: Handle workdir path
+        let work_dir: PathBuf = "TODO".into();
 
+        let mut context = Context::for_call_msg(&call_msg, &work_dir)?;
+        match self.tasks.get(&call_msg.method) { 
+            None => bail!("Task {} not found", call_msg.method),
+            Some(f) => {
+                env::set_current_dir(&context.work_dir)?;
+                let res = f(&context, &context.inputs, &context.outputs);
+                if let Err(e) = res {
+                    context.success = false;
+                    context.attributes.set("error", format!("error returned from {:?}:\n{}", call_msg.method, e)).unwrap();
+                }
+            },
+        }
+        Ok(context.into_result_msg())
+    }
+/*
     #[allow(dead_code)]
     pub(crate) fn run_task_test<S: Into<String>>(&mut self, task_name: S) -> Result<()> {
         let key: String = task_name.into();
@@ -96,10 +117,10 @@ impl Subworker {
             Some(f) => {
                 let ins = vec![];
                 let mut outs = vec![];
-                let mut ctx: Context = Default::default(); 
+                let mut ctx = Context::for_call_msg(); 
                 f(&mut ctx, &ins, &mut outs)
             },
             None => bail!("Task {} not found", key)
         }
-    }
+    }*/
 }

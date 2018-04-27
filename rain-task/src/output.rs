@@ -72,7 +72,7 @@ impl<'a> Output<'a> {
     /// Currently, this subworker never caches.
     /// 
     /// NOTE: The returned path may be still an open file until this Output is dropped.
-    pub(crate) fn create_output_spec(self) -> (DataObjectSpec, bool) {
+    pub(crate) fn into_output_spec(self) -> (DataObjectSpec, bool) {
         (DataObjectSpec {
             id: self.desc.id,
             label: None,
@@ -91,7 +91,7 @@ impl<'a> Output<'a> {
     /// Moves the directory to the staging area.
     /// You should make sure no files in the directory are open after this operation.
     /// Not allowed if the output was submitted to.
-    pub fn stage_directory<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
+    pub fn stage_directory<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let path: &Path = path.as_ref();
         // TODO: Check for self directory type
         if !path.is_dir() {
@@ -110,7 +110,7 @@ impl<'a> Output<'a> {
     /// Moves the directory to the staging area.
     /// You should make sure no files in the directory are open after this operation.
     /// Not allowed if the output was submitted or written to.
-    pub fn stage_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
+    pub fn stage_file<P: AsRef<Path>>(&self, path: P) -> Result<()> {
         let path: &Path = path.as_ref();
         // TODO: Check for self non-directory type
         if !path.is_file() {
