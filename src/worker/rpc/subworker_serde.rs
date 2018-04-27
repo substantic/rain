@@ -1,5 +1,7 @@
 use common::id::{TaskId, DataObjectId, SubworkerId};
 use common::Attributes;
+use std::path::PathBuf;
+use serde_bytes;
 
 /// Message from subworker to worker.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
@@ -108,9 +110,10 @@ pub struct DataObjectSpec {
 #[serde(rename_all = "camelCase")]
 pub enum DataLocation {
     /// The data is present in the given path that is relative to the subworker working directory.
-    Path(String),
+    Path(PathBuf),
     /// The data is directly contained in the message. Only reccomended for
     /// small objects (under cca 128kB).
+    #[serde(with="serde_bytes")]
     Memory(Vec<u8>),
     /// The data is identical to one of input objects. 
     /// Only valid in `ResultMsg`.

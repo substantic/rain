@@ -49,10 +49,8 @@ serde_json = "*"
 tar = "*"
 toml = "*"
 walkdir = "*"
-rmp-serde = { path="msgpack-rust/rmp-serde" }
-rmp = "*"
-rmpv = "*"
-serde_cbor= "*"
+serde_cbor = "*"
+serde_bytes = "*"
 
 [build-dependencies]
 capnpc = "0.8"
