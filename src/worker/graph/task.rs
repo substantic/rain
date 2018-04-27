@@ -100,9 +100,9 @@ impl Task {
     }
 
     pub fn set_failed(&mut self, error_message: String) {
-
         warn!("Task {} failed: {}", self.id, error_message);
-
+        assert_ne!(self.state, TaskState::Failed);
+        self.state = TaskState::Failed;
         if !self.new_attributes.contains("error") {
             self.new_attributes.set("error", error_message).unwrap();
         }

@@ -67,6 +67,8 @@ pub struct ResultMsg {
     /// `DataObjectSpec::cache_hint` should be missing or false.
     /// In `DataObjectSpec::attributes`, `spec` and `user_spec` are ignored if present.
     /// The list must match `CallMsg::outputs` lengts and on `id`s.
+    #[serde(skip_serializing_if="Vec::is_empty")]
+    #[serde(default)]
     pub outputs: Vec<DataObjectSpec>,
     /// If any objects with `cache_hint` were sent, report which were newly cached
     /// (does not include objects previously cached and now reported with `DataLocation::Cached`).

@@ -201,8 +201,8 @@ impl TaskInstance {
                             let subworker = subworker_ref.get();
                             let work_dir = subworker.work_dir();
                             assert!(task.id == task_id);
+                            task.new_attributes.update(attributes);
                             if success {
-                                task.new_attributes.update(attributes);
                                 debug!("Task id={} finished in subworker", task.id);
                                 for (co, output) in outputs.into_iter().zip(&task.outputs) {
                                     let attributes = co.attributes.clone();

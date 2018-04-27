@@ -6,6 +6,7 @@ import base64
 import cloudpickle
 import contextlib
 import collections
+import traceback
 
 from ..common.fs import remove_dir_content
 from ..common import DataInstance, RainException
@@ -79,7 +80,7 @@ def load_worker_object(data, cache):
 def store_result(instance, id):
 
     if instance._object_id:
-        location = {"objectData": instance._object_id}
+        location = {"otherObject": instance._object_id}
     elif instance._path:
         location = {"path": instance._path}
     else:
@@ -155,6 +156,10 @@ class Subworker:
             del data  # We do not need reference to raw data anymore
 
             task_results = self.run_task(task_context, inputs, outputs)
+
+            if task_context._debug_messages:
+                task_context.attributes["debug"] = "\n".join(task_context._debug_messages)
+
             self.socket.send_message({"message": "result", "data": {
                 "task": task_context.task_id,
                 "success": True,
@@ -169,11 +174,21 @@ class Subworker:
             #write_attributes(task_context, _context.results.taskAttributes)
             #_context.results.ok = True
 
-        except XXX:
+        except Exception:
             task_context._cleanup_on_fail()
-            _context.results.errorMessage = traceback.format_exc()
-            write_attributes(task_context, _context.results.taskAttributes)
-            _context.results.ok = False
+
+            attributes = {
+                "error": traceback.format_exc()
+            }
+            if task_context._debug_messages:
+                attributes["debug"] = "\n".join(task_context._debug_messages)
+
+            self.socket.send_message({"message": "result", "data": {
+                "task": task_context.task_id,
+                "success": False,
+                "attributes": store_attributes(attributes),
+            }})
+
 
     def process_message(self, message):
         if message["message"] == "call":
