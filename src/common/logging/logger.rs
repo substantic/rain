@@ -31,7 +31,7 @@ pub trait Logger {
         self.add_event_with_timestamp(event, Utc::now());
     }
 
-    fn add_event_with_timestamp(&mut self, event: Event, ::chrono::DateTime<::chrono::Utc>);
+    fn add_event_with_timestamp(&mut self, event: Event, time: ::chrono::DateTime<::chrono::Utc>);
 
     fn flush_events(&mut self);
 
@@ -122,6 +122,12 @@ pub trait Logger {
         self.add_event(Event::SessionNew(events::SessionNewEvent {
             session,
             client,
+        }));
+    }
+
+    fn add_close_session_event(&mut self, session: SessionId) {
+        self.add_event(Event::SessionClose(events::SessionCloseEvent {
+            session,
         }));
     }
 

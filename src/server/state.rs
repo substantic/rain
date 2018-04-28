@@ -198,6 +198,8 @@ impl State {
         }
         // Remove all finish hooks
         s.get_mut().finish_hooks.clear();
+
+        self.logger.add_close_session_event(session_id);
         Ok(())
     }
 
