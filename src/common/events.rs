@@ -36,6 +36,11 @@ pub struct SessionNewEvent {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SessionCloseEvent {
+    pub session: SessionId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ClientSubmitEvent {
     pub tasks: Vec<TaskDescriptor>,
     pub dataobjs: Vec<ObjectDescriptor>,
@@ -144,6 +149,7 @@ pub enum Event {
     ClientRemoved(ClientRemovedEvent),
 
     SessionNew(SessionNewEvent),
+    SessionClose(SessionCloseEvent),
 
     ClientSubmit(ClientSubmitEvent),
     ClientUnkeep(ClientUnkeepEvent),
@@ -168,6 +174,7 @@ impl Event {
             &Event::ClientNew(_) => "ClientNew",
             &Event::ClientRemoved(_) => "ClientRemoved",
             &Event::SessionNew(_) => "SessionNew",
+            &Event::SessionClose(_) => "SessionClose",
             &Event::ClientSubmit(_) => "ClientSubmit",
             &Event::ClientUnkeep(_) => "ClientUnkeep",
             &Event::TaskStarted(_) => "TaskStarted",
@@ -186,6 +193,7 @@ impl Event {
             &Event::TaskStarted(ref e) => Some(e.task.get_session_id()),
             &Event::TaskFailed(ref e) => Some(e.task.get_session_id()),
             &Event::SessionNew(ref e) => Some(e.session),
+            &Event::SessionClose(ref e) => Some(e.session),
             &Event::ClientSubmit(ref e) => {
                 // TODO: Quick hack, we expect that submit contains only tasks/obj from one session
                 e.tasks.get(0).map(|t| t.id.get_session_id())
