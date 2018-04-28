@@ -20,7 +20,7 @@ pub struct SearchItemString {
 #[derive(Deserialize)]
 pub struct SearchCriteria {
     pub id: Option<SearchItemInt>,
-    pub event_type: Option<SearchItemString>,
+    pub event_types: Option<Vec<SearchItemString>>,
     pub session: Option<SearchItemInt>,
 }
 
@@ -126,9 +126,7 @@ pub trait Logger {
     }
 
     fn add_close_session_event(&mut self, session: SessionId) {
-        self.add_event(Event::SessionClose(events::SessionCloseEvent {
-            session,
-        }));
+        self.add_event(Event::SessionClose(events::SessionCloseEvent { session }));
     }
 
     fn get_events(

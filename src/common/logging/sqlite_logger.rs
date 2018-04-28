@@ -61,9 +61,15 @@ fn load_events(conn: &mut Connection, search_criteria: &SearchCriteria) -> Resul
         args.push(&v.value);
     }
 
-    if let Some(ref v) = search_criteria.event_type {
-        where_conds.push(make_where_string("event_type", &v.mode)?);
-        args.push(&v.value);
+    if let Some(ref v) = search_criteria.event_types {
+        let conditions: Result<Vec<_>> = v.iter()
+            .map(|e| make_where_string("event_type", &e.mode))
+            .collect();
+        where_conds.push(format!("({})", conditions?.join(" OR ")));
+
+        for event in v {
+            args.push(&event.value);
+        }
     }
 
     if let Some(ref v) = search_criteria.session {
