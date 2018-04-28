@@ -11,14 +11,31 @@ class Sessions extends Component {
 
   constructor(props) {
     super(props);
-    this.state = {sessions: []}
-    this.unsubscribe = fetch_events({"event_type": {value: "SessionNew", mode: "="}}, event => {
-        let session = {
-          id: event.event.session,
-          client: event.event.client,
-          created: event.time
-        };
-        this.setState(update(this.state, {sessions: {$push: [session]}}));
+    this.state = {sessions: []};
+    this.unsubscribe = fetch_events({"event_types": [
+        {value: "SessionNew", mode: "="},
+        {value: "SessionClose", mode: "="}
+    ]}, event => {
+        if (event.event.type === 'SessionNew')
+        {
+            let session = {
+                id: event.event.session,
+                client: event.event.client,
+                created: event.time,
+                finished: null
+            };
+            this.setState(update(this.state, {sessions: {$push: [session]}}));
+        }
+        else if (event.event.type === 'SessionClose')
+        {
+            const id = event.event.session;
+            this.setState(state => ({
+                sessions: state.sessions.map(s => s.id === id ? {
+                    ...s,
+                    finished: event.time
+                } : s)
+            }));
+        }
     }, error => {
       this.setState(update(this.state, {error: {$set: error}}));
     });
@@ -36,7 +53,7 @@ class Sessions extends Component {
 
           <Table>
             <thead>
-              <tr><th>Session</th><th>Client</th><th>Created</th></tr>
+            <tr><th>Session</th><th>Client</th><th>Created</th><th>Finished</th></tr>
             </thead>
             <tbody>
               {this.state.sessions && this.state.sessions.map(s => {
@@ -44,6 +61,7 @@ class Sessions extends Component {
                   <td><Link to={"session/" + s.id}>Session {s.id}</Link></td>
                   <td>{s.client}</td>
                   <td>{s.created}</td>
+                  <td>{s.finished && s.finished}</td>
                   </tr>);
               })}
             </tbody>

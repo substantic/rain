@@ -11,8 +11,8 @@ class Workers extends Component {
 
   constructor(props) {
     super(props);
-    this.state = {workers: []}
-    this.unsubscribe = fetch_events({"event_type": {value: "Monitoring", mode: "="}}, event => {
+    this.state = {workers: []};
+    this.unsubscribe = fetch_events({"event_types": [{value: "Monitoring", mode: "="}]}, event => {
       //console.log("EVENT", event);
       let index = -1;
       let i = 0;

@@ -46,7 +46,7 @@ export function fetch_events(search_criteria, callback, on_error, update) {
             clearInterval(timer);
             timer = null;
         });
-    }
+    };
 
     _fetch_events();
     let timer = setInterval(_fetch_events, 1000);
