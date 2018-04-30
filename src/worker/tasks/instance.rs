@@ -5,10 +5,9 @@ use worker::graph::{SubworkerRef, TaskRef, TaskState};
 use worker::state::State;
 use worker::tasks;
 use worker::rpc::subworker::data_output_from_spec;
-use common::Attributes;
-use common::convert::ToCapnp;
-use errors::{Error, Result, ErrorKind};
-use worker::rpc::subworker_serde::{DataObjectSpec, DataLocation, ResultMsg};
+use common::{DataType};
+use errors::{Error, Result};
+use worker::rpc::subworker_serde::{ResultMsg};
 
 
 /// Instance represents a running task. It contains resource allocations and
@@ -192,7 +191,7 @@ impl TaskInstance {
             let task = task_ref2.get();
             let subworker_ref2 = subworker_ref.clone();
             let mut subworker = subworker_ref2.get_mut();
-            subworker.send_task(&task, method_name).then(move |r| {
+            subworker.send_task(&task, method_name, &subworker_ref).then(move |r| {
                 sw_wrapper.deactive();
                 match r {
                     Ok(ResultMsg {task: task_id, attributes, success, outputs, cached_objects}) => {
@@ -202,11 +201,16 @@ impl TaskInstance {
                             let work_dir = subworker.work_dir();
                             assert!(task.id == task_id);
                             task.new_attributes.update(attributes);
+
                             if success {
                                 debug!("Task id={} finished in subworker", task.id);
                                 for (co, output) in outputs.into_iter().zip(&task.outputs) {
                                     let attributes = co.attributes.clone();
-                                    let data = data_output_from_spec(&state_ref.get(), work_dir, co)?;
+
+                                    // TEMPORRARY HACK, when new attributes are introduced, this should be removed, new attributes
+                                    let data_type_name : Option<String> = attributes.find("type")?;
+                                    let data_type = data_type_name.map(|n| if "directory" == n { DataType::Directory } else { DataType::Blob }).unwrap_or(DataType::Blob);
+                                    let data = data_output_from_spec(&state_ref.get(), work_dir, co, data_type)?;
                                     let mut o = output.get_mut();
                                     o.set_attributes(attributes);
                                     o.set_data(data)?;
@@ -217,8 +221,16 @@ impl TaskInstance {
                                 Err("Task failed in subworker".into())
                             }
                         };
-                        state_ref
-                            .get_mut()
+
+                        let mut state = state_ref.get_mut();
+
+                        for object_id in cached_objects {
+                            // TODO: Validate that object_id is input/output of the task
+                            let obj_ref = state.graph.objects.get(&object_id).unwrap();
+                            obj_ref.get_mut().subworker_cache.insert(subworker_ref.clone());
+                        }
+
+                        state
                             .graph
                             .idle_subworkers
                             .insert(subworker_ref);
@@ -230,107 +242,6 @@ impl TaskInstance {
                     }
                 }
             })
-            /*
-            let mut req = subworker.get().control().run_task_request();
-            {
-                let task = task_ref.get();
-                debug!("Starting task id={} in subworker", task.id);
-                // Serialize task
-                let mut param_task = req.get().get_task().unwrap();
-                task.id
-                    .to_capnp(&mut param_task.reborrow().get_id().unwrap());
-
-                task.attributes
-                    .to_capnp(&mut param_task.reborrow().get_attributes().unwrap());
-
-                param_task.set_method(&method_name);
-
-                param_task.reborrow().init_inputs(task.inputs.len() as u32);
-                {
-                    // Serialize inputs of task
-                    let mut p_inputs = param_task.reborrow().get_inputs().unwrap();
-                    for (i, input) in task.inputs.iter().enumerate() {
-                        let mut p_input = p_inputs.reborrow().get(i as u32);
-                        p_input.set_label(&input.label);
-                        let mut obj = input.object.get_mut();
-
-                        if obj.subworker_cache.contains(&subworker) {
-                            let mut p_data = p_input.reborrow().get_data().unwrap();
-                            p_data.get_storage().set_cache(());
-                        } else {
-                            // This is caching hack, since we know that 1st argument is function
-                            // for Python subworker, we force to cache first argument
-                            if i == 0 {
-                                obj.subworker_cache.insert(subworker.clone());
-                                p_input.set_save_in_cache(true);
-                            }
-
-                            {
-                                let mut p_data = p_input.reborrow().get_data().unwrap();
-                                obj.data().to_subworker_capnp(&mut p_data.reborrow());
-                                obj.attributes
-                                    .to_capnp(&mut p_data.reborrow().get_attributes().unwrap());
-                            }
-                        }
-                        obj.id.to_capnp(&mut p_input.get_id().unwrap());
-                    }
-                }
-
-                param_task
-                    .reborrow()
-                    .init_outputs(task.outputs.len() as u32);
-                {
-                    // Serialize outputs of task
-                    let mut p_outputs = param_task.get_outputs().unwrap();
-                    for (i, output) in task.outputs.iter().enumerate() {
-                        let mut p_output = p_outputs.reborrow().get(i as u32);
-                        let obj = output.get();
-                        p_output.set_label(&obj.label);
-                        obj.attributes
-                            .to_capnp(&mut p_output.reborrow().get_attributes().unwrap());
-                        obj.id.to_capnp(&mut p_output.get_id().unwrap());
-                    }
-                }
-            }
-            req.send()
-                .promise
-                .map_err::<_, Error>(|e| e.into())
-                .then(move |r| {
-                    let subworker_ref = sw_wrapper.deactive();
-                    let result = match r {
-                        Ok(response) => {
-                            let mut task = task_ref.get_mut();
-                            let response = response.get()?;
-                            task.new_attributes
-                                .update_from_capnp(&response.get_task_attributes()?);
-                            let subworker = subworker_ref.get();
-                            let work_dir = subworker.work_dir();
-                            if response.get_ok() {
-                                debug!("Task id={} finished in subworker", task.id);
-                                for (co, output) in response.get_data()?.iter().zip(&task.outputs) {
-                                    let data = data_from_capnp(&state_ref.get(), work_dir, &co)?;
-                                    let attributes =
-                                        Attributes::from_capnp(&co.get_attributes().unwrap());
-
-                                    let mut o = output.get_mut();
-                                    o.set_attributes(attributes);
-                                    o.set_data(data)?;
-                                }
-                            } else {
-                                debug!("Task id={} failed in subworker", task.id);
-                                bail!(response.get_error_message()?);
-                            }
-                            Ok(())
-                        }
-                        Err(err) => Err(err.into()),
-                    };
-                    state_ref
-                        .get_mut()
-                        .graph
-                        .idle_subworkers
-                        .insert(subworker_ref);
-                    result
-                })*/
         })))
     }
 }

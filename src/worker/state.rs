@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use common::asycinit::AsyncInitWrapper;
 use common::RcSet;
-use common::id::{empty_worker_id, DataObjectId, SubworkerId, TaskId, WorkerId};
+use common::id::{empty_worker_id, DataObjectId, TaskId, WorkerId};
 use common::convert::{FromCapnp, ToCapnp};
 use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
@@ -16,7 +16,7 @@ use common::Attributes;
 use common::fs::logdir::LogDir;
 use common::events;
 use common::DataType;
-use common::comm::{Connection, SendType};
+use common::comm::Connection;
 
 use worker::graph::{subworker_command, DataObject, DataObjectRef, DataObjectState, Graph,
                     SubworkerRef, TaskInput, TaskRef, TaskState};
@@ -25,7 +25,8 @@ use worker::data::transport::TransportView;
 use worker::tasks::TaskInstance;
 use worker::rpc::{WorkerControlImpl};
 use worker::fs::workdir::WorkDir;
-use worker::rpc::subworker_serde::{WorkerToSubworkerMessage, SubworkerToWorkerMessage};
+use worker::rpc::subworker_serde::SubworkerToWorkerMessage;
+use worker::rpc::subworker::{check_registration};
 
 use futures::Future;
 use futures::Stream;
@@ -33,14 +34,12 @@ use futures::IntoFuture;
 use tokio_core::reactor::Handle;
 use tokio_core::net::TcpListener;
 use tokio_core::net::TcpStream;
-use tokio_core::io::Io;
-use tokio_uds::{UnixListener, UnixStream};
+use tokio_uds::UnixListener;
 use capnp_rpc::rpc_twoparty_capnp;
 use capnp::capability::Promise;
 use errors::{Error, Result};
 
 use WORKER_PROTOCOL_VERSION;
-use SUBWORKER_PROTOCOL_VERSION;
 
 const MONITORING_INTERVAL: u64 = 5; // Monitoring interval in seconds
 const DELETE_WAIT_LIST_INTERVAL: u64 = 2; // How often is delete_wait_list checked in seconds
@@ -87,19 +86,6 @@ pub struct State {
     delete_list_max_timeout: u32,
 
     monitor: Monitor,
-
-    /// Listing of subworkers that were started as process, but not registered
-    /// The second member of triplet is subworker_type
-    /// Third member (oneshot) is fired when registration is completed
-    initializing_subworkers: Vec<
-        (
-            SubworkerId,
-            String,                                           // type (e.g. "py")
-            ::tempdir::TempDir,                               // working dir
-            ::futures::unsync::oneshot::Sender<SubworkerRef>, // when finished
-            ::futures::unsync::oneshot::Sender<()>,
-        ), // kill switch of worker
-    >,
 
     // Map from name of subworkers to its arguments
     // e.g. "py" => ["python", "-m", "rain.subworker"]
@@ -297,6 +283,7 @@ impl State {
     }
 
     fn subworker_cleanup(&mut self, subworker_ref: &SubworkerRef) {
+        self.graph.idle_subworkers.remove(&subworker_ref);
         for (_, obj_ref) in &self.graph.objects {
             obj_ref.get_mut().subworker_cache.remove(&subworker_ref);
         }
@@ -307,6 +294,7 @@ impl State {
         subworker_type: &str,
     ) -> Result<Box<Future<Item = SubworkerRef, Error = Error>>> {
         use tokio_process::CommandExt;
+
         let sw_result = self.graph
             .idle_subworkers
             .iter()
@@ -314,27 +302,35 @@ impl State {
             .cloned();
         match sw_result {
             None => {
-                let subworker_id = self.graph.make_id();
                 if let Some(args) = self.subworker_args.get(subworker_type) {
-                    let (ready_sender, ready_receiver) = ::futures::unsync::oneshot::channel();
-                    let (kill_sender, kill_receiver) = ::futures::unsync::oneshot::channel();
+                    let subworker_id = self.graph.make_id();
+                    let subworker_type = subworker_type.to_string();
+                    info!(
+                        "Staring new subworker type={} id={}",
+                        subworker_type, subworker_id
+                    );
+                    let subworker_dir = self.work_dir.make_subworker_work_dir(subworker_id)?;
+                    let listen_path = subworker_dir.path().join("socket");
+
+                    // --- Start listening Unix socket for subworkers ----
+                    let listener = {
+                        let backup = ::std::env::current_dir().unwrap();
+                        ::std::env::set_current_dir(subworker_dir.path()).unwrap();
+                        let result = UnixListener::bind("socket", &self.handle);
+                        ::std::env::set_current_dir(backup).unwrap();
+                        result
+                    }.map_err(|e| info!("Cannot create listening unix socket: {:?}", e))
+                        .unwrap();
+
                     let program_name = &args[0];
-                    let (mut command, subworker_dir) = subworker_command(
-                        &self.work_dir,
+                    let mut command = subworker_command(
+                        &subworker_dir,
+                        &listen_path,
                         &self.log_dir,
                         subworker_id,
-                        subworker_type,
                         program_name,
                         &args[1..],
                     )?;
-
-                    self.initializing_subworkers.push((
-                        subworker_id,
-                        subworker_type.to_string(),
-                        subworker_dir,
-                        ready_sender,
-                        kill_sender,
-                    ));
 
                     let command_future = command
                         .status_async2(&self.handle)?
@@ -344,95 +340,85 @@ impl State {
                                 "Subworker {} terminated with exit code: {}",
                                 subworker_id, status
                             );
-                            bail!("Subworker terminated; TODO handle this situation");
+                            bail!("Subworker unexpectedly terminated with exit code: {}", status);
                         });
 
-                    // We do not care how kill switch was activated, so receiving () or CancelError is ok
-                    let kill_switch = kill_receiver.then(|_| Ok(()));
-                    self.spawn_panic_on_error(
-                        command_future
-                            .select(kill_switch)
-                            .map_err(|(e, _)| e)
-                            .map(|_| {
-                                // Process was terminated. We do not handle error here, since
-                                // it is handled when connection (not process) is terminated
-                                debug!("Subworker process terminated");
-                            }),
-                    );
-                    Ok(Box::new(
-                        ready_receiver.map_err(|_| "Subwork start cancelled".into()),
-                    ))
+                    let subworker_type2 = subworker_type.clone();
+                    let listen_future = listener.incoming().into_future()
+                        .map_err(|_| "Subworker connection failed".into())
+                        .and_then(move |(r, _)| {
+                        info!("Connection for subworker id={}", subworker_id);
+                        let (raw_stream, _) = r.unwrap();
+                        let stream = ::common::comm::create_protocol_stream(raw_stream);
+                        stream.into_future().map_err(|(e, _)| {
+                            format!("Subworker error: Error on unregistered subworker connection: {:?}", e).into()
+                        }).and_then(move |(r, stream)| {
+                            check_registration(r, subworker_id, &subworker_type2).map(|()| stream)
+                        })
+                    });
+
+                    let state_ref = self.self_ref();
+                    let ready_future = listen_future.select2(command_future).and_then(move |r| {
+                        // TODO: replace in futures 0.2.0 by left()
+                        let (stream, command_future) = match r {
+                            ::futures::future::Either::A(x) => x,
+                            ::futures::future::Either::B(((), _)) => unreachable!()
+                        };
+                        let connection = Connection::from(stream);
+                        let sender = connection.sender();
+                        let subworker = SubworkerRef::new(subworker_id, subworker_type, sender, subworker_dir);
+                        let subworker2 = subworker.clone();
+                        let result = subworker.clone();
+
+                        let comm_future = connection.start_future(move |data| {
+                            let message: SubworkerToWorkerMessage = ::serde_json::from_str(::std::str::from_utf8(&data).unwrap()).unwrap();
+                            match message {
+                                SubworkerToWorkerMessage::Result(msg) => {
+                                    let mut sw = subworker.get_mut();
+                                    match sw.pick_finish_sender() {
+                                        Some(sender) => { sender.send(msg).unwrap() },
+                                        None => {
+                                            bail!("No task is currentl running in subworker, but 'result' received")
+                                        }
+                                    };
+                                }
+                                SubworkerToWorkerMessage::Register(_) => {
+                                    bail!("Subworker send 'Register' message but it is already registered");
+                                }
+                            }
+                            Ok(())
+                        });
+                        let state_ref2 = state_ref.clone();
+                        let future = comm_future.select(command_future).then(move |r| {
+                            match r {
+                                Ok(_) => {
+                                    debug!("Subworker terminating");
+                                }
+                                Err((e, _)) => {
+                                    error!("Subworker failed: {}", e)
+                                }
+                            };
+                            subworker2.get_mut().pick_finish_sender(); // just picke sender and them it away
+                            let mut state = state_ref2.get_mut();
+                            state.subworker_cleanup(&subworker2);
+                            Ok(())
+                        });
+                        let state = state_ref.get();
+                        state.handle().spawn(future);
+                        Ok(result)
+                    }).map_err(|e| {
+                        // TODO: replace in futures 0.2.0 by into_inner()
+                        e.split().0
+                    });
+                    Ok(Box::new(ready_future))
                 } else {
-                    bail!("Unknown subworker")
+                    bail!("Do not know how to start subworker: {}", subworker_type);
                 }
-            }
+            },
             Some(sw) => {
                 self.graph.idle_subworkers.remove(&sw);
                 Ok(Box::new(Ok(sw).into_future()))
             }
-        }
-    }
-
-    /// This method is called when subworker is connected & registered
-    pub fn add_subworker(
-        &mut self,
-        subworker_id: SubworkerId,
-        subworker_type: String,
-        stream: ::tokio_io::codec::length_delimited::Framed<UnixStream, SendType>,
-    ) {
-        let index = self.initializing_subworkers
-            .iter()
-            .position(|&(id, _, _, _, _)| id == subworker_id);
-
-        if index.is_none() {
-            warn!("Unexpected subworker registered, dropping subworker");
-            return;
-        }
-        let index = index.unwrap();
-
-        info!("Subworker registered (subworker_id={})", subworker_id);
-
-        let (_, sw_type, work_dir, ready_sender, kill_sender) =
-            self.initializing_subworkers.remove(index);
-
-        if sw_type != subworker_type {
-            warn!("Unexpected type of worker registered");
-            return;
-        }
-
-        let connection = Connection::from(stream);
-
-        let subworker =
-            SubworkerRef::new(subworker_id, subworker_type, connection.sender(), work_dir, kill_sender);
-        let subworker2 = subworker.clone();
-
-        connection.start(self.handle(), move |data| {
-            let message: SubworkerToWorkerMessage = ::serde_json::from_str(::std::str::from_utf8(&data).unwrap()).unwrap();
-            match message {
-                SubworkerToWorkerMessage::Result(msg) => {
-                    let mut sw = subworker2.get_mut();
-                    match sw.pick_finish_sender() {
-                        Some(sender) => { sender.send(msg) },
-                        None => { panic!("No task is currentl running in subworker, but 'result' received")}
-                    };
-                }
-                SubworkerToWorkerMessage::Register(_) => {
-                    panic!("Subworker already registered!");
-                }
-            }
-            Ok(())
-        }, |error| {
-            panic!("Subworker connection failed! {}", error);
-        });
-
-        let r = self.graph
-            .subworkers
-            .insert(subworker_id, subworker.clone());
-        assert!(r.is_none());
-
-        if let Err(subworker) = ready_sender.send(subworker) {
-            debug!("Failed to inform about new subworker");
-            self.graph.idle_subworkers.insert(subworker);
         }
     }
 
@@ -499,13 +485,6 @@ impl State {
         debug!("Removing object {}", object.id);
         let id_list = [object.id];
         for sw in ::std::mem::replace(&mut object.subworker_cache, Default::default()) {
-            /*let mut req = sw.get().control().remove_cached_objects_request();
-            {
-                debug!("Removing object from subworker {}", sw.get().id());
-                let mut object_ids = req.get().init_object_ids(1);
-                object.id.to_capnp(&mut object_ids.reborrow().get(0));
-            }
-            self.spawn_panic_on_error(req.send().promise.map(|_| ()).map_err(|e| e.into()));*/
             sw.get().send_remove_cached_objects(&id_list);
         }
         object.set_as_removed();
@@ -721,7 +700,6 @@ impl StateRef {
             graph: Graph::new(),
             need_scheduling: false,
             monitor: Monitor::new(),
-            initializing_subworkers: Vec::new(),
             subworker_args: subworkers,
             self_ref: None,
             delete_list_max_timeout: ::std::env::var("RAIN_DELETE_LIST_TIMEOUT")
@@ -805,78 +783,6 @@ impl StateRef {
             .spawn(rpc_system.map_err(|e| error!("RPC error: {:?}", e)));
     }
 
-    pub fn on_subworker_connection(&self, stream: UnixStream) {
-
-        info!("New subworker connected");
-        let state_ref = self.clone();
-        let stream = ::common::comm::create_protocol_stream(stream);
-        let future = stream.into_future().then(move |r| {
-            match r {
-                Ok((Some(data), stream)) => {
-                    let text_data = ::std::str::from_utf8(&data).unwrap();
-                    let message: SubworkerToWorkerMessage = ::serde_json::from_str(text_data).unwrap();
-
-                    if let SubworkerToWorkerMessage::Register(msg) = message {
-
-                        debug!("Subworker registered: protocol={} id={} type={}", msg.protocol, msg.subworker_id, msg.subworker_type);
-
-                        if msg.protocol != "xxx" {
-                            error!(
-                                "Invalid subworker protocol; expected = xxx"
-                            );
-                        } else {
-                            state_ref.get_mut()
-                                .add_subworker(msg.subworker_id, msg.subworker_type, stream)
-                        }
-                    } else {
-                        warn!("Subworker does not send registration message first");
-                    }
-                },
-                Ok((None, _stream)) => {
-                    warn!("Closed subworker connection without registration");
-                },
-                Err(_) => {
-                    warn!("Error on unregistered subworker connection");
-                }
-            }
-            Ok(())
-        });
-
-        self.get().handle().spawn(future);
-
-        //let length_delimited = Builder::new().new_framed(stream);
-        //let (read, write) = length_delimited.split();
-
-        /*
-        let up_impl = SubworkerUpstreamImpl::new(self);
-        let subworker_id_rc = up_impl.subworker_id_rc();
-        let upstream = ::subworker_capnp::subworker_upstream::ToClient::new(up_impl)
-            .from_server::<::capnp_rpc::Server>();
-        let rpc_system = ::common::rpc::new_rpc_system(stream, Some(upstream.client));
-        let inner = self.get();
-
-        let state_ref = self.clone();
-
-        inner
-            .handle
-            .spawn(
-                rpc_system
-                    .map_err(|e| error!("RPC error: {:?}", e))
-                    .then(move |result| {
-                        debug!("Subworker cleanup");
-                        let mut s = state_ref.get_mut();
-                        if let Some(subworker_id) = subworker_id_rc.get() {
-                            let sw = s.graph.subworkers.remove(&subworker_id).unwrap();
-                            s.graph.idle_subworkers.remove(&sw);
-                            s.subworker_cleanup(&sw);
-                        } else {
-                            warn!("Closing uninitilized connection");
-                        }
-                        result
-                    }),
-            );*/
-    }
-
     pub fn start(
         &self,
         server_address: SocketAddr,
@@ -884,32 +790,6 @@ impl StateRef {
         ready_file: Option<&str>,
     ) {
         let handle = self.get().handle.clone();
-
-        // --- Start listening Unix socket for subworkers ----
-        let listener = {
-            let backup = ::std::env::current_dir().unwrap();
-            let path = self.get().work_dir().subworker_listen_path();
-            ::std::env::set_current_dir(path.parent().unwrap()).unwrap();
-            let result = UnixListener::bind(path.file_name().unwrap(), &handle);
-            ::std::env::set_current_dir(backup).unwrap();
-            result
-        }.map_err(|e| info!("Cannot create listening unix socket: {:?}", e))
-            .unwrap();
-
-        let state = self.clone();
-        let future = listener
-            .incoming()
-            .for_each(move |(stream, _)| {
-                state.on_subworker_connection(stream);
-                Ok(())
-            })
-            .map_err(|e| {
-                panic!("Subworker listening failed {:?}", e);
-            });
-        handle.spawn(future);
-
-        // -- Start python subworker (FOR TESTING PURPOSE)
-        //start_python_subworker(self);
 
         // --- Start listening TCP/IP for worker2worker communications ----
         let listener = TcpListener::bind(&listen_address, &handle).unwrap();

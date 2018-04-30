@@ -1,21 +1,23 @@
 use std::path::Path;
 
 use std::sync::Arc;
-use std::rc::Rc;
-use std::cell::Cell;
 
-use common::id::{DataObjectId, SubworkerId, TaskId};
-use common::convert::FromCapnp;
-use common::{Attributes, DataType};
-use worker::{State, StateRef};
+use bytes::BytesMut;
+use common::id::{SubworkerId};
+use common::{DataType};
+use worker::{State};
 use worker::data::{Data, Storage};
 use worker::rpc::subworker_serde::{DataObjectSpec, DataLocation};
+use worker::rpc::subworker_serde::{SubworkerToWorkerMessage};
 
 use errors::Result;
 
-pub fn data_output_from_spec(state: &State, subworker_dir: &Path, spec: DataObjectSpec) -> Result<Arc<Data>>
+
+static PROTOCOL_VERSION: &'static str = "cbor-1";
+
+
+pub fn data_output_from_spec(state: &State, subworker_dir: &Path, spec: DataObjectSpec, data_type: DataType) -> Result<Arc<Data>>
 {
-    let data_type = DataType::Blob; // TODO: Load data type
     match spec.location.unwrap() {
         DataLocation::Memory(data) => Ok(Arc::new(Data::new(
             Storage::Memory(data),
@@ -47,4 +49,38 @@ pub fn data_output_from_spec(state: &State, subworker_dir: &Path, spec: DataObje
             bail!("Cached result occured in result")
         }
     }
+}
+
+pub fn check_registration(data: Option<BytesMut>, subworker_id: SubworkerId, subworker_type: &str) -> Result<()>
+{
+    match data {
+        Some(data) => {
+            let text_data = ::std::str::from_utf8(&data).unwrap();
+            let message: SubworkerToWorkerMessage = ::serde_json::from_str(text_data).unwrap();
+            if let SubworkerToWorkerMessage::Register(msg) = message {
+                debug!("Subworker id={} registered: protocol={} id={} type={}", subworker_id, msg.protocol, msg.subworker_id, msg.subworker_type);
+                if msg.protocol != PROTOCOL_VERSION {
+                    bail!(
+                        "Subworker error: registered with invalid protocol; expected = {}", PROTOCOL_VERSION
+                    );
+                }
+                if msg.subworker_id != subworker_id {
+                    bail!(
+                        "Subworker error: registered with invalid id"
+                    );
+                }
+                if msg.subworker_type != subworker_type {
+                    bail!(
+                        "Subworker error: registered with invalid type"
+                    );
+                }
+            } else {
+                bail!("Subworker error: Not registered by first message");
+            }
+        },
+        None => {
+            bail!("Subworker error: Closed connection without registration")
+        }
+    };
+    Ok(())
 }

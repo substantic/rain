@@ -39,7 +39,7 @@ def test_remote_more_bytes_outputs(test_env):
         assert b"Two" == t1.outputs["x2"].fetch().get_bytes()
 
 
-def test_python_cache(test_env):
+def test_python_cache1(test_env):
 
     @remote()
     def f1(ctx):
@@ -62,6 +62,36 @@ def test_python_cache(test_env):
         assert rs1[0].startswith(b"f1:")
         assert len(rs2) == 1
         assert rs2[0].startswith(b"f2:")
+
+
+def test_python_cache2(test_env):
+
+    @remote()
+    def foo(ctx):
+        return str(id(ctx.function))
+
+    test_env.start(1, delete_list_timeout=0)
+    with test_env.client.new_session() as s:
+        a = foo().output
+        a.keep()
+        b = foo().output
+        b.keep()
+
+        s.submit()
+        s.wait_all()
+
+        c = foo().output
+        c.keep()
+        s.submit()
+
+        ra = a.fetch().get_bytes()
+        rb = b.fetch().get_bytes()
+        rc = c.fetch().get_bytes()
+
+        assert ra == rb
+        assert rb == rc
+    import time
+    time.sleep(0.5)
 
 
 def test_remote_exception(test_env):
@@ -754,3 +784,5 @@ def test_python_dir(test_env):
         with open(os.path.join(test_env.work_dir, "rdir2", "b", "g.txt")) as f:
             assert f.read() == "Hello 3"
         assert os.path.isdir("rdir2/test3")
+
+

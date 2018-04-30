@@ -16,7 +16,7 @@ from .context import Context
 from ..common.datatype import DataType
 
 
-SUBWORKER_PROTOCOL = "xxx"
+SUBWORKER_PROTOCOL = "cbor-1"
 
 
 # List of input data objects while Py task arguments are unpickled.
@@ -61,9 +61,12 @@ def store_attributes(attributes):
 
 def load_worker_object(data, cache):
     object_id = tuple(data["id"])
-    attributes = load_attributes(data["attributes"])
 
     location = data["location"]
+    if location == "cached":
+        return cache[object_id]
+
+    attributes = load_attributes(data["attributes"])
     path = None
     data = None
     if "memory" in location:
@@ -72,7 +75,7 @@ def load_worker_object(data, cache):
         path = location["path"]
 
     # TODO: data type
-    data = DataInstance(data=data, path=path, attributes=attributes, data_type=DataType.BLOB)
+    data = DataInstance(data=data, path=path, attributes=attributes, data_type=DataType(attributes["type"]))
     data._object_id = object_id
     return data
 
@@ -130,9 +133,6 @@ class Subworker:
     def unpack_and_run_task(self, data):
         task_context = Context(self, tuple(data["task"]))
 
-        class XXX(Exception):
-            pass
-
         try:
             task_context.attributes = load_attributes(data["attributes"])
             cfg = task_context.attributes["config"]
@@ -143,6 +143,8 @@ class Subworker:
                 #TODO if reader.saveInCache:
                 #TODO    self.cache[obj._object_id] = obj
                 inputs.append(obj)
+
+            self.cache[inputs[0]._object_id] = inputs[0]
 
             # List of OutputSpec
             outputs = [OutputSpec(
@@ -164,15 +166,9 @@ class Subworker:
                 "task": task_context.task_id,
                 "success": True,
                 "attributes": store_attributes(task_context.attributes),
-                "outputs": [store_result(data, output.id) for data, output in zip(task_results, outputs)]
+                "outputs": [store_result(data, output.id) for data, output in zip(task_results, outputs)],
+                "cachedObjects": [inputs[0]._object_id],
             }})
-
-            #results = _context.results.init("data", len(task_results))
-            #for i, data in enumerate(task_results):
-            #    data._to_capnp(results[i])
-            #task_context._cleanup(task_results)
-            #write_attributes(task_context, _context.results.taskAttributes)
-            #_context.results.ok = True
 
         except Exception:
             task_context._cleanup_on_fail()
@@ -191,8 +187,12 @@ class Subworker:
 
 
     def process_message(self, message):
-        if message["message"] == "call":
+        name = message["message"]
+        if name == "call":
             self.unpack_and_run_task(message["data"])
+        elif name == "dropCached":
+            for object_id in message["data"]["objects"]:
+                del self.cache[tuple(object_id)]
         else:
             raise Exception("Unknown message")
         sys.stdout.flush()

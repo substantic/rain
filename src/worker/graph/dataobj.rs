@@ -5,7 +5,7 @@ use super::{Graph, TaskRef};
 use worker::data::Data;
 use worker::graph::SubworkerRef;
 use worker::WorkDir;
-use worker::rpc::subworker_serde::DataObjectSpec;
+use worker::rpc::subworker_serde::{DataLocation, DataObjectSpec};
 use errors::{ErrorKind, Result};
 
 use std::path::Path;
@@ -153,13 +153,17 @@ impl DataObject {
         self.set_data(Arc::new(data))
     }
 
-    pub fn create_input_spec(&self, label: &str) -> DataObjectSpec {
+    pub fn create_input_spec(&self, label: &str, subworker_ref: &SubworkerRef) -> DataObjectSpec {
         DataObjectSpec {
             id: self.id,
             label: if label.is_empty() { None } else { Some(label.to_string()) },
             attributes: self.attributes.clone(),
-            location: Some(self.data().create_location()),
-            cache_hint: false,
+            location: if self.subworker_cache.contains(subworker_ref) {
+                Some(DataLocation::Cached)
+            } else {
+                Some(self.data().create_location())
+            },
+            cache_hint: true,
         }
     }
 
@@ -169,7 +173,7 @@ impl DataObject {
             label: if self.label.is_empty() { None } else { Some(self.label.clone()) },
             attributes: self.attributes.clone(),
             location: None,
-            cache_hint: false,
+            cache_hint: true,
         }
     }
 }

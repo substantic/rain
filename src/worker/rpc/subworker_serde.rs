@@ -130,7 +130,7 @@ pub enum DataLocation {
 #[serde(deny_unknown_fields)]
 pub struct DropCachedMsg {
     /// List of object ids to drop
-    pub drop: Vec<DataObjectId>,
+    pub objects: Vec<DataObjectId>,
 }
 
 #[cfg(test)]
@@ -196,7 +196,7 @@ mod tests {
 
     #[test]
     fn test_drop_cached() {
-        let s = r#"{"dropCached": {"drop": [[1,2], [4,5]]}}"#;
+        let s = r#"{"dropCached": {"objects": [[1,2], [4,5]]}}"#;
         let m: WorkerToSubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
