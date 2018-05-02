@@ -10,5 +10,4 @@ mod rpc;
 mod communicator;
 mod dataobject;
 mod task;
-mod data_object;
-mod capnp;
+mod tasks;

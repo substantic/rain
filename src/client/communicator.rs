@@ -151,8 +151,16 @@ impl Communicator {
         let res = self.core.run(req.send().promise)?;
 
         Ok((
-           res.get()?.get_finished_tasks()?.iter().map(|id| TaskId::from_capnp(&id)).collect(),
-           res.get()?.get_finished_objects()?.iter().map(|id| DataObjectId::from_capnp(&id)).collect(),
+            res.get()?
+                .get_finished_tasks()?
+                .iter()
+                .map(|id| TaskId::from_capnp(&id))
+                .collect(),
+            res.get()?
+                .get_finished_objects()?
+                .iter()
+                .map(|id| DataObjectId::from_capnp(&id))
+                .collect(),
         ))
     }
 

@@ -4,28 +4,6 @@ use common::wrapped::WrappedRcRefCell;
 use common::Attributes;
 use common::id::TaskId;
 
-pub struct ConcatTaskParams {
-    pub objects: Vec<WrappedRcRefCell<DataObject>>,
-}
-
-pub struct OpenTaskParams {
-    pub filename: String,
-}
-
-pub enum TaskCommand {
-    Concat(ConcatTaskParams),
-    Open(OpenTaskParams),
-}
-
-impl TaskCommand {
-    pub fn get_task_type(&self) -> &'static str {
-        match self {
-            &TaskCommand::Concat(_) => "!concat",
-            &TaskCommand::Open(_) => "!open",
-        }
-    }
-}
-
 pub struct TaskInput {
     pub label: Option<String>,
     pub data_object: WrappedRcRefCell<DataObject>,
@@ -33,7 +11,7 @@ pub struct TaskInput {
 
 pub struct Task {
     pub id: TaskId,
-    pub command: TaskCommand,
+    pub command: String,
     pub inputs: Vec<TaskInput>,
     pub outputs: Vec<WrappedRcRefCell<DataObject>>,
     pub attributes: Attributes,

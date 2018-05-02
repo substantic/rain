@@ -3,9 +3,7 @@ use common::wrapped::WrappedRcRefCell;
 use super::communicator::Communicator;
 use client::dataobject::DataObject;
 use client::task::Task;
-use client::task::TaskCommand;
 use std::collections::HashMap;
-use client::task::ConcatTaskParams;
 use std::error::Error;
 use client::task::TaskInput;
 use common::Attributes;
@@ -72,10 +70,12 @@ impl Session {
         let (task_ids, object_ids) = self.comm.get_mut().wait_some(tasks, objects)?;
 
         Ok((
-            task_ids.iter()
+            task_ids
+                .iter()
                 .filter_map(|id| task_map.get(id).map(|t| t.clone()))
                 .collect(),
-            object_ids.iter()
+            object_ids
+                .iter()
                 .filter_map(|id| object_map.get(id).map(|o| o.clone()))
                 .collect(),
         ))
@@ -85,31 +85,17 @@ impl Session {
         self.comm.get_mut().fetch(object.id)
     }
 
-    pub fn concat(&mut self, objects: &[WrappedRcRefCell<DataObject>]) -> WrappedRcRefCell<Task> {
-        let inputs = objects
-            .iter()
-            .map(|o| TaskInput {
-                label: None,
-                data_object: o.clone(),
-            })
-            .collect();
-
-        let outputs = vec![self.create_object("".to_owned(), None)];
-
-        self.create_task(
-            TaskCommand::Concat(ConcatTaskParams {
-                objects: Vec::from(objects),
-            }),
-            inputs,
-            outputs,
-        )
-    }
-
     pub fn blob(&mut self, data: Vec<u8>) -> WrappedRcRefCell<DataObject> {
         self.create_object("".to_owned(), Some(data))
     }
 
-    fn create_object(
+    pub(crate) fn create_object_id(&mut self) -> DataObjectId {
+        let id = self.id_counter;
+        self.id_counter += 1;
+
+        DataObjectId::new(self.id, id)
+    }
+    pub(crate) fn create_object(
         &mut self,
         label: String,
         data: Option<Vec<u8>>,
@@ -128,35 +114,34 @@ impl Session {
         rc
     }
 
-    fn create_task_id(&mut self) -> TaskId {
+    pub(crate) fn create_task_id(&mut self) -> TaskId {
         let id = self.id_counter;
         self.id_counter += 1;
 
         TaskId::new(self.id, id)
     }
-    fn create_object_id(&mut self) -> DataObjectId {
-        let id = self.id_counter;
-        self.id_counter += 1;
-
-        DataObjectId::new(self.id, id)
-    }
-    fn create_task(
+    pub(crate) fn create_task(
         &mut self,
-        command: TaskCommand,
+        command: String,
         inputs: Vec<TaskInput>,
         outputs: Vec<WrappedRcRefCell<DataObject>>,
+        config: HashMap<String, String>,
+        cpus: i32,
     ) -> WrappedRcRefCell<Task> {
-        let mut task = Task {
+        let mut attributes = Attributes::new();
+        attributes.set("config", config).unwrap();
+
+        let mut resources: HashMap<String, i32> = HashMap::new();
+        resources.insert("cpus".to_owned(), cpus);
+        attributes.set("resources", resources).unwrap();
+
+        let task = Task {
             id: self.create_task_id(),
             command,
             inputs,
             outputs,
-            attributes: Attributes::new(),
+            attributes,
         };
-
-        let mut resources: HashMap<String, i32> = HashMap::new();
-        resources.insert("cpus".to_owned(), 1);
-        task.attributes.set("resources", resources).unwrap();
 
         let rc = WrappedRcRefCell::wrap(task);
         self.tasks.push(rc.clone());

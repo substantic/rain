@@ -35,7 +35,7 @@ impl<'a> ToCapnp<'a> for Task {
 
     fn to_capnp(&self, builder: &mut Self::Builder) {
         self.id.to_capnp(&mut builder.reborrow().get_id().unwrap());
-        builder.set_task_type(self.command.get_task_type());
+        builder.set_task_type(&self.command);
 
         capnplist!(builder.reborrow(), self.inputs, init_inputs);
         capnplist!(
