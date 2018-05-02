@@ -6,8 +6,9 @@ pub mod client;
 pub mod session;
 
 #[macro_use]
-mod capnp;
+mod rpc;
 mod communicator;
+mod dataobject;
 mod task;
 mod data_object;
 mod capnp;

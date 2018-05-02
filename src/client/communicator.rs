@@ -9,10 +9,10 @@ use futures::Future;
 use std::cell::Ref;
 
 use super::task::Task;
-use client::data_object::DataObject;
+use client::dataobject::DataObject;
 use common::wrapped::WrappedRcRefCell;
-use common::id::DataObjectId;
-use common::convert::ToCapnp;
+use common::id::{DataObjectId, TaskId};
+use common::convert::{FromCapnp, ToCapnp};
 
 pub struct Communicator {
     core: Core,
@@ -91,6 +91,69 @@ impl Communicator {
         self.core.run(req.send().promise)?;
 
         Ok(())
+    }
+
+    pub fn unkeep(&mut self, objects: &[WrappedRcRefCell<DataObject>]) -> Result<(), Box<Error>> {
+        let mut req = self.service.unkeep_request();
+        capnplist!(
+            req.get(),
+            objects
+                .iter()
+                .map(|o| o.get().id)
+                .collect::<Vec<DataObjectId>>(),
+            init_object_ids
+        );
+        self.core.run(req.send().promise)?;
+        Ok(())
+    }
+
+    pub fn wait(
+        &mut self,
+        tasks: &[WrappedRcRefCell<Task>],
+        objects: &[WrappedRcRefCell<DataObject>],
+    ) -> Result<(), Box<Error>> {
+        let mut req = self.service.wait_request();
+        capnplist!(
+            req.get(),
+            tasks.iter().map(|t| t.get().id).collect::<Vec<TaskId>>(),
+            init_task_ids
+        );
+        capnplist!(
+            req.get(),
+            objects
+                .iter()
+                .map(|o| o.get().id)
+                .collect::<Vec<DataObjectId>>(),
+            init_object_ids
+        );
+        self.core.run(req.send().promise)?;
+        Ok(())
+    }
+    pub fn wait_some(
+        &mut self,
+        tasks: &[WrappedRcRefCell<Task>],
+        objects: &[WrappedRcRefCell<DataObject>],
+    ) -> Result<(Vec<TaskId>, Vec<DataObjectId>), Box<Error>> {
+        let mut req = self.service.wait_some_request();
+        capnplist!(
+            req.get(),
+            tasks.iter().map(|t| t.get().id).collect::<Vec<TaskId>>(),
+            init_task_ids
+        );
+        capnplist!(
+            req.get(),
+            objects
+                .iter()
+                .map(|o| o.get().id)
+                .collect::<Vec<DataObjectId>>(),
+            init_object_ids
+        );
+        let res = self.core.run(req.send().promise)?;
+
+        Ok((
+           res.get()?.get_finished_tasks()?.iter().map(|id| TaskId::from_capnp(&id)).collect(),
+           res.get()?.get_finished_objects()?.iter().map(|id| DataObjectId::from_capnp(&id)).collect(),
+        ))
     }
 
     pub fn fetch(&mut self, object_id: DataObjectId) -> Result<Vec<u8>, Box<Error>> {

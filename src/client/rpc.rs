@@ -1,5 +1,5 @@
 use super::task::Task;
-use client::data_object::DataObject;
+use client::dataobject::DataObject;
 use client::task::TaskInput;
 use common::convert::ToCapnp;
 use common::id::DataObjectId;
@@ -38,7 +38,8 @@ impl<'a> ToCapnp<'a> for Task {
         builder.set_task_type(self.command.get_task_type());
 
         capnplist!(builder.reborrow(), self.inputs, init_inputs);
-        capnplist!(builder.reborrow(),
+        capnplist!(
+            builder.reborrow(),
             self.outputs
                 .iter()
                 .map(|o| o.get().id)
@@ -56,7 +57,7 @@ impl<'a> ToCapnp<'a> for DataObject {
         self.id.to_capnp(&mut builder.reborrow().get_id().unwrap());
         builder.set_keep(self.keep);
         builder.set_label(&self.label);
-        builder.set_data_type(::common_capnp::DataType::Blob); // TODO
+        builder.set_data_type(self.data_type.to_capnp());
 
         if let &Some(ref data) = &self.data {
             builder.set_data(&data);

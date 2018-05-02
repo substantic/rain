@@ -1,7 +1,7 @@
 use common::wrapped::WrappedRcRefCell;
 
 use super::communicator::Communicator;
-use client::data_object::DataObject;
+use client::dataobject::DataObject;
 use client::task::Task;
 use client::task::TaskCommand;
 use std::collections::HashMap;
@@ -12,6 +12,7 @@ use common::Attributes;
 use common::id::TaskId;
 use common::id::DataObjectId;
 use common::id::SId;
+use common::DataType;
 
 pub struct Session {
     pub id: i32,
@@ -42,11 +43,49 @@ impl Session {
         Ok(())
     }
 
+    pub fn unkeep(&mut self, objects: &[WrappedRcRefCell<DataObject>]) -> Result<(), Box<Error>> {
+        self.comm.get_mut().unkeep(objects)
+    }
+    pub fn wait(
+        &mut self,
+        tasks: &[WrappedRcRefCell<Task>],
+        objects: &[WrappedRcRefCell<DataObject>],
+    ) -> Result<(), Box<Error>> {
+        self.comm.get_mut().wait(tasks, objects)
+    }
+    pub fn wait_some(
+        &mut self,
+        tasks: &[WrappedRcRefCell<Task>],
+        objects: &[WrappedRcRefCell<DataObject>],
+    ) -> Result<
+        (
+            Vec<WrappedRcRefCell<Task>>,
+            Vec<WrappedRcRefCell<DataObject>>,
+        ),
+        Box<Error>,
+    > {
+        let task_map: HashMap<TaskId, WrappedRcRefCell<Task>> =
+            tasks.iter().map(|t| (t.get().id, t.clone())).collect();
+        let object_map: HashMap<DataObjectId, WrappedRcRefCell<DataObject>> =
+            objects.iter().map(|o| (o.get().id, o.clone())).collect();
+
+        let (task_ids, object_ids) = self.comm.get_mut().wait_some(tasks, objects)?;
+
+        Ok((
+            task_ids.iter()
+                .filter_map(|id| task_map.get(id).map(|t| t.clone()))
+                .collect(),
+            object_ids.iter()
+                .filter_map(|id| object_map.get(id).map(|o| o.clone()))
+                .collect(),
+        ))
+    }
+
     pub fn fetch(&mut self, object: &DataObject) -> Result<Vec<u8>, Box<Error>> {
         self.comm.get_mut().fetch(object.id)
     }
 
-    pub fn concat(&mut self, objects: Vec<WrappedRcRefCell<DataObject>>) -> WrappedRcRefCell<Task> {
+    pub fn concat(&mut self, objects: &[WrappedRcRefCell<DataObject>]) -> WrappedRcRefCell<Task> {
         let inputs = objects
             .iter()
             .map(|o| TaskInput {
@@ -58,7 +97,9 @@ impl Session {
         let outputs = vec![self.create_object("".to_owned(), None)];
 
         self.create_task(
-            TaskCommand::Concat(ConcatTaskParams { objects }),
+            TaskCommand::Concat(ConcatTaskParams {
+                objects: Vec::from(objects),
+            }),
             inputs,
             outputs,
         )
@@ -79,6 +120,7 @@ impl Session {
             label,
             data,
             attributes: Attributes::new(),
+            data_type: DataType::Blob,
         };
         let rc = WrappedRcRefCell::wrap(object);
         self.data_objects.push(rc.clone());

@@ -1,4 +1,4 @@
-use client::data_object::DataObject;
+use client::dataobject::DataObject;
 use std::error::Error;
 use common::wrapped::WrappedRcRefCell;
 use common::Attributes;
