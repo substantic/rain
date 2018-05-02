@@ -8,6 +8,11 @@ use std::collections::HashMap;
 pub trait CommonTasks {
     fn concat(&mut self, objects: &[WrappedRcRefCell<DataObject>]) -> WrappedRcRefCell<Task>;
     fn open(&mut self, filename: String) -> WrappedRcRefCell<Task>;
+    fn export(
+        &mut self,
+        object: WrappedRcRefCell<DataObject>,
+        filename: String,
+    ) -> WrappedRcRefCell<Task>;
 }
 
 impl CommonTasks for Session {
@@ -31,5 +36,20 @@ impl CommonTasks for Session {
         let outputs = vec![self.create_object("".to_owned(), None)];
 
         self.create_task("!open".to_owned(), vec![], outputs, config, 1)
+    }
+    fn export(
+        &mut self,
+        object: WrappedRcRefCell<DataObject>,
+        filename: String,
+    ) -> WrappedRcRefCell<Task> {
+        let mut config = HashMap::new();
+        config.insert("path".to_owned(), filename);
+
+        let input = TaskInput {
+            label: None,
+            data_object: object.clone(),
+        };
+
+        self.create_task("!export".to_owned(), vec![input], vec![], config, 1)
     }
 }
