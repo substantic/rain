@@ -1,8 +1,8 @@
-use client::session::ObjectId;
 use client::data_object::DataObject;
 use std::error::Error;
 use common::wrapped::WrappedRcRefCell;
 use common::Attributes;
+use common::id::TaskId;
 
 pub struct ConcatTaskParams {
     pub objects: Vec<WrappedRcRefCell<DataObject>>,
@@ -32,7 +32,7 @@ pub struct TaskInput {
 }
 
 pub struct Task {
-    pub id: ObjectId,
+    pub id: TaskId,
     pub command: TaskCommand,
     pub inputs: Vec<TaskInput>,
     pub outputs: Vec<WrappedRcRefCell<DataObject>>,

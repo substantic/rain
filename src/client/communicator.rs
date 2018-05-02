@@ -9,10 +9,9 @@ use futures::Future;
 
 use super::task::Task;
 use client::data_object::DataObject;
-use client::capnp::Serializable;
 use common::wrapped::WrappedRcRefCell;
-use client::session::ObjectId;
-use client::capnp::DataObjectId;
+use common::id::DataObjectId;
+use common::convert::ToCapnp;
 
 pub struct Communicator {
     core: Core,
@@ -77,14 +76,14 @@ impl Communicator {
             let mut tasks_builder = req.get().init_tasks(tasks.len() as u32);
             for (i, task) in tasks.iter().enumerate() {
                 task.get()
-                    .serialize(&mut tasks_builder.reborrow().get(i as u32))?;
+                    .to_capnp(&mut tasks_builder.reborrow().get(i as u32));
             }
         }
         {
             let mut objects_builder = req.get().init_objects(data_objects.len() as u32);
             for (i, obj) in data_objects.iter().enumerate() {
                 obj.get()
-                    .serialize(&mut objects_builder.reborrow().get(i as u32))?;
+                    .to_capnp(&mut objects_builder.reborrow().get(i as u32));
             }
         }
 
@@ -93,29 +92,23 @@ impl Communicator {
         Ok(())
     }
 
-    pub fn fetch(&mut self, object: ObjectId) -> Result<Vec<u8>, Box<Error>> {
+    pub fn fetch(&mut self, object_id: DataObjectId) -> Result<Vec<u8>, Box<Error>> {
         let mut req = self.service.fetch_request();
-        let obj_id: DataObjectId = object.into();
-        obj_id.serialize(&mut req.get().get_id()?)?;
+        object_id.to_capnp(&mut req.get().get_id().unwrap());
         req.get().set_size(1024);
 
-        let response = self.core.run(
-            req.send()
-                .promise
-                .and_then(|response| Promise::ok(response)),
-        )?;
+        let response = self.core.run(req.send().promise)?;
 
         let reader = response.get()?;
         match reader.get_status().which()? {
             ::common_capnp::fetch_result::status::Ok(()) => {
-                println!("Status: ok");
+                let data = reader.get_data()?;
+                Ok(Vec::from(data))
             }
             _ => {
-                println!("Status: not ok");
+                bail!("Non-ok status")
             }
         }
-        let data = reader.get_data()?;
-        Ok(Vec::from(data))
     }
 
     pub fn terminate_server(&mut self) -> Result<(), Box<Error>> {

@@ -9,18 +9,9 @@ use client::task::ConcatTaskParams;
 use std::error::Error;
 use client::task::TaskInput;
 use common::Attributes;
-
-#[derive(Copy, Clone, Debug)]
-pub struct ObjectId {
-    pub id: i32,
-    pub session_id: i32,
-}
-
-impl ObjectId {
-    pub fn new(id: i32, session_id: i32) -> Self {
-        ObjectId { id, session_id }
-    }
-}
+use common::id::TaskId;
+use common::id::DataObjectId;
+use common::id::SId;
 
 pub struct Session {
     pub id: i32,
@@ -83,7 +74,7 @@ impl Session {
         data: Option<Vec<u8>>,
     ) -> WrappedRcRefCell<DataObject> {
         let object = DataObject {
-            id: self.create_id(),
+            id: self.create_object_id(),
             keep: false,
             label,
             data,
@@ -95,11 +86,17 @@ impl Session {
         rc
     }
 
-    fn create_id(&mut self) -> ObjectId {
+    fn create_task_id(&mut self) -> TaskId {
         let id = self.id_counter;
         self.id_counter += 1;
 
-        ObjectId::new(id, self.id)
+        TaskId::new(self.id, id)
+    }
+    fn create_object_id(&mut self) -> DataObjectId {
+        let id = self.id_counter;
+        self.id_counter += 1;
+
+        DataObjectId::new(self.id, id)
     }
     fn create_task(
         &mut self,
@@ -108,7 +105,7 @@ impl Session {
         outputs: Vec<WrappedRcRefCell<DataObject>>,
     ) -> WrappedRcRefCell<Task> {
         let mut task = Task {
-            id: self.create_id(),
+            id: self.create_task_id(),
             command,
             inputs,
             outputs,

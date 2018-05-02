@@ -1,8 +1,8 @@
-use client::session::ObjectId;
 use common::Attributes;
+use common::id::DataObjectId;
 
 pub struct DataObject {
-    pub id: ObjectId,
+    pub id: DataObjectId,
     pub label: String,
     pub keep: bool,
     pub data: Option<Vec<u8>>,
