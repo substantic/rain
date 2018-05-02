@@ -107,47 +107,21 @@ impl Communicator {
         Ok(())
     }
 
-    pub fn wait(
-        &mut self,
-        tasks: &[WrappedRcRefCell<Task>],
-        objects: &[WrappedRcRefCell<DataObject>],
-    ) -> Result<(), Box<Error>> {
+    pub fn wait(&mut self, tasks: &[TaskId], objects: &[DataObjectId]) -> Result<(), Box<Error>> {
         let mut req = self.service.wait_request();
-        capnplist!(
-            req.get(),
-            tasks.iter().map(|t| t.get().id).collect::<Vec<TaskId>>(),
-            init_task_ids
-        );
-        capnplist!(
-            req.get(),
-            objects
-                .iter()
-                .map(|o| o.get().id)
-                .collect::<Vec<DataObjectId>>(),
-            init_object_ids
-        );
+        capnplist!(req.get(), tasks, init_task_ids);
+        capnplist!(req.get(), objects, init_object_ids);
         self.core.run(req.send().promise)?;
         Ok(())
     }
     pub fn wait_some(
         &mut self,
-        tasks: &[WrappedRcRefCell<Task>],
-        objects: &[WrappedRcRefCell<DataObject>],
+        tasks: &[TaskId],
+        objects: &[DataObjectId],
     ) -> Result<(Vec<TaskId>, Vec<DataObjectId>), Box<Error>> {
         let mut req = self.service.wait_some_request();
-        capnplist!(
-            req.get(),
-            tasks.iter().map(|t| t.get().id).collect::<Vec<TaskId>>(),
-            init_task_ids
-        );
-        capnplist!(
-            req.get(),
-            objects
-                .iter()
-                .map(|o| o.get().id)
-                .collect::<Vec<DataObjectId>>(),
-            init_object_ids
-        );
+        capnplist!(req.get(), tasks, init_task_ids);
+        capnplist!(req.get(), objects, init_object_ids);
         let res = self.core.run(req.send().promise)?;
 
         Ok((

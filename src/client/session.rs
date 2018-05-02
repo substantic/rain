@@ -49,7 +49,13 @@ impl Session {
         tasks: &[WrappedRcRefCell<Task>],
         objects: &[WrappedRcRefCell<DataObject>],
     ) -> Result<(), Box<Error>> {
-        self.comm.get_mut().wait(tasks, objects)
+        self.comm.get_mut().wait(
+            &tasks.iter().map(|t| t.get().id).collect::<Vec<TaskId>>(),
+            &objects
+                .iter()
+                .map(|o| o.get().id)
+                .collect::<Vec<DataObjectId>>(),
+        )
     }
     pub fn wait_some(
         &mut self,
@@ -62,23 +68,35 @@ impl Session {
         ),
         Box<Error>,
     > {
-        let task_map: HashMap<TaskId, WrappedRcRefCell<Task>> =
-            tasks.iter().map(|t| (t.get().id, t.clone())).collect();
-        let object_map: HashMap<DataObjectId, WrappedRcRefCell<DataObject>> =
-            objects.iter().map(|o| (o.get().id, o.clone())).collect();
+        let task_map: HashMap<TaskId, &WrappedRcRefCell<Task>> =
+            tasks.iter().map(|t| (t.get().id, t)).collect();
+        let object_map: HashMap<DataObjectId, &WrappedRcRefCell<DataObject>> =
+            objects.iter().map(|o| (o.get().id, o)).collect();
 
-        let (task_ids, object_ids) = self.comm.get_mut().wait_some(tasks, objects)?;
+        let (task_ids, object_ids) = self.comm.get_mut().wait_some(
+            &tasks.iter().map(|t| t.get().id).collect::<Vec<TaskId>>(),
+            &objects
+                .iter()
+                .map(|o| o.get().id)
+                .collect::<Vec<DataObjectId>>(),
+        )?;
 
         Ok((
             task_ids
                 .iter()
-                .filter_map(|id| task_map.get(id).map(|t| t.clone()))
+                .filter_map(|id| task_map.get(id).map(|t| (*t).clone()))
                 .collect(),
             object_ids
                 .iter()
-                .filter_map(|id| object_map.get(id).map(|o| o.clone()))
+                .filter_map(|id| object_map.get(id).map(|o| (*o).clone()))
                 .collect(),
         ))
+    }
+    pub fn wait_all(&mut self) -> Result<(), Box<Error>> {
+        self.comm.get_mut().wait(
+            &vec![TaskId::new(self.id, ::common_capnp::ALL_TASKS_ID)],
+            &vec![],
+        )
     }
 
     pub fn fetch(&mut self, object: &DataObject) -> Result<Vec<u8>, Box<Error>> {

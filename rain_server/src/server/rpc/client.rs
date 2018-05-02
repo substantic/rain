@@ -283,7 +283,7 @@ impl client_service::Server for ClientServiceImpl {
             object_ids.len()
         );
         Promise::err(::capnp::Error::failed(
-            "wait_sone is not implemented yet".to_string(),
+            "wait_some is not implemented yet".to_string(),
         ))
     }
 
