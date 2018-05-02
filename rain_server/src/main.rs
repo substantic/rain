@@ -431,7 +431,7 @@ fn stop_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 
     let scheduler: SocketAddr = resolve_server_address(&address);
-    let mut client = Client::new(scheduler).unwrap_or_else(|err| {
+    let client = Client::new(scheduler).unwrap_or_else(|err| {
         error!("Couldn't connect to server at {}: {}", address, err);
         exit(1);
     });

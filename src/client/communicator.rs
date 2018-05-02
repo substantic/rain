@@ -7,6 +7,13 @@ use capnp::capability::Promise;
 use capnp_rpc::rpc_twoparty_capnp;
 use futures::Future;
 
+use super::task::Task;
+use client::data_object::DataObject;
+use client::capnp::Serializable;
+use common::wrapped::WrappedRcRefCell;
+use client::session::ObjectId;
+use client::capnp::DataObjectId;
+
 pub struct Communicator {
     core: Core,
     service: ::client_capnp::client_service::Client,
@@ -50,15 +57,65 @@ impl Communicator {
 
         Ok(id)
     }
-
-    pub fn close_session(&mut self, id: i32) -> Result<bool, Box<Error>> {
+    pub fn close_session(&mut self, id: i32) -> Result<(), Box<Error>> {
         self.core.run({
             let mut req = self.service.close_session_request();
             req.get().set_session_id(id);
             req.send().promise
         })?;
 
-        Ok(true)
+        Ok(())
+    }
+
+    pub fn submit(
+        &mut self,
+        tasks: &[WrappedRcRefCell<Task>],
+        data_objects: &[WrappedRcRefCell<DataObject>],
+    ) -> Result<(), Box<Error>> {
+        let mut req = self.service.submit_request();
+        {
+            let mut tasks_builder = req.get().init_tasks(tasks.len() as u32);
+            for (i, task) in tasks.iter().enumerate() {
+                task.get()
+                    .serialize(&mut tasks_builder.reborrow().get(i as u32))?;
+            }
+        }
+        {
+            let mut objects_builder = req.get().init_objects(data_objects.len() as u32);
+            for (i, obj) in data_objects.iter().enumerate() {
+                obj.get()
+                    .serialize(&mut objects_builder.reborrow().get(i as u32))?;
+            }
+        }
+
+        self.core.run(req.send().promise)?;
+
+        Ok(())
+    }
+
+    pub fn fetch(&mut self, object: ObjectId) -> Result<Vec<u8>, Box<Error>> {
+        let mut req = self.service.fetch_request();
+        let obj_id: DataObjectId = object.into();
+        obj_id.serialize(&mut req.get().get_id()?)?;
+        req.get().set_size(1024);
+
+        let response = self.core.run(
+            req.send()
+                .promise
+                .and_then(|response| Promise::ok(response)),
+        )?;
+
+        let reader = response.get()?;
+        match reader.get_status().which()? {
+            ::common_capnp::fetch_result::status::Ok(()) => {
+                println!("Status: ok");
+            }
+            _ => {
+                println!("Status: not ok");
+            }
+        }
+        let data = reader.get_data()?;
+        Ok(Vec::from(data))
     }
 
     pub fn terminate_server(&mut self) -> Result<(), Box<Error>> {
