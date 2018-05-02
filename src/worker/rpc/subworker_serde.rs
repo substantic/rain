@@ -6,7 +6,6 @@ use serde_bytes;
 /// Message from subworker to worker.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "message", content = "data")]
 #[serde(rename_all = "camelCase")]
 pub enum SubworkerToWorkerMessage {
     Register(RegisterMsg),
@@ -16,7 +15,6 @@ pub enum SubworkerToWorkerMessage {
 /// Message from worker to subworker.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(tag = "message", content = "data")]
 #[serde(rename_all = "camelCase")]
 pub enum WorkerToSubworkerMessage {
     Call(CallMsg),
@@ -153,14 +151,14 @@ mod tests {
 
     #[test]
     fn test_register() {
-        let s = r#"{"message": "register", "data": {"protocol": "swp1", "subworkerId": 42, "subworkerType": "dummy"}}"#;
+        let s = r#"{"register": {"protocol": "swp1", "subworkerId": 42, "subworkerType": "dummy"}}"#;
         let m: SubworkerToWorkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
     #[test]
     fn test_call() {
-        let s = r#"{"message": "call", "data": {"method": "foo", "task": [42, 48],
+        let s = r#"{"call": {"method": "foo", "task": [42, 48],
             "attributes": {},
             "inputs": [
                 {"id": [3,6], "label": "in1", "attributes": {}, "location": {"memory": [0,0,0,0,0]}},
@@ -169,16 +167,21 @@ mod tests {
             ],
             "outputs": [
                 {"id": [3,11], "label": "out1", "attributes": {}, "cacheHint": true},
-                {"id": [3,12], "label": "out1", "attributes": {}, "cacheHint": true}
+                {"id": [3,12], "attributes": {}}
             ]
             }}"#;
         let m: WorkerToSubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
+        if let WorkerToSubworkerMessage::Call(ref c) = &m {
+            assert_eq!(c.inputs[0].location, Some(DataLocation::Memory(vec![0u8; 5])));
+        } else {
+            panic!()
+        }
     }
 
     #[test]
     fn test_result() {
-        let s = r#"{"message": "result", "data": {"task": [42, 48], "success": true,
+        let s = r#"{"result": {"task": [42, 48], "success": true,
             "attributes": {},
             "outputs": [
                 {"id": [3,11], "attributes": {}, "location": {"path": "in1.txt"}},
@@ -191,7 +194,7 @@ mod tests {
 
     #[test]
     fn test_drop_cached() {
-        let s = r#"{"message": "dropCached", "data": {"drop": [[1,2], [4,5]]}}"#;
+        let s = r#"{"dropCached": {"drop": [[1,2], [4,5]]}}"#;
         let m: WorkerToSubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }

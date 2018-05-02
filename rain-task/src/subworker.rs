@@ -101,10 +101,12 @@ impl Subworker {
             Some(f) => {
                 env::set_current_dir(&context.work_dir)?;
                 let res = f(&context, &context.inputs, &context.outputs);
+                env::set_current_dir(&self.working_path)?;
                 if let Err(e) = res {
                     context.success = false;
                     context.attributes.set("error", format!("error returned from {:?}:\n{}", call_msg.method, e)).unwrap();
                 }
+                // TODO: cleanup of the task working dir
             },
         }
         Ok(context.into_result_msg())
