@@ -6,6 +6,7 @@ use common::rpc::new_rpc_system;
 use capnp::capability::Promise;
 use capnp_rpc::rpc_twoparty_capnp;
 use futures::Future;
+use std::cell::Ref;
 
 use super::task::Task;
 use client::data_object::DataObject;
@@ -72,20 +73,20 @@ impl Communicator {
         data_objects: &[WrappedRcRefCell<DataObject>],
     ) -> Result<(), Box<Error>> {
         let mut req = self.service.submit_request();
-        {
-            let mut tasks_builder = req.get().init_tasks(tasks.len() as u32);
-            for (i, task) in tasks.iter().enumerate() {
-                task.get()
-                    .to_capnp(&mut tasks_builder.reborrow().get(i as u32));
-            }
-        }
-        {
-            let mut objects_builder = req.get().init_objects(data_objects.len() as u32);
-            for (i, obj) in data_objects.iter().enumerate() {
-                obj.get()
-                    .to_capnp(&mut objects_builder.reborrow().get(i as u32));
-            }
-        }
+
+        capnplist!(
+            req.get(),
+            tasks.iter().map(|t| t.get()).collect::<Vec<Ref<Task>>>(),
+            init_tasks
+        );
+        capnplist!(
+            req.get(),
+            data_objects
+                .iter()
+                .map(|o| o.get())
+                .collect::<Vec<Ref<DataObject>>>(),
+            init_objects
+        );
 
         self.core.run(req.send().promise)?;
 
@@ -105,9 +106,7 @@ impl Communicator {
                 let data = reader.get_data()?;
                 Ok(Vec::from(data))
             }
-            _ => {
-                bail!("Non-ok status")
-            }
+            _ => bail!("Non-ok status"),
         }
     }
 
