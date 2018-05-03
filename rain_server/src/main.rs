@@ -12,7 +12,6 @@ extern crate chrono;
 #[macro_use]
 extern crate clap;
 extern crate env_logger;
-#[macro_use]
 extern crate error_chain;
 extern crate fs_extra;
 extern crate futures;
@@ -50,6 +49,7 @@ mod wrapped;
 
 use clap::{App, Arg, ArgMatches, SubCommand};
 use nix::unistd::getpid;
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::Read;
@@ -60,6 +60,7 @@ use std::process::exit;
 
 use rain_core::sys::{create_ready_file, get_hostname};
 use rain_core::{errors::*, utils::*};
+use clap::{App, Arg, ArgMatches, SubCommand};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_SERVER_PORT: u16 = 7210;
@@ -140,6 +141,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 }
 
+<<<<<<< 7999023457517e7570c2373ab414486b9fe0163c:rain_server/src/main.rs
 fn default_working_directory() -> PathBuf {
     let pid = getpid();
     let hostname = get_hostname();
@@ -169,6 +171,8 @@ fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
     Ok(())
 }
 
+=======
+>>>>>>> [api] add local cluster:src/bin.rs
 // TODO: Do some serious configuration file and unify configurations
 // Right now, it is just a quick hack for supporting executors
 
@@ -431,7 +435,7 @@ fn stop_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 
     let scheduler: SocketAddr = resolve_server_address(&address);
-    let client = Client::new(scheduler).unwrap_or_else(|err| {
+    let client = client::Client::new(scheduler).unwrap_or_else(|err| {
         error!("Couldn't connect to server at {}: {}", address, err);
         exit(1);
     });
@@ -444,7 +448,7 @@ fn stop_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 }
 
 fn init_log() {
-    // T    emporary simple logger for better module log control, default level is INFO
+    // Temporary simple logger for better module log control, default level is INFO
     // TODO: replace with Fern or log4rs later
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "info");
