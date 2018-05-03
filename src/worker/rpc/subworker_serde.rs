@@ -177,7 +177,7 @@ mod tests {
             }}"#;
         let m: WorkerToSubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
-        if let WorkerToSubworkerMessage::Call(ref c) = &m {
+        if let &WorkerToSubworkerMessage::Call(ref c) = &m {
             assert_eq!(
                 c.inputs[0].location,
                 Some(DataLocation::Memory(vec![0u8; 5]))
