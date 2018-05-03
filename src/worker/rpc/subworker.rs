@@ -1,88 +1,29 @@
 use std::path::Path;
 
 use std::sync::Arc;
-use std::rc::Rc;
-use std::cell::Cell;
 
-use common::id::{DataObjectId, SubworkerId};
-use common::convert::FromCapnp;
+use bytes::BytesMut;
+use common::id::SubworkerId;
 use common::DataType;
-use worker::{State, StateRef};
+use worker::State;
 use worker::data::{Data, Storage};
-use subworker_capnp::subworker_upstream;
-use capnp;
-use capnp::capability::Promise;
+use worker::rpc::subworker_serde::{DataLocation, DataObjectSpec};
+use worker::rpc::subworker_serde::SubworkerToWorkerMessage;
 
 use errors::Result;
 
-use SUBWORKER_PROTOCOL_VERSION;
+static PROTOCOL_VERSION: &'static str = "cbor-1";
 
-pub struct SubworkerUpstreamImpl {
-    state: StateRef,
-    subworker_id: Rc<Cell<Option<SubworkerId>>>,
-}
-
-impl SubworkerUpstreamImpl {
-    pub fn new(state: &StateRef) -> Self {
-        Self {
-            state: state.clone(),
-            subworker_id: Rc::new(Cell::new(None)),
-        }
-    }
-
-    pub fn subworker_id_rc(&self) -> Rc<Cell<Option<SubworkerId>>> {
-        self.subworker_id.clone()
-    }
-}
-
-impl Drop for SubworkerUpstreamImpl {
-    fn drop(&mut self) {
-        debug!("SubworkerUpstream closed");
-    }
-}
-
-impl subworker_upstream::Server for SubworkerUpstreamImpl {
-    fn register(
-        &mut self,
-        params: subworker_upstream::RegisterParams,
-        mut _results: subworker_upstream::RegisterResults,
-    ) -> Promise<(), ::capnp::Error> {
-        let params = pry!(params.get());
-
-        if params.get_version() != SUBWORKER_PROTOCOL_VERSION {
-            return Promise::err(capnp::Error::failed(format!(
-                "Invalid subworker protocol; expected = {}",
-                SUBWORKER_PROTOCOL_VERSION
-            )));
-        }
-
-        let subworker_id = params.get_subworker_id();
-        self.subworker_id.set(Some(subworker_id));
-        let subworker_type = pry!(params.get_subworker_type());
-        let control = pry!(params.get_control());
-
-        pry!(
-            self.state
-                .get_mut()
-                .add_subworker(subworker_id, subworker_type.to_string(), control)
-                .map_err(|e| ::capnp::Error::failed(e.description().into()))
-        );
-        Promise::ok(())
-    }
-}
-
-pub fn data_from_capnp(
+pub fn data_output_from_spec(
     state: &State,
     subworker_dir: &Path,
-    reader: &::subworker_capnp::local_data::Reader,
+    spec: DataObjectSpec,
+    data_type: DataType,
 ) -> Result<Arc<Data>> {
-    match reader.get_storage().which()? {
-        ::subworker_capnp::local_data::storage::Memory(data) => Ok(Arc::new(Data::new(
-            Storage::Memory(data?.into()),
-            DataType::from_capnp(reader.get_data_type()?),
-        ))),
-        ::subworker_capnp::local_data::storage::Path(data) => {
-            let source_path = Path::new(data?);
+    match spec.location.unwrap() {
+        DataLocation::Memory(data) => Ok(Arc::new(Data::new(Storage::Memory(data), data_type))),
+        DataLocation::Path(data) => {
+            let source_path = Path::new(&data);
             if !source_path.is_absolute() {
                 bail!("Path of dataobject is not absolute");
             }
@@ -98,12 +39,45 @@ pub fn data_from_capnp(
                 work_dir.data_path(),
             )?))
         }
-        ::subworker_capnp::local_data::storage::InWorker(data) => {
-            let object_id = DataObjectId::from_capnp(&data?);
+        DataLocation::OtherObject(object_id) => {
             let object = state.object_by_id(object_id)?;
             let data = object.get().data().clone();
             Ok(data)
         }
-        _ => unimplemented!(),
+        DataLocation::Cached => bail!("Cached result occured in result"),
     }
+}
+
+pub fn check_registration(
+    data: Option<BytesMut>,
+    subworker_id: SubworkerId,
+    subworker_type: &str,
+) -> Result<()> {
+    match data {
+        Some(data) => {
+            let message: SubworkerToWorkerMessage = ::serde_cbor::from_slice(&data).unwrap();
+            if let SubworkerToWorkerMessage::Register(msg) = message {
+                debug!(
+                    "Subworker id={} registered: protocol={} id={} type={}",
+                    subworker_id, msg.protocol, msg.subworker_id, msg.subworker_type
+                );
+                if msg.protocol != PROTOCOL_VERSION {
+                    bail!(
+                        "Subworker error: registered with invalid protocol; expected = {}",
+                        PROTOCOL_VERSION
+                    );
+                }
+                if msg.subworker_id != subworker_id {
+                    bail!("Subworker error: registered with invalid id");
+                }
+                if msg.subworker_type != subworker_type {
+                    bail!("Subworker error: registered with invalid type");
+                }
+            } else {
+                bail!("Subworker error: Not registered by first message");
+            }
+        }
+        None => bail!("Subworker error: Closed connection without registration"),
+    };
+    Ok(())
 }

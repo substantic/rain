@@ -3,19 +3,22 @@ use std::fs::File;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 
-use common::id::SubworkerId;
+use common::id::{DataObjectId, SubworkerId};
 use common::wrapped::WrappedRcRefCell;
 use common::fs::LogDir;
-use worker::fs::workdir::WorkDir;
+use common::comm::Sender;
+use worker::graph::Task;
+use worker::rpc::subworker_serde::{CallMsg, DropCachedMsg, ResultMsg};
+use worker::rpc::subworker_serde::WorkerToSubworkerMessage;
 
 use errors::Result;
 
 pub struct Subworker {
     subworker_id: SubworkerId,
     subworker_type: String,
-    control: ::subworker_capnp::subworker_control::Client,
+    control: Option<Sender>,
     work_dir: ::tempdir::TempDir,
-    kill_sender: Option<::futures::unsync::oneshot::Sender<()>>,
+    finish_sender: Option<::futures::unsync::oneshot::Sender<ResultMsg>>,
 }
 
 pub type SubworkerRef = WrappedRcRefCell<Subworker>;
@@ -35,20 +38,55 @@ impl Subworker {
     pub fn work_dir(&self) -> &Path {
         self.work_dir.path()
     }
-
-    #[inline]
-    pub fn control(&self) -> &::subworker_capnp::subworker_control::Client {
-        &self.control
-    }
 }
 
 impl Subworker {
     // Kill subworker, if the process is already killed than nothing happens
     pub fn kill(&mut self) {
-        let sender = ::std::mem::replace(&mut self.kill_sender, None);
-        if let Some(s) = sender {
-            s.send(()).unwrap();
+        if self.control.is_none() {
+            debug!("Killing already killed subworker");
         }
+        self.control = None;
+    }
+
+    pub fn pick_finish_sender(&mut self) -> Option<::futures::unsync::oneshot::Sender<ResultMsg>> {
+        ::std::mem::replace(&mut self.finish_sender, None)
+    }
+
+    pub fn send_remove_cached_objects(&self, object_ids: &[DataObjectId]) {
+        let control = self.control.as_ref().clone().unwrap();
+        let message = WorkerToSubworkerMessage::DropCached(DropCachedMsg {
+            objects: object_ids.into(),
+        });
+        control.send(::serde_cbor::to_vec(&message).unwrap());
+    }
+
+    pub fn send_task(
+        &mut self,
+        task: &Task,
+        method: String,
+        subworker_ref: &SubworkerRef,
+    ) -> ::futures::unsync::oneshot::Receiver<ResultMsg> {
+        let control = self.control.as_ref().clone().unwrap();
+        let message = WorkerToSubworkerMessage::Call(CallMsg {
+            task: task.id,
+            method,
+            attributes: task.attributes.clone(),
+            inputs: task.inputs
+                .iter()
+                .map(|i| i.object.get().create_input_spec(&i.label, subworker_ref))
+                .collect(),
+            outputs: task.outputs
+                .iter()
+                .map(|o| o.get().create_output_spec())
+                .collect(),
+        });
+        control.send(::serde_cbor::to_vec(&message).unwrap());
+
+        assert!(self.finish_sender.is_none()); // Not task is running
+        let (sender, receiver) = ::futures::unsync::oneshot::channel();
+        self.finish_sender = Some(sender);
+        receiver
     }
 }
 
@@ -62,35 +100,28 @@ impl SubworkerRef {
     pub fn new(
         subworker_id: SubworkerId,
         subworker_type: String,
-        control: ::subworker_capnp::subworker_control::Client,
+        control: Sender,
         work_dir: ::tempdir::TempDir,
-        kill_sender: ::futures::unsync::oneshot::Sender<()>,
     ) -> Self {
         Self::wrap(Subworker {
             subworker_id,
             subworker_type,
-            control,
+            control: Some(control),
             work_dir,
-            kill_sender: Some(kill_sender),
+            finish_sender: None,
         })
     }
 }
 
 pub fn subworker_command(
-    work_dir: &WorkDir,
+    subworker_dir: &::tempdir::TempDir,
+    socket_path: &Path,
     log_dir: &LogDir,
     subworker_id: SubworkerId,
-    subworker_type: &str,
     program_name: &str,
     program_args: &[String],
-) -> Result<(Command, ::tempdir::TempDir)> {
+) -> Result<Command> {
     let (log_path_out, log_path_err) = log_dir.subworker_log_paths(subworker_id);
-    let subworker_dir = work_dir.make_subworker_work_dir(subworker_id)?;
-
-    info!(
-        "Staring new subworker type={} id={}",
-        subworker_type, subworker_id
-    );
     info!("Subworker stdout log: {:?}", log_path_out);
     info!("Subworker stderr log: {:?}", log_path_err);
 
@@ -112,8 +143,8 @@ pub fn subworker_command(
         .args(program_args)
         .stdout(log_path_out_pipe)
         .stderr(log_path_err_pipe)
-        .env("RAIN_SUBWORKER_SOCKET", work_dir.subworker_listen_path())
+        .env("RAIN_SUBWORKER_SOCKET", socket_path)
         .env("RAIN_SUBWORKER_ID", subworker_id.to_string())
         .current_dir(subworker_dir.path());
-    Ok((command, subworker_dir))
+    Ok(command)
 }

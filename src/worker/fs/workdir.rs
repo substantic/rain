@@ -28,10 +28,11 @@ impl WorkDir {
         }
     }
 
+    /*
     /// Get path to unix socket where worker is listening
     pub fn subworker_listen_path(&self) -> PathBuf {
         self.path.join(Path::new("subworkers/listen"))
-    }
+    }*/
 
     /// Create subworker working directory
     pub fn make_subworker_work_dir(&self, id: SubworkerId) -> Result<::tempdir::TempDir> {

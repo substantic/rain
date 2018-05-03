@@ -8,6 +8,7 @@ pub mod asycinit;
 pub mod attributes;
 pub mod sys;
 pub mod datatype;
+pub mod comm;
 
 use std::collections::HashSet;
 use futures::unsync::oneshot;

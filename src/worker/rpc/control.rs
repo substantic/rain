@@ -122,7 +122,13 @@ impl worker_control::Server for WorkerControlImpl {
 
             let assigned = co.get_assigned();
             let data_type = DataType::from_capnp(co.get_data_type().unwrap());
-            let attributes = Attributes::from_capnp(&co.get_attributes().unwrap());
+            let mut attributes = Attributes::from_capnp(&co.get_attributes().unwrap());
+
+            // TEMPORARY HACK
+            // we need to propagate data type subworker
+            // this should be removed when new attributes are finished
+            attributes.set("type", data_type.to_attribute()).unwrap();
+
             let dataobject = state.add_dataobject(
                 id,
                 object_state,

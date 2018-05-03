@@ -20,6 +20,13 @@ impl DataType {
             &DataType::Directory => ::common_capnp::DataType::Directory,
         }
     }
+
+    pub fn to_attribute(&self) -> &'static str {
+        match self {
+            &DataType::Blob => "blob",
+            &DataType::Directory => "directory",
+        }
+    }
 }
 
 impl ::std::fmt::Display for DataType {

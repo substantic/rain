@@ -19,6 +19,8 @@ extern crate memmap;
 extern crate nix;
 extern crate rusqlite;
 extern crate serde;
+extern crate serde_bytes;
+extern crate serde_cbor;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
@@ -96,10 +98,6 @@ pub mod common_capnp {
 
 pub mod worker_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/worker_capnp.rs"));
-}
-
-pub mod subworker_capnp {
-    include!(concat!(env!("OUT_DIR"), "/capnp/subworker_capnp.rs"));
 }
 
 pub mod monitor_capnp {

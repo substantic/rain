@@ -1,0 +1,21 @@
+[package]
+name = "rain-task"
+version = "0.1.0"
+authors = ["Tomas Gavenciak <gavento@ucw.cz>"]
+
+[dependencies]
+rain = { path = ".." }
+log = ">=0.4"
+serde_derive = "*"
+serde = "*"
+serde_json = "*"
+byteorder = "*"
+serde_cbor = "*"
+memmap = "*"
+
+error-chain="*"
+env_logger = "*"
+arrayref = "*"
+chrono = { version = "*", features = ["serde"] }
+tar = "*"
+walkdir = "*"
