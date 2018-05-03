@@ -1,6 +1,6 @@
 
 import struct
-import json
+import cbor
 
 
 class SocketWrapper:
@@ -17,7 +17,7 @@ class SocketWrapper:
         self.socket.close()
 
     def send_message(self, message):
-        msg = json.dumps(message).encode()
+        msg = cbor.dumps(message)
         data = self.header.pack(len(msg)) + msg
         self.socket.sendall(data)
 
@@ -30,7 +30,7 @@ class SocketWrapper:
                 if size >= msg_size:
                     message = self._buffer[header_size:msg_size]
                     self._buffer = self._buffer[msg_size:]
-                    return json.loads(message.decode())
+                    return cbor.loads(message)
 
             new_data = self.socket.recv(self.read_buffer_size)
             if not new_data:

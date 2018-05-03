@@ -69,13 +69,18 @@ def load_worker_object(data, cache):
     attributes = load_attributes(data["attributes"])
     path = None
     data = None
-    if "memory" in location:
-        data = bytes(location["memory"])  # TODO: remove bytes
-    elif "path" in location:
-        path = location["path"]
+    if "memory" == location[0]:
+        data = location[1]
+    elif "path" in location[0]:
+        path = location[1]
+    else:
+        raise Exception("Invalid location")
 
     # TODO: data type
-    data = DataInstance(data=data, path=path, attributes=attributes, data_type=DataType(attributes["type"]))
+    data = DataInstance(data=data,
+                        path=path,
+                        attributes=attributes,
+                        data_type=DataType(attributes["type"]))
     data._object_id = object_id
     return data
 
@@ -83,11 +88,11 @@ def load_worker_object(data, cache):
 def store_result(instance, id):
 
     if instance._object_id:
-        location = {"otherObject": instance._object_id}
+        location = ["otherObject", instance._object_id]
     elif instance._path:
-        location = {"path": instance._path}
+        location = ["path", instance._path]
     else:
-        location = {"memory": list(instance._data)}  # TODO: remove list
+        location = ["memory", instance._data]
 
     return {
         "id": id,
@@ -119,11 +124,12 @@ class Subworker:
             os.chdir(backup)
 
         self.socket = SocketWrapper(sock)
-        self.socket.send_message({"message": "register",
-                                  "data": {
+        self.socket.send_message(["register",
+                                  {
                                     "protocol": SUBWORKER_PROTOCOL,
                                     "subworkerId": subworker_id,
-                                    "subworkerType": "py"}})
+                                    "subworkerType": "py"
+                                  }])
 
     def run(self):
         while True:
@@ -140,8 +146,6 @@ class Subworker:
             inputs = []
             for dataobj in data["inputs"]:
                 obj = load_worker_object(dataobj, self.cache)
-                #TODO if reader.saveInCache:
-                #TODO    self.cache[obj._object_id] = obj
                 inputs.append(obj)
 
             self.cache[inputs[0]._object_id] = inputs[0]
@@ -162,13 +166,14 @@ class Subworker:
             if task_context._debug_messages:
                 task_context.attributes["debug"] = "\n".join(task_context._debug_messages)
 
-            self.socket.send_message({"message": "result", "data": {
+            self.socket.send_message(["result", {
                 "task": task_context.task_id,
                 "success": True,
                 "attributes": store_attributes(task_context.attributes),
-                "outputs": [store_result(data, output.id) for data, output in zip(task_results, outputs)],
+                "outputs": [store_result(data, output.id)
+                            for data, output in zip(task_results, outputs)],
                 "cachedObjects": [inputs[0]._object_id],
-            }})
+            }])
 
         except Exception:
             task_context._cleanup_on_fail()
@@ -179,19 +184,17 @@ class Subworker:
             if task_context._debug_messages:
                 attributes["debug"] = "\n".join(task_context._debug_messages)
 
-            self.socket.send_message({"message": "result", "data": {
+            self.socket.send_message(["result", {
                 "task": task_context.task_id,
                 "success": False,
                 "attributes": store_attributes(attributes),
-            }})
-
+            }])
 
     def process_message(self, message):
-        name = message["message"]
-        if name == "call":
-            self.unpack_and_run_task(message["data"])
-        elif name == "dropCached":
-            for object_id in message["data"]["objects"]:
+        if message[0] == "call":
+            self.unpack_and_run_task(message[1])
+        elif message[0] == "dropCached":
+            for object_id in message[1]["objects"]:
                 del self.cache[tuple(object_id)]
         else:
             raise Exception("Unknown message")
@@ -289,4 +292,3 @@ def main():
     print("Subworker initialized")
     sys.stdout.flush()
     subworker.run()
-

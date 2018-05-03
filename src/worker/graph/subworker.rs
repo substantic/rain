@@ -61,7 +61,7 @@ impl Subworker {
         let message = WorkerToSubworkerMessage::DropCached(DropCachedMsg {
             objects: object_ids.into()
         });
-        control.send(::serde_json::to_vec(&message).unwrap());
+        control.send(::serde_cbor::to_vec(&message).unwrap());
     }
 
     pub fn send_task(&mut self, task: &Task, method: String, subworker_ref: &SubworkerRef) -> ::futures::unsync::oneshot::Receiver<ResultMsg> {
@@ -73,7 +73,7 @@ impl Subworker {
             inputs: task.inputs.iter().map(|i| i.object.get().create_input_spec(&i.label, subworker_ref)).collect(),
             outputs: task.outputs.iter().map(|o| o.get().create_output_spec()).collect(),
         });
-        control.send(::serde_json::to_vec(&message).unwrap());
+        control.send(::serde_cbor::to_vec(&message).unwrap());
 
         assert!(self.finish_sender.is_none()); // Not task is running
         let (sender, receiver) = ::futures::unsync::oneshot::channel();

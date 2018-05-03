@@ -55,8 +55,7 @@ pub fn check_registration(data: Option<BytesMut>, subworker_id: SubworkerId, sub
 {
     match data {
         Some(data) => {
-            let text_data = ::std::str::from_utf8(&data).unwrap();
-            let message: SubworkerToWorkerMessage = ::serde_json::from_str(text_data).unwrap();
+            let message: SubworkerToWorkerMessage = ::serde_cbor::from_slice(&data).unwrap();
             if let SubworkerToWorkerMessage::Register(msg) = message {
                 debug!("Subworker id={} registered: protocol={} id={} type={}", subworker_id, msg.protocol, msg.subworker_id, msg.subworker_type);
                 if msg.protocol != PROTOCOL_VERSION {

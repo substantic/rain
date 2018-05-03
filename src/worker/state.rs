@@ -337,10 +337,10 @@ impl State {
                         .map_err(|e| e.into())
                         .and_then(move |status| {
                             error!(
-                                "Subworker {} terminated with exit code: {}",
+                                "Subworker {} terminated with {}",
                                 subworker_id, status
                             );
-                            bail!("Subworker unexpectedly terminated with exit code: {}", status);
+                            bail!("Subworker unexpectedly terminated with {}", status);
                         });
 
                     let subworker_type2 = subworker_type.clone();
@@ -371,7 +371,7 @@ impl State {
                         let result = subworker.clone();
 
                         let comm_future = connection.start_future(move |data| {
-                            let message: SubworkerToWorkerMessage = ::serde_json::from_str(::std::str::from_utf8(&data).unwrap()).unwrap();
+                            let message: SubworkerToWorkerMessage = ::serde_cbor::from_slice(&data).unwrap();
                             match message {
                                 SubworkerToWorkerMessage::Result(msg) => {
                                     let mut sw = subworker.get_mut();

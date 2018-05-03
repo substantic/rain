@@ -784,5 +784,3 @@ def test_python_dir(test_env):
         with open(os.path.join(test_env.work_dir, "rdir2", "b", "g.txt")) as f:
             assert f.read() == "Hello 3"
         assert os.path.isdir("rdir2/test3")
-
-
