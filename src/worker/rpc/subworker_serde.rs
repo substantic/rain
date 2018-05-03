@@ -1,4 +1,4 @@
-use common::id::{TaskId, DataObjectId, SubworkerId};
+use common::id::{DataObjectId, SubworkerId, TaskId};
 use common::Attributes;
 use std::path::PathBuf;
 use serde_bytes;
@@ -67,13 +67,13 @@ pub struct ResultMsg {
     /// `DataObjectSpec::cache_hint` should be missing or false.
     /// In `DataObjectSpec::attributes`, `spec` and `user_spec` are ignored if present.
     /// The list must match `CallMsg::outputs` lengts and on `id`s.
-    #[serde(skip_serializing_if="Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     pub outputs: Vec<DataObjectSpec>,
     /// If any objects with `cache_hint` were sent, report which were newly cached
     /// (does not include objects previously cached and now reported with `DataLocation::Cached`).
     /// It is always allowed to cache no object and even omit this field (for simpler subworkers).
-    #[serde(skip_serializing_if="Vec::is_empty")]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     pub cached_objects: Vec<DataObjectId>,
 }
@@ -87,20 +87,20 @@ pub struct DataObjectSpec {
     /// Data object ID
     pub id: DataObjectId,
     /// Object label within the task inputs or outputs
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub label: Option<String>,
     /// Object attributes
     pub attributes: Attributes,
     /// Object data location
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub location: Option<DataLocation>,
     /// If able, the subworker should cache this object, preferably in the
     /// unpacked form to save repeated unpacking (e.g. python cloudpickle).
     /// If the subworker decides to cache the object, it must add it to
     /// `ResultMsg::cached_objects`.
-    #[serde(skip_serializing_if="::std::ops::Not::not")]
+    #[serde(skip_serializing_if = "::std::ops::Not::not")]
     #[serde(default)]
     pub cache_hint: bool,
 }
@@ -113,7 +113,7 @@ pub enum DataLocation {
     Path(PathBuf),
     /// The data is directly contained in the message. Only reccomended for
     /// small objects (under cca 128kB).
-    #[serde(with="serde_bytes")]
+    #[serde(with = "serde_bytes")]
     Memory(Vec<u8>),
     /// The data is identical to one of input objects.
     /// Only valid in `ResultMsg`.
@@ -153,7 +153,8 @@ mod tests {
 
     #[test]
     fn test_register() {
-        let s = r#"{"register": {"protocol": "swp1", "subworkerId": 42, "subworkerType": "dummy"}}"#;
+        let s =
+            r#"{"register": {"protocol": "swp1", "subworkerId": 42, "subworkerType": "dummy"}}"#;
         let m: SubworkerToWorkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
@@ -163,8 +164,10 @@ mod tests {
         let s = r#"{"call": {"method": "foo", "task": [42, 48],
             "attributes": {},
             "inputs": [
-                {"id": [3,6], "label": "in1", "attributes": {}, "location": {"memory": [0,0,0,0,0]}},
-                {"id": [3,7], "label": "in2", "attributes": {}, "location": {"path": "in1.txt"}, "cacheHint": true},
+                {"id": [3,6], "label": "in1", "attributes": {},
+                 "location": {"memory": [0,0,0,0,0]}},
+                {"id": [3,7], "label": "in2", "attributes": {},
+                 "location": {"path": "in1.txt"}, "cacheHint": true},
                 {"id": [3,8], "attributes": {}, "location": "cached"}
             ],
             "outputs": [
@@ -175,7 +178,10 @@ mod tests {
         let m: WorkerToSubworkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
         if let WorkerToSubworkerMessage::Call(ref c) = &m {
-            assert_eq!(c.inputs[0].location, Some(DataLocation::Memory(vec![0u8; 5])));
+            assert_eq!(
+                c.inputs[0].location,
+                Some(DataLocation::Memory(vec![0u8; 5]))
+            );
         } else {
             panic!()
         }

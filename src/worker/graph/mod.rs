@@ -5,5 +5,5 @@ pub mod subworker;
 
 pub use self::subworker::{subworker_command, SubworkerRef};
 pub use self::dataobj::{DataObject, DataObjectRef, DataObjectState};
-pub use self::task::{TaskInput, TaskRef, TaskState, Task};
+pub use self::task::{Task, TaskInput, TaskRef, TaskState};
 pub use self::graph::Graph;

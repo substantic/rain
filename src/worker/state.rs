@@ -23,10 +23,10 @@ use worker::graph::{subworker_command, DataObject, DataObjectRef, DataObjectStat
 use worker::data::Data;
 use worker::data::transport::TransportView;
 use worker::tasks::TaskInstance;
-use worker::rpc::{WorkerControlImpl};
+use worker::rpc::WorkerControlImpl;
 use worker::fs::workdir::WorkDir;
 use worker::rpc::subworker_serde::SubworkerToWorkerMessage;
-use worker::rpc::subworker::{check_registration};
+use worker::rpc::subworker::check_registration;
 
 use futures::Future;
 use futures::Stream;
@@ -313,14 +313,15 @@ impl State {
                     let listen_path = subworker_dir.path().join("socket");
 
                     // --- Start listening Unix socket for subworkers ----
-                    let listener = {
-                        let backup = ::std::env::current_dir().unwrap();
-                        ::std::env::set_current_dir(subworker_dir.path()).unwrap();
-                        let result = UnixListener::bind("socket", &self.handle);
-                        ::std::env::set_current_dir(backup).unwrap();
-                        result
-                    }.map_err(|e| info!("Cannot create listening unix socket: {:?}", e))
-                        .unwrap();
+                    let listener =
+                        {
+                            let backup = ::std::env::current_dir().unwrap();
+                            ::std::env::set_current_dir(subworker_dir.path()).unwrap();
+                            let result = UnixListener::bind("socket", &self.handle);
+                            ::std::env::set_current_dir(backup).unwrap();
+                            result
+                        }.map_err(|e| info!("Cannot create listening unix socket: {:?}", e))
+                            .unwrap();
 
                     let program_name = &args[0];
                     let mut command = subworker_command(
@@ -336,85 +337,95 @@ impl State {
                         .status_async2(&self.handle)?
                         .map_err(|e| e.into())
                         .and_then(move |status| {
-                            error!(
-                                "Subworker {} terminated with {}",
-                                subworker_id, status
-                            );
+                            error!("Subworker {} terminated with {}", subworker_id, status);
                             bail!("Subworker unexpectedly terminated with {}", status);
                         });
 
                     let subworker_type2 = subworker_type.clone();
-                    let listen_future = listener.incoming().into_future()
+                    let listen_future = listener
+                        .incoming()
+                        .into_future()
                         .map_err(|_| "Subworker connection failed".into())
                         .and_then(move |(r, _)| {
-                        info!("Connection for subworker id={}", subworker_id);
-                        let (raw_stream, _) = r.unwrap();
-                        let stream = ::common::comm::create_protocol_stream(raw_stream);
-                        stream.into_future().map_err(|(e, _)| {
-                            format!("Subworker error: Error on unregistered subworker connection: {:?}", e).into()
-                        }).and_then(move |(r, stream)| {
-                            check_registration(r, subworker_id, &subworker_type2).map(|()| stream)
-                        })
-                    });
+                            info!("Connection for subworker id={}", subworker_id);
+                            let (raw_stream, _) = r.unwrap();
+                            let stream = ::common::comm::create_protocol_stream(raw_stream);
+                            stream
+                                .into_future()
+                                .map_err(|(e, _)| {
+                                    format!("Subworker error: Error on unregistered subworker connection: {:?}", e).into()
+                                })
+                                .and_then(move |(r, stream)| {
+                                    check_registration(r, subworker_id, &subworker_type2)
+                                        .map(|()| stream)
+                                })
+                        });
 
                     let state_ref = self.self_ref();
-                    let ready_future = listen_future.select2(command_future).and_then(move |r| {
-                        // TODO: replace in futures 0.2.0 by left()
-                        let (stream, command_future) = match r {
-                            ::futures::future::Either::A(x) => x,
-                            ::futures::future::Either::B(((), _)) => unreachable!()
-                        };
-                        let connection = Connection::from(stream);
-                        let sender = connection.sender();
-                        let subworker = SubworkerRef::new(subworker_id, subworker_type, sender, subworker_dir);
-                        let subworker2 = subworker.clone();
-                        let result = subworker.clone();
+                    let ready_future = listen_future
+                        .select2(command_future)
+                        .and_then(move |r| {
+                            // TODO: replace in futures 0.2.0 by left()
+                            let (stream, command_future) = match r {
+                                ::futures::future::Either::A(x) => x,
+                                ::futures::future::Either::B(((), _)) => unreachable!(),
+                            };
+                            let connection = Connection::from(stream);
+                            let sender = connection.sender();
+                            let subworker = SubworkerRef::new(
+                                subworker_id,
+                                subworker_type,
+                                sender,
+                                subworker_dir,
+                            );
+                            let subworker2 = subworker.clone();
+                            let result = subworker.clone();
 
-                        let comm_future = connection.start_future(move |data| {
-                            let message: SubworkerToWorkerMessage = ::serde_cbor::from_slice(&data).unwrap();
-                            match message {
-                                SubworkerToWorkerMessage::Result(msg) => {
-                                    let mut sw = subworker.get_mut();
-                                    match sw.pick_finish_sender() {
+                            let comm_future = connection.start_future(move |data| {
+                                let message: SubworkerToWorkerMessage =
+                                    ::serde_cbor::from_slice(&data).unwrap();
+                                match message {
+                                    SubworkerToWorkerMessage::Result(msg) => {
+                                        let mut sw = subworker.get_mut();
+                                        match sw.pick_finish_sender() {
                                         Some(sender) => { sender.send(msg).unwrap() },
                                         None => {
                                             bail!("No task is currentl running in subworker, but 'result' received")
                                         }
                                     };
+                                    }
+                                    SubworkerToWorkerMessage::Register(_) => {
+                                        bail!("Subworker send 'Register' message but it is already registered");
+                                    }
                                 }
-                                SubworkerToWorkerMessage::Register(_) => {
-                                    bail!("Subworker send 'Register' message but it is already registered");
-                                }
-                            }
-                            Ok(())
+                                Ok(())
+                            });
+                            let state_ref2 = state_ref.clone();
+                            let future = comm_future.select(command_future).then(move |r| {
+                                match r {
+                                    Ok(_) => {
+                                        debug!("Subworker terminating");
+                                    }
+                                    Err((e, _)) => error!("Subworker failed: {}", e),
+                                };
+                                subworker2.get_mut().pick_finish_sender(); // just picke sender and them it away
+                                let mut state = state_ref2.get_mut();
+                                state.subworker_cleanup(&subworker2);
+                                Ok(())
+                            });
+                            let state = state_ref.get();
+                            state.handle().spawn(future);
+                            Ok(result)
+                        })
+                        .map_err(|e| {
+                            // TODO: replace in futures 0.2.0 by into_inner()
+                            e.split().0
                         });
-                        let state_ref2 = state_ref.clone();
-                        let future = comm_future.select(command_future).then(move |r| {
-                            match r {
-                                Ok(_) => {
-                                    debug!("Subworker terminating");
-                                }
-                                Err((e, _)) => {
-                                    error!("Subworker failed: {}", e)
-                                }
-                            };
-                            subworker2.get_mut().pick_finish_sender(); // just picke sender and them it away
-                            let mut state = state_ref2.get_mut();
-                            state.subworker_cleanup(&subworker2);
-                            Ok(())
-                        });
-                        let state = state_ref.get();
-                        state.handle().spawn(future);
-                        Ok(result)
-                    }).map_err(|e| {
-                        // TODO: replace in futures 0.2.0 by into_inner()
-                        e.split().0
-                    });
                     Ok(Box::new(ready_future))
                 } else {
                     bail!("Do not know how to start subworker: {}", subworker_type);
                 }
-            },
+            }
             Some(sw) => {
                 self.graph.idle_subworkers.remove(&sw);
                 Ok(Box::new(Ok(sw).into_future()))

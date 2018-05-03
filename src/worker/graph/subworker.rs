@@ -8,12 +8,10 @@ use common::wrapped::WrappedRcRefCell;
 use common::fs::LogDir;
 use common::comm::Sender;
 use worker::graph::Task;
-use worker::rpc::subworker_serde::{CallMsg, ResultMsg, DropCachedMsg};
-use worker::rpc::subworker_serde::{WorkerToSubworkerMessage};
-
+use worker::rpc::subworker_serde::{CallMsg, DropCachedMsg, ResultMsg};
+use worker::rpc::subworker_serde::WorkerToSubworkerMessage;
 
 use errors::Result;
-
 
 pub struct Subworker {
     subworker_id: SubworkerId,
@@ -43,7 +41,6 @@ impl Subworker {
 }
 
 impl Subworker {
-
     // Kill subworker, if the process is already killed than nothing happens
     pub fn kill(&mut self) {
         if self.control.is_none() {
@@ -59,19 +56,30 @@ impl Subworker {
     pub fn send_remove_cached_objects(&self, object_ids: &[DataObjectId]) {
         let control = self.control.as_ref().clone().unwrap();
         let message = WorkerToSubworkerMessage::DropCached(DropCachedMsg {
-            objects: object_ids.into()
+            objects: object_ids.into(),
         });
         control.send(::serde_cbor::to_vec(&message).unwrap());
     }
 
-    pub fn send_task(&mut self, task: &Task, method: String, subworker_ref: &SubworkerRef) -> ::futures::unsync::oneshot::Receiver<ResultMsg> {
+    pub fn send_task(
+        &mut self,
+        task: &Task,
+        method: String,
+        subworker_ref: &SubworkerRef,
+    ) -> ::futures::unsync::oneshot::Receiver<ResultMsg> {
         let control = self.control.as_ref().clone().unwrap();
         let message = WorkerToSubworkerMessage::Call(CallMsg {
             task: task.id,
             method,
             attributes: task.attributes.clone(),
-            inputs: task.inputs.iter().map(|i| i.object.get().create_input_spec(&i.label, subworker_ref)).collect(),
-            outputs: task.outputs.iter().map(|o| o.get().create_output_spec()).collect(),
+            inputs: task.inputs
+                .iter()
+                .map(|i| i.object.get().create_input_spec(&i.label, subworker_ref))
+                .collect(),
+            outputs: task.outputs
+                .iter()
+                .map(|o| o.get().create_output_spec())
+                .collect(),
         });
         control.send(::serde_cbor::to_vec(&message).unwrap());
 

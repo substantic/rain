@@ -19,6 +19,8 @@ extern crate memmap;
 extern crate nix;
 extern crate rusqlite;
 extern crate serde;
+extern crate serde_bytes;
+extern crate serde_cbor;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
@@ -32,8 +34,6 @@ extern crate tokio_process;
 extern crate tokio_timer;
 extern crate tokio_uds;
 extern crate walkdir;
-extern crate serde_cbor;
-extern crate serde_bytes;
 
 pub mod common;
 pub mod worker;

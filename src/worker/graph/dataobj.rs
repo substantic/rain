@@ -156,7 +156,11 @@ impl DataObject {
     pub fn create_input_spec(&self, label: &str, subworker_ref: &SubworkerRef) -> DataObjectSpec {
         DataObjectSpec {
             id: self.id,
-            label: if label.is_empty() { None } else { Some(label.to_string()) },
+            label: if label.is_empty() {
+                None
+            } else {
+                Some(label.to_string())
+            },
             attributes: self.attributes.clone(),
             location: if self.subworker_cache.contains(subworker_ref) {
                 Some(DataLocation::Cached)
@@ -170,7 +174,11 @@ impl DataObject {
     pub fn create_output_spec(&self) -> DataObjectSpec {
         DataObjectSpec {
             id: self.id,
-            label: if self.label.is_empty() { None } else { Some(self.label.clone()) },
+            label: if self.label.is_empty() {
+                None
+            } else {
+                Some(self.label.clone())
+            },
             attributes: self.attributes.clone(),
             location: None,
             cache_hint: true,

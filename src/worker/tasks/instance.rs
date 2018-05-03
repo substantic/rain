@@ -5,10 +5,9 @@ use worker::graph::{SubworkerRef, TaskRef, TaskState};
 use worker::state::State;
 use worker::tasks;
 use worker::rpc::subworker::data_output_from_spec;
-use common::{DataType};
+use common::DataType;
 use errors::{Error, Result};
-use worker::rpc::subworker_serde::{ResultMsg};
-
+use worker::rpc::subworker_serde::ResultMsg;
 
 /// Instance represents a running task. It contains resource allocations and
 /// allows to signal finishing of data objects.
@@ -191,57 +190,76 @@ impl TaskInstance {
             let task = task_ref2.get();
             let subworker_ref2 = subworker_ref.clone();
             let mut subworker = subworker_ref2.get_mut();
-            subworker.send_task(&task, method_name, &subworker_ref).then(move |r| {
-                sw_wrapper.deactive();
-                match r {
-                    Ok(ResultMsg {task: task_id, attributes, success, outputs, cached_objects}) => {
-                        let result : Result<()> = {
-                            let mut task = task_ref.get_mut();
-                            let subworker = subworker_ref.get();
-                            let work_dir = subworker.work_dir();
-                            assert!(task.id == task_id);
-                            task.new_attributes.update(attributes);
+            subworker
+                .send_task(&task, method_name, &subworker_ref)
+                .then(move |r| {
+                    sw_wrapper.deactive();
+                    match r {
+                        Ok(ResultMsg {
+                            task: task_id,
+                            attributes,
+                            success,
+                            outputs,
+                            cached_objects,
+                        }) => {
+                            let result: Result<()> = {
+                                let mut task = task_ref.get_mut();
+                                let subworker = subworker_ref.get();
+                                let work_dir = subworker.work_dir();
+                                assert!(task.id == task_id);
+                                task.new_attributes.update(attributes);
 
-                            if success {
-                                debug!("Task id={} finished in subworker", task.id);
-                                for (co, output) in outputs.into_iter().zip(&task.outputs) {
-                                    let attributes = co.attributes.clone();
+                                if success {
+                                    debug!("Task id={} finished in subworker", task.id);
+                                    for (co, output) in outputs.into_iter().zip(&task.outputs) {
+                                        let attributes = co.attributes.clone();
 
-                                    // TEMPORRARY HACK, when new attributes are introduced, this should be removed, new attributes
-                                    let data_type_name : Option<String> = attributes.find("type")?;
-                                    let data_type = data_type_name.map(|n| if "directory" == n { DataType::Directory } else { DataType::Blob }).unwrap_or(DataType::Blob);
-                                    let data = data_output_from_spec(&state_ref.get(), work_dir, co, data_type)?;
-                                    let mut o = output.get_mut();
-                                    o.set_attributes(attributes);
-                                    o.set_data(data)?;
+                                        // TEMPORRARY HACK, when new attributes are introduced, this should be removed, new attributes
+                                        let data_type_name : Option<String> = attributes.find("type")?;
+                                        let data_type = data_type_name
+                                            .map(|n| {
+                                                if "directory" == n {
+                                                    DataType::Directory
+                                                } else {
+                                                    DataType::Blob
+                                                }
+                                            })
+                                            .unwrap_or(DataType::Blob);
+                                        let data = data_output_from_spec(
+                                            &state_ref.get(),
+                                            work_dir,
+                                            co,
+                                            data_type,
+                                        )?;
+                                        let mut o = output.get_mut();
+                                        o.set_attributes(attributes);
+                                        o.set_data(data)?;
+                                    }
+                                    Ok(())
+                                } else {
+                                    debug!("Task id={} failed in subworker", task.id);
+                                    Err("Task failed in subworker".into())
                                 }
-                                Ok(())
-                            } else {
-                                debug!("Task id={} failed in subworker", task.id);
-                                Err("Task failed in subworker".into())
+                            };
+
+                            let mut state = state_ref.get_mut();
+
+                            for object_id in cached_objects {
+                                // TODO: Validate that object_id is input/output of the task
+                                let obj_ref = state.graph.objects.get(&object_id).unwrap();
+                                obj_ref
+                                    .get_mut()
+                                    .subworker_cache
+                                    .insert(subworker_ref.clone());
                             }
-                        };
 
-                        let mut state = state_ref.get_mut();
+                            state.graph.idle_subworkers.insert(subworker_ref);
 
-                        for object_id in cached_objects {
-                            // TODO: Validate that object_id is input/output of the task
-                            let obj_ref = state.graph.objects.get(&object_id).unwrap();
-                            obj_ref.get_mut().subworker_cache.insert(subworker_ref.clone());
+                            result
                         }
-
-                        state
-                            .graph
-                            .idle_subworkers
-                            .insert(subworker_ref);
-
-                        result
+                        Err(_) => Err("Lost connection to subworker".into()),
                     }
-                    Err(_) => {
-                        Err("Lost connection to subworker".into())
-                    }
-                }
-            })
+                })
         })))
     }
 }

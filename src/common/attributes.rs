@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use errors::Result;
 use std::error::Error;
-use serde::{Serialize, Serializer, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Attributes {
@@ -11,7 +11,8 @@ pub struct Attributes {
 
 impl Serialize for Attributes {
     fn serialize<S>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error>
-        where S: Serializer
+    where
+        S: Serializer,
     {
         self.items.serialize(serializer)
     }
@@ -19,9 +20,12 @@ impl Serialize for Attributes {
 
 impl<'de> Deserialize<'de> for Attributes {
     fn deserialize<D>(deserializer: D) -> ::std::result::Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
-        Ok(Attributes { items: Deserialize::deserialize(deserializer)? })
+        Ok(Attributes {
+            items: Deserialize::deserialize(deserializer)?,
+        })
     }
 }
 

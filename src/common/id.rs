@@ -4,7 +4,7 @@ use super::convert::{FromCapnp, ReadCapnp, ToCapnp, WriteCapnp};
 use std::io::Read;
 use capnp::serialize;
 use std::fmt;
-use serde::{Serialize, Serializer, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Generic ID type. Negative values have special meaning.
 pub type Id = i32;
