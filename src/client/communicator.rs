@@ -3,7 +3,6 @@ use std::net::SocketAddr;
 use tokio_core::net::TcpStream;
 use std::error::Error;
 use common::rpc::new_rpc_system;
-use capnp::capability::Promise;
 use capnp_rpc::rpc_twoparty_capnp;
 use futures::Future;
 use std::cell::Ref;
@@ -35,24 +34,16 @@ impl Communicator {
         let mut request = bootstrap.register_as_client_request();
         request.get().set_version(version);
 
-        let service = core.run(
-            request
-                .send()
-                .promise
-                .and_then(|response| Promise::ok(pry!(response.get()).get_service())),
-        )??;
+        let service = core.run(request.send().promise)?.get()?.get_service()?;
 
         Ok(Self { core, service })
     }
 
     pub fn new_session(&mut self) -> Result<i32, Box<Error>> {
-        let id: i32 = self.core.run(
-            self.service
-                .new_session_request()
-                .send()
-                .promise
-                .and_then(|response| Promise::ok(pry!(response.get()).get_session_id())),
-        )?;
+        let id: i32 = self.core
+            .run(self.service.new_session_request().send().promise)?
+            .get()?
+            .get_session_id();
 
         Ok(id)
     }
@@ -72,8 +63,8 @@ impl Communicator {
     {
         let mut req = self.service.submit_request();
 
-        capnplist!(req.get(), tasks, init_tasks);
-        capnplist!(
+        to_capnp_list!(req.get(), tasks, init_tasks);
+        to_capnp_list!(
             req.get(),
             data_objects
                 .iter()
@@ -81,7 +72,6 @@ impl Communicator {
                 .collect::<Vec<&DataObject>>(),
             init_objects
         );
-
         self.core.run(req.send().promise)?;
 
         Ok(())
@@ -89,15 +79,15 @@ impl Communicator {
 
     pub fn unkeep(&mut self, objects: &[DataObjectId]) -> Result<(), Box<Error>> {
         let mut req = self.service.unkeep_request();
-        capnplist!(req.get(), objects, init_object_ids);
+        to_capnp_list!(req.get(), objects, init_object_ids);
         self.core.run(req.send().promise)?;
         Ok(())
     }
 
     pub fn wait(&mut self, tasks: &[TaskId], objects: &[DataObjectId]) -> Result<(), Box<Error>> {
         let mut req = self.service.wait_request();
-        capnplist!(req.get(), tasks, init_task_ids);
-        capnplist!(req.get(), objects, init_object_ids);
+        to_capnp_list!(req.get(), tasks, init_task_ids);
+        to_capnp_list!(req.get(), objects, init_object_ids);
         self.core.run(req.send().promise)?;
         Ok(())
     }
@@ -107,21 +97,13 @@ impl Communicator {
         objects: &[DataObjectId],
     ) -> Result<(Vec<TaskId>, Vec<DataObjectId>), Box<Error>> {
         let mut req = self.service.wait_some_request();
-        capnplist!(req.get(), tasks, init_task_ids);
-        capnplist!(req.get(), objects, init_object_ids);
+        to_capnp_list!(req.get(), tasks, init_task_ids);
+        to_capnp_list!(req.get(), objects, init_object_ids);
         let res = self.core.run(req.send().promise)?;
 
         Ok((
-            res.get()?
-                .get_finished_tasks()?
-                .iter()
-                .map(|id| TaskId::from_capnp(&id))
-                .collect(),
-            res.get()?
-                .get_finished_objects()?
-                .iter()
-                .map(|id| DataObjectId::from_capnp(&id))
-                .collect(),
+            from_capnp_list!(res.get()?, get_finished_tasks, TaskId),
+            from_capnp_list!(res.get()?, get_finished_objects, DataObjectId),
         ))
     }
 

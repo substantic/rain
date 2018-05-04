@@ -4,13 +4,24 @@ use client::task::TaskInput;
 use common::convert::ToCapnp;
 use common::id::DataObjectId;
 
-macro_rules! capnplist {
+macro_rules! to_capnp_list {
     ($builder:expr, $items:expr, $name:ident) => {
         {
             let mut builder = $builder.$name($items.len() as u32);
             for (i, obj) in $items.iter().enumerate() {
                 obj.to_capnp(&mut builder.reborrow().get(i as u32));
             }
+        }
+    }
+}
+macro_rules! from_capnp_list {
+    ($builder:expr, $items:ident, $obj:ident) => {
+        {
+            $builder
+                .$items()?
+                .iter()
+                .map(|item| $obj::from_capnp(&item))
+                .collect()
         }
     }
 }
@@ -36,8 +47,8 @@ impl<'a> ToCapnp<'a> for Task {
         self.id.to_capnp(&mut builder.reborrow().get_id().unwrap());
         builder.set_task_type(&self.command);
 
-        capnplist!(builder.reborrow(), self.inputs, init_inputs);
-        capnplist!(
+        to_capnp_list!(builder.reborrow(), self.inputs, init_inputs);
+        to_capnp_list!(
             builder.reborrow(),
             self.outputs
                 .iter()
