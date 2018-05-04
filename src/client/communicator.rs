@@ -5,15 +5,16 @@ use std::error::Error;
 use common::rpc::new_rpc_system;
 use capnp_rpc::rpc_twoparty_capnp;
 use futures::Future;
-use std::cell::Ref;
 
 use super::task::Task;
 use common::id::{DataObjectId, TaskId};
 use common::convert::{FromCapnp, ToCapnp};
 use client::dataobject::DataObject;
+use std::cell::RefCell;
+use std::cell::RefMut;
 
 pub struct Communicator {
-    core: Core,
+    core: RefCell<Core>,
     service: ::client_capnp::client_service::Client,
 }
 
@@ -36,19 +37,22 @@ impl Communicator {
 
         let service = core.run(request.send().promise)?.get()?.get_service()?;
 
-        Ok(Self { core, service })
+        Ok(Self {
+            core: RefCell::new(core),
+            service,
+        })
     }
 
-    pub fn new_session(&mut self) -> Result<i32, Box<Error>> {
-        let id: i32 = self.core
+    pub fn new_session(&self) -> Result<i32, Box<Error>> {
+        let id: i32 = self.comm()
             .run(self.service.new_session_request().send().promise)?
             .get()?
             .get_session_id();
 
         Ok(id)
     }
-    pub fn close_session(&mut self, id: i32) -> Result<(), Box<Error>> {
-        self.core.run({
+    pub fn close_session(&self, id: i32) -> Result<(), Box<Error>> {
+        self.comm().run({
             let mut req = self.service.close_session_request();
             req.get().set_session_id(id);
             req.send().promise
@@ -57,13 +61,18 @@ impl Communicator {
         Ok(())
     }
 
-    pub fn submit<D>(&mut self, tasks: &[Ref<Task>], data_objects: &[D]) -> Result<(), Box<Error>>
+    pub fn submit<T, D>(&self, tasks: &[T], data_objects: &[D]) -> Result<(), Box<Error>>
     where
+        T: AsRef<Task>,
         D: AsRef<DataObject>,
     {
         let mut req = self.service.submit_request();
 
-        to_capnp_list!(req.get(), tasks, init_tasks);
+        to_capnp_list!(
+            req.get(),
+            tasks.iter().map(|t| t.as_ref()).collect::<Vec<&Task>>(),
+            init_tasks
+        );
         to_capnp_list!(
             req.get(),
             data_objects
@@ -72,34 +81,34 @@ impl Communicator {
                 .collect::<Vec<&DataObject>>(),
             init_objects
         );
-        self.core.run(req.send().promise)?;
+        self.comm().run(req.send().promise)?;
 
         Ok(())
     }
 
-    pub fn unkeep(&mut self, objects: &[DataObjectId]) -> Result<(), Box<Error>> {
+    pub fn unkeep(&self, objects: &[DataObjectId]) -> Result<(), Box<Error>> {
         let mut req = self.service.unkeep_request();
         to_capnp_list!(req.get(), objects, init_object_ids);
-        self.core.run(req.send().promise)?;
+        self.comm().run(req.send().promise)?;
         Ok(())
     }
 
-    pub fn wait(&mut self, tasks: &[TaskId], objects: &[DataObjectId]) -> Result<(), Box<Error>> {
+    pub fn wait(&self, tasks: &[TaskId], objects: &[DataObjectId]) -> Result<(), Box<Error>> {
         let mut req = self.service.wait_request();
         to_capnp_list!(req.get(), tasks, init_task_ids);
         to_capnp_list!(req.get(), objects, init_object_ids);
-        self.core.run(req.send().promise)?;
+        self.comm().run(req.send().promise)?;
         Ok(())
     }
     pub fn wait_some(
-        &mut self,
+        &self,
         tasks: &[TaskId],
         objects: &[DataObjectId],
     ) -> Result<(Vec<TaskId>, Vec<DataObjectId>), Box<Error>> {
         let mut req = self.service.wait_some_request();
         to_capnp_list!(req.get(), tasks, init_task_ids);
         to_capnp_list!(req.get(), objects, init_object_ids);
-        let res = self.core.run(req.send().promise)?;
+        let res = self.comm().run(req.send().promise)?;
 
         Ok((
             from_capnp_list!(res.get()?, get_finished_tasks, TaskId),
@@ -107,12 +116,12 @@ impl Communicator {
         ))
     }
 
-    pub fn fetch(&mut self, object_id: DataObjectId) -> Result<Vec<u8>, Box<Error>> {
+    pub fn fetch(&self, object_id: DataObjectId) -> Result<Vec<u8>, Box<Error>> {
         let mut req = self.service.fetch_request();
         object_id.to_capnp(&mut req.get().get_id().unwrap());
         req.get().set_size(1024);
 
-        let response = self.core.run(req.send().promise)?;
+        let response = self.comm().run(req.send().promise)?;
 
         let reader = response.get()?;
         match reader.get_status().which()? {
@@ -124,9 +133,13 @@ impl Communicator {
         }
     }
 
-    pub fn terminate_server(&mut self) -> Result<(), Box<Error>> {
-        self.core
+    pub fn terminate_server(&self) -> Result<(), Box<Error>> {
+        self.comm()
             .run(self.service.terminate_server_request().send().promise)?;
         Ok(())
+    }
+
+    fn comm(&self) -> RefMut<Core> {
+        self.core.borrow_mut()
     }
 }

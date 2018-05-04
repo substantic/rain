@@ -1,5 +1,3 @@
-use common::wrapped::WrappedRcRefCell;
-
 use super::communicator::Communicator;
 use client::dataobject::DataObject;
 use client::task::Task;
@@ -11,22 +9,22 @@ use common::id::TaskId;
 use common::id::DataObjectId;
 use common::id::SId;
 use common::DataType;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::rc::Rc;
 
 pub type DataObjectPtr = Rc<DataObject>;
-pub type TaskPtr = WrappedRcRefCell<Task>;
+pub type TaskPtr = Rc<Task>;
 
 pub struct Session {
     pub id: i32,
-    comm: WrappedRcRefCell<Communicator>,
+    comm: Rc<Communicator>,
     tasks: Vec<TaskPtr>,
     data_objects: Vec<DataObjectPtr>,
     id_counter: i32,
 }
 
 impl Session {
-    pub fn new(id: i32, comm: WrappedRcRefCell<Communicator>) -> Self {
+    pub fn new(id: i32, comm: Rc<Communicator>) -> Self {
         debug!("Session {} created", id);
 
         Session {
@@ -39,13 +37,7 @@ impl Session {
     }
 
     pub fn submit(&mut self) -> Result<(), Box<Error>> {
-        self.comm.get_mut().submit(
-            &self.tasks
-                .iter()
-                .map(|t| t.get())
-                .collect::<Vec<Ref<Task>>>(),
-            &self.data_objects,
-        )?;
+        self.comm.submit(&self.tasks, &self.data_objects)?;
         self.tasks.clear();
         self.data_objects.clear();
 
@@ -54,13 +46,12 @@ impl Session {
 
     pub fn unkeep(&mut self, objects: &[DataObjectPtr]) -> Result<(), Box<Error>> {
         self.comm
-            .get_mut()
             .unkeep(&objects.iter().map(|o| o.id).collect::<Vec<DataObjectId>>())
     }
 
     pub fn wait(&mut self, tasks: &[TaskPtr], objects: &[DataObjectPtr]) -> Result<(), Box<Error>> {
-        self.comm.get_mut().wait(
-            &tasks.iter().map(|t| t.get().id).collect::<Vec<TaskId>>(),
+        self.comm.wait(
+            &tasks.iter().map(|t| t.id).collect::<Vec<TaskId>>(),
             &objects.iter().map(|o| o.id).collect::<Vec<DataObjectId>>(),
         )
     }
@@ -69,12 +60,12 @@ impl Session {
         tasks: &[TaskPtr],
         objects: &[DataObjectPtr],
     ) -> Result<(Vec<TaskPtr>, Vec<DataObjectPtr>), Box<Error>> {
-        let task_map: HashMap<TaskId, &TaskPtr> = tasks.iter().map(|t| (t.get().id, t)).collect();
+        let task_map: HashMap<TaskId, &TaskPtr> = tasks.iter().map(|t| (t.id, t)).collect();
         let object_map: HashMap<DataObjectId, &DataObjectPtr> =
             objects.iter().map(|o| (o.id, o)).collect();
 
-        let (task_ids, object_ids) = self.comm.get_mut().wait_some(
-            &tasks.iter().map(|t| t.get().id).collect::<Vec<TaskId>>(),
+        let (task_ids, object_ids) = self.comm.wait_some(
+            &tasks.iter().map(|t| t.id).collect::<Vec<TaskId>>(),
             &objects.iter().map(|o| o.id).collect::<Vec<DataObjectId>>(),
         )?;
 
@@ -90,14 +81,14 @@ impl Session {
         ))
     }
     pub fn wait_all(&mut self) -> Result<(), Box<Error>> {
-        self.comm.get_mut().wait(
+        self.comm.wait(
             &vec![TaskId::new(self.id, ::common_capnp::ALL_TASKS_ID)],
             &vec![],
         )
     }
 
     pub fn fetch(&mut self, object: &DataObject) -> Result<Vec<u8>, Box<Error>> {
-        self.comm.get_mut().fetch(object.id)
+        self.comm.fetch(object.id)
     }
 
     pub fn blob(&mut self, data: Vec<u8>) -> DataObjectPtr {
@@ -154,7 +145,7 @@ impl Session {
             attributes,
         };
 
-        let rc = WrappedRcRefCell::wrap(task);
+        let rc = Rc::new(task);
         self.tasks.push(rc.clone());
 
         rc
@@ -163,7 +154,7 @@ impl Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
-        self.comm.get_mut().close_session(self.id).unwrap();
+        self.comm.close_session(self.id).unwrap();
         debug!("Session {} destroyed", self.id);
     }
 }
