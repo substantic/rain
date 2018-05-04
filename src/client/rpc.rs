@@ -20,7 +20,6 @@ impl<'a> ToCapnp<'a> for TaskInput {
 
     fn to_capnp(&self, builder: &mut Self::Builder) {
         self.data_object
-            .get()
             .id
             .to_capnp(&mut builder.reborrow().get_id().unwrap());
 
@@ -42,7 +41,7 @@ impl<'a> ToCapnp<'a> for Task {
             builder.reborrow(),
             self.outputs
                 .iter()
-                .map(|o| o.get().id)
+                .map(|o| o.id)
                 .collect::<Vec<DataObjectId>>(),
             init_outputs
         );
@@ -55,7 +54,7 @@ impl<'a> ToCapnp<'a> for DataObject {
 
     fn to_capnp(&self, builder: &mut Self::Builder) {
         self.id.to_capnp(&mut builder.reborrow().get_id().unwrap());
-        builder.set_keep(self.keep);
+        builder.set_keep(self.keep.get());
         builder.set_label(&self.label);
         builder.set_data_type(self.data_type.to_capnp());
 

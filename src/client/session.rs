@@ -11,12 +11,17 @@ use common::id::TaskId;
 use common::id::DataObjectId;
 use common::id::SId;
 use common::DataType;
+use std::cell::{Cell, Ref};
+use std::rc::Rc;
+
+pub type DataObjectPtr = Rc<DataObject>;
+pub type TaskPtr = WrappedRcRefCell<Task>;
 
 pub struct Session {
     pub id: i32,
     comm: WrappedRcRefCell<Communicator>,
-    tasks: Vec<WrappedRcRefCell<Task>>,
-    data_objects: Vec<WrappedRcRefCell<DataObject>>,
+    tasks: Vec<TaskPtr>,
+    data_objects: Vec<DataObjectPtr>,
     id_counter: i32,
 }
 
@@ -34,51 +39,43 @@ impl Session {
     }
 
     pub fn submit(&mut self) -> Result<(), Box<Error>> {
-        self.comm.get_mut().submit(&self.tasks, &self.data_objects)?;
+        self.comm.get_mut().submit(
+            &self.tasks
+                .iter()
+                .map(|t| t.get())
+                .collect::<Vec<Ref<Task>>>(),
+            &self.data_objects,
+        )?;
         self.tasks.clear();
         self.data_objects.clear();
 
         Ok(())
     }
 
-    pub fn unkeep(&mut self, objects: &[WrappedRcRefCell<DataObject>]) -> Result<(), Box<Error>> {
-        self.comm.get_mut().unkeep(objects)
+    pub fn unkeep(&mut self, objects: &[DataObjectPtr]) -> Result<(), Box<Error>> {
+        self.comm
+            .get_mut()
+            .unkeep(&objects.iter().map(|o| o.id).collect::<Vec<DataObjectId>>())
     }
-    pub fn wait(
-        &mut self,
-        tasks: &[WrappedRcRefCell<Task>],
-        objects: &[WrappedRcRefCell<DataObject>],
-    ) -> Result<(), Box<Error>> {
+
+    pub fn wait(&mut self, tasks: &[TaskPtr], objects: &[DataObjectPtr]) -> Result<(), Box<Error>> {
         self.comm.get_mut().wait(
             &tasks.iter().map(|t| t.get().id).collect::<Vec<TaskId>>(),
-            &objects
-                .iter()
-                .map(|o| o.get().id)
-                .collect::<Vec<DataObjectId>>(),
+            &objects.iter().map(|o| o.id).collect::<Vec<DataObjectId>>(),
         )
     }
     pub fn wait_some(
         &mut self,
-        tasks: &[WrappedRcRefCell<Task>],
-        objects: &[WrappedRcRefCell<DataObject>],
-    ) -> Result<
-        (
-            Vec<WrappedRcRefCell<Task>>,
-            Vec<WrappedRcRefCell<DataObject>>,
-        ),
-        Box<Error>,
-    > {
-        let task_map: HashMap<TaskId, &WrappedRcRefCell<Task>> =
-            tasks.iter().map(|t| (t.get().id, t)).collect();
-        let object_map: HashMap<DataObjectId, &WrappedRcRefCell<DataObject>> =
-            objects.iter().map(|o| (o.get().id, o)).collect();
+        tasks: &[TaskPtr],
+        objects: &[DataObjectPtr],
+    ) -> Result<(Vec<TaskPtr>, Vec<DataObjectPtr>), Box<Error>> {
+        let task_map: HashMap<TaskId, &TaskPtr> = tasks.iter().map(|t| (t.get().id, t)).collect();
+        let object_map: HashMap<DataObjectId, &DataObjectPtr> =
+            objects.iter().map(|o| (o.id, o)).collect();
 
         let (task_ids, object_ids) = self.comm.get_mut().wait_some(
             &tasks.iter().map(|t| t.get().id).collect::<Vec<TaskId>>(),
-            &objects
-                .iter()
-                .map(|o| o.get().id)
-                .collect::<Vec<DataObjectId>>(),
+            &objects.iter().map(|o| o.id).collect::<Vec<DataObjectId>>(),
         )?;
 
         Ok((
@@ -103,7 +100,7 @@ impl Session {
         self.comm.get_mut().fetch(object.id)
     }
 
-    pub fn blob(&mut self, data: Vec<u8>) -> WrappedRcRefCell<DataObject> {
+    pub fn blob(&mut self, data: Vec<u8>) -> DataObjectPtr {
         self.create_object("".to_owned(), Some(data))
     }
 
@@ -113,20 +110,16 @@ impl Session {
 
         DataObjectId::new(self.id, id)
     }
-    pub(crate) fn create_object(
-        &mut self,
-        label: String,
-        data: Option<Vec<u8>>,
-    ) -> WrappedRcRefCell<DataObject> {
+    pub(crate) fn create_object(&mut self, label: String, data: Option<Vec<u8>>) -> DataObjectPtr {
         let object = DataObject {
             id: self.create_object_id(),
-            keep: false,
+            keep: Cell::new(false),
             label,
             data,
             attributes: Attributes::new(),
             data_type: DataType::Blob,
         };
-        let rc = WrappedRcRefCell::wrap(object);
+        let rc = Rc::new(object);
         self.data_objects.push(rc.clone());
 
         rc
@@ -138,14 +131,14 @@ impl Session {
 
         TaskId::new(self.id, id)
     }
-    pub(crate) fn create_task(
+    pub fn create_task(
         &mut self,
         command: String,
         inputs: Vec<TaskInput>,
-        outputs: Vec<WrappedRcRefCell<DataObject>>,
+        outputs: Vec<DataObjectPtr>,
         config: HashMap<String, String>,
         cpus: i32,
-    ) -> WrappedRcRefCell<Task> {
+    ) -> TaskPtr {
         let mut attributes = Attributes::new();
         attributes.set("config", config).unwrap();
 

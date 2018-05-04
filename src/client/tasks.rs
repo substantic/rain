@@ -1,22 +1,16 @@
-use client::task::TaskInput;
-use client::session::Session;
-use common::wrapped::WrappedRcRefCell;
-use client::dataobject::DataObject;
-use client::task::Task;
 use std::collections::HashMap;
 
+use super::task::TaskInput;
+use super::session::{DataObjectPtr, Session, TaskPtr};
+
 pub trait CommonTasks {
-    fn concat(&mut self, objects: &[WrappedRcRefCell<DataObject>]) -> WrappedRcRefCell<Task>;
-    fn open(&mut self, filename: String) -> WrappedRcRefCell<Task>;
-    fn export(
-        &mut self,
-        object: WrappedRcRefCell<DataObject>,
-        filename: String,
-    ) -> WrappedRcRefCell<Task>;
+    fn concat(&mut self, objects: &[DataObjectPtr]) -> TaskPtr;
+    fn open(&mut self, filename: String) -> TaskPtr;
+    fn export(&mut self, object: DataObjectPtr, filename: String) -> TaskPtr;
 }
 
 impl CommonTasks for Session {
-    fn concat(&mut self, objects: &[WrappedRcRefCell<DataObject>]) -> WrappedRcRefCell<Task> {
+    fn concat(&mut self, objects: &[DataObjectPtr]) -> TaskPtr {
         let inputs = objects
             .iter()
             .map(|o| TaskInput {
@@ -29,7 +23,7 @@ impl CommonTasks for Session {
 
         self.create_task("!concat".to_owned(), inputs, outputs, HashMap::new(), 1)
     }
-    fn open(&mut self, filename: String) -> WrappedRcRefCell<Task> {
+    fn open(&mut self, filename: String) -> TaskPtr {
         let mut config = HashMap::new();
         config.insert("path".to_owned(), filename);
 
@@ -37,11 +31,7 @@ impl CommonTasks for Session {
 
         self.create_task("!open".to_owned(), vec![], outputs, config, 1)
     }
-    fn export(
-        &mut self,
-        object: WrappedRcRefCell<DataObject>,
-        filename: String,
-    ) -> WrappedRcRefCell<Task> {
+    fn export(&mut self, object: DataObjectPtr, filename: String) -> TaskPtr {
         let mut config = HashMap::new();
         config.insert("path".to_owned(), filename);
 

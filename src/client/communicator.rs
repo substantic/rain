@@ -9,10 +9,9 @@ use futures::Future;
 use std::cell::Ref;
 
 use super::task::Task;
-use client::dataobject::DataObject;
-use common::wrapped::WrappedRcRefCell;
 use common::id::{DataObjectId, TaskId};
 use common::convert::{FromCapnp, ToCapnp};
+use client::dataobject::DataObject;
 
 pub struct Communicator {
     core: Core,
@@ -67,24 +66,19 @@ impl Communicator {
         Ok(())
     }
 
-    pub fn submit(
-        &mut self,
-        tasks: &[WrappedRcRefCell<Task>],
-        data_objects: &[WrappedRcRefCell<DataObject>],
-    ) -> Result<(), Box<Error>> {
+    pub fn submit<D>(&mut self, tasks: &[Ref<Task>], data_objects: &[D]) -> Result<(), Box<Error>>
+    where
+        D: AsRef<DataObject>,
+    {
         let mut req = self.service.submit_request();
 
-        capnplist!(
-            req.get(),
-            tasks.iter().map(|t| t.get()).collect::<Vec<Ref<Task>>>(),
-            init_tasks
-        );
+        capnplist!(req.get(), tasks, init_tasks);
         capnplist!(
             req.get(),
             data_objects
                 .iter()
-                .map(|o| o.get())
-                .collect::<Vec<Ref<DataObject>>>(),
+                .map(|t| t.as_ref())
+                .collect::<Vec<&DataObject>>(),
             init_objects
         );
 
@@ -93,16 +87,9 @@ impl Communicator {
         Ok(())
     }
 
-    pub fn unkeep(&mut self, objects: &[WrappedRcRefCell<DataObject>]) -> Result<(), Box<Error>> {
+    pub fn unkeep(&mut self, objects: &[DataObjectId]) -> Result<(), Box<Error>> {
         let mut req = self.service.unkeep_request();
-        capnplist!(
-            req.get(),
-            objects
-                .iter()
-                .map(|o| o.get().id)
-                .collect::<Vec<DataObjectId>>(),
-            init_object_ids
-        );
+        capnplist!(req.get(), objects, init_object_ids);
         self.core.run(req.send().promise)?;
         Ok(())
     }
