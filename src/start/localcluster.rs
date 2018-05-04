@@ -1,7 +1,6 @@
 use start::starter::{Starter, StarterConfig};
 use std::net::SocketAddr;
 use std::error::Error;
-use std::iter;
 use client::client::Client;
 use start::common::{default_logging_directory, ensure_directory};
 
@@ -11,16 +10,19 @@ pub struct LocalCluster {
 }
 
 impl LocalCluster {
-    pub fn new(worker_count: usize, listen_port: u16, http_port: u16) -> Result<Self, Box<Error>> {
+    pub fn new(
+        worker_cpus: Vec<Option<u32>>,
+        listen_port: u16,
+        http_port: u16,
+    ) -> Result<Self, Box<Error>> {
         let listen_addr = SocketAddr::new("127.0.0.1".parse()?, listen_port);
         let http_addr = SocketAddr::new("127.0.0.1".parse()?, http_port);
 
         let log_dir = default_logging_directory("rain");
         ensure_directory(&log_dir, "logging directory")?;
-        let workers = iter::repeat(Some(1)).take(worker_count).collect();
 
         let config = StarterConfig::new(
-            workers,
+            worker_cpus,
             listen_addr,
             http_addr,
             &log_dir,
@@ -36,6 +38,9 @@ impl LocalCluster {
         cluster.starter.start()?;
 
         Ok(cluster)
+    }
+    pub fn new_simple(listen_port: u16, http_port: u16) -> Result<Self, Box<Error>> {
+        Self::new(vec![None], listen_port, http_port)
     }
 
     pub fn create_client(&self) -> Result<Client, Box<Error>> {
