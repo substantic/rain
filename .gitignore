@@ -11,3 +11,4 @@ guide-build
 dashboard/build
 dashboard/node_modules
 !.travis.yml
+_build
