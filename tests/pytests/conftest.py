@@ -14,6 +14,7 @@ PYTHON_DIR = os.path.join(ROOT, "python")
 WORK_DIR = os.path.join(PYTEST_DIR, "work")
 RAIN_BIN = os.environ.get("RAIN_TEST_BIN",
                           os.path.join(ROOT, "target", "debug", "rain"))
+CPPTESTER_BIN = os.path.join(ROOT, "cpp", "rainsw", "_build", "tester")
 
 sys.path.insert(0, PYTHON_DIR)
 
@@ -80,10 +81,21 @@ class TestEnv(Env):
               listen_port=None,
               http_port=None,
               worker_defs=None,
-              delete_list_timeout=None):
+              delete_list_timeout=None,
+              cpp_tester=False):
         """
         Start infrastructure: server & n workers
         """
+
+        config = None
+        if cpp_tester:
+            config = "[subworkers.cpptester]\n" \
+                     "      command = \"{}\"\n".format(os.path.join(CPPTESTER_BIN))
+
+        if config:
+            with open(os.path.join(WORK_DIR, "worker.config"), "w") as f:
+                f.write(config)
+
         env = os.environ.copy()
         env["RUST_LOG"] = "trace"
         env["RUST_BACKTRACE"] = "1"
@@ -149,12 +161,14 @@ class TestEnv(Env):
             ready_file = os.path.join(WORK_DIR, name + "-ready")
             worker_ready_files.append(ready_file)
             wdir = os.path.join(WORK_DIR, "worker-{}".format(i))
-            args = (RAIN_BIN,
+            args = [RAIN_BIN,
                     "worker", "127.0.0.1:" + str(port),
                     "--ready-file", ready_file,
                     "--cpus", str(cpus),
                     "--logdir", os.path.join(wdir, "logs"),
-                    "--workdir", os.path.join(wdir, "work"))
+                    "--workdir", os.path.join(wdir, "work")]
+            if config:
+                args += ["--config", "worker.config"]
             self.workers.append(self.start_process(name, args, env=env))
 
         it = 0

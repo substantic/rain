@@ -429,7 +429,7 @@ impl client_service::Server for ClientServiceImpl {
                     let mut worker = worker_ref.get_mut();
                     debug!(
                         "Redirecting client fetch id={} to {}",
-                        worker_ref.get().id,
+                        worker_ref.get().id(),
                         id
                     );
                     future::Either::B(
