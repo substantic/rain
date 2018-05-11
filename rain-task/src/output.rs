@@ -133,7 +133,7 @@ impl<'a> Output<'a> {
     }
 
     /// Set the output to a given input data object.
-    /// No data is copied in this case and the worker is informed.
+    /// No data is copied in this case and the worker is informed of the pass-through.
     /// The input *must* belong to the same task (this is not checked).
     /// Not allowed if the output was submitted or written to.
     pub fn stage_input(&self, object: &DataInstance) -> Result<()> {
@@ -145,6 +145,7 @@ impl<'a> Output<'a> {
         Ok(())
     }
 
+    /// Called when the task failed. Remove and forget any already-staged data including attributes.
     pub(crate) fn cleanup_failed_task(&mut self) -> Result<()> {
         let mut data = self.data.lock().unwrap();
         let remove_path = match *data {
@@ -159,14 +160,17 @@ impl<'a> Output<'a> {
         Ok(())
     }
 
+    /// TODO: To be resolved on attribute update.
     pub fn get_content_type(&self) -> Result<&'a str> {
         unimplemented!()
     }
 
+    /// TODO: To be resolved on attribute update.
     pub fn set_content_type(&self, _ct: &str) -> Result<()> {
         unimplemented!()
     }
 
+    /// Get a writer instance. Sets the 
     pub fn get_writer<'b: 'a>(&'b self) -> Result<OutputWriter<'b>> {
         // TODO: Check whether it is a non-directory type
         let mut guard = self.data.lock().unwrap();
@@ -194,6 +198,7 @@ impl<'a> OutputWriter<'a> {
         OutputWriter { guard: guard, path: path }
     }
 
+    /// Convert a ouptut backed by memory to a file.
     fn convert_to_file(&mut self) -> ::std::io::Result<()> {
         let mut f = BufWriter::new(OpenOptions::new()
                         .write(true)
@@ -209,6 +214,8 @@ impl<'a> OutputWriter<'a> {
         Ok(())
     }
 
+    /// If the output is backed by memory, it is converted to a file.
+    /// Does nothing if already backed by a file.
     pub fn ensure_file_based(&mut self) -> Result<()> {
         if matchvar!(*self.guard, OutputState::MemBacked(_)) {
             self.convert_to_file()?;

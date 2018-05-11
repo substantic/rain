@@ -6,8 +6,8 @@ use std::{env, fs};
 use std::collections::HashMap;
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
+use std::borrow::Borrow;
 use super::*;
-
 
 pub const STAGING_DIR: &str = "staging";
 pub const TASKS_DIR: &str = "tasks";
@@ -17,9 +17,13 @@ pub const TASKS_DIR: &str = "tasks";
 pub type TaskFn = Fn(&Context, &[DataInstance], &[Output]) -> Result<()>;
 
 pub struct Subworker {
+    /// An identifier for the local worker
     subworker_id: SubworkerId,
+    /// Any name given to the subworker type (denoting the group of provided tasks)
     subworker_type: String,
+    /// Path to the socket (should be absolute)
     socket_path: PathBuf,
+    /// Registered task functions
     tasks: HashMap<String, Box<TaskFn>>,
     /// Subworker working directory
     working_dir: PathBuf,
@@ -34,6 +38,10 @@ pub struct Subworker {
 }
 
 impl Subworker {
+    /// Create a subworker based on env variables `RAIN_SUBWORKER_ID` and `RAIN_SUBWORKER_SOCKET`
+    /// and working dir in the current directory. See also `Subworker::with_params`.
+    /// 
+    /// Panics when either env variable is missing or invalid.
     pub fn new(subworker_type: &str) -> Self {
         let id = env::var("RAIN_SUBWORKER_ID")
                 .expect("Env variable RAIN_SUBWORKER_ID required")
@@ -46,6 +54,8 @@ impl Subworker {
         Subworker::with_params(subworker_type, id, &socket, &workdir)
     }
 
+    /// Creates a Sbworker with the given attributes. Note that the attributes are only
+    /// recorded at this point and no initialization is performed.
     pub fn with_params(subworker_type: &str, subworker_id: SubworkerId, socket_path: &Path, working_dir: &Path) -> Self {
         Subworker {
             subworker_type: subworker_type.into(),
@@ -60,6 +70,9 @@ impl Subworker {
         }
     }
 
+    /// Add (register) a task type with the handling method.
+    /// 
+    /// Panics when a task with the same name has been registered previously.
     pub fn add_task<S, F>(&mut self, task_name: S, task_fun: F)
         where S: Into<String>, F: 'static + Fn(&Context, &[DataInstance], &[Output]) -> Result<()> {
         let key: String = task_name.into();
@@ -69,6 +82,10 @@ impl Subworker {
         self.tasks.insert(key, Box::new(task_fun));
     }
 
+    /// Run the subworker loop, connecting to the worker, registering and handling requests
+    /// until the connection is closed.
+    /// 
+    /// Panics if ran repeatedly.
     pub fn run(&mut self) -> Result<()> {
         if self.was_run {
             panic!("Subworker::run may only be ran once");
@@ -117,6 +134,7 @@ impl Subworker {
         }
     }
 
+    /// Send a register message to the worker.
     fn register(&mut self, sock: &mut UnixStream) -> Result<()> {
         let msg = SubworkerToWorkerMessage::Register(RegisterMsg {
             protocol: MSG_PROTOCOL.into(),
@@ -126,6 +144,8 @@ impl Subworker {
         sock.write_msg(&msg)
     }
 
+    /// Handle one call msg: decode, run the task function, cleanup finished task
+    /// (and already staged files on failure), create reply message.
     fn handle_call(&mut self, call_msg: CallMsg) -> Result<ResultMsg> {
         let task_name = format!("{}-task-{}_{}", chrono::Local::now().format("%Y%m%d-%H%M%S"),
             call_msg.task.get_session_id(), call_msg.task.get_id());
@@ -135,9 +155,9 @@ impl Subworker {
             None => bail!("Task {} not found", call_msg.method),
             Some(f) => {
                 fs::create_dir(&task_dir)?;
-                env::set_current_dir(&task_dir)?;
-                debug!("Calling {:?} in {:?}", call_msg.method, task_dir);
-                let res = f(&context, &context.inputs, &context.outputs);
+                // Call the method function with context
+                let res = context.call_with_context(f.borrow());
+                // Check and handle in-task errors
                 env::set_current_dir(&self.working_dir)?;
                 if let Err(ref e) = res {
                     debug!("Method {:?} in {:?} failed: {}", call_msg.method, task_dir, e);
@@ -160,18 +180,4 @@ impl Subworker {
         }
         Ok(context.into_result_msg())
     }
-/*
-    #[allow(dead_code)]
-    pub(crate) fn run_task_test<S: Into<String>>(&mut self, task_name: S) -> Result<()> {
-        let key: String = task_name.into();
-        match self.tasks.get(&key) {
-            Some(f) => {
-                let ins = vec![];
-                let mut outs = vec![];
-                let mut ctx = Context::for_call_msg(); 
-                f(&mut ctx, &ins, &mut outs)
-            },
-            None => bail!("Task {} not found", key)
-        }
-    }*/
 }

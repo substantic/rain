@@ -1,11 +1,13 @@
 use super::*;
 use std::{fs, env};
 
-/// 
 #[derive(Debug)]
 pub struct Context<'a> {
+    /// The call message the Context was created for.
     spec: &'a CallMsg,
+    /// List of input objects
     pub(crate) inputs: Vec<DataInstance<'a>>,
+    /// List of output objects
     pub(crate) outputs: Vec<Output<'a>>,
     /// Task attributes
     pub(crate) attributes: Attributes,
@@ -13,6 +15,7 @@ pub struct Context<'a> {
     pub(crate) work_dir: PathBuf,
     /// Absolute path to staging dir with input and output objects
     staging_dir: PathBuf,
+    /// Success flag, initially true
     pub(crate) success: bool,
 }
 
@@ -48,4 +51,16 @@ impl<'a> Context<'a> {
             cached_objects: Vec::new(),
         }
     }
+
+    /// Call task function within the context
+    pub(crate) fn call_with_context<'f>(&mut self, f: &'f TaskFn) -> Result<()> {
+        env::set_current_dir(&self.work_dir)?;
+        debug!("Calling {:?} in {:?}", self.spec.method, self.work_dir);
+        // TODO: change to calling with mutable outputs
+        let res = f(&self, &self.inputs, &self.outputs);
+        res
+    }
+
+    // TODO: add inputs number checking, outputs number checking, attribute access, debug to attrs,
+    // some reflection (e.g. access to spec)
 }

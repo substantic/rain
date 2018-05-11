@@ -17,7 +17,7 @@ fn dummy_worker(socket_path: &Path, id: SubworkerId, name: &str, requests: Vec<C
     let name: String = name.into();
     spawn(move || {
         let (mut socket, addr) = main_socket.accept().unwrap();
-        info!("Dummy worker accepted connection from {:?}", addr);
+        debug!("Dummy worker accepted connection from {:?}", addr);
         let data = socket.read_frame().unwrap();
         let msg = serde_cbor::from_slice::<SubworkerToWorkerMessage>(&data).unwrap();
         if let SubworkerToWorkerMessage::Register(ref reg) = msg {
@@ -49,14 +49,13 @@ fn dummy_worker(socket_path: &Path, id: SubworkerId, name: &str, requests: Vec<C
 
 /// Setup helper to clean and create a test dir, setup a Subworker and create a dummy worker.
 fn setup(name: &str, requests: Vec<CallMsg>) -> (Subworker, JoinHandle<Vec<ResultMsg>>) {
-    let _ = env_logger::try_init();
+    // let _ = env_logger::try_init(); // Optional logging for beter debug (but normally too noisy)
     let p: PathBuf = env::current_dir().unwrap().join("testing").join(name);
     if p.exists() {
         fs::remove_dir_all(&p).unwrap();
     }
     fs::create_dir_all(&p).unwrap();
     let sock_path = p.join("subworker.socket");
-    info!("{:?} {:?}", &p, &sock_path);
     let s = Subworker::with_params(name, 42, &sock_path, &p);
     let handle = dummy_worker(&sock_path, 42, name, requests);
     (s, handle)
@@ -72,9 +71,20 @@ fn task1_fail(_ctx: &Context, _inputs: &[DataInstance], _outputs: &[Output]) -> 
     bail!("expected failure")
 }
 
-
+#[allow(dead_code)]
 fn task3(_ctx: &Context, _in1: &DataInstance, _in2: &DataInstance, _out: &Output) -> Result<()> {
     Ok(())
+}
+
+/// A shortcut to create a DataObjectSpec.
+fn data_spec(id: i32, label: &str, location: Option<DataLocation>) -> DataObjectSpec {
+    DataObjectSpec {
+        id: DataObjectId::new(1, id),
+        label: Some(label.into()),
+        attributes: Attributes::new(),
+        location: location,
+        cache_hint: false,
+    }
 }
 
 #[test]
@@ -162,16 +172,6 @@ fn session_add() {
     //s.add_task2("task2b", |i: &[u8]| vec![1u8] ).unwrap();
     //s.run_task_test("task1").unwrap();
     //s.run_task_test("task2").unwrap();
-}
-
-fn data_spec(id: i32, label: &str, location: Option<DataLocation>) -> DataObjectSpec {
-    DataObjectSpec {
-        id: DataObjectId::new(1, id),
-        label: Some(label.into()),
-        attributes: Attributes::new(),
-        location: location,
-        cache_hint: false,
-    }
 }
 
 fn task_cat(_ctx: &Context, inputs: &[DataInstance], outputs: &[Output]) -> Result<()>
@@ -271,7 +271,7 @@ fn run_empty_cat() {
 
 #[test]
 fn run_pass_cat() {
-    let (mut s, handle) = setup("run_empty_cat", vec![
+    let (mut s, handle) = setup("run_pass_cat", vec![
         CallMsg {
             task: TaskId::new(1, 2),
             method: "cat".into(),
@@ -285,4 +285,32 @@ fn run_pass_cat() {
     let res = handle.join().unwrap();
     assert!(res[0].success);
     assert_eq!(res[0].outputs[0].location, Some(DataLocation::OtherObject(DataObjectId::new(1, 1))));
+}
+
+#[test]
+fn run_stage_file() {
+    let (mut s, handle) = setup("run_stage_file", vec![
+        CallMsg {
+            task: TaskId::new(1, 2),
+            method: "stage".into(),
+            attributes: Attributes::new(),
+            inputs: vec![],
+            outputs: vec![data_spec(2, "out", None)],
+        },
+    ]);
+    s.add_task("stage", |_ctx, _inp, outp| {
+        let mut f = fs::File::create("testfile.txt")?;
+        f.write_all(b"Rainy day?")?;
+        outp[0].stage_file("testfile.txt")
+        });
+    s.run().unwrap();
+    let res = handle.join().unwrap();
+    assert!(res[0].success);
+    if let Some(DataLocation::Path(ref p)) = res[0].outputs[0].location {
+        let mut d = Vec::new();
+        fs::File::open(p).unwrap().read_to_end(&mut d).unwrap();
+        assert_eq!(d, b"Rainy day?");
+    } else {
+        panic!("Expected output in a file");
+    }
 }

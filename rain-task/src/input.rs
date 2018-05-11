@@ -4,6 +4,7 @@ use memmap::Mmap;
 use std::mem;
 use super::*;
 
+#[allow(dead_code)] // TODO: Remove when used
 #[derive(Debug)]
 enum InputState {
     SpecMem,
@@ -43,6 +44,10 @@ impl<'a> DataInstance<'a> {
         }
     }
 
+    /// Get all the input bytes. In case the input is a file,
+    /// it is mmap-ed the first time this is called.
+    /// 
+    /// Every invocation locks the input mutex.
     pub fn get_bytes(&self) -> Result<&'a[u8]> {
         // TODO: Check this is not a dir
         let mut guard = self.state.lock().unwrap();
@@ -67,6 +72,11 @@ impl<'a> DataInstance<'a> {
         unreachable!();
     }
 
+    /// Get the path for the input file. If the input was memory backed, this
+    /// will write the file to the filesystem the first time this is called.
+    /// Note that even when written to disk, the data is also still kept in memory.
+    /// 
+    /// Every invocation locks the input mutex.
     pub fn get_path(&self) -> Result<&'a Path> {
         {
             let guard = self.state.lock().unwrap();
@@ -78,10 +88,12 @@ impl<'a> DataInstance<'a> {
         return Ok( unsafe { mem::transmute::<&Path, &'a Path>(&self.path) });
     }
 
+    /// TODO: Needs content-type checking
     pub fn get_str(&self) -> Result<&'a str> {
         unimplemented!()
     }
 
+    /// TODO: Needs attributes work
     pub fn get_content_type(&self) -> Result<&'a[u8]> {
         unimplemented!()
     }   

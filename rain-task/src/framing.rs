@@ -4,6 +4,7 @@ use super::{Result, WorkerToSubworkerMessage, SubworkerToWorkerMessage, MAX_MSG_
 use std::io::{Read, Write};
 use serde_cbor;
 
+/// Auxiliary trait for reading from and writing to sockets.
 pub(crate) trait SocketExt {
     fn write_frame(&mut self, &[u8]) -> Result<()>;
     fn read_frame(&mut self) -> Result<Vec<u8>>; 
@@ -27,7 +28,6 @@ impl SocketExt for UnixStream {
         if data.len() > MAX_MSG_SIZE {
             bail!("write_frame: message too long ({} bytes of {} allowed)", data.len(), MAX_MSG_SIZE);
         }
-        info!("To write: {}", data.len() as u32);
         self.write_u32::<LittleEndian>(data.len() as u32)?;
         self.write_all(data)?;
         Ok(())
@@ -35,7 +35,6 @@ impl SocketExt for UnixStream {
 
     fn read_frame(&mut self) -> Result<Vec<u8>> {
         let len = self.read_u32::<LittleEndian>()? as usize;
-        info!("To read: {}", len);
         if len > MAX_MSG_SIZE {
             bail!("read_frame: message too long ({} bytes of {} allowed)", len, MAX_MSG_SIZE);
         }
