@@ -12,20 +12,18 @@ pub struct Context<'a> {
     /// Absolute path to task working dir
     pub(crate) work_dir: PathBuf,
     /// Absolute path to staging dir with input and output objects
-    stage_dir: PathBuf,
+    staging_dir: PathBuf,
     pub(crate) success: bool,
 }
 
 impl<'a> Context<'a> {
-    pub(crate) fn for_call_msg(cm: &'a CallMsg, work_dir: &Path) -> Result<Self> {
+    pub(crate) fn for_call_msg(cm: &'a CallMsg, staging_dir: &Path, work_dir: &Path) -> Result<Self> {
         assert!(work_dir.is_absolute());
-        let stage_dir = work_dir.join("stage");
-        fs::create_dir_all(&stage_dir)?;
         let inputs = cm.inputs.iter().enumerate().map(|(order, inp)| {
-            DataInstance::new(inp, &stage_dir, order)
+            DataInstance::new(inp, staging_dir, order)
         }).collect();
         let outputs = cm.outputs.iter().enumerate().map(|(order, outp)| {
-            Output::new(outp, &stage_dir, order)
+            Output::new(outp, staging_dir, order)
         }).collect();
         Ok(Context {
             spec: cm,
@@ -33,7 +31,7 @@ impl<'a> Context<'a> {
             outputs: outputs,
             attributes: Attributes::new(),
             work_dir: work_dir.into(),
-            stage_dir: stage_dir,
+            staging_dir: staging_dir.into(),
             success: true,
         })
     }

@@ -1,11 +1,16 @@
 use librain::common::id::{TaskId, DataObjectId, SubworkerId};
 use librain::worker::rpc::subworker_serde::*;
+use chrono;
 
-use std::env;
+use std::{env, fs};
 use std::collections::HashMap;
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 use super::*;
+
+
+pub const STAGING_DIR: &str = "staging";
+pub const TASKS_DIR: &str = "tasks";
 
 /// Alias type for a subworker task function with arbitrary number of inputs
 /// and outputs.
@@ -16,29 +21,42 @@ pub struct Subworker {
     subworker_type: String,
     socket_path: PathBuf,
     tasks: HashMap<String, Box<TaskFn>>,
-    working_path: PathBuf,
+    /// Subworker working directory
+    working_dir: PathBuf,
+    /// Subworker staging subdirectory
+    staging_dir: PathBuf,
+    /// Subworker subdirectory with individual tasks
+    tasks_dir: PathBuf,
+    /// Prevent running `Subworker::run` repeatedly
+    was_run: bool,
+    /// If true, failed task directories (but not outputs) are kept in "tasks/"
+    keep_failed_tasks: bool,
 }
 
 impl Subworker {
     pub fn new(subworker_type: &str) -> Self {
-        Subworker::with_params(
-            subworker_type, 
-            env::var("RAIN_SUBWORKER_ID")
+        let id = env::var("RAIN_SUBWORKER_ID")
                 .expect("Env variable RAIN_SUBWORKER_ID required")
                 .parse()
-                .expect("Error parsing RAIN_SUBWORKER_ID"),
-            env::var_os("RAIN_SUBWORKER_SOCKET")
+                .expect("Error parsing RAIN_SUBWORKER_ID");
+        let socket: PathBuf = env::var_os("RAIN_SUBWORKER_SOCKET")
                 .expect("Env variable RAIN_SUBWORKER_SOCKET required")
-                .into())
+                .into();
+        let workdir = env::current_dir().unwrap();
+        Subworker::with_params(subworker_type, id, &socket, &workdir)
     }
 
-    pub fn with_params(subworker_type: &str, subworker_id: SubworkerId, socket_path: PathBuf) -> Self {
+    pub fn with_params(subworker_type: &str, subworker_id: SubworkerId, socket_path: &Path, working_dir: &Path) -> Self {
         Subworker {
             subworker_type: subworker_type.into(),
-            subworker_id: subworker_id,
-            socket_path: socket_path,
+            subworker_id,
+            socket_path: socket_path.into(),
             tasks: HashMap::new(),
-            working_path: env::current_dir().unwrap(),
+            staging_dir: working_dir.join(STAGING_DIR),
+            tasks_dir: working_dir.join(TASKS_DIR),
+            working_dir: working_dir.into(),
+            was_run: false,
+            keep_failed_tasks: false,
         }
     }
 
@@ -46,39 +64,56 @@ impl Subworker {
         where S: Into<String>, F: 'static + Fn(&Context, &[DataInstance], &[Output]) -> Result<()> {
         let key: String = task_name.into();
         if self.tasks.contains_key(&key) {
-            panic!("can't add task {:?}: already present", &key);
+            panic!("can't add task named {:?}: already present", &key);
         }
         self.tasks.insert(key, Box::new(task_fun));
     }
 
     pub fn run(&mut self) -> Result<()> {
-        let res = self.run_wrap();
-        // TODO: catch connection closed gracefully
-        /*
-        Err(Error(ErrorKind::Io(ref e), _)) if e.kind() == io::ErrorKind::ConnectionAborted => {
-            info!("Connection closed, shutting down");
-            return Ok(());
+        if self.was_run {
+            panic!("Subworker::run may only be ran once");
         }
-        */
-        res
-    }
-
-    fn run_wrap(&mut self) -> Result<()> {
+        self.was_run = true;
+        // Prepare the directories
+        if self.staging_dir.exists() || self.tasks_dir.exists() {
+            bail!("Subworker must be ran in a clean directory (workdir: {:?})", self.working_dir);
+        }
+        fs::create_dir(&self.staging_dir)?;
+        fs::create_dir(&self.tasks_dir)?;
+        // Connect to socket
         info!("Connecting to worker at socket {:?} with ID {}", self.socket_path, self.subworker_id);
-        let mut sock = UnixStream::connect(&self.socket_path)?;
-        self.register(&mut sock)?;
-        loop {
-            match sock.read_msg()? {
-                WorkerToSubworkerMessage::Call(call_msg) => {
-                    let reply = self.handle_call(call_msg)?;
-                    sock.write_msg(&SubworkerToWorkerMessage::Result(reply))?;
-                },
-                WorkerToSubworkerMessage::DropCached(drop_msg) => {
-                    if !drop_msg.drop.is_empty() {
-                        bail!("received nonempty dropCached request with no cached objects");
-                    }
-                },
+        if !self.socket_path.exists() {
+            bail!("Socket file not found at {:?}", self.socket_path);
+        }
+        // Change directory to prevent too long socket pathnames
+        env::set_current_dir(self.socket_path.parent().unwrap())?;
+        let mut sock = UnixStream::connect(&self.socket_path.file_name().unwrap())?;
+        env::set_current_dir(&self.working_dir)?;
+        // Register and run the task loop, catching any errors
+        let res = (|| {
+            self.register(&mut sock)?;
+            loop {
+                match sock.read_msg()? {
+                    WorkerToSubworkerMessage::Call(call_msg) => {
+                        let reply = self.handle_call(call_msg)?;
+                        sock.write_msg(&SubworkerToWorkerMessage::Result(reply))?;
+                    },
+                    WorkerToSubworkerMessage::DropCached(drop_msg) => {
+                        if !drop_msg.objects.is_empty() {
+                            bail!("received nonempty dropCached request with no cached objects");
+                        }
+                    },
+                }
             }
+        })();
+        match res {
+            Err(Error(ErrorKind::Io(ref e), _))
+                if (e.kind() == io::ErrorKind::ConnectionAborted) ||
+                   (e.kind() == io::ErrorKind::UnexpectedEof) => {
+                info!("Connection closed, shutting down");
+                return Ok(());
+            },
+            other => other
         }
     }
 
@@ -92,21 +127,35 @@ impl Subworker {
     }
 
     fn handle_call(&mut self, call_msg: CallMsg) -> Result<ResultMsg> {
-        // TODO: Handle workdir path
-        let work_dir: PathBuf = "TODO".into();
-
-        let mut context = Context::for_call_msg(&call_msg, &work_dir)?;
+        let task_name = format!("{}-task-{}_{}", chrono::Local::now().format("%Y%m%d-%H%M%S"),
+            call_msg.task.get_session_id(), call_msg.task.get_id());
+        let task_dir = self.tasks_dir.join(task_name);
+        let mut context = Context::for_call_msg(&call_msg, &self.staging_dir, &task_dir)?;
         match self.tasks.get(&call_msg.method) { 
             None => bail!("Task {} not found", call_msg.method),
             Some(f) => {
-                env::set_current_dir(&context.work_dir)?;
+                fs::create_dir(&task_dir)?;
+                env::set_current_dir(&task_dir)?;
+                debug!("Calling {:?} in {:?}", call_msg.method, task_dir);
                 let res = f(&context, &context.inputs, &context.outputs);
-                env::set_current_dir(&self.working_path)?;
-                if let Err(e) = res {
+                env::set_current_dir(&self.working_dir)?;
+                if let Err(ref e) = res {
+                    debug!("Method {:?} in {:?} failed: {}", call_msg.method, task_dir, e);
                     context.success = false;
-                    context.attributes.set("error", format!("error returned from {:?}:\n{}", call_msg.method, e)).unwrap();
+                    context.attributes.set("error", format!("error returned from call to {:?} (in {:?}):\n{}", call_msg.method, task_dir, e)).unwrap();
+                    // Clean already staged/open outputs
+                    for mut o in context.outputs.iter_mut() {
+                        o.cleanup_failed_task()?;
+                    }
+                    if !self.keep_failed_tasks {
+                        // cleanup of the task working dir
+                        fs::remove_dir_all(task_dir)?;
+                    }
+                } else {
+                    debug!("Method {:?} finished", call_msg.method);
+                    // cleanup of the task working dir
+                    fs::remove_dir_all(task_dir)?;
                 }
-                // TODO: cleanup of the task working dir
             },
         }
         Ok(context.into_result_msg())

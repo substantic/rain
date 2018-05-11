@@ -14,7 +14,7 @@ enum InputState {
 
 #[derive(Debug)]
 pub struct DataInstance<'a> {
-    spec: &'a DataObjectSpec,
+    pub(crate) spec: &'a DataObjectSpec,
     state: Mutex<InputState>,
     /// The absolute path to the existing (or potential) file or dir.
     /// NB: Must NOT be modified after DataInstance creation!

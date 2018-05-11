@@ -11,14 +11,20 @@ use librain::common::Attributes;
 use librain::worker::rpc::subworker_serde::*;
 use librain::common::id::SId;
 
-use super::{Error, Result, MEM_BACKED_LIMIT};
+use super::{Error, Result, MEM_BACKED_LIMIT, DataInstance};
 
 #[derive(Debug)]
 enum OutputState {
+    /// No output data written yet
     Empty,
+    /// Small data only in memory
     MemBacked(Vec<u8>),
+    /// Backed with an open file
     FileBacked(BufWriter<File>),
+    /// Points to a staged file belonging to this output
     StagedPath,
+    /// Other data object (may be only an input or output of this task)
+    OtherObject(DataObjectId),
 }
 
 /// Represents one concrete output. The output can be either empty (as is initially),
@@ -38,7 +44,7 @@ pub struct Output<'a> {
     data: Mutex<OutputState>,
     /// The resulting attributes. Initially empty.
     attributes: Attributes,
-    /// Path for the resulting file or directory if written to fs
+    /// Path for the resulting file or directory if written to fs (may not exist)
     path: PathBuf,
     /// Order of the output in outputs
     order: usize,
@@ -82,6 +88,7 @@ impl<'a> Output<'a> {
                 OutputState::MemBacked(data) => DataLocation::Memory(data),
                 OutputState::FileBacked(f) => { drop(f); DataLocation::Path(self.path) },
                 OutputState::StagedPath => DataLocation::Path(self.path),
+                OutputState::OtherObject(id) => DataLocation::OtherObject(id),
             }),
             cache_hint: false, 
         }, false)
@@ -125,11 +132,38 @@ impl<'a> Output<'a> {
         Ok(())
     }
 
+    /// Set the output to a given input data object.
+    /// No data is copied in this case and the worker is informed.
+    /// The input *must* belong to the same task (this is not checked).
+    /// Not allowed if the output was submitted or written to.
+    pub fn stage_input(&self, object: &DataInstance) -> Result<()> {
+        let mut guard = self.data.lock().unwrap();
+        if !matchvar!(*guard, OutputState::Empty) {
+            bail!("Called `stage_input` on {} after being previously staged or written to.", self)
+        }
+        *guard = OutputState::OtherObject(object.spec.id);
+        Ok(())
+    }
+
+    pub(crate) fn cleanup_failed_task(&mut self) -> Result<()> {
+        let mut data = self.data.lock().unwrap();
+        let remove_path = match *data {
+            OutputState::FileBacked(_) | OutputState::StagedPath => true,
+            _ => false,
+        };
+        *data = OutputState::Empty; // Also closes any open file
+        if remove_path {
+            fs::remove_dir_all(&self.path)?;
+        }
+        self.attributes = Attributes::new();
+        Ok(())
+    }
+
     pub fn get_content_type(&self) -> Result<&'a str> {
         unimplemented!()
     }
 
-    pub fn set_content_type(&self, ct: &str) -> Result<()> {
+    pub fn set_content_type(&self, _ct: &str) -> Result<()> {
         unimplemented!()
     }
 
