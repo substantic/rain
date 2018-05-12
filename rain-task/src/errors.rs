@@ -1,23 +1,21 @@
-use serde_cbor;
-use std::fmt;
+use std::{fmt, io};
 
-// Create the Error, ErrorKind, ResultExt, and Result types
+/// The internal error type
 error_chain!{
     types {
         Error, ErrorKind, ResultExt;
     }
     foreign_links {
         Io(::std::io::Error);
-        CBOR(serde_cbor::error::Error);
-        Utf8Err(::std::str::Utf8Error);
     }
 }
 
 // Explicit alias just to make some IDEs happier
 pub type Result<T> = ::std::result::Result<T, Error>;
 
-
-/// A simplified string error for the task functions
+/// A simplified string error for the task functions.
+/// Conversion from io::Error is just for convenience.
+/// TODO: add backtrace on error construction, possibly use error_chain
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TaskError {
     message: String,
@@ -29,12 +27,17 @@ impl<'a> From<&'a str> for TaskError {
     }
 }
 
-impl<'a> From<String> for TaskError {
+impl From<String> for TaskError {
     fn from(msg: String) -> TaskError {
         TaskError { message: msg }
     }
 }
 
+impl From<io::Error> for TaskError {
+    fn from(err: io::Error) -> TaskError {
+        TaskError { message: format!("{}", err) }
+    }
+}
 
 impl<'a> fmt::Display for TaskError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

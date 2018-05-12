@@ -23,10 +23,10 @@ impl<'a> Context<'a> {
     pub(crate) fn for_call_msg(cm: &'a CallMsg, staging_dir: &Path, work_dir: &Path) -> Self {
         assert!(work_dir.is_absolute());
         let inputs = cm.inputs.iter().enumerate().map(|(order, inp)| {
-            DataInstance::new(inp, staging_dir, order)
+            DataInstance::new(inp, work_dir, order)
         }).collect();
         let outputs = cm.outputs.iter().enumerate().map(|(order, outp)| {
-            Output::new(outp, work_dir, order)
+            Output::new(outp, staging_dir, order)
         }).collect();
         Context {
             spec: cm,

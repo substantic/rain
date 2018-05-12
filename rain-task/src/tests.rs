@@ -183,9 +183,8 @@ fn task_cat(_ctx: &mut Context, inputs: &[DataInstance], outputs: &mut [Output])
     if inputs.len() == 1 {
         outputs[0].stage_input(&inputs[0])?;
     } else if inputs.len() >= 2 {
-        let mut wr = outputs[0].get_writer()?;
         for inp in inputs.iter() {
-            wr.write_all(inp.get_bytes()?).unwrap();
+            outputs[0].write_all(inp.get_bytes()?).unwrap();
         }
     }
     Ok(())
@@ -286,6 +285,54 @@ fn run_pass_cat() {
     let res = handle.join().unwrap();
     assert!(res[0].success);
     assert_eq!(res[0].outputs[0].location, Some(DataLocation::OtherObject(DataObjectId::new(1, 1))));
+}
+
+#[test]
+fn test_make_file_backed() {
+    let (mut s, handle) = setup("test_make_file_backed", vec![
+        CallMsg {
+            task: TaskId::new(1, 2),
+            method: "mfb".into(),
+            attributes: Attributes::new(),
+            inputs: vec![
+            ],
+            outputs: vec![data_spec(3, "out", None)],
+        },
+    ]);
+    s.add_task("mfb", |_ctx, _ins, outs| {
+        write!(outs[0], "Rainfall")?;
+        outs[0].make_file_backed()?;
+        Ok(())
+    });
+    s.run();
+    let res = handle.join().unwrap();
+    assert!(res[0].success);
+    assert!(matchvar!(res[0].outputs[0].location, Some(DataLocation::Path(_))));
+}
+
+#[test]
+#[ignore]
+fn test_get_path_writing() {
+    let (mut s, handle) = setup("test_get_path_writing", vec![
+        CallMsg {
+            task: TaskId::new(1, 2),
+            method: "gp".into(),
+            attributes: Attributes::new(),
+            inputs: vec![data_spec(1, "in", Some(DataLocation::Memory("drizzle".into())))],
+            outputs: vec![],
+        },
+    ]);
+    s.add_task("gp", |_ctx, ins, _outs| {
+        let p = ins[0].get_path();
+        let mut s = String::new();
+        fs::File::open(&p)?.read_to_string(&mut s)?;
+        assert_eq!(s, "drizzle");
+        Ok(())
+    });
+    s.run();
+    let res = handle.join().unwrap();
+    assert!(res[0].success);
+    assert_eq!(res[0].outputs[0].location, Some(DataLocation::Memory("".into())));
 }
 
 #[test]

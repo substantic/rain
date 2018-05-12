@@ -47,7 +47,8 @@ impl<'a> DataInstance<'a> {
     /// Get all the input bytes. In case the input is a file,
     /// it is mmap-ed the first time this is called.
     /// 
-    /// Every invocation locks the input mutex.
+    /// Note that every invocation locks the input mutex.
+    /// 
     /// Panics on any I/O error. Returns an error if the input is a directory.
     pub fn get_bytes(&self) -> TaskResult<&'a[u8]> {
         // TODO: Check this is not a dir
@@ -80,7 +81,7 @@ impl<'a> DataInstance<'a> {
     /// will write the file to the filesystem the first time this is called.
     /// Note that even when written to disk, the data is also still kept in memory.
     /// 
-    /// Every invocation locks the input mutex.
+    /// Note that every invocation locks the input mutex.
     pub fn get_path(&self) -> PathBuf {
         {
             let guard = self.state.lock().unwrap();

@@ -172,70 +172,52 @@ impl<'a> Output<'a> {
         unimplemented!()
     }
 
-    /// Get a writer instance. Sets the 
-    pub fn get_writer<'b: 'a>(&'b mut self) -> TaskResult<OutputWriter<'b>> {
-        // TODO: Check whether it is a non-directory type
-        if matchvar!(self.data, OutputState::Empty) {
-            self.data = OutputState::MemBacked(Vec::new())
-        }
-        if matchvar!(self.data, OutputState::MemBacked(_)) ||
-            matchvar!(self.data, OutputState::FileBacked(_)) {
-            Ok(OutputWriter::new(&mut self.data, &self.path))
-        } else {
-            bail!("Cannot get writer for Output {:?} with already submitted file or dir path.",
-                self.desc.id)
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct OutputWriter<'a> {
-    data: &'a mut OutputState,
-    path: &'a Path,
-}
-
-impl<'a> OutputWriter<'a> {
-    /// Create an output writer. The data state must be either `MemBacked` or `FileBacked`.
-    fn new(data: &'a mut OutputState, path: &'a Path) -> Self {
-        assert!(matchvar!(data, OutputState::MemBacked(_)) || matchvar!(data, OutputState::FileBacked(_)));
-        OutputWriter { data, path }
-    }
-
     /// Convert a MemBacked ouptut (not Empty) to a FileBacked output.
     fn convert_to_file(&mut self) -> ::std::io::Result<()> {
         assert!(matchvar!(self.data, OutputState::MemBacked(_)));
         let mut f = BufWriter::new(OpenOptions::new()
                         .write(true)
                         .create_new(true)
-                        .open(self.path)?);
+                        .open(&self.path)?);
         if let OutputState::MemBacked(ref data) = self.data {
             f.write_all(data)?;
         } else {
             unreachable!();
         }
-        *self.data = OutputState::FileBacked(f);
+        self.data = OutputState::FileBacked(f);
         Ok(())
     }
 
-    /// If the output is backed by memory, it is converted to a file.
+    /// If the output is empty or backed by memory, it is converted to a file.
     /// Does nothing if already backed by a file.
-    pub fn ensure_file_based(&mut self) -> Result<()> {
-        if matchvar!(self.data, OutputState::MemBacked(_)) {
-            self.convert_to_file()?;
+    pub fn make_file_backed(&mut self) -> TaskResult<()> {
+        // TODO: Check for self non-directory type
+        if matchvar!(self.data, OutputState::Empty) {
+            self.data = OutputState::MemBacked(Vec::new());
         }
-        Ok(())
+        Ok(match self.data {
+            OutputState::MemBacked(_) => self.convert_to_file().expect("error writing output to file"),
+            OutputState::FileBacked(_) => (),
+            _ => {
+                panic!("can't make output {} file backed: it has been staged with input, file or dir", self);
+            }
+        })
     }
 }
 
-impl<'a> Write for OutputWriter<'a> {
+impl<'a> Write for Output<'a> {
     fn write(&mut self, buf: &[u8]) -> ::std::io::Result<usize> {
-        // Should be Some() only for MemBacked
-        let mut data_len = None;
-        if let OutputState::MemBacked(ref data) = self.data {
-            data_len = Some(data.len());
+        if matchvar!(self.data, OutputState::Empty) {
+            self.data = OutputState::MemBacked(Vec::new());
         }
-        if let Some(len) = data_len {
-            if len + buf.len() > MEM_BACKED_LIMIT {
+        if matchvar!(self.data, OutputState::MemBacked(_)) {
+            let overflow =
+                if let OutputState::MemBacked(ref data) = self.data {
+                    data.len() + buf.len() > MEM_BACKED_LIMIT
+                } else {
+                    false
+                };
+            if overflow {
                 self.convert_to_file()?;
             }
         }
@@ -247,7 +229,7 @@ impl<'a> Write for OutputWriter<'a> {
                 f.write(buf).into()
             },
             _ => {
-                panic!("bug: invalid OutputState in OutputWriter")
+                panic!("can't write to output {} that has been staged with input, file or dir")
             }
         }
     }
