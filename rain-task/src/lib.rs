@@ -31,7 +31,7 @@ use librain::common::id::SId;
 pub const MAX_MSG_SIZE: usize = 128 * 1024 * 1024;
 
 /// Current protocol code name and magic string
-pub const MSG_PROTOCOL: &str = "v1-CBOR";
+pub const MSG_PROTOCOL: &str = "cbor-1";
 
 /// Size limit for memory-backed objects. Larger blobs
 /// get written to the filesystem.

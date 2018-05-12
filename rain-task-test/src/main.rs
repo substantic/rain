@@ -13,17 +13,17 @@ pub fn sometask(ctx: &mut Context, in1: &DataInstance, in2: &DataInstance, out1:
 }
 */
 
-pub fn task1(ctx: &mut Context, inputs: &[DataInstance], outputs: &mut [Output]) -> Result<()> {
+fn task_hello(ctx: &Context, inputs: &[DataInstance], outputs: &[Output]) -> Result<()> {
     Ok(())
 }
 
 pub fn main() {
-    let s = Subworker::new();
+    let mut s = Subworker::new("rusttester");
     /*
     // macro to add fixed arity function
     add_task!(s, 2, 1, sometask).unwrap();
     // add variadic task
     */
-    s.add_task("task1", &task1).unwrap();
+    s.add_task("hello", &task_hello);
     s.run().unwrap();
 }

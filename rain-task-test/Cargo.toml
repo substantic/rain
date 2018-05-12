@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Tomas Gavenciak <gavento@ucw.cz>"]
 
 [dependencies]
-rain_task = { path = "../rain_task" }
+rain-task = { path = "../rain-task" }
 serde_derive = "*"
 serde = "*"
 serde_json = "*"

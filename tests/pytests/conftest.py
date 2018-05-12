@@ -15,9 +15,13 @@ WORK_DIR = os.path.join(PYTEST_DIR, "work")
 RAIN_BIN = os.environ.get("RAIN_TEST_BIN",
                           os.path.join(ROOT, "target", "debug", "rain"))
 CPPTESTER_BIN = os.path.join(ROOT, "cpp", "rainsw", "_build", "tester")
-
+RUSTTESTER_BIN = os.path.join(ROOT, "rain-task-test", "target", "debug", "rain_task_test")
 sys.path.insert(0, PYTHON_DIR)
 
+subworkers = {
+    "cpptester": CPPTESTER_BIN,
+    "rusttester": RUSTTESTER_BIN,
+}
 
 class Env:
 
@@ -82,15 +86,15 @@ class TestEnv(Env):
               http_port=None,
               worker_defs=None,
               delete_list_timeout=None,
-              cpp_tester=False):
+              subworker=None):
         """
         Start infrastructure: server & n workers
         """
 
         config = None
-        if cpp_tester:
-            config = "[subworkers.cpptester]\n" \
-                     "      command = \"{}\"\n".format(os.path.join(CPPTESTER_BIN))
+        if subworker:
+            config = "[subworkers.{}]\n" \
+                     "      command = \"{}\"\n".format(subworker, subworkers[subworker])
 
         if config:
             with open(os.path.join(WORK_DIR, "worker.config"), "w") as f:

@@ -6,13 +6,13 @@ import pytest
 import time
 
 
-def cpp_hello(obj):
-    return Task("cpptester/hello", inputs=(obj,), outputs=1)
+def hello(obj):
+    return Task("rusttester/hello", inputs=(obj,), outputs=0)
 
-def test_get_info(test_env):
-    test_env.start(1, subworker="cpptester")
+def test_rustsw_hello(test_env):
+    test_env.start(1, subworker="rusttester")
     with test_env.client.new_session() as s:
-        t1 = cpp_hello(blob("world"))
+        t1 = hello(blob("world"))
         s.submit()
         t1.wait()
 
