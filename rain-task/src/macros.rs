@@ -1,10 +1,13 @@
-
 /// Local macro to match variants.
 /// Use as: `matchvar!(var, OutputState::MemBacked(_))`
 macro_rules! matchvar {
-    ($ex: expr, $pat: pat) => {
-        { if let $pat = $ex { true } else { false } }
-    };
+    ($ex:expr, $pat:pat) => {{
+        if let $pat = $ex {
+            true
+        } else {
+            false
+        }
+    }};
 }
 
 /// Internal macro used in `register_task!`.
@@ -55,26 +58,26 @@ macro_rules! register_task_make_call {
 }
 
 /// Register a given task function with complex arguments with the subworker.
-/// 
+///
 /// The task function should take individual input and output parameters as specified by `$params`.
 /// On call, the supplied input and output lists are unpacked, both not enough and too many of each
 /// parameter kinds is raised as a task error.
-/// 
+///
 /// `$params` are surrounded with `[]` and may contain:
 /// * `I` - a single `&Datainstance`.
 /// * `Is` - all the remaining inputs as `&[Datainstance]`.
 /// * `O` - a single `&mut Output`.
 /// * `Os` - all the remaining outputs as `&mut [Output]`.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```rust,ignore
 /// // Simple task with 2 inputs and 1 output (notice the freedom in arg order).
 /// fn task_hello(_ctx: &mut Context, in1: &DataInstance, out: &mut Output, in2: &DataInstance) -> TaskResult<()> { ... }
 /// // Register with:
 /// register_task!(s, "hello", [I O I], task_hello);
 /// ```
-/// 
+///
 /// ```rust,ignore
 /// // Task with one input, then arbitrarily many remaining inputs and one output
 /// fn task_concat(_ctx: &mut Context, separator: &DataInstance, ins: &[DataInstance], out: &mut Output) -> TaskResult<()> { ... }
@@ -90,5 +93,3 @@ macro_rules! register_task {
         })
     });
 }
-
-

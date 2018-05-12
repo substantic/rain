@@ -1,8 +1,8 @@
-use std::sync::{Mutex, MutexGuard};
+use super::*;
 use librain::worker::rpc::subworker_serde::*;
 use memmap::Mmap;
 use std::mem;
-use super::*;
+use std::sync::{Mutex, MutexGuard};
 
 #[allow(dead_code)] // TODO: Remove when used
 #[derive(Debug)]
@@ -26,7 +26,10 @@ pub struct DataInstance<'a> {
 
 impl<'a> DataInstance<'a> {
     pub(crate) fn new(spec: &'a DataObjectSpec, work_dir: &Path, order: usize) -> Self {
-        let istate = match spec.location.as_ref().expect("bug: input needs a data location") {
+        let istate = match spec.location
+            .as_ref()
+            .expect("bug: input needs a data location")
+        {
             DataLocation::Cached => panic!("bug: cached object requested"),
             DataLocation::OtherObject(_) => panic!("bug: `OtherObject` location in input"),
             DataLocation::Memory(_) => InputState::SpecMem,
@@ -35,7 +38,11 @@ impl<'a> DataInstance<'a> {
         let path = if let DataLocation::Path(p) = spec.location.as_ref().unwrap() {
             p.into()
         } else {
-            work_dir.join(format!("input-{}-{}", spec.id.get_session_id(), spec.id.get_id()))
+            work_dir.join(format!(
+                "input-{}-{}",
+                spec.id.get_session_id(),
+                spec.id.get_id()
+            ))
         };
         DataInstance {
             spec: spec,
@@ -47,20 +54,21 @@ impl<'a> DataInstance<'a> {
 
     /// Get all the input bytes. In case the input is a file,
     /// it is mmap-ed the first time this is called.
-    /// 
+    ///
     /// Note that every invocation locks the input mutex.
-    /// 
+    ///
     /// Panics on any I/O error. Returns an error if the input is a directory.
-    pub fn get_bytes(&self) -> TaskResult<&'a[u8]> {
+    pub fn get_bytes(&self) -> TaskResult<&'a [u8]> {
         // TODO: Check this is not a dir
 
         // Make sure the lock guard is dropped before panicking
-        Ok((|| -> Result<&'a[u8]> {
+        Ok((|| -> Result<&'a [u8]> {
             let mut guard = self.state.lock().unwrap();
             if matchvar!(*guard, InputState::SpecMem)
-                || matchvar!(*guard, InputState::SpecMemAndFile) {
+                || matchvar!(*guard, InputState::SpecMemAndFile)
+            {
                 if let Some(DataLocation::Memory(d)) = self.spec.location.as_ref() {
-                    return Ok(&d)
+                    return Ok(&d);
                 }
                 unreachable!();
             }
@@ -72,7 +80,7 @@ impl<'a> DataInstance<'a> {
             if let InputState::MMap(_, ref mmap) = *guard {
                 // This is safe since the Mmap is not dealocated before the
                 // containing Input<'a>.
-                return Ok( unsafe { mem::transmute::<&[u8], &'a [u8]>(mmap.as_ref()) });
+                return Ok(unsafe { mem::transmute::<&[u8], &'a [u8]>(mmap.as_ref()) });
             }
             unreachable!();
         })().expect("error reading input file"))
@@ -81,7 +89,7 @@ impl<'a> DataInstance<'a> {
     /// Get the path for the input file. If the input was memory backed, this
     /// will write the file to the filesystem the first time this is called.
     /// Note that even when written to disk, the data is also still kept in memory.
-    /// 
+    ///
     /// Note that every invocation locks the input mutex.
     pub fn get_path(&self) -> PathBuf {
         {
@@ -107,4 +115,3 @@ impl<'a> DataInstance<'a> {
         unimplemented!()
     }
 }
-

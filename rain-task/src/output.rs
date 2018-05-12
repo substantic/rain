@@ -1,15 +1,15 @@
-use std::{fmt, fs, mem};
 use std::ffi::OsString;
-use std::sync::{Mutex, MutexGuard};
-use std::fs::{OpenOptions, File};
+use std::fs::{File, OpenOptions};
 use std::io::BufWriter;
-use std::path::{Path, PathBuf};
 use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, MutexGuard};
+use std::{fmt, fs, mem};
 
-use librain::common::id::{TaskId, DataObjectId, SubworkerId};
+use librain::common::id::SId;
+use librain::common::id::{DataObjectId, SubworkerId, TaskId};
 use librain::common::Attributes;
 use librain::worker::rpc::subworker_serde::*;
-use librain::common::id::SId;
 
 use super::*;
 
@@ -28,19 +28,19 @@ enum OutputState {
 }
 
 /// One instance of output `DataObject`.
-/// 
+///
 /// The output can be either empty (as is initially),
 /// set to represent an existing file, set to represent an existing directory, or written
 /// to as a `Write`. These three are mutually exclusive, `set_dir_path` and `set_file_path`
 /// may be used only once, and not before or after `get_writer`.
-/// 
+///
 /// This object is thread-safe and the internal state is guarded by a mutex. Calling
-/// `get_writer` locks this mutex and holds it until the returned guard is dropped. 
+/// `get_writer` locks this mutex and holds it until the returned guard is dropped.
 /// This means fast (lockless) writes to the `Write` but you need to make sure your
 /// other threads do not starve or deadlock.
 #[derive(Debug)]
 pub struct Output<'a> {
-    /// The original output description 
+    /// The original output description
     desc: &'a DataObjectSpec,
     /// Mutex holding the output state
     data: OutputState,
@@ -55,7 +55,11 @@ pub struct Output<'a> {
 impl<'a> fmt::Display for Output<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(ref label) = self.desc.label {
-            write!(f, "Output #{} (ID {}, label {:?})", self.order, self.desc.id, label)
+            write!(
+                f,
+                "Output #{} (ID {}, label {:?})",
+                self.order, self.desc.id, label
+            )
         } else {
             write!(f, "Output #{} (ID {}, no label)", self.order, self.desc.id)
         }
@@ -69,7 +73,11 @@ impl<'a> Output<'a> {
             desc: spec,
             data: OutputState::Empty,
             attributes: Attributes::new(),
-            path: stage_path.join(format!("output-{}-{}", spec.id.get_session_id(), spec.id.get_id())),
+            path: stage_path.join(format!(
+                "output-{}-{}",
+                spec.id.get_session_id(),
+                spec.id.get_id()
+            )),
             order: order,
         }
     }
@@ -77,41 +85,57 @@ impl<'a> Output<'a> {
     /// Consume self, yielding a `DataObjectSpec` for `ResultMsg` and
     /// a flag whether the output object was cached (only possible if requested).
     /// Currently, this subworker never caches.
-    /// 
+    ///
     /// NOTE: The returned path may be still an open file until this Output is dropped.
     pub(crate) fn into_output_spec(self) -> (DataObjectSpec, bool) {
-        (DataObjectSpec {
-            id: self.desc.id,
-            label: None,
-            attributes: self.attributes,
-            location: Some(match self.data {
-                OutputState::Empty => DataLocation::Memory(Vec::new()),
-                OutputState::MemBacked(data) => DataLocation::Memory(data),
-                OutputState::FileBacked(f) => { drop(f); DataLocation::Path(self.path) },
-                OutputState::StagedPath => DataLocation::Path(self.path),
-                OutputState::OtherObject(id) => DataLocation::OtherObject(id),
-            }),
-            cache_hint: false, 
-        }, false)
+        (
+            DataObjectSpec {
+                id: self.desc.id,
+                label: None,
+                attributes: self.attributes,
+                location: Some(match self.data {
+                    OutputState::Empty => DataLocation::Memory(Vec::new()),
+                    OutputState::MemBacked(data) => DataLocation::Memory(data),
+                    OutputState::FileBacked(f) => {
+                        drop(f);
+                        DataLocation::Path(self.path)
+                    }
+                    OutputState::StagedPath => DataLocation::Path(self.path),
+                    OutputState::OtherObject(id) => DataLocation::OtherObject(id),
+                }),
+                cache_hint: false,
+            },
+            false,
+        )
     }
 
     /// Submit the given directory as the output contents.
     /// Moves the directory to the staging area.
     /// You should make sure no files in the directory are open after this operation.
-    /// 
+    ///
     /// Panics if the output was submitted to and on I/O errors.
     /// Returns an error if the output is not a directory type.
     pub fn stage_directory<P: AsRef<Path>>(&mut self, path: P) -> TaskResult<()> {
         let path: &Path = path.as_ref();
         // TODO: Check for self directory type
         if !path.is_dir() {
-            panic!("Path {:?} given to `stage_directory` on {} is not a readable directory.", path, self);
+            panic!(
+                "Path {:?} given to `stage_directory` on {} is not a readable directory.",
+                path, self
+            );
         }
         if !matchvar!(self.data, OutputState::Empty) {
-            panic!("Called `stage_directory` on {} after being previously staged.", self)
+            panic!(
+                "Called `stage_directory` on {} after being previously staged.",
+                self
+            )
         }
-        fs::rename(path, &self.path).unwrap_or_else(|_|
-            panic!("error moving directory {:?} to staging ({:?}) on {}", path, self.path, self));
+        fs::rename(path, &self.path).unwrap_or_else(|_| {
+            panic!(
+                "error moving directory {:?} to staging ({:?}) on {}",
+                path, self.path, self
+            )
+        });
         self.data = OutputState::StagedPath;
         Ok(())
     }
@@ -119,20 +143,30 @@ impl<'a> Output<'a> {
     /// Submit the given file as the output contents.
     /// Moves the file to the staging area.
     /// You should make sure that the file is not open after this operation.
-    /// 
+    ///
     /// Panics if the output was submitted or written to and on I/O errors.
     /// Returns an error if the output is not a file directory type.
     pub fn stage_file<P: AsRef<Path>>(&mut self, path: P) -> TaskResult<()> {
         let path: &Path = path.as_ref();
         // TODO: Check for self non-directory type
         if !path.is_file() {
-            panic!("Path {:?} given to `stage_file` on {} is not a readable regular file.", path, self);
+            panic!(
+                "Path {:?} given to `stage_file` on {} is not a readable regular file.",
+                path, self
+            );
         }
         if !matchvar!(self.data, OutputState::Empty) {
-            panic!("Called `stage_file` on {} after being previously staged or written to.", self)
+            panic!(
+                "Called `stage_file` on {} after being previously staged or written to.",
+                self
+            )
         }
-        fs::rename(path, &self.path).unwrap_or_else(|_|
-            panic!("error moving directory {:?} to staging ({:?}) on {}", path, self.path, self));
+        fs::rename(path, &self.path).unwrap_or_else(|_| {
+            panic!(
+                "error moving directory {:?} to staging ({:?}) on {}",
+                path, self.path, self
+            )
+        });
         self.data = OutputState::StagedPath;
         Ok(())
     }
@@ -144,7 +178,10 @@ impl<'a> Output<'a> {
     pub fn stage_input(&mut self, object: &DataInstance) -> TaskResult<()> {
         // TODO: Check for the same (dir/file) type of the input
         if !matchvar!(self.data, OutputState::Empty) {
-            panic!("Called `stage_input` on {} after being previously staged or written to.", self)
+            panic!(
+                "Called `stage_input` on {} after being previously staged or written to.",
+                self
+            )
         }
         self.data = OutputState::OtherObject(object.spec.id);
         Ok(())
@@ -178,9 +215,9 @@ impl<'a> Output<'a> {
     fn convert_to_file(&mut self) -> ::std::io::Result<()> {
         assert!(matchvar!(self.data, OutputState::MemBacked(_)));
         let mut f = BufWriter::new(OpenOptions::new()
-                        .write(true)
-                        .create_new(true)
-                        .open(&self.path)?);
+            .write(true)
+            .create_new(true)
+            .open(&self.path)?);
         if let OutputState::MemBacked(ref data) = self.data {
             f.write_all(data)?;
         } else {
@@ -199,10 +236,14 @@ impl<'a> Output<'a> {
             self.data = OutputState::MemBacked(Vec::new());
         }
         Ok(match self.data {
-            OutputState::MemBacked(_) => self.convert_to_file().expect("error writing output to file"),
+            OutputState::MemBacked(_) => self.convert_to_file()
+                .expect("error writing output to file"),
             OutputState::FileBacked(_) => (),
             _ => {
-                panic!("can't make output {} file backed: it has been staged with input, file or dir", self);
+                panic!(
+                    "can't make output {} file backed: it has been staged with input, file or dir",
+                    self
+                );
             }
         })
     }
@@ -214,26 +255,19 @@ impl<'a> Write for Output<'a> {
             self.data = OutputState::MemBacked(Vec::new());
         }
         if matchvar!(self.data, OutputState::MemBacked(_)) {
-            let overflow =
-                if let OutputState::MemBacked(ref data) = self.data {
-                    data.len() + buf.len() > MEM_BACKED_LIMIT
-                } else {
-                    false
-                };
+            let overflow = if let OutputState::MemBacked(ref data) = self.data {
+                data.len() + buf.len() > MEM_BACKED_LIMIT
+            } else {
+                false
+            };
             if overflow {
                 self.convert_to_file()?;
             }
         }
         match self.data {
-            OutputState::MemBacked(ref mut data) => {
-                data.write(buf).into()
-            },
-            OutputState::FileBacked(ref mut f) => {
-                f.write(buf).into()
-            },
-            _ => {
-                panic!("can't write to output {} that has been staged with input, file or dir")
-            }
+            OutputState::MemBacked(ref mut data) => data.write(buf).into(),
+            OutputState::FileBacked(ref mut f) => f.write(buf).into(),
+            _ => panic!("can't write to output {} that has been staged with input, file or dir"),
         }
     }
 
