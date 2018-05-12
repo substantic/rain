@@ -14,7 +14,7 @@ pub const TASKS_DIR: &str = "tasks";
 
 /// Alias type for a subworker task function with arbitrary number of inputs
 /// and outputs.
-pub type TaskFn = Fn(&Context, &[DataInstance], &[Output]) -> Result<()>;
+pub type TaskFn = Fn(&mut Context, &[DataInstance], &mut [Output]) -> Result<()>;
 
 pub struct Subworker {
     /// An identifier for the local worker
@@ -74,7 +74,7 @@ impl Subworker {
     /// 
     /// Panics when a task with the same name has been registered previously.
     pub fn add_task<S, F>(&mut self, task_name: S, task_fun: F)
-        where S: Into<String>, F: 'static + Fn(&Context, &[DataInstance], &[Output]) -> Result<()> {
+        where S: Into<String>, F: 'static + Fn(&mut Context, &[DataInstance], &mut [Output]) -> Result<()> {
         let key: String = task_name.into();
         if self.tasks.contains_key(&key) {
             panic!("can't add task named {:?}: already present", &key);

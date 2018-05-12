@@ -61,18 +61,18 @@ fn setup(name: &str, requests: Vec<CallMsg>) -> (Subworker, JoinHandle<Vec<Resul
     (s, handle)
 }
 
-fn task1(_ctx: &Context, _inputs: &[DataInstance], _outputs: &[Output]) -> Result<()>
+fn task1(_ctx: &mut Context, _inputs: &[DataInstance], _outputs: &mut [Output]) -> Result<()>
 {
     Ok(())
 }
 
-fn task1_fail(_ctx: &Context, _inputs: &[DataInstance], _outputs: &[Output]) -> Result<()>
+fn task1_fail(_ctx: &mut Context, _inputs: &[DataInstance], _outputs: &mut [Output]) -> Result<()>
 {
     bail!("expected failure")
 }
 
 #[allow(dead_code)]
-fn task3(_ctx: &Context, _in1: &DataInstance, _in2: &DataInstance, _out: &Output) -> Result<()> {
+fn task3(_ctx: &mut Context, _in1: &DataInstance, _in2: &DataInstance, _out: &mut Output) -> Result<()> {
     Ok(())
 }
 
@@ -174,7 +174,7 @@ fn session_add() {
     //s.run_task_test("task2").unwrap();
 }
 
-fn task_cat(_ctx: &Context, inputs: &[DataInstance], outputs: &[Output]) -> Result<()>
+fn task_cat(_ctx: &mut Context, inputs: &[DataInstance], outputs: &mut [Output]) -> Result<()>
 {
     if outputs.len() != 1 {
         bail!("Expected exactly 1 output");

@@ -1,13 +1,13 @@
 use super::*;
-use std::{fs, env};
+use std::{fs, env, mem};
 
 #[derive(Debug)]
 pub struct Context<'a> {
     /// The call message the Context was created for.
     spec: &'a CallMsg,
-    /// List of input objects
+    /// List of input objects. This is empty during task function call!
     pub(crate) inputs: Vec<DataInstance<'a>>,
-    /// List of output objects
+    /// List of output objects. This is empty during task function call!
     pub(crate) outputs: Vec<Output<'a>>,
     /// Task attributes
     pub(crate) attributes: Attributes,
@@ -52,12 +52,18 @@ impl<'a> Context<'a> {
         }
     }
 
-    /// Call task function within the context
+    /// Call a task function within the context
     pub(crate) fn call_with_context<'f>(&mut self, f: &'f TaskFn) -> Result<()> {
         env::set_current_dir(&self.work_dir)?;
+        let mut outputs = Vec::new();
+        let mut inputs = Vec::new();
+        // Inputs and outputs are swapped out from the Context to hand over to the task.
+        mem::swap(&mut outputs, &mut self.outputs);
+        mem::swap(&mut inputs, &mut self.inputs);
         debug!("Calling {:?} in {:?}", self.spec.method, self.work_dir);
-        // TODO: change to calling with mutable outputs
-        let res = f(&self, &self.inputs, &self.outputs);
+        let res = f(self, &inputs, &mut outputs);
+        mem::swap(&mut outputs, &mut self.outputs);
+        mem::swap(&mut inputs, &mut self.inputs);
         res
     }
 
