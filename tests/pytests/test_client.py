@@ -7,7 +7,7 @@ import time
 
 
 def test_get_info(test_env):
-    test_env.start(2)  # Start server with no workers
+    test_env.start(2)
     client = test_env.client
 
     info = client.get_server_info()

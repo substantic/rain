@@ -12,3 +12,4 @@ dashboard/build
 dashboard/node_modules
 !.travis.yml
 /rain-task/testing/
+_build

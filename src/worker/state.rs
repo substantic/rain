@@ -334,8 +334,8 @@ impl State {
                     )?;
 
                     let command_future = command
-                        .status_async2(&self.handle)?
-                        .map_err(|e| e.into())
+                        .status_async2(&self.handle).map_err(|e| format!("Subworker command '{}' failed: {:?}", program_name, ::std::error::Error::description(&e)))?
+                        .map_err(|e| format!("Subworker command failed: {:?}", ::std::error::Error::description(&e)).into())
                         .and_then(move |status| {
                             error!("Subworker {} terminated with {}", subworker_id, status);
                             bail!("Subworker unexpectedly terminated with {}", status);
@@ -423,7 +423,7 @@ impl State {
                         });
                     Ok(Box::new(ready_future))
                 } else {
-                    bail!("Do not know how to start subworker: {}", subworker_type);
+                    bail!("Subworker '{}' is not registered", subworker_type);
                 }
             }
             Some(sw) => {
