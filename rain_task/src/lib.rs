@@ -8,6 +8,8 @@
 //!
 //! ```rust,no_run
 //! #[macro_use] // For register_task! if you want to use it
+//! extern crate rain_task;
+//! 
 //! use rain_task::*;
 //! use std::io::Write;
 //!
