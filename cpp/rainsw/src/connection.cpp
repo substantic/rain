@@ -63,10 +63,9 @@ std::vector<char> rainsw::Connection::receive()
 {
     const size_t READ_AT_ONCE = 128 * 1024;
     for(;;) {
-        // TODO: fix this on big-endian machines
-        uint32_t *len = reinterpret_cast<uint32_t*>(&buffer[0]);
         auto sz = buffer.size();
         if (sz >= sizeof(uint32_t)) {
+            // TODO: fix this on big-endian machines
             uint32_t *len_ptr = reinterpret_cast<uint32_t*>(&buffer[0]);
             size_t len = *len_ptr + sizeof(uint32_t);
             if (sz >= len) {

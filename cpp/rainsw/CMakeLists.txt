@@ -3,6 +3,7 @@ project(rainsw)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_EXTENSIONS OFF)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 include(ExternalProject)
 include(FindPkgConfig)
@@ -13,7 +14,7 @@ set(SPDLOG_ROOT ${CMAKE_CURRENT_BINARY_DIR}/spdlog)
 ExternalProject_Add(spdlog
         PREFIX ${SPDLOG_ROOT}
         GIT_REPOSITORY https://github.com/gabime/spdlog
-        GIT_TAG master
+        GIT_TAG 71e93a4f2d52fb9f9dafdeea7386bf0c780981e3
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ""
@@ -36,6 +37,8 @@ pkg_check_modules(CBOR REQUIRED libcbor)
 add_library(rainsw
   src/connection.cpp
   src/connection.h
+  src/datainstance.cpp
+  src/datainstance.h
   src/subworker.cpp
   src/subworker.h
   src/ids.cpp
@@ -44,6 +47,8 @@ add_library(rainsw
   src/utils.h
   src/log.cpp
   src/log.h
+  src/context.cpp
+  src/context.h
 )
 
 target_include_directories(rainsw PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)

@@ -1,9 +1,13 @@
+#include <sstream>
+
 #include "subworker.h"
 #include "log.h"
 #include "cbor.h"
 #include "utils.h"
+#include "ids.h"
+#include "datainstance.h"
 
-rainsw::Subworker::Subworker(const std::__cxx11::string &type) : type(type)
+rainsw::Subworker::Subworker(const std::string &type_name) : type_name(type_name)
 {
     spdlog::set_pattern("%H:%M:%S [%l] %v");
     spdlog::set_level(spdlog::level::debug);
@@ -56,8 +60,113 @@ void rainsw::Subworker::process_message(std::vector<char> &data)
 
 void rainsw::Subworker::process_message_call(cbor_item_t *msg_data)
 {
+   //cbor_describe(msg_data, stdout);
    std::string method = cb_map_lookup_string(msg_data, "method");
-   logger->info("Running method '{}'", method);
+   cbor_item_t *id_item = cb_map_lookup(msg_data, "task");
+   TaskId task_id = TaskId::from(id_item);
+   logger->info("Running method '{}' (id = {})", method, task_id.to_string());
+
+   auto fn = registered_tasks.find(method);
+   if (fn == registered_tasks.end()) {
+        send_error(std::string("Method '") + method + "' not found in subworker", id_item);
+        return;
+   }
+
+   cbor_item_t *inputs_item = cb_map_lookup(msg_data, "inputs");
+   std::vector<DataInstancePtr> task_inputs;
+   size_t len = cbor_array_size(inputs_item);
+   task_inputs.reserve(len);
+   for (size_t i = 0; i < len; i++) {
+       cbor_item_t *input_item = cbor_array_get(inputs_item, i);
+       task_inputs.push_back(DataInstance::from_input_spec(input_item));
+       cbor_decref(&input_item);
+   }
+
+   cbor_item_t *outputs_item = cb_map_lookup(msg_data, "outputs");
+   size_t len_out = cbor_array_size(outputs_item);
+   std::vector<DataInstancePtr> task_outputs;
+   task_outputs.reserve(len_out);
+
+   Context ctx(task_inputs.size());
+   fn->second(ctx, task_inputs, task_outputs); // Call the task function
+
+   if (ctx.has_error()) {
+       auto &error = ctx.get_error_message();
+       logger->info("Method finished with error: {}", error);
+       send_error(error, id_item);
+       return;
+   }
+
+   logger->info("Method finished");
+
+   if (len_out != task_outputs.size()) {
+       std::stringstream s;
+       s << "Task produced " << task_outputs.size() << " outputs, but expected " << len_out;
+       send_error(s.str(), id_item);
+       return;
+   }
+
+   cbor_item_t *outs = cbor_new_definite_array(cbor_array_size(outputs_item));
+   for (size_t i = 0; i < len_out; i++) {
+       cbor_item_t *o = cbor_array_get(outputs_item, i);
+       cbor_array_push(outs, cbor_move(task_outputs[i]->make_output_spec(o)));
+       cbor_decref(&o);
+   }
+
+   cbor_item_t *result_data = cbor_new_definite_map(4);
+   cbor_map_add(result_data, (struct cbor_pair) {
+      .key = cbor_move(cbor_build_string("task")),
+      .value = id_item
+   });
+   cbor_map_add(result_data, (struct cbor_pair) {
+      .key = cbor_move(cbor_build_string("success")),
+      .value = cbor_move(cbor_build_bool(true))
+   });
+   cbor_map_add(result_data, (struct cbor_pair) {
+        .key = cbor_move(cbor_build_string("outputs")),
+        .value = cbor_move(outs)
+   });
+
+   //cbor_tag_item *outputs_item = cbor_new_definite_array()
+
+   cbor_item_t *attributes = cbor_new_definite_map(0);
+   cbor_map_add(result_data, (struct cbor_pair) {
+      .key = cbor_move(cbor_build_string("attributes")),
+      .value = cbor_move(attributes)
+   });
+   send_message("result", result_data);
+}
+
+void rainsw::Subworker::send_error(const std::string &error_msg, cbor_item_t *id_item)
+{
+    // TODO: This needs real JSON serialization
+    std::string message = '"' + error_msg + '"';
+    cbor_item_t *result_data = cbor_new_definite_map(3);
+    cbor_map_add(result_data, (struct cbor_pair) {
+       .key = cbor_move(cbor_build_string("task")),
+       .value = id_item
+    });
+    cbor_map_add(result_data, (struct cbor_pair) {
+       .key = cbor_move(cbor_build_string("success")),
+       .value = cbor_move(cbor_build_bool(false))
+    });
+
+    cbor_item_t *attributes = cbor_new_definite_map(1);
+    cbor_map_add(attributes, (struct cbor_pair) {
+       .key = cbor_move(cbor_build_string("error")),
+       .value = cbor_move(cbor_build_string(message.c_str()))
+    });
+
+    cbor_map_add(result_data, (struct cbor_pair) {
+       .key = cbor_move(cbor_build_string("attributes")),
+       .value = cbor_move(attributes)
+    });
+    send_message("result", result_data);
+}
+
+void rainsw::Subworker::add_task(const std::string &name, const rainsw::TaskFunction &fn)
+{
+    registered_tasks[name] = fn;
 }
 
 void rainsw::Subworker::init()
@@ -89,7 +198,7 @@ void rainsw::Subworker::init()
    });
    cbor_map_add(data, (struct cbor_pair) {
       .key = cbor_move(cbor_build_string("subworkerType")),
-      .value = cbor_move(cbor_build_string(type.c_str()))
+      .value = cbor_move(cbor_build_string(type_name.c_str()))
    });
    cbor_map_add(data, (struct cbor_pair) {
       .key = cbor_move(cbor_build_string("subworkerId")),

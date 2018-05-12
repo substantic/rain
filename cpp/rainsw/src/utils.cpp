@@ -31,3 +31,13 @@ std::string rainsw::cb_to_string(const cbor_item_t *item)
    return std::string(reinterpret_cast<const char*>(cbor_string_handle(item)),
                       cbor_string_length(item));
 }
+
+size_t rainsw::file_size(const char *path)
+{
+    struct stat info;
+    if (stat(path, &info))
+    {
+        log_errno_and_exit("stat");
+    }
+    return info.st_size;
+}
