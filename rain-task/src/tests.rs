@@ -61,18 +61,18 @@ fn setup(name: &str, requests: Vec<CallMsg>) -> (Subworker, JoinHandle<Vec<Resul
     (s, handle)
 }
 
-fn task1(_ctx: &mut Context, _inputs: &[DataInstance], _outputs: &mut [Output]) -> Result<()>
+fn task1(_ctx: &mut Context, _inputs: &[DataInstance], _outputs: &mut [Output]) -> TaskResult<()>
 {
     Ok(())
 }
 
-fn task1_fail(_ctx: &mut Context, _inputs: &[DataInstance], _outputs: &mut [Output]) -> Result<()>
+fn task1_fail(_ctx: &mut Context, _inputs: &[DataInstance], _outputs: &mut [Output]) -> TaskResult<()>
 {
     bail!("expected failure")
 }
 
 #[allow(dead_code)]
-fn task3(_ctx: &mut Context, _in1: &DataInstance, _in2: &DataInstance, _out: &mut Output) -> Result<()> {
+fn task3(_ctx: &mut Context, _in1: &DataInstance, _in2: &DataInstance, _out: &mut Output) -> TaskResult<()> {
     Ok(())
 }
 
@@ -90,7 +90,7 @@ fn data_spec(id: i32, label: &str, location: Option<DataLocation>) -> DataObject
 #[test]
 fn run_dummy_server() {
     let (mut s, handle) = setup("run_dummy_server", Vec::new());
-    s.run().unwrap();
+    s.run();
     let res = handle.join().unwrap();
     assert_eq!(&res, &[]);
 }
@@ -107,7 +107,7 @@ fn run_unit_task() {
         }
     ]);
     s.add_task("task1", task1);
-    s.run().unwrap();
+    s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
     assert_eq!(res[0].task, TaskId::new(1, 2));
@@ -125,7 +125,7 @@ fn run_failing_task() {
         }
     ]);
     s.add_task("task1f", task1_fail);
-    s.run().unwrap();
+    s.run();
     let res = handle.join().unwrap();
     assert!(!res[0].success);
     assert_eq!(res[0].task, TaskId::new(1, 2));
@@ -142,8 +142,9 @@ fn run_missing_task() {
             outputs: vec![],
         }
     ]);
-    assert!(matchvar!(s.run(), Err(_)));
-    assert_eq!(handle.join().unwrap(), &[]);
+    s.run();
+    let res = handle.join().unwrap();
+    assert!(!res[0].success);
 }
 
 #[test]
@@ -174,7 +175,7 @@ fn session_add() {
     //s.run_task_test("task2").unwrap();
 }
 
-fn task_cat(_ctx: &mut Context, inputs: &[DataInstance], outputs: &mut [Output]) -> Result<()>
+fn task_cat(_ctx: &mut Context, inputs: &[DataInstance], outputs: &mut [Output]) -> TaskResult<()>
 {
     if outputs.len() != 1 {
         bail!("Expected exactly 1 output");
@@ -184,7 +185,7 @@ fn task_cat(_ctx: &mut Context, inputs: &[DataInstance], outputs: &mut [Output])
     } else if inputs.len() >= 2 {
         let mut wr = outputs[0].get_writer()?;
         for inp in inputs.iter() {
-            wr.write_all(inp.get_bytes()?)?;
+            wr.write_all(inp.get_bytes()?).unwrap();
         }
     }
     Ok(())
@@ -216,7 +217,7 @@ fn run_cat_task() {
         },
     ]);
     s.add_task("cat", task_cat);
-    s.run().unwrap();
+    s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
     assert_eq!(res[0].outputs[0].location, Some(DataLocation::Memory("Hello Rain!".into())));
@@ -239,7 +240,7 @@ fn run_long_cat() {
         },
     ]);
     s.add_task("cat", task_cat);
-    s.run().unwrap();
+    s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
     if let Some(DataLocation::Path(ref p)) = res[0].outputs[0].location {
@@ -263,7 +264,7 @@ fn run_empty_cat() {
         },
     ]);
     s.add_task("cat", task_cat);
-    s.run().unwrap();
+    s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
     assert_eq!(res[0].outputs[0].location, Some(DataLocation::Memory("".into())));
@@ -281,7 +282,7 @@ fn run_pass_cat() {
         },
     ]);
     s.add_task("cat", task_cat);
-    s.run().unwrap();
+    s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
     assert_eq!(res[0].outputs[0].location, Some(DataLocation::OtherObject(DataObjectId::new(1, 1))));
@@ -299,11 +300,11 @@ fn run_stage_file() {
         },
     ]);
     s.add_task("stage", |_ctx, _inp, outp| {
-        let mut f = fs::File::create("testfile.txt")?;
-        f.write_all(b"Rainy day?")?;
+        let mut f = fs::File::create("testfile.txt").unwrap();
+        f.write_all(b"Rainy day?").unwrap();
         outp[0].stage_file("testfile.txt")
         });
-    s.run().unwrap();
+    s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
     if let Some(DataLocation::Path(ref p)) = res[0].outputs[0].location {

@@ -24,7 +24,7 @@ pub struct DataInstance<'a> {
 }
 
 impl<'a> DataInstance<'a> {
-    pub(crate) fn new(spec: &'a DataObjectSpec, stage_path: &Path, order: usize) -> Self {
+    pub(crate) fn new(spec: &'a DataObjectSpec, work_dir: &Path, order: usize) -> Self {
         let istate = match spec.location.as_ref().expect("bug: input needs a data location") {
             DataLocation::Cached => panic!("bug: cached object requested"),
             DataLocation::OtherObject(_) => panic!("bug: `OtherObject` location in input"),
@@ -32,9 +32,9 @@ impl<'a> DataInstance<'a> {
             DataLocation::Path(_) => InputState::NotOpen,
         };
         let path = if let DataLocation::Path(p) = spec.location.as_ref().unwrap() {
-            stage_path.join(p)
+            p.into()
         } else {
-            stage_path.join(format!("input-{}-{}", spec.id.get_session_id(), spec.id.get_id()))
+            work_dir.join(format!("input-{}-{}", spec.id.get_session_id(), spec.id.get_id()))
         };
         DataInstance {
             spec: spec,
@@ -48,28 +48,32 @@ impl<'a> DataInstance<'a> {
     /// it is mmap-ed the first time this is called.
     /// 
     /// Every invocation locks the input mutex.
-    pub fn get_bytes(&self) -> Result<&'a[u8]> {
+    /// Panics on any I/O error. Returns an error if the input is a directory.
+    pub fn get_bytes(&self) -> TaskResult<&'a[u8]> {
         // TODO: Check this is not a dir
-        let mut guard = self.state.lock().unwrap();
-        if matchvar!(*guard, InputState::SpecMem)
-            || matchvar!(*guard, InputState::SpecMemAndFile) {
-            if let Some(DataLocation::Memory(d)) = self.spec.location.as_ref() {
-                return Ok(&d)
-            } else {
-                panic!("bug: spec suddenly does not contain memory location");
+
+        // Make sure the lock guard is dropped before panicking
+        Ok((|| -> Result<&'a[u8]> {
+            let mut guard = self.state.lock().unwrap();
+            if matchvar!(*guard, InputState::SpecMem)
+                || matchvar!(*guard, InputState::SpecMemAndFile) {
+                if let Some(DataLocation::Memory(d)) = self.spec.location.as_ref() {
+                    return Ok(&d)
+                }
+                unreachable!();
             }
-        }
-        if matchvar!(*guard, InputState::NotOpen) {
-            let f = File::open(&self.path)?;
-            let mmap = unsafe { Mmap::map(&f)? };
-            *guard = InputState::MMap(f, mmap);
-        }
-        if let InputState::MMap(_, ref mmap) = *guard {
-            // This is safe since the Mmap is not dealocated before the
-            // containing Input<'a>.
-            return Ok( unsafe { mem::transmute::<&[u8], &'a [u8]>(&*mmap) });
-        }
-        unreachable!();
+            if matchvar!(*guard, InputState::NotOpen) {
+                let f = File::open(&self.path)?;
+                let mmap = unsafe { Mmap::map(&f)? };
+                *guard = InputState::MMap(f, mmap);
+            }
+            if let InputState::MMap(_, ref mmap) = *guard {
+                // This is safe since the Mmap is not dealocated before the
+                // containing Input<'a>.
+                return Ok( unsafe { mem::transmute::<&[u8], &'a [u8]>(mmap.as_ref()) });
+            }
+            unreachable!();
+        })().expect("error reading input file"))
     }
 
     /// Get the path for the input file. If the input was memory backed, this
@@ -77,7 +81,7 @@ impl<'a> DataInstance<'a> {
     /// Note that even when written to disk, the data is also still kept in memory.
     /// 
     /// Every invocation locks the input mutex.
-    pub fn get_path(&self) -> Result<&'a Path> {
+    pub fn get_path(&self) -> PathBuf {
         {
             let guard = self.state.lock().unwrap();
             if matchvar!(*guard, InputState::SpecMem) {
@@ -85,17 +89,20 @@ impl<'a> DataInstance<'a> {
             }
         }
         // This is safe since the PathBuf is never modified after creation.
-        return Ok( unsafe { mem::transmute::<&Path, &'a Path>(&self.path) });
+        self.path.clone()
     }
 
+    /// Panics on any I/O error.
+    /// Returns an error if the input is a directory or non-text content-type, or if
+    /// the input is not valud utf-8.
     /// TODO: Needs content-type checking
-    pub fn get_str(&self) -> Result<&'a str> {
+    pub fn get_as_str(&self) -> TaskResult<&'a str> {
         unimplemented!()
     }
 
     /// TODO: Needs attributes work
-    pub fn get_content_type(&self) -> Result<&'a[u8]> {
+    pub fn get_content_type(&self) -> String {
         unimplemented!()
-    }   
+    }
 }
 

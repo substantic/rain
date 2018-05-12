@@ -44,19 +44,25 @@ mod framing;
 use framing::*;
 
 mod errors;
-pub use errors::*;
+use errors::*;
 
 mod subworker;
-pub use subworker::*;
+use subworker::*;
 
 mod output;
-pub use output::*;
+use output::*;
 
 mod context;
-pub use context::*;
+use context::*;
 
 mod input;
-pub use input::*;
+use input::*;
+
+pub use errors::{TaskError, TaskResult};
+pub use subworker::{TaskFn, Subworker};
+pub use output::Output;
+pub use input::DataInstance;
+pub use context::Context;
 
 #[cfg(test)]
 mod tests;

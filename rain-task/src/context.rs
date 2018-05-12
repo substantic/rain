@@ -20,15 +20,15 @@ pub struct Context<'a> {
 }
 
 impl<'a> Context<'a> {
-    pub(crate) fn for_call_msg(cm: &'a CallMsg, staging_dir: &Path, work_dir: &Path) -> Result<Self> {
+    pub(crate) fn for_call_msg(cm: &'a CallMsg, staging_dir: &Path, work_dir: &Path) -> Self {
         assert!(work_dir.is_absolute());
         let inputs = cm.inputs.iter().enumerate().map(|(order, inp)| {
             DataInstance::new(inp, staging_dir, order)
         }).collect();
         let outputs = cm.outputs.iter().enumerate().map(|(order, outp)| {
-            Output::new(outp, staging_dir, order)
+            Output::new(outp, work_dir, order)
         }).collect();
-        Ok(Context {
+        Context {
             spec: cm,
             inputs: inputs,
             outputs: outputs,
@@ -36,7 +36,7 @@ impl<'a> Context<'a> {
             work_dir: work_dir.into(),
             staging_dir: staging_dir.into(),
             success: true,
-        })
+        }
     }
 
     pub(crate) fn into_result_msg(self) -> ResultMsg {
@@ -53,8 +53,8 @@ impl<'a> Context<'a> {
     }
 
     /// Call a task function within the context
-    pub(crate) fn call_with_context<'f>(&mut self, f: &'f TaskFn) -> Result<()> {
-        env::set_current_dir(&self.work_dir)?;
+    pub(crate) fn call_with_context<'f>(&mut self, f: &'f TaskFn) -> TaskResult<()> {
+        env::set_current_dir(&self.work_dir).expect("error on chdir to task work dir");
         let mut outputs = Vec::new();
         let mut inputs = Vec::new();
         // Inputs and outputs are swapped out from the Context to hand over to the task.

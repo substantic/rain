@@ -11,7 +11,7 @@ use librain::common::Attributes;
 use librain::worker::rpc::subworker_serde::*;
 use librain::common::id::SId;
 
-use super::{Error, Result, MEM_BACKED_LIMIT, DataInstance};
+use super::*;
 
 #[derive(Debug)]
 enum OutputState {
@@ -49,7 +49,6 @@ pub struct Output<'a> {
     /// Order of the output in outputs
     order: usize,
 }
-
 
 impl<'a> fmt::Display for Output<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -97,35 +96,41 @@ impl<'a> Output<'a> {
     /// Submit the given directory as the output contents.
     /// Moves the directory to the staging area.
     /// You should make sure no files in the directory are open after this operation.
-    /// Not allowed if the output was submitted to.
-    pub fn stage_directory<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
+    /// 
+    /// Panics if the output was submitted to and on I/O errors.
+    /// Returns an error if the output is not a directory type.
+    pub fn stage_directory<P: AsRef<Path>>(&mut self, path: P) -> TaskResult<()> {
         let path: &Path = path.as_ref();
         // TODO: Check for self directory type
         if !path.is_dir() {
-            bail!("Path {:?} given to `stage_directory` is not a readable directory.", path);
+            panic!("Path {:?} given to `stage_directory` on {} is not a readable directory.", path, self);
         }
         if !matchvar!(self.data, OutputState::Empty) {
-            bail!("Called `stage_directory` on {} after being previously staged.", self)
+            panic!("Called `stage_directory` on {} after being previously staged.", self)
         }
-        fs::rename(path, &self.path)?;
+        fs::rename(path, &self.path).unwrap_or_else(|_|
+            panic!("error moving directory {:?} to staging ({:?}) on {}", path, self.path, self));
         self.data = OutputState::StagedPath;
         Ok(())
     }
 
     /// Submit the given file as the output contents.
-    /// Moves the directory to the staging area.
-    /// You should make sure no files in the directory are open after this operation.
-    /// Not allowed if the output was submitted or written to.
-    pub fn stage_file<P: AsRef<Path>>(&mut self, path: P) -> Result<()> {
+    /// Moves the file to the staging area.
+    /// You should make sure that the file is not open after this operation.
+    /// 
+    /// Panics if the output was submitted or written to and on I/O errors.
+    /// Returns an error if the output is not a file directory type.
+    pub fn stage_file<P: AsRef<Path>>(&mut self, path: P) -> TaskResult<()> {
         let path: &Path = path.as_ref();
         // TODO: Check for self non-directory type
         if !path.is_file() {
-            bail!("Path {:?} given to `stage_file` is not a readable regular file.", path);
+            panic!("Path {:?} given to `stage_file` on {} is not a readable regular file.", path, self);
         }
         if !matchvar!(self.data, OutputState::Empty) {
-            bail!("Called `stage_file` on {} after being previously staged or written to.", self)
+            panic!("Called `stage_file` on {} after being previously staged or written to.", self)
         }
-        fs::rename(path, &self.path)?;
+        fs::rename(path, &self.path).unwrap_or_else(|_|
+            panic!("error moving directory {:?} to staging ({:?}) on {}", path, self.path, self));
         self.data = OutputState::StagedPath;
         Ok(())
     }
@@ -134,26 +139,27 @@ impl<'a> Output<'a> {
     /// No data is copied in this case and the worker is informed of the pass-through.
     /// The input *must* belong to the same task (this is not checked).
     /// Not allowed if the output was submitted or written to.
-    pub fn stage_input(&mut self, object: &DataInstance) -> Result<()> {
+    pub fn stage_input(&mut self, object: &DataInstance) -> TaskResult<()> {
+        // TODO: Check for the same (dir/file) type of the input
         if !matchvar!(self.data, OutputState::Empty) {
-            bail!("Called `stage_input` on {} after being previously staged or written to.", self)
+            panic!("Called `stage_input` on {} after being previously staged or written to.", self)
         }
         self.data = OutputState::OtherObject(object.spec.id);
         Ok(())
     }
 
     /// Called when the task failed. Remove and forget any already-staged data including attributes.
-    pub(crate) fn cleanup_failed_task(&mut self) -> Result<()> {
+    /// Panics on I/O error.
+    pub(crate) fn cleanup_failed_task(&mut self) {
         let remove_path = match self.data {
             OutputState::FileBacked(_) | OutputState::StagedPath => true,
             _ => false,
         };
         self.data = OutputState::Empty; // Also closes any open file
         if remove_path {
-            fs::remove_dir_all(&self.path)?;
+            fs::remove_dir_all(&self.path).expect("error removing staged path on task failure");
         }
         self.attributes = Attributes::new();
-        Ok(())
     }
 
     /// TODO: To be resolved on attribute update.
@@ -167,7 +173,7 @@ impl<'a> Output<'a> {
     }
 
     /// Get a writer instance. Sets the 
-    pub fn get_writer<'b: 'a>(&'b mut self) -> Result<OutputWriter<'b>> {
+    pub fn get_writer<'b: 'a>(&'b mut self) -> TaskResult<OutputWriter<'b>> {
         // TODO: Check whether it is a non-directory type
         if matchvar!(self.data, OutputState::Empty) {
             self.data = OutputState::MemBacked(Vec::new())
