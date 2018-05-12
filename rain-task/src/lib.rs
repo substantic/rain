@@ -1,5 +1,32 @@
 #![allow(unused_imports)]
 
+//! A library to easily write custom Rain tasks in Rust.
+//! 
+//! See `README.md` for more information.
+//! 
+//! # Example
+//! 
+//! ```rust,no_run
+//! #[macro_use] // For register_task! if you want to use it
+//! use rain_task::*;
+//! use std::io::Write;
+//! 
+//! // A task with a single input and single output
+//! fn task_hello(_ctx: &mut Context, input: &DataInstance, output: &mut Output) -> TaskResult<()> {
+//!     write!(output, "Hello {}", input.get_str()?)?;
+//!     Ok(())
+//! }
+//! 
+//! fn main() {
+//!     let mut s = Subworker::new("greeter"); // The subworker type name
+//!     // Use a macro to register the task.
+//!     // [I O] here specifies the type and order of parameters.
+//!     register_task!(s, "hello", [I O], task_hello);
+//!     s.run(); // Runs the subworker event loop
+//! }
+//! ```
+
+
 extern crate librain;
 extern crate byteorder;
 #[macro_use]

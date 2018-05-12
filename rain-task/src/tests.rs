@@ -106,7 +106,7 @@ fn run_unit_task() {
             outputs: vec![],
         }
     ]);
-    s.add_task("task1", task1);
+    s.register_task("task1", task1);
     s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
@@ -124,7 +124,7 @@ fn run_failing_task() {
             outputs: vec![],
         }
     ]);
-    s.add_task("task1f", task1_fail);
+    s.register_task("task1f", task1_fail);
     s.run();
     let res = handle.join().unwrap();
     assert!(!res[0].success);
@@ -149,30 +149,25 @@ fn run_missing_task() {
 
 #[test]
 #[should_panic(expected="already present")]
-fn session_add_twice() {
+fn register_task_twice() {
     let p: PathBuf = "".into();
     let mut s = Subworker::with_params("", 1, &p, &p);
-    s.add_task("task1", task1);
-    s.add_task("task1", |_ctx, _ins, _outs| Ok(()));
-    //s.add_task2("task1b", task1).unwrap();
-    //add_task!(s, "task1a", task3, I I O).unwrap();
-    //s.add_task2("task2b", |i: &[u8]| vec![1u8] ).unwrap();
-    //s.run_task_test("task1").unwrap();
-    //s.run_task_test("task2").unwrap();
+    s.register_task("task1", task1);
+    s.register_task("task1", |_ctx, _ins, _outs| Ok(()));
 }
 
 #[test]
-fn session_add() {
+fn register_task() {
     let p: PathBuf = "".into();
     let mut s = Subworker::with_params("", 1, &p, &p);
-    s.add_task("task1a", task1);
-    s.add_task("task1b", task1);
-    s.add_task("task2", |_ctx, _ins, _outs| Ok(()));
-    //s.add_task2("task1b", task1).unwrap();
-    //add_task!(s, "task1a", task3, I I O).unwrap();
-    //s.add_task2("task2b", |i: &[u8]| vec![1u8] ).unwrap();
-    //s.run_task_test("task1").unwrap();
-    //s.run_task_test("task2").unwrap();
+    s.register_task("task1a", task1);
+    s.register_task("task1b", task1);
+    s.register_task("task2", |_ctx, _ins, _outs| Ok(()));
+    register_task!(s, "task3", [I I O], task3);
+    register_task!(s, "task4", [I I O O], |_ctx, _in1, _in2, _out1, _out2| Ok(()));
+    register_task!(s, "task5", [Is Os], task1);
+    register_task!(s, "task6", [I O Is Os],
+        |_ctx, _i1: &DataInstance, _o1: &mut Output, _is: &[DataInstance], _os: &mut [Output]| Ok(()));
 }
 
 fn task_cat(_ctx: &mut Context, inputs: &[DataInstance], outputs: &mut [Output]) -> TaskResult<()>
@@ -215,7 +210,7 @@ fn run_cat_task() {
             outputs: vec![data_spec(10, "out", None)],
         },
     ]);
-    s.add_task("cat", task_cat);
+    s.register_task("cat", task_cat);
     s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
@@ -238,7 +233,7 @@ fn run_long_cat() {
             outputs: vec![data_spec(3, "out", None)],
         },
     ]);
-    s.add_task("cat", task_cat);
+    s.register_task("cat", task_cat);
     s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
@@ -262,7 +257,7 @@ fn run_empty_cat() {
             outputs: vec![data_spec(3, "out", None)],
         },
     ]);
-    s.add_task("cat", task_cat);
+    s.register_task("cat", task_cat);
     s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
@@ -280,7 +275,7 @@ fn run_pass_cat() {
             outputs: vec![data_spec(2, "out", None)],
         },
     ]);
-    s.add_task("cat", task_cat);
+    s.register_task("cat", task_cat);
     s.run();
     let res = handle.join().unwrap();
     assert!(res[0].success);
@@ -299,7 +294,7 @@ fn test_make_file_backed() {
             outputs: vec![data_spec(3, "out", None)],
         },
     ]);
-    s.add_task("mfb", |_ctx, _ins, outs| {
+    s.register_task("mfb", |_ctx, _ins, outs| {
         write!(outs[0], "Rainfall")?;
         outs[0].make_file_backed()?;
         Ok(())
@@ -322,7 +317,7 @@ fn test_get_path_writing() {
             outputs: vec![],
         },
     ]);
-    s.add_task("gp", |_ctx, ins, _outs| {
+    s.register_task("gp", |_ctx, ins, _outs| {
         let p = ins[0].get_path();
         let mut s = String::new();
         fs::File::open(&p)?.read_to_string(&mut s)?;
@@ -346,7 +341,7 @@ fn run_stage_file() {
             outputs: vec![data_spec(2, "out", None)],
         },
     ]);
-    s.add_task("stage", |_ctx, _inp, outp| {
+    s.register_task("stage", |_ctx, _inp, outp| {
         let mut f = fs::File::create("testfile.txt").unwrap();
         f.write_all(b"Rainy day?").unwrap();
         outp[0].stage_file("testfile.txt")
@@ -361,4 +356,52 @@ fn run_stage_file() {
     } else {
         panic!("Expected output in a file");
     }
+}
+
+fn dummy_callmsg(ins: i32, outs: i32) -> CallMsg {
+    CallMsg {
+        task: TaskId::new(1, 2), 
+        method: "foo".into(),
+        attributes: Attributes::new(),
+        inputs: (0..ins).map(|i| data_spec(i, "", Some(DataLocation::Memory(vec![])))).collect(),
+        outputs: (0..outs).map(|i| data_spec(10 + i, "", None)).collect(),
+    }
+}
+
+#[test]
+fn register_task_fail_count() {
+    let (mut s, handle) = setup("register_task_fail_count1", vec![
+        dummy_callmsg(1, 1),
+        dummy_callmsg(0, 0),
+        dummy_callmsg(1, 0),
+        dummy_callmsg(2, 1),
+        dummy_callmsg(1, 2),
+    ]);
+    register_task!(s, "foo", [I O], |_ctx, _inp: &DataInstance, _outp: &mut Output| Ok(()));
+    s.run();
+    let res = handle.join().unwrap();
+    assert!(res[0].success);
+    assert!(!res[1].success && res[1].attributes.get::<String>("error").unwrap().contains("not enough inputs"));
+    assert!(!res[2].success && res[2].attributes.get::<String>("error").unwrap().contains("not enough outputs"));
+    assert!(!res[3].success && res[3].attributes.get::<String>("error").unwrap().contains("too many inputs"));
+    assert!(!res[4].success && res[4].attributes.get::<String>("error").unwrap().contains("too many outputs"));
+}
+
+#[test]
+fn register_task_fail_count_multi() {
+    let (mut s, handle) = setup("register_task_fail_count1", vec![
+        dummy_callmsg(1, 1),
+        dummy_callmsg(0, 6),
+        dummy_callmsg(3, 0),
+        dummy_callmsg(0, 0),
+        dummy_callmsg(5, 3),
+    ]);
+    register_task!(s, "foo", [O Os I Is], |_ctx, _o: &mut Output, _os, _i: &DataInstance, _is| Ok(()));
+    s.run();
+    let res = handle.join().unwrap();
+    assert!(res[0].success);
+    assert!(!res[1].success && res[1].attributes.get::<String>("error").unwrap().contains("not enough inputs"));
+    assert!(!res[2].success && res[2].attributes.get::<String>("error").unwrap().contains("not enough outputs"));
+    assert!(!res[3].success && res[3].attributes.get::<String>("error").unwrap().contains("not enough outputs"));
+    assert!(res[4].success);
 }

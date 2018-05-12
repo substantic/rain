@@ -14,8 +14,10 @@ pub const TASKS_DIR: &str = "tasks";
 
 /// Alias type for a subworker task function with arbitrary number of inputs
 /// and outputs.
-pub type TaskFn = Fn(&mut Context, &[DataInstance], &mut [Output]) -> TaskResult<()>;
+pub type TaskFn = Fn(&mut Context, &[DataInstance], &mut [Output]) -> TaskResult<()> + Send + Sync;
+//pub trait TaskFn: Fn(&mut Context, &[DataInstance], &mut [Output]) -> TaskResult<()> + Send + Sync {}
 
+/// The subworker event loop and the set of registered tasks.
 pub struct Subworker {
     /// An identifier for the local worker
     subworker_id: SubworkerId,
@@ -70,11 +72,15 @@ impl Subworker {
         }
     }
 
-    /// Add (register) a task type with the handling method.
+    /// Register task function.
+    /// 
+    /// The provided function must accept a list of inpts and outputs, expanding them manually.
+    /// For functions accepting individual inputs and outputs, see the macro `register_task!`.
+    /// The accepted function type is equivalent to `'static + TaskFn`.
     /// 
     /// Panics when a task with the same name has been registered previously.
-    pub fn add_task<S, F>(&mut self, task_name: S, task_fun: F)
-        where S: Into<String>, F: 'static + Fn(&mut Context, &[DataInstance], &mut [Output]) -> TaskResult<()> {
+    pub fn register_task<S, F>(&mut self, task_name: S, task_fun: F)
+        where S: Into<String>, F: 'static + Fn(&mut Context, &[DataInstance], &mut [Output]) -> TaskResult<()> + Send + Sync {
         let key: String = task_name.into();
         if self.tasks.contains_key(&key) {
             panic!("can't add task named {:?}: already present", &key);
@@ -83,9 +89,9 @@ impl Subworker {
     }
 
     /// Run the subworker loop, connecting to the worker, registering and handling requests
-    /// until the connection is closed.
+    /// until the connection is closed. May be only called once.
     /// 
-    /// Panics if ran repeatedly.
+    /// Panics on any error outside of the task functions. See `README.md` for rationale.
     pub fn run(&mut self) {
         if self.was_run {
             panic!("Subworker::run may only be ran once");

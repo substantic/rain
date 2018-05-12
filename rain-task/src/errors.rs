@@ -13,9 +13,10 @@ error_chain!{
 // Explicit alias just to make some IDEs happier
 pub type Result<T> = ::std::result::Result<T, Error>;
 
-/// A simplified string error for the task functions.
-/// Conversion from io::Error is just for convenience.
-/// TODO: add backtrace on error construction, possibly use error_chain
+/// A string error for the task functions.
+/// 
+/// A conversion from `io::Error` is provided for convenience via conversion to string.
+/// TODO: Add backtrace on error construction, possibly use error_chain.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct TaskError {
     message: String,
@@ -45,4 +46,5 @@ impl<'a> fmt::Display for TaskError {
     }
 }
 
+/// A `Result` with `TaskError`.
 pub type TaskResult<T> = ::std::result::Result<T, TaskError>;

@@ -27,7 +27,9 @@ enum OutputState {
     OtherObject(DataObjectId),
 }
 
-/// Represents one concrete output. The output can be either empty (as is initially),
+/// One instance of output `DataObject`.
+/// 
+/// The output can be either empty (as is initially),
 /// set to represent an existing file, set to represent an existing directory, or written
 /// to as a `Write`. These three are mutually exclusive, `set_dir_path` and `set_file_path`
 /// may be used only once, and not before or after `get_writer`.
@@ -189,7 +191,8 @@ impl<'a> Output<'a> {
     }
 
     /// If the output is empty or backed by memory, it is converted to a file.
-    /// Does nothing if already backed by a file.
+    /// Does nothing if already backed by a file. Returns an error for
+    /// staged files and inputs.
     pub fn make_file_backed(&mut self) -> TaskResult<()> {
         // TODO: Check for self non-directory type
         if matchvar!(self.data, OutputState::Empty) {

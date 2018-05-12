@@ -1,6 +1,7 @@
 use super::*;
 use std::{fs, env, mem};
 
+/// State of the processed Task instance and its specification.
 #[derive(Debug)]
 pub struct Context<'a> {
     /// The call message the Context was created for.

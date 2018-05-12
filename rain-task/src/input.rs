@@ -13,6 +13,7 @@ enum InputState {
     MMap(File, Mmap),
 }
 
+/// One instance of input `DataObject`.
 #[derive(Debug)]
 pub struct DataInstance<'a> {
     pub(crate) spec: &'a DataObjectSpec,
@@ -97,7 +98,7 @@ impl<'a> DataInstance<'a> {
     /// Returns an error if the input is a directory or non-text content-type, or if
     /// the input is not valud utf-8.
     /// TODO: Needs content-type checking
-    pub fn get_as_str(&self) -> TaskResult<&'a str> {
+    pub fn get_str(&self) -> TaskResult<&'a str> {
         unimplemented!()
     }
 
