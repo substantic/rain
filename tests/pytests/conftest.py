@@ -15,7 +15,7 @@ WORK_DIR = os.path.join(PYTEST_DIR, "work")
 RAIN_BIN = os.environ.get("RAIN_TEST_BIN",
                           os.path.join(ROOT, "target", "debug", "rain"))
 CPPTESTER_BIN = os.path.join(ROOT, "cpp", "rainsw", "_build", "tester")
-RUSTTESTER_BIN = os.path.join(ROOT, "rain-task-test", "target", "debug", "rain_task_test")
+RUSTTESTER_BIN = os.path.join(ROOT, "rain_task_test", "target", "debug", "rain_task_test")
 sys.path.insert(0, PYTHON_DIR)
 
 subworkers = {

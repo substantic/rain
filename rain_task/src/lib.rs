@@ -9,7 +9,7 @@
 //! ```rust,no_run
 //! #[macro_use] // For register_task! if you want to use it
 //! extern crate rain_task;
-//! 
+//!
 //! use rain_task::*;
 //! use std::io::Write;
 //!
@@ -59,7 +59,7 @@ use librain::worker::rpc::subworker_serde::*;
 pub const MAX_MSG_SIZE: usize = 128 * 1024 * 1024;
 
 /// Current protocol code name and magic string
-pub const MSG_PROTOCOL: &str = "v1-CBOR";
+pub const MSG_PROTOCOL: &str = "cbor-1";
 
 /// Size limit for memory-backed objects. Larger blobs
 /// get written to the filesystem.
