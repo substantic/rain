@@ -9,6 +9,7 @@ fn task_hello(_ctx: &mut Context, input: &DataInstance, output: &mut Output) -> 
     output.write_all(b"Hello ")?;
     output.write_all(input.get_bytes()?)?;
     output.write_all(b"!")?;
+    Ok(())
 }
 
 fn main() {
