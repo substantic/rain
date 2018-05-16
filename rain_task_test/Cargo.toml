@@ -1,0 +1,14 @@
+[package]
+name = "rain_task_test"
+version = "0.1.0"
+authors = ["Tomas Gavenciak <gavento@ucw.cz>"]
+description = "A testing Rain subworker in Rust."
+licence = "MIT"
+
+[dependencies]
+rain_task = { path = "../rain_task" }
+log = ">=0.4"
+serde_derive = "1.*"
+serde = "1.*"
+serde_json = "1.*"
+env_logger = ">=0.5"

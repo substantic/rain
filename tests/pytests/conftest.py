@@ -14,9 +14,14 @@ PYTHON_DIR = os.path.join(ROOT, "python")
 WORK_DIR = os.path.join(PYTEST_DIR, "work")
 RAIN_BIN = os.environ.get("RAIN_TEST_BIN",
                           os.path.join(ROOT, "target", "debug", "rain"))
-
+CPPTESTER_BIN = os.path.join(ROOT, "cpp", "rainsw", "_build", "tester")
+RUSTTESTER_BIN = os.path.join(ROOT, "rain_task_test", "target", "debug", "rain_task_test")
 sys.path.insert(0, PYTHON_DIR)
 
+subworkers = {
+    "cpptester": CPPTESTER_BIN,
+    "rusttester": RUSTTESTER_BIN,
+}
 
 class Env:
 
@@ -80,10 +85,21 @@ class TestEnv(Env):
               listen_port=None,
               http_port=None,
               worker_defs=None,
-              delete_list_timeout=None):
+              delete_list_timeout=None,
+              subworker=None):
         """
         Start infrastructure: server & n workers
         """
+
+        config = None
+        if subworker:
+            config = "[subworkers.{}]\n" \
+                     "      command = \"{}\"\n".format(subworker, subworkers[subworker])
+
+        if config:
+            with open(os.path.join(WORK_DIR, "worker.config"), "w") as f:
+                f.write(config)
+
         env = os.environ.copy()
         env["RUST_LOG"] = "trace"
         env["RUST_BACKTRACE"] = "1"
@@ -149,12 +165,14 @@ class TestEnv(Env):
             ready_file = os.path.join(WORK_DIR, name + "-ready")
             worker_ready_files.append(ready_file)
             wdir = os.path.join(WORK_DIR, "worker-{}".format(i))
-            args = (RAIN_BIN,
+            args = [RAIN_BIN,
                     "worker", "127.0.0.1:" + str(port),
                     "--ready-file", ready_file,
                     "--cpus", str(cpus),
                     "--logdir", os.path.join(wdir, "logs"),
-                    "--workdir", os.path.join(wdir, "work"))
+                    "--workdir", os.path.join(wdir, "work")]
+            if config:
+                args += ["--config", "worker.config"]
             self.workers.append(self.start_process(name, args, env=env))
 
         it = 0

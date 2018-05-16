@@ -27,6 +27,15 @@ impl DataType {
             &DataType::Directory => "directory",
         }
     }
+
+    pub fn from_attribute(name: &str) -> Self {
+        match name {
+            "blob" => DataType::Blob,
+            "directory" => DataType::Directory,
+            _ => panic!("Invalid data_type name: {:?}", name)
+        }
+    }
+
 }
 
 impl ::std::fmt::Display for DataType {

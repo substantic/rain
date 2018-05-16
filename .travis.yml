@@ -4,7 +4,21 @@ before_install:
   - docker build . -t rain
 notifications:
     slack: substantic:FJsopazpmJ5siyjfWCW36CVj
-script:
-  - docker run -u 123 -e RAIN_TEST_BIN=/rain/target/release/rain rain pytest -x -v --timeout=300
-  - docker run rain /bin/bash -c '. $HOME/.cargo/env && cargo test'
-  - docker run rain /bin/bash -c '. $HOME/.cargo/env && utils/checks/stylecheck.sh'
+jobs:
+  include:
+    - stage: build rain_server
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cargo build --all-features --release --verbose'
+    - stage: install python
+      script: docker run rain /bin/bash -c 'cd python && python3 setup.py install'
+    - stage: test rain_server
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cargo test'
+    - stage: build rain_task
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cd rain_task && cargo build'
+    - stage: test rain_task
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cd rain_task && cargo test -- --test-threads=1'
+    - stage: build rain_task_test
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cd rain_task_test && cargo build'
+    - stage: test python
+      script: docker run -u 123 -e RAIN_TEST_BIN=/rain/target/release/rain rain pytest -x -v --timeout=300
+    - stage: stylecheck
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && utils/checks/stylecheck.sh'
