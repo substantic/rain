@@ -9,7 +9,4 @@ RUN apt-get update && \
     . $HOME/.cargo/env && \
     cargo install capnpc && \
     rustup component add rustfmt-preview && \
-    pip3 install pycapnp cloudpickle flake8 pytest pytest-timeout cbor pyarrow requests && \
-    cargo build --all-features --release --verbose && \
-    cd python && \
-    python3 setup.py install
+    pip3 install pycapnp cloudpickle flake8 pytest pytest-timeout cbor pyarrow requests
