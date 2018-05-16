@@ -64,7 +64,7 @@ impl Attributes {
                 ).into()
             }),
             None => {
-                bail!("Key not found in attributes");
+                bail!("Key {:?} not found in attributes", key);
             }
         }
     }

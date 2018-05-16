@@ -91,12 +91,18 @@ fn task3(
     Ok(())
 }
 
+fn attrs() -> Attributes {
+    let mut a = Attributes::new();
+    a.set("type", "blob").unwrap();
+    a
+}
+
 /// A shortcut to create a DataObjectSpec.
 fn data_spec(id: i32, label: &str, location: Option<DataLocation>) -> DataObjectSpec {
     DataObjectSpec {
         id: DataObjectId::new(1, id),
         label: Some(label.into()),
-        attributes: Attributes::new(),
+        attributes: attrs(),
         location: location,
         cache_hint: false,
     }
@@ -478,4 +484,30 @@ fn register_task_fail_count_multi() {
     assert_res_error(&res[2], "not enough outputs");
     assert_res_error(&res[3], "not enough outputs");
     assert!(res[4].success);
+}
+
+#[test]
+fn read_set_content_type() {
+    let mut call =CallMsg {
+            task: TaskId::new(1, 2),
+            method: "foo".into(),
+            attributes: Attributes::new(),
+            inputs: vec![data_spec(2, "out", Some(DataLocation::Memory((b"content!" as &[u8]).into())))],
+            outputs: vec![data_spec(3, "out", None)],
+        };
+    let mut hm: HashMap<String, String> = HashMap::new();
+    hm.insert("content_type".into(), "text".into());
+    call.inputs[0].attributes.set("info", hm.clone()).unwrap();
+    call.outputs[0].attributes.set("spec", hm).unwrap();
+    let (mut s, handle) = setup("read_set_content_type", vec![call]);
+    register_task!(s, "foo", [I O], |_ctx, i: &DataInstance, o: &mut Output| {
+        assert_eq!(i.get_content_type(), "text");
+        assert_eq!(o.get_content_type(), "text");
+        o.set_content_type("text").unwrap();        
+        Ok(())
+        });
+    s.run();
+    let res = handle.join().unwrap();
+    print!("{:?}", res[0]);
+    assert!(res[0].success);
 }
