@@ -488,13 +488,17 @@ fn register_task_fail_count_multi() {
 
 #[test]
 fn read_set_content_type() {
-    let mut call =CallMsg {
-            task: TaskId::new(1, 2),
-            method: "foo".into(),
-            attributes: Attributes::new(),
-            inputs: vec![data_spec(2, "out", Some(DataLocation::Memory((b"content!" as &[u8]).into())))],
-            outputs: vec![data_spec(3, "out", None)],
-        };
+    let mut call = CallMsg {
+        task: TaskId::new(1, 2),
+        method: "foo".into(),
+        attributes: Attributes::new(),
+        inputs: vec![data_spec(
+            2,
+            "out",
+            Some(DataLocation::Memory((b"content!" as &[u8]).into())),
+        )],
+        outputs: vec![data_spec(3, "out", None)],
+    };
     let mut hm: HashMap<String, String> = HashMap::new();
     hm.insert("content_type".into(), "text".into());
     call.inputs[0].attributes.set("info", hm.clone()).unwrap();

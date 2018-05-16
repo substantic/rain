@@ -9,8 +9,8 @@ use std::{fmt, fs, mem};
 use librain::common::id::SId;
 use librain::common::id::{DataObjectId, SubworkerId, TaskId};
 use librain::common::Attributes;
-use librain::worker::rpc::subworker_serde::*;
 use librain::common::DataType;
+use librain::worker::rpc::subworker_serde::*;
 
 use super::*;
 
@@ -55,11 +55,18 @@ pub struct Output<'a> {
 
 impl<'a> fmt::Display for Output<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let label = self.spec.label.as_ref().map(|s| s as &str).unwrap_or("none");
+        let label = self.spec
+            .label
+            .as_ref()
+            .map(|s| s as &str)
+            .unwrap_or("none");
         write!(
             f,
             "Output #{} ({:?} ID {}, label {:?})",
-            self.order, self.get_data_type(), self.spec.id, label
+            self.order,
+            self.get_data_type(),
+            self.spec.id,
+            label
         )
     }
 }
@@ -202,7 +209,7 @@ impl<'a> Output<'a> {
     }
 
     /// A shorthand to check that the input is a directory.
-    /// 
+    ///
     /// Returns `Err(TaskError)` if not a directory.
     pub fn check_directory(&self) -> TaskResult<()> {
         if self.get_data_type() == DataType::Directory {
@@ -213,7 +220,7 @@ impl<'a> Output<'a> {
     }
 
     /// A shorthand to check that the input is a file or data blob.
-    /// 
+    ///
     /// Returns `Err(TaskError)` if not a blob.
     pub fn check_blob(&self) -> TaskResult<()> {
         if self.get_data_type() == DataType::Blob {
@@ -225,12 +232,15 @@ impl<'a> Output<'a> {
 
     /// Return the object `DataType`.
     pub fn get_data_type(&self) -> DataType {
-        let dt: String = self.spec.attributes.get::<String>("type").expect("error parsing data_type");
+        let dt: String = self.spec
+            .attributes
+            .get::<String>("type")
+            .expect("error parsing data_type");
         DataType::from_attribute(&dt)
-    }    
+    }
 
     /// Get the content-type of the object.
-    /// 
+    ///
     /// Returns the type set in the subworker if any, or the type in the spec.
     /// Returns "" for directories.
     pub fn get_content_type(&self) -> String {
@@ -243,7 +253,10 @@ impl<'a> Output<'a> {
                 return s.clone();
             }
         }
-        let spec = self.spec.attributes.get::<HashMap<String, String>>("spec").unwrap();
+        let spec = self.spec
+            .attributes
+            .get::<HashMap<String, String>>("spec")
+            .unwrap();
         if let Some(s) = spec.get("content_type") {
             return s.clone();
         }
@@ -251,14 +264,21 @@ impl<'a> Output<'a> {
     }
 
     /// Sets the content type of the object.
-    /// 
+    ///
     /// Returns an error for directories, incompatible content types and if it has been already set.
     pub fn set_content_type(&mut self, ctype: &str) -> TaskResult<()> {
         self.check_blob()?;
         // TODO: Check the content type compatibility
-        let mut info = self.attributes.get::<HashMap<String, String>>("info").unwrap_or_else(|_| HashMap::new());
+        let mut info = self.attributes
+            .get::<HashMap<String, String>>("info")
+            .unwrap_or_else(|_| HashMap::new());
         if let Some(ref s) = info.get("content_type") {
-            bail!("The content type of {} has been already set to {:?} (trying to set to {:?})", self, s, ctype);
+            bail!(
+                "The content type of {} has been already set to {:?} (trying to set to {:?})",
+                self,
+                s,
+                ctype
+            );
         }
         info.insert("content_type".into(), ctype.into());
         self.attributes.set("info", info).unwrap();

@@ -1,9 +1,9 @@
 use super::*;
-use librain::worker::rpc::subworker_serde::*;
 use librain::common::DataType;
+use librain::worker::rpc::subworker_serde::*;
 use memmap::Mmap;
-use std::{mem, fmt, str};
 use std::sync::{Mutex, MutexGuard};
+use std::{fmt, mem, str};
 
 #[allow(dead_code)] // TODO: Remove when used
 #[derive(Debug)]
@@ -27,11 +27,18 @@ pub struct DataInstance<'a> {
 
 impl<'a> fmt::Display for DataInstance<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let label = self.spec.label.as_ref().map(|s| s as &str).unwrap_or("none");
+        let label = self.spec
+            .label
+            .as_ref()
+            .map(|s| s as &str)
+            .unwrap_or("none");
         write!(
             f,
             "Input #{} ({:?} ID {}, label {:?})",
-            self.order, self.get_data_type(), self.spec.id, label
+            self.order,
+            self.get_data_type(),
+            self.spec.id,
+            label
         )
     }
 }
@@ -114,12 +121,15 @@ impl<'a> DataInstance<'a> {
 
     /// Return the object `DataType`.
     pub fn get_data_type(&self) -> DataType {
-        let dt = self.spec.attributes.get::<String>("type").expect("error parsing data_type");
+        let dt = self.spec
+            .attributes
+            .get::<String>("type")
+            .expect("error parsing data_type");
         DataType::from_attribute(&dt)
     }
 
     /// A shorthand to check that the input is a directory.
-    /// 
+    ///
     /// Returns `Err(TaskError)` if not a directory.
     pub fn check_directory(&self) -> TaskResult<()> {
         if self.get_data_type() == DataType::Directory {
@@ -130,7 +140,7 @@ impl<'a> DataInstance<'a> {
     }
 
     /// A shorthand to check that the input is a file or data blob.
-    /// 
+    ///
     /// Returns `Err(TaskError)` if not a blob.
     pub fn check_blob(&self) -> TaskResult<()> {
         if self.get_data_type() == DataType::Blob {
@@ -141,21 +151,25 @@ impl<'a> DataInstance<'a> {
     }
 
     /// Panics on any I/O error.
-    /// 
+    ///
     /// Returns an error if the input is a directory or non-text content-type, or if
     /// the input is not valud utf-8. Any other encoding needs to be decoded manually.
-    /// 
+    ///
     /// Note: checks for valid utf-8 on every call.
     pub fn get_str(&self) -> TaskResult<&'a str> {
         self.check_content_type("text")?;
         match str::from_utf8(self.get_bytes()?) {
-            Err(e) => bail!("Data supplied to {} are not utf-8 (as expected): {:?}", self, e),
-            Ok(s) => Ok(s)
+            Err(e) => bail!(
+                "Data supplied to {} are not utf-8 (as expected): {:?}",
+                self,
+                e
+            ),
+            Ok(s) => Ok(s),
         }
     }
 
     /// Check the input content-type.
-    /// 
+    ///
     /// Return Ok if the actual type is a subtype or supertype of the given type.
     pub fn check_content_type(&self, ctype: &str) -> TaskResult<()> {
         self.check_blob()?;
@@ -164,17 +178,23 @@ impl<'a> DataInstance<'a> {
     }
 
     /// Get the content-type of the object.
-    /// 
+    ///
     /// Returns "" for directories.
     pub fn get_content_type(&self) -> String {
         if self.get_data_type() != DataType::Blob {
             return "".into();
         }
-        let info = self.spec.attributes.get::<HashMap<String, String>>("info").unwrap();
+        let info = self.spec
+            .attributes
+            .get::<HashMap<String, String>>("info")
+            .unwrap();
         if let Some(s) = info.get("content_type") {
             return s.clone();
         }
-        let spec = self.spec.attributes.get::<HashMap<String, String>>("spec").unwrap();
+        let spec = self.spec
+            .attributes
+            .get::<HashMap<String, String>>("spec")
+            .unwrap();
         if let Some(s) = spec.get("content_type") {
             return s.clone();
         }

@@ -1,4 +1,6 @@
-use super::{Result, SubworkerToWorkerMessage, WorkerToSubworkerMessage, MAX_MSG_SIZE, MSG_PROTOCOL};
+use super::{
+    Result, SubworkerToWorkerMessage, WorkerToSubworkerMessage, MAX_MSG_SIZE, MSG_PROTOCOL,
+};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use serde_cbor;
 use std::io::{Read, Write};
