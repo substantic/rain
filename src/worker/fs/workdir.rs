@@ -1,9 +1,9 @@
-use std::path::{Path, PathBuf};
 use std::cell::Cell;
+use std::path::{Path, PathBuf};
 
+use super::tempfile::TempFileName;
 use common::id::{SId, SubworkerId, TaskId};
 use errors::Result;
-use super::tempfile::TempFileName;
 
 pub struct WorkDir {
     path: PathBuf,

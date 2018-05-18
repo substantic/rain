@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use errors::Result;
-use std::error::Error;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::collections::HashMap;
+use std::error::Error;
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Attributes {

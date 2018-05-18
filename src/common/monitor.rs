@@ -1,11 +1,11 @@
-use sysconf;
+use chrono::{DateTime, Utc};
+use common::id::WorkerId;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
-use common::id::WorkerId;
-use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 use sys_info::mem_info;
+use sysconf;
 
 type CpuTimes = Vec<u64>;
 type CpuUsage = u8;

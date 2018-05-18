@@ -36,8 +36,8 @@ extern crate tokio_uds;
 extern crate walkdir;
 
 pub mod common;
-pub mod worker;
 pub mod server;
+pub mod worker;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const WORKER_PROTOCOL_VERSION: i32 = 0;

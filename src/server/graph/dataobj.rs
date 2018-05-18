@@ -1,12 +1,12 @@
 use futures::unsync::oneshot;
 use std::fmt;
 
-use common::convert::ToCapnp;
-use common::wrapped::WrappedRcRefCell;
-use common::id::{DataObjectId, SId};
-use common::DataType;
-use common::{Attributes, ConsistencyCheck, FinishHook, RcSet};
 use super::{SessionRef, TaskRef, TaskState, WorkerRef};
+use common::DataType;
+use common::convert::ToCapnp;
+use common::id::{DataObjectId, SId};
+use common::wrapped::WrappedRcRefCell;
+use common::{Attributes, ConsistencyCheck, FinishHook, RcSet};
 pub use common_capnp::DataObjectState;
 use errors::Result;
 

@@ -1,7 +1,7 @@
+use std::error::Error;
+use std::io::Write;
 use std::path::Path;
 use std::process::exit;
-use std::io::Write;
-use std::error::Error;
 
 /// Create "ready file", a file that is created when Rain is fully initialized
 /// What it exactly means depends on type of execution (server/worker/...)

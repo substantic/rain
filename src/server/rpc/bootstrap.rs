@@ -1,11 +1,11 @@
+use capnp;
+use capnp::capability::Promise;
 use futures::Future;
 use std::net::SocketAddr;
-use capnp::capability::Promise;
-use capnp;
 
 use super::{ClientServiceImpl, WorkerUpstreamImpl};
-use common::id::WorkerId;
 use common::convert::{FromCapnp, ToCapnp};
+use common::id::WorkerId;
 use common::resources::Resources;
 use server::state::StateRef;
 use server_capnp::server_bootstrap;
@@ -123,9 +123,10 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
                     .get_mut()
                     .add_worker(worker_id, Some(control), resources,)
             );
-            let upstream = ::worker_capnp::worker_upstream::ToClient::new(
-                WorkerUpstreamImpl::new(&state, &worker),
-            ).from_server::<::capnp_rpc::Server>();
+            let upstream = ::worker_capnp::worker_upstream::ToClient::new(WorkerUpstreamImpl::new(
+                &state,
+                &worker,
+            )).from_server::<::capnp_rpc::Server>();
             results.get().set_upstream(upstream);
             worker_id.to_capnp(&mut results.get().get_worker_id().unwrap());
             Promise::ok(())

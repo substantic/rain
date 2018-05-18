@@ -1,8 +1,8 @@
 use std::cell::{Ref, RefCell, RefMut};
-use std::rc::Rc;
+use std::clone::Clone;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
-use std::clone::Clone;
+use std::rc::Rc;
 
 /// Wrapper struct containing a `Rc<RefCell<T>>`, implementing  several
 /// helper functions and useful traits.

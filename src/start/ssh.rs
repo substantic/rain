@@ -1,12 +1,12 @@
+use std::error::Error;
+use std::io::BufRead;
 use std::io::Write;
 use std::path::Path;
-use std::io::BufRead;
 use std::process::{Command, Stdio};
-use std::error::Error;
 
 use librain::errors::Result;
-use std::io::BufReader;
 use start::common::Readiness;
+use std::io::BufReader;
 
 pub struct User {
     pub username: String,

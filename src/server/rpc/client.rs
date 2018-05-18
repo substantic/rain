@@ -1,18 +1,18 @@
 use capnp::capability::Promise;
-use std::net::SocketAddr;
 use futures::{future, Future};
+use std::net::SocketAddr;
 
-use common::resources::Resources;
-use common::id::{DataObjectId, SId, TaskId};
-use common::convert::{FromCapnp, ToCapnp};
 use client_capnp::client_service;
-use server::state::StateRef;
+use common::RcSet;
+use common::convert::{FromCapnp, ToCapnp};
+use common::events::{ObjectDescriptor, TaskDescriptor};
+use common::id::{DataObjectId, SId, TaskId};
+use common::resources::Resources;
+use common::{Attributes, DataType};
+use errors::{Error, ErrorKind, Result};
 use server::graph::{ClientRef, SessionError, TaskInput, TaskRef};
 use server::graph::{DataObjectRef, DataObjectState};
-use errors::{Error, ErrorKind, Result};
-use common::{Attributes, DataType};
-use common::RcSet;
-use common::events::{ObjectDescriptor, TaskDescriptor};
+use server::state::StateRef;
 
 pub struct ClientServiceImpl {
     state: StateRef,
@@ -427,11 +427,7 @@ impl client_service::Server for ClientServiceImpl {
                     }
                     let worker_ref = obj.located.iter().next().unwrap().clone();
                     let mut worker = worker_ref.get_mut();
-                    debug!(
-                        "Redirecting client fetch id={} to {}",
-                        worker.id(),
-                        id
-                    );
+                    debug!("Redirecting client fetch id={} to {}", worker.id(), id);
                     future::Either::B(
                         worker
                             .wait_for_data_connection(&worker_ref, &state_ref)

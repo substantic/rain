@@ -1,16 +1,16 @@
 use std::rc::Rc;
 
-use futures::{future, Future};
-use worker::data::{Data, DataBuilder};
-use worker::StateRef;
+use common::DataType;
+use common::convert::FromCapnp;
+use common::convert::ToCapnp;
 use common::id::{DataObjectId, WorkerId};
 use errors::{Error, ErrorKind};
-use common::DataType;
-use common::convert::ToCapnp;
-use common::convert::FromCapnp;
+use futures::{future, Future};
+use worker::StateRef;
+use worker::data::{Data, DataBuilder};
 
-use futures::future::Either;
 use futures::IntoFuture;
+use futures::future::Either;
 
 pub struct FetchContext {
     pub state_ref: StateRef,

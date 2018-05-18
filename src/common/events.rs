@@ -1,6 +1,6 @@
 use super::id::{ClientId, DataObjectId, SessionId, TaskId, WorkerId};
-use server::graph::{DataObject, Task};
 use common::id::SId;
+use server::graph::{DataObject, Task};
 
 use std::collections::HashMap;
 

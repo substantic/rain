@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-use common::id::{ClientId, DataObjectId, SessionId, TaskId, WorkerId};
 use super::{ClientRef, DataObjectRef, SessionRef, TaskRef, WorkerRef};
+use common::id::{ClientId, DataObjectId, SessionId, TaskId, WorkerId};
+use std::collections::HashMap;
 
 #[derive(Clone, Default)]
 pub struct Graph {
@@ -30,9 +30,9 @@ impl Graph {
 
 mod tests {
     use super::super::{ClientRef, DataObjectRef, Graph, SessionRef, TaskInput, TaskRef, WorkerRef};
+    use common::attributes::Attributes;
     use common::id::{DataObjectId, SId, TaskId};
     use common::resources::Resources;
-    use common::attributes::Attributes;
 
     fn create_test_graph(
         workers: usize,

@@ -1,11 +1,11 @@
-use common::convert::FromCapnp;
-use common::Attributes;
-use common::id::{DataObjectId, TaskId};
-use server::state::StateRef;
-use server::graph::{Worker, WorkerRef};
-use worker_capnp::worker_upstream;
 use capnp::capability::Promise;
 use chrono::TimeZone;
+use common::Attributes;
+use common::convert::FromCapnp;
+use common::id::{DataObjectId, TaskId};
+use server::graph::{Worker, WorkerRef};
+use server::state::StateRef;
+use worker_capnp::worker_upstream;
 
 pub struct WorkerUpstreamImpl {
     state: StateRef,

@@ -1,25 +1,25 @@
-pub mod id;
-pub mod convert;
-pub mod rpc;
-pub mod wrapped;
-pub mod resources;
-pub mod events;
 pub mod asycinit;
 pub mod attributes;
-pub mod sys;
-pub mod datatype;
 pub mod comm;
+pub mod convert;
+pub mod datatype;
+pub mod events;
+pub mod id;
+pub mod resources;
+pub mod rpc;
+pub mod sys;
+pub mod wrapped;
 
-use std::collections::HashSet;
 use futures::unsync::oneshot;
+use std::collections::HashSet;
 
 pub type RcSet<T> = HashSet<T>;
 pub use self::attributes::Attributes;
 pub use self::resources::Resources;
 
-pub mod monitor;
-pub mod logging;
 pub mod fs;
+pub mod logging;
+pub mod monitor;
 
 pub type FinishHook = oneshot::Sender<()>;
 

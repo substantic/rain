@@ -1,17 +1,17 @@
-use std::net::SocketAddr;
 use std::fmt;
+use std::net::SocketAddr;
 use std::rc::Rc;
 
 use futures::Future;
 
-use errors::Error;
+use super::super::state::StateRef;
+use super::{DataObjectRef, TaskRef};
 use common::asycinit::AsyncInitWrapper;
-use common::wrapped::WrappedRcRefCell;
-use common::{ConsistencyCheck, RcSet};
 use common::id::WorkerId;
 use common::resources::Resources;
-use super::{DataObjectRef, TaskRef};
-use super::super::state::StateRef;
+use common::wrapped::WrappedRcRefCell;
+use common::{ConsistencyCheck, RcSet};
+use errors::Error;
 use errors::Result;
 
 pub struct Worker {

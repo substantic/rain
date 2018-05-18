@@ -1,17 +1,17 @@
+use super::{Graph, TaskRef};
 use common::id::{DataObjectId, WorkerId};
 use common::wrapped::WrappedRcRefCell;
 use common::{Attributes, DataType, RcSet};
-use super::{Graph, TaskRef};
+use errors::{ErrorKind, Result};
+use worker::WorkDir;
 use worker::data::Data;
 use worker::graph::SubworkerRef;
-use worker::WorkDir;
 use worker::rpc::subworker_serde::{DataLocation, DataObjectSpec};
-use errors::{ErrorKind, Result};
 
-use std::path::Path;
-use std::net::SocketAddr;
-use std::sync::Arc;
 use std::fmt;
+use std::net::SocketAddr;
+use std::path::Path;
+use std::sync::Arc;
 
 #[derive(Deserialize)]
 pub struct DataObjectAttributeSpec {

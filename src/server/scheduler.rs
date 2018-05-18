@@ -1,8 +1,8 @@
-use std::collections::hash_map::HashMap;
-use std::clone::Clone;
 use super::graph::{DataObjectRef, Graph, TaskRef, TaskState, WorkerRef};
 use common::RcSet;
 use server::graph::SessionRef;
+use std::clone::Clone;
+use std::collections::hash_map::HashMap;
 
 #[derive(Default, Clone, Debug)]
 pub struct UpdatedOut {

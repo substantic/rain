@@ -1,6 +1,6 @@
-use std::rc::Rc;
 use errors::Error;
 use futures::{unsync, Future, IntoFuture};
+use std::rc::Rc;
 
 /// This code serves for "async" initialization Item may be in state "Initing"
 /// that stores oneshots that are fired when the item is in ready state. The

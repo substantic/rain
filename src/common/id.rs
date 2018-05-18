@@ -1,10 +1,10 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
-use common_capnp::{data_object_id, socket_address, task_id};
 use super::convert::{FromCapnp, ReadCapnp, ToCapnp, WriteCapnp};
-use std::io::Read;
 use capnp::serialize;
-use std::fmt;
+use common_capnp::{data_object_id, socket_address, task_id};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt;
+use std::io::Read;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
 /// Generic ID type. Negative values have special meaning.
 pub type Id = i32;
@@ -63,8 +63,7 @@ impl ReadCapnp for SocketAddr {
 }
 
 /// Common trait for `TaskId` and `DataObjectID`.
-pub trait SId
-    : for<'a> ToCapnp<'a> + for<'a> FromCapnp<'a> + WriteCapnp + ReadCapnp {
+pub trait SId: for<'a> ToCapnp<'a> + for<'a> FromCapnp<'a> + WriteCapnp + ReadCapnp {
     fn new(session_id: SessionId, id: Id) -> Self;
     fn get_id(&self) -> Id;
     fn get_session_id(&self) -> SessionId;
@@ -172,22 +171,26 @@ impl SId for DataObjectId {
 
 macro_rules! serde_for_id {
     ($T:ty) => {
-impl Serialize for $T {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: Serializer
-    {
-        (self.get_session_id(), self.get_id()).serialize(serializer)
-    }
-}
+        impl Serialize for $T {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                (self.get_session_id(), self.get_id()).serialize(serializer)
+            }
+        }
 
-impl<'de> Deserialize<'de> for $T {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
-    {
-        let tup: (SessionId, Id) = Deserialize::deserialize(deserializer)?;
-        Ok(Self::new(tup.0, tup.1))
-    }
-}}}
+        impl<'de> Deserialize<'de> for $T {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                let tup: (SessionId, Id) = Deserialize::deserialize(deserializer)?;
+                Ok(Self::new(tup.0, tup.1))
+            }
+        }
+    };
+}
 
 serde_for_id!(TaskId);
 serde_for_id!(DataObjectId);

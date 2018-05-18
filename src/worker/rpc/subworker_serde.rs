@@ -1,7 +1,7 @@
-use common::id::{DataObjectId, SubworkerId, TaskId};
 use common::Attributes;
-use std::path::PathBuf;
+use common::id::{DataObjectId, SubworkerId, TaskId};
 use serde_bytes;
+use std::path::PathBuf;
 
 /// Message from subworker to worker.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
@@ -137,8 +137,8 @@ pub struct DropCachedMsg {
 mod tests {
     use super::*;
     use serde::{Serialize, de::DeserializeOwned};
-    use serde_json;
     use serde_cbor;
+    use serde_json;
     use std::fmt::Debug;
 
     fn test_ser_de_eq<'a, T: Serialize + DeserializeOwned + Debug + PartialEq>(m: &T) {

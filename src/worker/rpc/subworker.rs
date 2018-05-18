@@ -3,12 +3,12 @@ use std::path::Path;
 use std::sync::Arc;
 
 use bytes::BytesMut;
-use common::id::SubworkerId;
 use common::DataType;
+use common::id::SubworkerId;
 use worker::State;
 use worker::data::{Data, Storage};
-use worker::rpc::subworker_serde::{DataLocation, DataObjectSpec};
 use worker::rpc::subworker_serde::SubworkerToWorkerMessage;
+use worker::rpc::subworker_serde::{DataLocation, DataObjectSpec};
 
 use errors::Result;
 

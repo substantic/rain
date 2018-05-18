@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use common::{Attributes, DataType, Resources};
+use capnp::capability::Promise;
 use common::convert::{FromCapnp, ToCapnp};
 use common::id::{DataObjectId, TaskId, WorkerId};
-use worker::graph::{DataObjectState, TaskInput};
-use worker::StateRef;
-use worker_capnp::worker_control;
-use capnp::capability::Promise;
-use futures::future::Future;
+use common::{Attributes, DataType, Resources};
 use errors::{Error, ErrorKind};
+use futures::future::Future;
+use worker::StateRef;
+use worker::graph::{DataObjectState, TaskInput};
+use worker_capnp::worker_control;
 
 pub struct WorkerControlImpl {
     state: StateRef,

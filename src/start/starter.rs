@@ -1,15 +1,15 @@
-use std::process::Command;
-use std::path::{Path, PathBuf};
-use std::net::SocketAddr;
+use librain::errors::Result;
 use start::common::Readiness;
 use start::process::Process;
 use start::ssh::RemoteProcess;
-use librain::errors::Result;
+use std::net::SocketAddr;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use nix::unistd::getpid;
-use std::io::BufReader;
-use std::io::BufRead;
 use std::fs::File;
+use std::io::BufRead;
+use std::io::BufReader;
 
 pub struct StarterConfig {
     /// Number of local worker that will be spawned

@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
-use std::fs::File;
 use errors::Result;
+use std::fs::File;
+use std::path::{Path, PathBuf};
 
 pub struct TempFileName {
     path: PathBuf,

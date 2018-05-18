@@ -1,8 +1,8 @@
 use std::net::SocketAddr;
 
 use super::SessionRef;
-use common::wrapped::WrappedRcRefCell;
 use common::id::ClientId;
+use common::wrapped::WrappedRcRefCell;
 use common::{ConsistencyCheck, RcSet};
 use errors::Result;
 

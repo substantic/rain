@@ -1,4 +1,4 @@
-pub mod logdir;
 pub mod fs;
-pub use self::logdir::LogDir;
+pub mod logdir;
 pub use self::fs::create_ready_file;
+pub use self::logdir::LogDir;

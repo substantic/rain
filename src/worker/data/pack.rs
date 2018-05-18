@@ -1,8 +1,8 @@
-use std::sync::Arc;
-use std::fs::File;
-use errors::Result;
-use super::{Data, Storage};
 use super::super::State;
+use super::{Data, Storage};
+use errors::Result;
+use std::fs::File;
+use std::sync::Arc;
 
 // Serialization function object into data stream
 

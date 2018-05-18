@@ -1,15 +1,15 @@
-use std::process::{Command, Stdio};
 use std::fs::File;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
+use std::process::{Command, Stdio};
 
+use common::comm::Sender;
+use common::fs::LogDir;
 use common::id::{DataObjectId, SubworkerId};
 use common::wrapped::WrappedRcRefCell;
-use common::fs::LogDir;
-use common::comm::Sender;
 use worker::graph::Task;
-use worker::rpc::subworker_serde::{CallMsg, DropCachedMsg, ResultMsg};
 use worker::rpc::subworker_serde::WorkerToSubworkerMessage;
+use worker::rpc::subworker_serde::{CallMsg, DropCachedMsg, ResultMsg};
 
 use errors::Result;
 

@@ -1,15 +1,15 @@
-use std::fs::File;
-use std::process::{Command, Stdio};
-use tokio_process::CommandExt;
 use futures::Future;
+use std::fs::File;
+use std::io::Read;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
-use std::io::Read;
+use std::process::{Command, Stdio};
+use tokio_process::CommandExt;
 
 use super::TaskResult;
+use errors::Result;
 use worker::graph::TaskRef;
 use worker::state::State;
-use errors::Result;
 
 fn read_stderr(path: &Path) -> Result<String> {
     // TODO: If the file is too big, truncate the beginning

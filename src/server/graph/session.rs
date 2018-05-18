@@ -1,11 +1,11 @@
 use futures::unsync::oneshot::Receiver;
 use std::fmt;
 
+use super::{ClientRef, DataObjectRef, DataObjectState, TaskRef, TaskState};
+use common::convert::ToCapnp;
+use common::id::{SessionId, TaskId};
 use common::wrapped::WrappedRcRefCell;
 use common::{ConsistencyCheck, FinishHook, RcSet};
-use common::id::{SessionId, TaskId};
-use common::convert::ToCapnp;
-use super::{ClientRef, DataObjectRef, DataObjectState, TaskRef, TaskState};
 use errors::Result;
 
 #[derive(Debug)]

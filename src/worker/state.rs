@@ -1,43 +1,43 @@
+use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::rc::Rc;
-use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
-use std::collections::HashMap;
 
-use common::asycinit::AsyncInitWrapper;
-use common::RcSet;
-use common::id::{empty_worker_id, DataObjectId, TaskId, WorkerId};
-use common::convert::{FromCapnp, ToCapnp};
-use common::wrapped::WrappedRcRefCell;
-use common::resources::Resources;
-use common::monitor::Monitor;
 use common::Attributes;
-use common::fs::logdir::LogDir;
-use common::events;
 use common::DataType;
+use common::RcSet;
+use common::asycinit::AsyncInitWrapper;
 use common::comm::Connection;
+use common::convert::{FromCapnp, ToCapnp};
+use common::events;
+use common::fs::logdir::LogDir;
+use common::id::{empty_worker_id, DataObjectId, TaskId, WorkerId};
+use common::monitor::Monitor;
+use common::resources::Resources;
+use common::wrapped::WrappedRcRefCell;
 
-use worker::graph::{subworker_command, DataObject, DataObjectRef, DataObjectState, Graph,
-                    SubworkerRef, TaskInput, TaskRef, TaskState};
 use worker::data::Data;
 use worker::data::transport::TransportView;
-use worker::tasks::TaskInstance;
-use worker::rpc::WorkerControlImpl;
 use worker::fs::workdir::WorkDir;
-use worker::rpc::subworker_serde::SubworkerToWorkerMessage;
+use worker::graph::{subworker_command, DataObject, DataObjectRef, DataObjectState, Graph,
+                    SubworkerRef, TaskInput, TaskRef, TaskState};
+use worker::rpc::WorkerControlImpl;
 use worker::rpc::subworker::check_registration;
+use worker::rpc::subworker_serde::SubworkerToWorkerMessage;
+use worker::tasks::TaskInstance;
 
+use capnp::capability::Promise;
+use capnp_rpc::rpc_twoparty_capnp;
+use errors::{Error, Result};
 use futures::Future;
-use futures::Stream;
 use futures::IntoFuture;
-use tokio_core::reactor::Handle;
+use futures::Stream;
 use tokio_core::net::TcpListener;
 use tokio_core::net::TcpStream;
+use tokio_core::reactor::Handle;
 use tokio_uds::UnixListener;
-use capnp_rpc::rpc_twoparty_capnp;
-use capnp::capability::Promise;
-use errors::{Error, Result};
 
 use WORKER_PROTOCOL_VERSION;
 
@@ -334,8 +334,20 @@ impl State {
                     )?;
 
                     let command_future = command
-                        .status_async2(&self.handle).map_err(|e| format!("Subworker command '{}' failed: {:?}", program_name, ::std::error::Error::description(&e)))?
-                        .map_err(|e| format!("Subworker command failed: {:?}", ::std::error::Error::description(&e)).into())
+                        .status_async2(&self.handle)
+                        .map_err(|e| {
+                            format!(
+                                "Subworker command '{}' failed: {:?}",
+                                program_name,
+                                ::std::error::Error::description(&e)
+                            )
+                        })?
+                        .map_err(|e| {
+                            format!(
+                                "Subworker command failed: {:?}",
+                                ::std::error::Error::description(&e)
+                            ).into()
+                        })
                         .and_then(move |status| {
                             error!("Subworker {} terminated with {}", subworker_id, status);
                             bail!("Subworker unexpectedly terminated with {}", status);
@@ -751,9 +763,9 @@ impl StateRef {
         let bootstrap: ::server_capnp::server_bootstrap::Client =
             rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        let worker_control = ::worker_capnp::worker_control::ToClient::new(
-            WorkerControlImpl::new(self),
-        ).from_server::<::capnp_rpc::Server>();
+        let worker_control = ::worker_capnp::worker_control::ToClient::new(WorkerControlImpl::new(
+            self,
+        )).from_server::<::capnp_rpc::Server>();
 
         let mut req = bootstrap.register_as_worker_request();
 

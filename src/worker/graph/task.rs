@@ -1,12 +1,12 @@
-use std::sync::Arc;
-use common::id::TaskId;
 use super::{DataObjectRef, Graph};
+use common::id::TaskId;
 use common::{Attributes, RcSet};
+use std::sync::Arc;
 
-use worker::data::Data;
-use common::wrapped::WrappedRcRefCell;
 use common::resources::Resources;
+use common::wrapped::WrappedRcRefCell;
 use std::fmt;
+use worker::data::Data;
 
 use errors::Result;
 

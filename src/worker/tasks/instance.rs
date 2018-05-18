@@ -1,13 +1,13 @@
-use futures::Future;
 use chrono::{DateTime, Utc};
+use futures::Future;
 
-use worker::graph::{SubworkerRef, TaskRef, TaskState};
-use worker::state::State;
-use worker::tasks;
-use worker::rpc::subworker::data_output_from_spec;
 use common::DataType;
 use errors::{Error, Result};
+use worker::graph::{SubworkerRef, TaskRef, TaskState};
+use worker::rpc::subworker::data_output_from_spec;
 use worker::rpc::subworker_serde::ResultMsg;
+use worker::state::State;
+use worker::tasks;
 
 /// Instance represents a running task. It contains resource allocations and
 /// allows to signal finishing of data objects.

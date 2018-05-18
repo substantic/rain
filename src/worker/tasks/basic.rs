@@ -1,13 +1,13 @@
-use std::sync::Arc;
 use std::path::Path;
+use std::sync::Arc;
 
 use super::TaskResult;
 use common::DataType;
-use worker::state::State;
-use worker::graph::TaskRef;
-use worker::data::{Data, DataBuilder};
-use futures::{future, Future};
 use errors::ErrorKind;
+use futures::{future, Future};
+use worker::data::{Data, DataBuilder};
+use worker::graph::TaskRef;
+use worker::state::State;
 
 /// Task that merge all input blobs and merge them into one blob
 pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {

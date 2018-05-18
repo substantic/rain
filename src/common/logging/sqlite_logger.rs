@@ -1,16 +1,16 @@
 use std::path::PathBuf;
 
 //use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
-use common::events;
-use futures::sync::{mpsc, oneshot};
-use futures::Stream;
-use futures::Future;
-use errors::{Error, Result};
-use common::logging::logger::QueryEvents;
 use super::logger::{Logger, SearchCriteria};
+use common::events;
+use common::logging::logger::QueryEvents;
+use errors::{Error, Result};
+use futures::Future;
+use futures::Stream;
+use futures::sync::{mpsc, oneshot};
 
-use serde_json;
 use rusqlite::Connection;
+use serde_json;
 
 use chrono::{DateTime, Utc};
 
@@ -189,8 +189,8 @@ impl Logger for SQLiteLogger {
 
 mod tests {
     use super::*;
-    use std::net::{IpAddr, Ipv4Addr};
     use common::id::WorkerId;
+    use std::net::{IpAddr, Ipv4Addr};
 
     fn create_test_worker_id() -> WorkerId {
         WorkerId::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 9010)

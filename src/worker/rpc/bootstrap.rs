@@ -1,8 +1,8 @@
 use capnp::capability::Promise;
-use worker_capnp::worker_bootstrap;
-use common::id::DataObjectId;
 use common::convert::FromCapnp;
+use common::id::DataObjectId;
 use worker::StateRef;
+use worker_capnp::worker_bootstrap;
 
 impl WorkerBootstrapImpl {
     pub fn new(state: &StateRef) -> Self {

@@ -1,10 +1,10 @@
-use std::fs::File;
-use super::data::{Data, Storage};
-use errors::Result;
 use super::super::fs::workdir::WorkDir;
+use super::data::{Data, Storage};
 use common::DataType;
-use worker::fs::tempfile::TempFileName;
+use errors::Result;
+use std::fs::File;
 use std::io::Write;
+use worker::fs::tempfile::TempFileName;
 
 enum BuilderStorage {
     Memory(Vec<u8>),

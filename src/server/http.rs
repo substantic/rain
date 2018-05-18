@@ -1,9 +1,9 @@
-use hyper::{Error, StatusCode};
-use hyper::header::{AccessControlAllowOrigin, ContentEncoding, ContentLength, Encoding};
-use hyper::server::{Request, Response, Service};
-use futures::Stream;
 use futures;
 use futures::Future;
+use futures::Stream;
+use hyper::header::{AccessControlAllowOrigin, ContentEncoding, ContentLength, Encoding};
+use hyper::server::{Request, Response, Service};
+use hyper::{Error, StatusCode};
 use server::state::StateRef;
 
 pub struct RequestHandler {
@@ -74,20 +74,14 @@ fn lite_dashboard(state: &StateRef) -> ResponseFuture {
     </body>
     </html>",
         time = ::chrono::Utc::now(),
-        worker_tab = wrap_elements(
-            "<tr>",
-            "</tr>",
-            state
-                .get()
-                .graph
-                .workers
-                .iter()
-                .map(|(id, ref wref)| format!(
-                    "<td>{}</td><td>{}</td>",
-                    id,
-                    wref.get().resources.cpus
-                ))
-        )
+        worker_tab =
+            wrap_elements(
+                "<tr>",
+                "</tr>",
+                state.get().graph.workers.iter().map(|(id, ref wref)| {
+                    format!("<td>{}</td><td>{}</td>", id, wref.get().resources.cpus)
+                }),
+            )
     ))))
 }
 
