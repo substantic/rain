@@ -7,16 +7,16 @@ use futures::Future;
 use super::super::state::StateRef;
 use super::{DataObjectRef, TaskRef};
 use common::asycinit::AsyncInitWrapper;
-use common::id::WorkerId;
+use common::id::GovernorId;
 use common::resources::Resources;
 use common::wrapped::WrappedRcRefCell;
 use common::{ConsistencyCheck, RcSet};
 use errors::Error;
 use errors::Result;
 
-pub struct Worker {
+pub struct Governor {
     /// Unique ID, here the registration socket address.
-    id: WorkerId,
+    id: GovernorId,
 
     /// Assigned tasks. The task state is stored in the `Task`.
     pub(in super::super) assigned_tasks: RcSet<TaskRef>,
@@ -24,7 +24,7 @@ pub struct Worker {
     /// Scheduled tasks. Superset of `assigned_tasks`.
     pub(in super::super) scheduled_tasks: RcSet<TaskRef>,
 
-    /// State of the worker with optional error message (informative only).
+    /// State of the governor with optional error message (informative only).
     pub(in super::super) error: Option<String>,
 
     /// Scheduled tasks that are also ready but not yet assigned. Disjoint from
@@ -35,43 +35,43 @@ pub struct Worker {
     // (TODO: Generalize for Resource not only cpus)
     pub(in super::super) active_resources: u32,
 
-    /// Obects fully located on the worker.
+    /// Obects fully located on the governor.
     pub(in super::super) located_objects: RcSet<DataObjectRef>,
 
-    /// Objects located or assigned to appear on the worker. Superset of `located`.
+    /// Objects located or assigned to appear on the governor. Superset of `located`.
     pub(in super::super) assigned_objects: RcSet<DataObjectRef>,
 
     /// Objects scheduled to appear here. Any objects in `located_objects` but not here
-    /// are to be removed from the worker.
+    /// are to be removed from the governor.
     pub(in super::super) scheduled_objects: RcSet<DataObjectRef>,
 
     /// Control interface. Optional for testing and modelling.
-    pub(in super::super) control: Option<::worker_capnp::worker_control::Client>,
+    pub(in super::super) control: Option<::governor_capnp::governor_control::Client>,
 
-    data_connection: Option<AsyncInitWrapper<::worker_capnp::worker_bootstrap::Client>>,
+    data_connection: Option<AsyncInitWrapper<::governor_capnp::governor_bootstrap::Client>>,
 
     pub(in super::super) resources: Resources,
 }
 
-pub type WorkerRef = WrappedRcRefCell<Worker>;
+pub type GovernorRef = WrappedRcRefCell<Governor>;
 
-impl Worker {
+impl Governor {
     #[inline]
-    pub fn id(&self) -> &WorkerId {
+    pub fn id(&self) -> &GovernorId {
         &self.id
     }
 
     /// Create a future that completes when datastore is available
     pub fn wait_for_data_connection(
         &mut self,
-        worker_ref: &WorkerRef,
+        governor_ref: &GovernorRef,
         state_ref: &StateRef,
-    ) -> Box<Future<Item = Rc<::worker_capnp::worker_bootstrap::Client>, Error = Error>> {
+    ) -> Box<Future<Item = Rc<::governor_capnp::governor_bootstrap::Client>, Error = Error>> {
         if let Some(ref mut store) = self.data_connection {
             return store.wait();
         }
         self.data_connection = Some(AsyncInitWrapper::new());
-        let worker_ref = worker_ref.clone();
+        let governor_ref = governor_ref.clone();
         let state_ref2 = state_ref.clone();
         let state = state_ref.get();
         Box::new(
@@ -79,14 +79,14 @@ impl Worker {
                 .map(move |stream| {
                     stream.set_nodelay(true).unwrap();
                     let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
-                    let bootstrap: ::worker_capnp::worker_bootstrap::Client =
+                    let bootstrap: ::governor_capnp::governor_bootstrap::Client =
                         rpc_system.bootstrap(::capnp_rpc::rpc_twoparty_capnp::Side::Server);
                     let bootstrap_rc = Rc::new(bootstrap);
                     state_ref2
                         .get()
                         .handle()
                         .spawn(rpc_system.map_err(|e| panic!("Rpc system error: {:?}", e)));
-                    worker_ref
+                    governor_ref
                         .get_mut()
                         .data_connection
                         .as_mut()
@@ -99,13 +99,13 @@ impl Worker {
     }
 }
 
-impl WorkerRef {
+impl GovernorRef {
     pub fn new(
         address: SocketAddr,
-        control: Option<::worker_capnp::worker_control::Client>,
+        control: Option<::governor_capnp::governor_control::Client>,
         resources: Resources,
     ) -> Self {
-        WorkerRef::wrap(Worker {
+        GovernorRef::wrap(Governor {
             id: address,
             assigned_tasks: Default::default(),
             scheduled_tasks: Default::default(),
@@ -122,12 +122,12 @@ impl WorkerRef {
     }
 
     /// Return the object ID in graph.
-    pub fn get_id(&self) -> WorkerId {
+    pub fn get_id(&self) -> GovernorId {
         self.get().id
     }
 }
 
-impl ConsistencyCheck for WorkerRef {
+impl ConsistencyCheck for GovernorRef {
     /// Check for state and relationships consistency. Only explores adjacent objects but still
     /// may be slow.
     fn check_consistency(&self) -> Result<()> {
@@ -179,15 +179,15 @@ impl ConsistencyCheck for WorkerRef {
     }
 }
 
-impl fmt::Debug for WorkerRef {
+impl fmt::Debug for GovernorRef {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "WorkerRef {}", self.get_id())
+        write!(f, "GovernorRef {}", self.get_id())
     }
 }
 
-impl fmt::Debug for Worker {
+impl fmt::Debug for Governor {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Worker")
+        f.debug_struct("Governor")
             .field("id", &self.id)
             .field("tasks", &self.assigned_tasks)
             .field("located", &self.located_objects)

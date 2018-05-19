@@ -4,7 +4,7 @@ use server::state::State;
 
 #[derive(Debug, Deserialize)]
 struct TestConfig {
-    workers: Vec<String>,
+    governors: Vec<String>,
     size: usize,
 }
 
@@ -14,17 +14,17 @@ pub fn test_scheduler(state: &mut State) {
         if let Some(c) = config {
             oref.get_mut().size = Some(c.size);
 
-            for worker_id in c.workers {
+            for governor_id in c.governors {
                 debug!(
-                    "Forcing object id={} to worker={} with fake size={}",
+                    "Forcing object id={} to governor={} with fake size={}",
                     oref.get_mut().id,
-                    worker_id,
+                    governor_id,
                     c.size
                 );
                 let wref = state
                     .graph
-                    .workers
-                    .get(&worker_id.parse().unwrap())
+                    .governors
+                    .get(&governor_id.parse().unwrap())
                     .unwrap()
                     .clone();
                 wref.get_mut().scheduled_objects.insert(oref.clone());

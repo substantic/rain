@@ -5,9 +5,9 @@ use super::TaskResult;
 use common::DataType;
 use errors::ErrorKind;
 use futures::{future, Future};
-use worker::data::{Data, DataBuilder};
-use worker::graph::TaskRef;
-use worker::state::State;
+use governor::data::{Data, DataBuilder};
+use governor::graph::TaskRef;
+use governor::state::State;
 
 /// Task that merge all input blobs and merge them into one blob
 pub fn task_concat(state: &mut State, task_ref: TaskRef) -> TaskResult {

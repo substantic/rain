@@ -32,8 +32,8 @@ fn main() {
 
 ## Running
 
-The executor is run by a worker in a dedicated working directory.
-Worker parameters are passed via environment variables, so you are free to use any argument parsing.
+The executor is run by a governor in a dedicated working directory.
+Governor parameters are passed via environment variables, so you are free to use any argument parsing.
 
 You may setup a rust logger before `Executor::run()` but remember that the logs are not as conveniently accessible as the debug/error messages returned with the tasks (both failed and successful).
 

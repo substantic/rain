@@ -1,7 +1,7 @@
 use futures::unsync::oneshot;
 use std::fmt;
 
-use super::{DataObjectRef, DataObjectState, SessionRef, WorkerRef};
+use super::{DataObjectRef, DataObjectState, SessionRef, GovernorRef};
 use common::convert::ToCapnp;
 use common::id::{SId, TaskId};
 use common::resources::Resources;
@@ -39,12 +39,12 @@ pub struct Task {
     /// but multiplicities in `inputs` are here represented only once.
     pub(in super::super) waiting_for: RcSet<DataObjectRef>,
 
-    /// The task was already sent to the following Worker as Ready.
+    /// The task was already sent to the following Governor as Ready.
     /// The state of the Task should be Ready or NotAssigned.
-    pub(in super::super) assigned: Option<WorkerRef>,
+    pub(in super::super) assigned: Option<GovernorRef>,
 
-    /// The Worker scheduled to receive the task.
-    pub(in super::super) scheduled: Option<WorkerRef>,
+    /// The Governor scheduled to receive the task.
+    pub(in super::super) scheduled: Option<GovernorRef>,
 
     /// Owning session. Must match `SessionId`.
     pub(in super::super) session: SessionRef,
@@ -66,8 +66,8 @@ pub struct Task {
 pub type TaskRef = WrappedRcRefCell<Task>;
 
 impl Task {
-    // To capnp for worker message
-    pub fn to_worker_capnp(&self, builder: &mut ::worker_capnp::task::Builder) {
+    // To capnp for governor message
+    pub fn to_governor_capnp(&self, builder: &mut ::governor_capnp::task::Builder) {
         self.id.to_capnp(&mut builder.reborrow().get_id().unwrap());
         {
             let mut cinputs = builder.reborrow().init_inputs(self.inputs.len() as u32);
@@ -264,7 +264,7 @@ impl TaskRef {
         inner.scheduled = None;
     }
 
-    /// Remove the task from outputs, inputs, from workers if scheduled, and the owner.
+    /// Remove the task from outputs, inputs, from governors if scheduled, and the owner.
     /// Clears (and fails) any finish_hooks. Leaves the unlinked Task in in consistent state.
     pub fn unlink(&self) {
         self.unschedule();

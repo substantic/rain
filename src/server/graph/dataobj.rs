@@ -1,7 +1,7 @@
 use futures::unsync::oneshot;
 use std::fmt;
 
-use super::{SessionRef, TaskRef, TaskState, WorkerRef};
+use super::{SessionRef, TaskRef, TaskState, GovernorRef};
 use common::DataType;
 use common::convert::ToCapnp;
 use common::id::{DataObjectId, SId};
@@ -31,15 +31,15 @@ pub struct DataObject {
     /// Consumer set, e.g. to notify of completion.
     pub(in super::super) need_by: RcSet<TaskRef>,
 
-    /// Workers scheduled to have a full copy of this object.
-    pub(in super::super) scheduled: RcSet<WorkerRef>,
+    /// Governors scheduled to have a full copy of this object.
+    pub(in super::super) scheduled: RcSet<GovernorRef>,
 
-    /// Workers that have been instructed to pull this object or already have it.
+    /// Governors that have been instructed to pull this object or already have it.
     /// Superset of `located`.
-    pub(in super::super) assigned: RcSet<WorkerRef>,
+    pub(in super::super) assigned: RcSet<GovernorRef>,
 
-    /// Workers with full copy of this object.
-    pub(in super::super) located: RcSet<WorkerRef>,
+    /// Governors with full copy of this object.
+    pub(in super::super) located: RcSet<GovernorRef>,
 
     /// Assigned session. Must match SessionId.
     pub(in super::super) session: SessionRef,
@@ -64,9 +64,9 @@ pub struct DataObject {
 }
 
 impl DataObject {
-    /// To capnp for worker message
+    /// To capnp for governor message
     /// It does not fill `placement` and `assigned`, that must be done by caller
-    pub fn to_worker_capnp(&self, builder: &mut ::worker_capnp::data_object::Builder) {
+    pub fn to_governor_capnp(&self, builder: &mut ::governor_capnp::data_object::Builder) {
         self.id.to_capnp(&mut builder.reborrow().get_id().unwrap());
         self.attributes
             .to_capnp(&mut builder.reborrow().get_attributes().unwrap());
@@ -234,7 +234,7 @@ impl ConsistencyCheck for DataObjectRef {
                 bail!("located asymmetry in {:?}", s);
             }
             if !s.assigned.contains(wr) {
-                bail!("located at not-assigned worker in {:?}", s);
+                bail!("located at not-assigned governor in {:?}", s);
             }
         }
         if !s.session.get().objects.contains(self) {
@@ -257,12 +257,12 @@ impl ConsistencyCheck for DataObjectRef {
             // Not relevant anyomre:
 /*            if let Some(ref swr) = p.scheduled {
                 if !s.scheduled.contains(swr) {
-                    bail!("not scheduled to producer worker in {:?}");
+                    bail!("not scheduled to producer governor in {:?}");
                 }
             }
   */            if let Some(ref swr) = p.assigned {
                 if !s.assigned.contains(swr) {
-                    bail!("not assigned to producer worker in {:?}");
+                    bail!("not assigned to producer governor in {:?}");
                 }
             }
         } else {

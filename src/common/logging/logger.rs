@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use common::events;
 use common::events::{Event, ObjectDescriptor, TaskDescriptor};
-use common::id::{ClientId, DataObjectId, SessionId, TaskId, WorkerId};
+use common::id::{ClientId, DataObjectId, SessionId, TaskId, GovernorId};
 use errors::Error;
 use futures::Future;
 
@@ -35,19 +35,19 @@ pub trait Logger {
 
     fn flush_events(&mut self);
 
-    fn add_new_worker_event(&mut self, worker: WorkerId) {
-        self.add_event(Event::WorkerNew(events::WorkerNewEvent { worker }));
+    fn add_new_governor_event(&mut self, governor: GovernorId) {
+        self.add_event(Event::GovernorNew(events::GovernorNewEvent { governor }));
     }
 
-    fn add_worker_removed_event(&mut self, worker: WorkerId, error_msg: String) {
-        self.add_event(Event::WorkerRemoved(events::WorkerRemovedEvent {
-            worker,
+    fn add_governor_removed_event(&mut self, governor: GovernorId, error_msg: String) {
+        self.add_event(Event::GovernorRemoved(events::GovernorRemovedEvent {
+            governor,
             error_msg,
         }));
     }
 
-    fn add_worker_new_event(&mut self, worker: WorkerId) {
-        self.add_event(Event::WorkerNew(events::WorkerNewEvent { worker }));
+    fn add_governor_new_event(&mut self, governor: GovernorId) {
+        self.add_event(Event::GovernorNew(events::GovernorNewEvent { governor }));
     }
 
     fn add_new_client_event(&mut self, client: ClientId) {
@@ -71,10 +71,10 @@ pub trait Logger {
         self.add_event(Event::ClientUnkeep(events::ClientUnkeepEvent { dataobjs }));
     }
 
-    fn add_task_started_event(&mut self, task: TaskId, worker: WorkerId) {
+    fn add_task_started_event(&mut self, task: TaskId, governor: GovernorId) {
         self.add_event(Event::TaskStarted(events::TaskStartedEvent {
             task,
-            worker,
+            governor,
         }));
     }
 
@@ -82,10 +82,10 @@ pub trait Logger {
         self.add_event(Event::TaskFinished(events::TaskFinishedEvent { task }));
     }
 
-    fn add_task_failed_event(&mut self, task: TaskId, worker: WorkerId, error_msg: String) {
+    fn add_task_failed_event(&mut self, task: TaskId, governor: GovernorId, error_msg: String) {
         self.add_event(Event::TaskFailed(events::TaskFailedEvent {
             task,
-            worker,
+            governor,
             error_msg,
         }));
     }
@@ -93,12 +93,12 @@ pub trait Logger {
     fn add_dataobject_finished_event(
         &mut self,
         dataobject: DataObjectId,
-        worker: WorkerId,
+        governor: GovernorId,
         size: usize,
     ) {
         self.add_event(Event::DataObjectFinished(events::DataObjectFinishedEvent {
             dataobject,
-            worker,
+            governor,
             size,
         }));
     }

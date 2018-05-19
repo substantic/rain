@@ -33,8 +33,8 @@ struct SocketAddress {
     }
 }
 
-using WorkerId = SocketAddress;
-# Worker id is the address of the RPC listening port.
+using GovernorId = SocketAddress;
+# Governor id is the address of the RPC listening port.
 
 enum TaskState {
         notAssigned @0;
@@ -104,18 +104,18 @@ struct FetchResult {
         ok @0 :Void;
         # Valid data is returned
 
-        redirect @1 :WorkerId;
-        # The data are available at the given worker.
-        # Only sent by server to a worker. That worker may answer notHere with certain
+        redirect @1 :GovernorId;
+        # The data are available at the given governor.
+        # Only sent by server to a governor. That governor may answer notHere with certain
         # timing.
 
         notHere @2 :Void;
-        # From worker to worker only. The sender should ask the server for the new
+        # From governor to governor only. The sender should ask the server for the new
         # location. Server will reply with a redirect or the data itself.
 
         removed @3 :Void;
         # The DataObject data was removed and will not be available (under normal
-        # operation). Server may send this to worker (and then it is usually a bug) or
+        # operation). Server may send this to governor (and then it is usually a bug) or
         # server may send it to client (and then client has likely asked for non-kept
         # object)
 
@@ -123,9 +123,9 @@ struct FetchResult {
         # Only as response for client
 
         ignored @5 :Void;
-        # Only from server to worker. It is returned when "id" is ignored on server.
-        # This can happend when server closes a session, but the worker have not yer received
-        # the message about it. The best response of the worker is just the ignore
+        # Only from server to governor. It is returned when "id" is ignored on server.
+        # This can happend when server closes a session, but the governor have not yer received
+        # the message about it. The best response of the governor is just the ignore
         # the response and wait for messages that brings deletion of dataobject
     }
 

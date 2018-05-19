@@ -1,4 +1,4 @@
-use super::graph::{DataObjectRef, Graph, TaskRef, TaskState, WorkerRef};
+use super::graph::{DataObjectRef, Graph, TaskRef, TaskState, GovernorRef};
 use common::RcSet;
 use server::graph::SessionRef;
 use std::clone::Clone;
@@ -8,8 +8,8 @@ use std::collections::hash_map::HashMap;
 pub struct UpdatedOut {
     /// Tasks with updatet state
     pub(in super::super) tasks: RcSet<TaskRef>,
-    /// Worker-DataObject updated pairs, grouped by worker
-    pub(in super::super) objects: HashMap<WorkerRef, RcSet<DataObjectRef>>,
+    /// Governor-DataObject updated pairs, grouped by governor
+    pub(in super::super) objects: HashMap<GovernorRef, RcSet<DataObjectRef>>,
 }
 
 #[derive(Default, Clone, Debug)]
@@ -18,14 +18,14 @@ pub struct UpdatedIn {
     pub(in super::super) new_tasks: RcSet<TaskRef>,
     /// Newly submitted DataObjects.
     pub(in super::super) new_objects: RcSet<DataObjectRef>,
-    /// Old Tasks with changed state. Includes changes originating from workers, clients
-    /// and the server assigning Task to Worker. Scheduler-requested operations
+    /// Old Tasks with changed state. Includes changes originating from governors, clients
+    /// and the server assigning Task to Governor. Scheduler-requested operations
     /// (unscheduled already Assigned or Running tasks) are not included.
     pub(in super::super) tasks: RcSet<TaskRef>,
-    /// Old DataObjects with changed state. Includes changes originating from workers, clients
-    /// and the server assigning Object to Worker. Scheduler-requested operations
+    /// Old DataObjects with changed state. Includes changes originating from governors, clients
+    /// and the server assigning Object to Governor. Scheduler-requested operations
     /// (unscheduled already Assigned or Finished object) are not included.
-    pub(in super::super) objects: HashMap<DataObjectRef, RcSet<WorkerRef>>,
+    pub(in super::super) objects: HashMap<DataObjectRef, RcSet<GovernorRef>>,
 }
 
 impl UpdatedIn {
@@ -53,7 +53,7 @@ impl UpdatedIn {
 /*pub trait Scheduler {
     type TaskExtra;
     type DataObjectExtra;
-    type WorkerExtra;
+    type GovernorExtra;
     type SessionExtra;
     type ClientExtra;
 
@@ -68,16 +68,16 @@ pub struct ReactiveScheduler {
 impl ReactiveScheduler {
     /*type TaskExtra = ();
     type DataObjectExtra = ();
-    type WorkerExtra = ();
+    type GovernorExtra = ();
     type SessionExtra = ();
     type ClientExtra = ();*/
 
-    fn pick_best(&self, graph: &mut Graph) -> Option<(TaskRef, WorkerRef)> {
-        let mut best_worker = None;
+    fn pick_best(&self, graph: &mut Graph) -> Option<(TaskRef, GovernorRef)> {
+        let mut best_governor = None;
         let mut best_score = 0;
         let mut best_task = None;
 
-        let n_workers = graph.workers.len() as i64;
+        let n_governors = graph.governors.len() as i64;
 
         for tref in &self.ready_tasks {
             let t = tref.get();
@@ -86,10 +86,10 @@ impl ReactiveScheduler {
                 let o = input.object.get();
                 total_size += o.size.unwrap() * o.scheduled.len();
             }
-            let neg_avg_size = -(total_size as i64) / n_workers;
+            let neg_avg_size = -(total_size as i64) / n_governors;
             //debug!("!!! {} AVG SIZE {}", t.id, -neg_avg_size);
 
-            for (_, wref) in &graph.workers {
+            for (_, wref) in &graph.governors {
                 let w = wref.get();
                 let cpus = t.resources.cpus();
                 if cpus + w.active_resources <= w.resources.cpus()
@@ -102,15 +102,15 @@ impl ReactiveScheduler {
                             score += o.size.unwrap() as i64;
                         }
                     }
-                    if best_score < score || best_worker.is_none() {
+                    if best_score < score || best_governor.is_none() {
                         best_score = score;
-                        best_worker = Some(wref.clone());
+                        best_governor = Some(wref.clone());
                         best_task = Some(tref.clone());
                     }
                 }
             }
         }
-        if let Some(wref) = best_worker {
+        if let Some(wref) = best_governor {
             Some((best_task.unwrap(), wref))
         } else {
             None
@@ -127,7 +127,7 @@ impl ReactiveScheduler {
     pub fn schedule(&mut self, graph: &mut Graph, updated: &UpdatedIn) -> UpdatedOut {
         let mut up_out: UpdatedOut = Default::default();
 
-        if graph.workers.is_empty() {
+        if graph.governors.is_empty() {
             return up_out;
         }
 
@@ -182,15 +182,15 @@ impl ReactiveScheduler {
         }
         up_out
 
-        /*if graph.workers.is_empty() {
-            warn!("Scheduler is running with empty workers -- not doing anything.");
+        /*if graph.governors.is_empty() {
+            warn!("Scheduler is running with empty governors -- not doing anything.");
             return up_out;
         }
 
         for tref in updated.new_tasks.iter() {
             let mut t = tref.get_mut();
             if t.scheduled.is_none() {
-                let w = random_worker(graph, t.id.get_id() as usize);
+                let w = random_governor(graph, t.id.get_id() as usize);
                 w.get_mut().scheduled_tasks.insert(tref.clone());
                 if t.state == TaskState::Ready {
                     w.get_mut().scheduled_ready_tasks.insert(tref.clone());
@@ -207,7 +207,7 @@ impl ReactiveScheduler {
                 let w = if let Some(ref prod) = o.producer {
                     prod.get().scheduled.clone().unwrap()
                 } else {
-                    random_worker(graph, o.id.get_id() as usize)
+                    random_governor(graph, o.id.get_id() as usize)
                 };
                 w.get_mut().scheduled_objects.insert(oref.clone());
                 o.scheduled.insert(w.clone());
@@ -222,8 +222,8 @@ impl ReactiveScheduler {
 }
 
 /*
-fn random_worker(g: &mut Graph, seed: usize) -> WorkerRef {
-    let ws: Vec<_> = g.workers.values().collect();
+fn random_governor(g: &mut Graph, seed: usize) -> GovernorRef {
+    let ws: Vec<_> = g.governors.values().collect();
     assert!(ws.len() > 0);
     ws[seed % ws.len()].clone()
 }

@@ -7,17 +7,17 @@ import Error from './Error.js';
 import Chart from './Chart';
 
 
-class Workers extends Component {
+class Governors extends Component {
 
   constructor(props) {
     super(props);
-    this.state = {workers: []};
+    this.state = {governors: []};
     this.unsubscribe = fetch_events({"event_types": [{value: "Monitoring", mode: "="}]}, event => {
       //console.log("EVENT", event);
       let index = -1;
       let i = 0;
-      for (let w of this.state.workers) {
-        if (w.name === event.event.worker) {
+      for (let w of this.state.governors) {
+        if (w.name === event.event.governor) {
           index = i;
           break;
         }
@@ -25,9 +25,9 @@ class Workers extends Component {
       }
 
       if (index === -1) {
-        index = this.state.workers.length;
-        this.setState(update(this.state, {workers: {$push: [{
-          name: event.event.worker,
+        index = this.state.governors.length;
+        this.setState(update(this.state, {governors: {$push: [{
+          name: event.event.governor,
           version: 0,
           x: "x",
           columns: [
@@ -39,27 +39,27 @@ class Workers extends Component {
       }
 
       // We are abusing immutablity here, but implicit versioning fixes this (performance reasons :( )
-      let worker = this.state.workers[index];
+      let governor = this.state.governors[index];
 
-      worker.columns[0].push(parse_date(event.time));
+      governor.columns[0].push(parse_date(event.time));
 
       let sum = 0;
       for (let usage of event.event.cpu_usage) {
         sum += usage;
       }
-      worker.columns[1].push(sum / event.event.cpu_usage.length);
-      worker.columns[2].push(event.event.mem_usage);
+      governor.columns[1].push(sum / event.event.cpu_usage.length);
+      governor.columns[2].push(event.event.mem_usage);
 
-      /*if (worker.columns[0].length > 100) {
-        worker.columns[0].splice(1, 1);
-        worker.columns[1].splice(1, 1);
+      /*if (governor.columns[0].length > 100) {
+        governor.columns[0].splice(1, 1);
+        governor.columns[1].splice(1, 1);
       }*/
 
     }, error => {
       this.setState(update(this.state, {error: {$set: error}}));
     }, () => {
-      for (let i = 0; i < this.state.workers.length; i++) {
-          this.setState(update(this.state, {workers: {[i]: {version: {$set: this.state.workers[i].version + 1}}}}));
+      for (let i = 0; i < this.state.governors.length; i++) {
+          this.setState(update(this.state, {governors: {[i]: {version: {$set: this.state.governors[i].version + 1}}}}));
       }
     });
   }
@@ -72,11 +72,11 @@ class Workers extends Component {
     return (
         <div>
           <Error error={this.state.error}/>
-          <h1>Workers</h1>
+          <h1>Governors</h1>
           {
-            this.state.workers.map(w =>
+            this.state.governors.map(w =>
               <div key={w.name}>
-                <h2>Worker {w.name}</h2>
+                <h2>Governor {w.name}</h2>
                 {<Chart data={w}/>}
               </div>
             )
@@ -86,4 +86,4 @@ class Workers extends Component {
   }
 }
 
-export default Workers;
+export default Governors;

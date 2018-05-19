@@ -17,7 +17,7 @@ def id_to_capnp(obj, builder):
     builder.id = obj.id
 
 
-def worker_id_from_capnp(reader):
+def governor_id_from_capnp(reader):
     if reader.address.which() == "ipv4":
         address = reader.address.ipv4
     elif reader.address.which() == "ipv6":

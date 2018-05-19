@@ -1,6 +1,6 @@
 use super::*;
 use librain::common::DataType;
-use librain::worker::rpc::executor_serde::*;
+use librain::governor::rpc::executor_serde::*;
 use memmap::Mmap;
 use std::sync::{Mutex, MutexGuard};
 use std::{fmt, mem, str};

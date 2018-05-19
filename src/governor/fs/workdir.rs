@@ -29,7 +29,7 @@ impl WorkDir {
     }
 
     /*
-    /// Get path to unix socket where worker is listening
+    /// Get path to unix socket where governor is listening
     pub fn executor_listen_path(&self) -> PathBuf {
         self.path.join(Path::new("executors/listen"))
     }*/

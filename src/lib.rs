@@ -37,12 +37,12 @@ extern crate walkdir;
 
 pub mod common;
 pub mod server;
-pub mod worker;
+pub mod governor;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const WORKER_PROTOCOL_VERSION: i32 = 0;
+pub const GOVERNOR_PROTOCOL_VERSION: i32 = 0;
 pub const CLIENT_PROTOCOL_VERSION: i32 = 0;
-pub const SUBWORKER_PROTOCOL_VERSION: i32 = 0;
+pub const EXECUTOR_PROTOCOL_VERSION: i32 = 0;
 
 use std::sync::atomic::AtomicBool;
 lazy_static! {
@@ -96,8 +96,8 @@ pub mod common_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/common_capnp.rs"));
 }
 
-pub mod worker_capnp {
-    include!(concat!(env!("OUT_DIR"), "/capnp/worker_capnp.rs"));
+pub mod governor_capnp {
+    include!(concat!(env!("OUT_DIR"), "/capnp/governor_capnp.rs"));
 }
 
 pub mod monitor_capnp {

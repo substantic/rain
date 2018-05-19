@@ -3,15 +3,15 @@ use capnp::capability::Promise;
 use futures::Future;
 use std::net::SocketAddr;
 
-use super::{ClientServiceImpl, WorkerUpstreamImpl};
+use super::{ClientServiceImpl, GovernorUpstreamImpl};
 use common::convert::{FromCapnp, ToCapnp};
-use common::id::WorkerId;
+use common::id::GovernorId;
 use common::resources::Resources;
 use server::state::StateRef;
 use server_capnp::server_bootstrap;
 
 use CLIENT_PROTOCOL_VERSION;
-use WORKER_PROTOCOL_VERSION;
+use GOVERNOR_PROTOCOL_VERSION;
 
 // ServerBootstrap is the entry point of RPC service.
 // It is created on the server and provided
@@ -71,10 +71,10 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         Promise::ok(())
     }
 
-    fn register_as_worker(
+    fn register_as_governor(
         &mut self,
-        params: server_bootstrap::RegisterAsWorkerParams,
-        mut results: server_bootstrap::RegisterAsWorkerResults,
+        params: server_bootstrap::RegisterAsGovernorParams,
+        mut results: server_bootstrap::RegisterAsGovernorResults,
     ) -> Promise<(), ::capnp::Error> {
         if self.registered {
             error!("Multiple registration from connection {}", self.address);
@@ -85,17 +85,17 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
 
         let params = pry!(params.get());
 
-        if params.get_version() != WORKER_PROTOCOL_VERSION {
-            error!("Worker protocol mismatch");
+        if params.get_version() != GOVERNOR_PROTOCOL_VERSION {
+            error!("Governor protocol mismatch");
             return Promise::err(capnp::Error::failed(format!("Protocol mismatch")));
         }
 
         self.registered = true;
 
-        // If worker fully specifies its address, then we use it as worker_id
+        // If governor fully specifies its address, then we use it as governor_id
         // otherwise we use announced port number and assign IP address of connection
-        let address = WorkerId::from_capnp(&pry!(params.get_address()));
-        let worker_id = if address.ip().is_unspecified() {
+        let address = GovernorId::from_capnp(&pry!(params.get_address()));
+        let governor_id = if address.ip().is_unspecified() {
             SocketAddr::new(self.address.ip(), address.port())
         } else {
             address
@@ -104,31 +104,31 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         let resources = Resources::from_capnp(&pry!(params.get_resources()));
 
         info!(
-            "Connection {} registered as worker {} with {:?}",
-            self.address, worker_id, resources
+            "Connection {} registered as governor {} with {:?}",
+            self.address, governor_id, resources
         );
 
         let control = pry!(params.get_control());
         let state = self.state.clone();
 
-        // Ask for resources and then create a new worker in server
-        let req = control.get_worker_resources_request();
+        // Ask for resources and then create a new governor in server
+        let req = control.get_governor_resources_request();
         Promise::from_future(req.send().promise.and_then(move |_| {
             // The order is important here:
-            // 1) add worker
+            // 1) add governor
             // 2) create upstream
-            // reason: upstream drop tries to remove worker
-            let worker = pry!(
+            // reason: upstream drop tries to remove governor
+            let governor = pry!(
                 state
                     .get_mut()
-                    .add_worker(worker_id, Some(control), resources,)
+                    .add_governor(governor_id, Some(control), resources,)
             );
-            let upstream = ::worker_capnp::worker_upstream::ToClient::new(WorkerUpstreamImpl::new(
+            let upstream = ::governor_capnp::governor_upstream::ToClient::new(GovernorUpstreamImpl::new(
                 &state,
-                &worker,
+                &governor,
             )).from_server::<::capnp_rpc::Server>();
             results.get().set_upstream(upstream);
-            worker_id.to_capnp(&mut results.get().get_worker_id().unwrap());
+            governor_id.to_capnp(&mut results.get().get_governor_id().unwrap());
             Promise::ok(())
         }))
     }

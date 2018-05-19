@@ -12,9 +12,9 @@ pub type Id = i32;
 /// Session ID type. Negative values have special meaning.
 pub type SessionId = i32;
 
-/// Type identifying a worker, in this case its address and port as seen by server.
-/// When the worker has multiple addresses, one is selected and fixed on registrtion.
-pub type WorkerId = SocketAddr;
+/// Type identifying a governor, in this case its address and port as seen by server.
+/// When the governor has multiple addresses, one is selected and fixed on registrtion.
+pub type GovernorId = SocketAddr;
 
 /// Type identifying a client, in this case its address and port as seen by server.
 pub type ClientId = SocketAddr;
@@ -44,7 +44,7 @@ impl<'a> FromCapnp<'a> for SocketAddr {
 impl<'a> ToCapnp<'a> for SocketAddr {
     type Builder = socket_address::Builder<'a>;
 
-    fn to_capnp(self: &WorkerId, build: &mut Self::Builder) {
+    fn to_capnp(self: &GovernorId, build: &mut Self::Builder) {
         build.set_port(self.port());
         let build_addr = &mut build.reborrow().get_address();
         match self {
@@ -58,7 +58,7 @@ impl ReadCapnp for SocketAddr {
     fn read_capnp<R: Read>(r: &mut R) -> Self {
         let msg = serialize::read_message(r, Default::default()).unwrap();
         let read = msg.get_root::<socket_address::Reader>().unwrap();
-        WorkerId::from_capnp(&read)
+        GovernorId::from_capnp(&read)
     }
 }
 
@@ -230,7 +230,7 @@ mod tests {
     use std::io::Cursor;
 
     #[test]
-    fn worker_id_capnp_v6() {
+    fn governor_id_capnp_v6() {
         let mut buf: Vec<u8> = Vec::new();
         let addr6: SocketAddr = "[fd75::c5a:7c4e]:1024".parse().unwrap();
         addr6.write_capnp(&mut buf);
@@ -238,11 +238,11 @@ mod tests {
     }
 
     #[test]
-    fn worker_id_capnp_v4() {
+    fn governor_id_capnp_v4() {
         let mut buf: Vec<u8> = Vec::new();
         let addr4: SocketAddr = "156.234.100.2:32109".parse().unwrap();
         addr4.write_capnp(&mut buf);
-        assert_eq!(addr4, WorkerId::read_capnp(&mut Cursor::new(&buf)));
+        assert_eq!(addr4, GovernorId::read_capnp(&mut Cursor::new(&buf)));
     }
 
     #[test]
@@ -262,6 +262,6 @@ mod tests {
     }
 }
 
-pub fn empty_worker_id() -> WorkerId {
+pub fn empty_governor_id() -> GovernorId {
     SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0)
 }

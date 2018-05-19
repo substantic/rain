@@ -8,8 +8,8 @@ use tokio_process::CommandExt;
 
 use super::TaskResult;
 use errors::Result;
-use worker::graph::TaskRef;
-use worker::state::State;
+use governor::graph::TaskRef;
+use governor::state::State;
 
 fn read_stderr(path: &Path) -> Result<String> {
     // TODO: If the file is too big, truncate the beginning

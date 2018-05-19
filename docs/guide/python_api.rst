@@ -2,15 +2,15 @@
 Python API
 **********
 
-The Rain Pyton API consists of two domains that observe the 
+The Rain Pyton API consists of two domains that observe the
 workflow graph differently, although the concepts are similar
 and some classes are used in both contexts.
 
 * Code run at *the client*, creating sessions and task graphs,
   executing and querying sessions. There, the tasks are only
-  created and declared, never actually executed. 
+  created and declared, never actually executed.
 
-* Python code that runs inside remote Pyhton tasks on the workers.
+* Python code that runs inside remote Pyhton tasks on the governors.
   This code has access to the actual input data, but only sees the adjacent
   data objects (input and output).
 
@@ -24,7 +24,7 @@ Client API
 .. autoclass:: RainWarning
 
 .. autoclass:: rain.common.ID
-   
+
 .. py:currentmodule:: rain.client
 
 Client
@@ -100,7 +100,7 @@ output `DataObject`.
 Builtin tasks and external programs
 -----------------------------------
 
-Native Rain tasks to be run at the workers.
+Native Rain tasks to be run at the governors.
 
 .. automodule:: rain.client.tasks
    :members:
@@ -142,11 +142,11 @@ Remote Python tasks
 
 .. py:currentmodule:: rain.client
 
-API for creating routines to be run at the workers.
+API for creating routines to be run at the governors.
 Created by the decorating with `remote` (preferred) or
 by `Remote`.
 
-Whe **specifying** the remote task in the client code, the relevant classes are 
+Whe **specifying** the remote task in the client code, the relevant classes are
 `Remote`, `Input`, `Output`, `RainException`, `RainWarning`, `LabeledList`
 and the decorateor `remote`.
 
@@ -163,7 +163,7 @@ or loaded data object if `autoload=True` or `load=True` is
 set on the `Input`.
 
 The remote should return a list, tuple or `LabeledList` of
-`DataInstance` (created by `Context.blob()`), `bytes` or `string`. 
+`DataInstance` (created by `Context.blob()`), `bytes` or `string`.
 
 .. autofunction:: remote
 

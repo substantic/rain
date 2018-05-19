@@ -35,7 +35,7 @@ class DataInstance:
     # Cache for received/read bytes
     _data = None
 
-    # Contains object id if the object is known to worker
+    # Contains object id if the object is known to governor
     _object_id = None
 
     # The file path in case the data is in a file
@@ -155,8 +155,8 @@ class DataInstance:
     def _to_capnp(self, builder):
         "Internal serializer."
         if self._object_id:
-            builder.storage.init("inWorker")
-            id_to_capnp(self._object_id, builder.storage.inWorker)
+            builder.storage.init("inGovernor")
+            id_to_capnp(self._object_id, builder.storage.inGovernor)
         elif self._path:
             builder.storage.path = self._path
         else:

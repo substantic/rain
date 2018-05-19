@@ -5,10 +5,10 @@ use std::sync::Arc;
 use bytes::BytesMut;
 use common::DataType;
 use common::id::ExecutorId;
-use worker::State;
-use worker::data::{Data, Storage};
-use worker::rpc::executor_serde::ExecutorToWorkerMessage;
-use worker::rpc::executor_serde::{DataLocation, DataObjectSpec};
+use governor::State;
+use governor::data::{Data, Storage};
+use governor::rpc::executor_serde::ExecutorToGovernorMessage;
+use governor::rpc::executor_serde::{DataLocation, DataObjectSpec};
 
 use errors::Result;
 
@@ -55,8 +55,8 @@ pub fn check_registration(
 ) -> Result<()> {
     match data {
         Some(data) => {
-            let message: ExecutorToWorkerMessage = ::serde_cbor::from_slice(&data).unwrap();
-            if let ExecutorToWorkerMessage::Register(msg) = message {
+            let message: ExecutorToGovernorMessage = ::serde_cbor::from_slice(&data).unwrap();
+            if let ExecutorToGovernorMessage::Register(msg) = message {
                 debug!(
                     "Executor id={} registered: protocol={} id={} type={}",
                     executor_id, msg.protocol, msg.executor_id, msg.executor_type

@@ -7,9 +7,9 @@ use common::comm::Sender;
 use common::fs::LogDir;
 use common::id::{DataObjectId, ExecutorId};
 use common::wrapped::WrappedRcRefCell;
-use worker::graph::Task;
-use worker::rpc::executor_serde::WorkerToExecutorMessage;
-use worker::rpc::executor_serde::{CallMsg, DropCachedMsg, ResultMsg};
+use governor::graph::Task;
+use governor::rpc::executor_serde::GovernorToExecutorMessage;
+use governor::rpc::executor_serde::{CallMsg, DropCachedMsg, ResultMsg};
 
 use errors::Result;
 
@@ -55,7 +55,7 @@ impl Executor {
 
     pub fn send_remove_cached_objects(&self, object_ids: &[DataObjectId]) {
         let control = self.control.as_ref().clone().unwrap();
-        let message = WorkerToExecutorMessage::DropCached(DropCachedMsg {
+        let message = GovernorToExecutorMessage::DropCached(DropCachedMsg {
             objects: object_ids.into(),
         });
         control.send(::serde_cbor::to_vec(&message).unwrap());
@@ -68,7 +68,7 @@ impl Executor {
         executor_ref: &ExecutorRef,
     ) -> ::futures::unsync::oneshot::Receiver<ResultMsg> {
         let control = self.control.as_ref().clone().unwrap();
-        let message = WorkerToExecutorMessage::Call(CallMsg {
+        let message = GovernorToExecutorMessage::Call(CallMsg {
             task: task.id,
             method,
             attributes: task.attributes.clone(),
@@ -143,8 +143,8 @@ pub fn executor_command(
         .args(program_args)
         .stdout(log_path_out_pipe)
         .stderr(log_path_err_pipe)
-        .env("RAIN_SUBWORKER_SOCKET", socket_path)
-        .env("RAIN_SUBWORKER_ID", executor_id.to_string())
+        .env("RAIN_EXECUTOR_SOCKET", socket_path)
+        .env("RAIN_EXECUTOR_ID", executor_id.to_string())
         .current_dir(executor_dir.path());
     Ok(command)
 }

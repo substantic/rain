@@ -3,20 +3,20 @@ use common::id::{DataObjectId, ExecutorId, TaskId};
 use serde_bytes;
 use std::path::PathBuf;
 
-/// Message from executor to worker.
+/// Message from executor to governor.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum ExecutorToWorkerMessage {
+pub enum ExecutorToGovernorMessage {
     Register(RegisterMsg),
     Result(ResultMsg),
 }
 
-/// Message from worker to executor.
+/// Message from governor to executor.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum WorkerToExecutorMessage {
+pub enum GovernorToExecutorMessage {
     Call(CallMsg),
     DropCached(DropCachedMsg),
 }
@@ -29,7 +29,7 @@ pub enum WorkerToExecutorMessage {
 pub struct RegisterMsg {
     /// Executor protocol version
     pub protocol: String,
-    /// SUbworker ID as assigned to the worker
+    /// SUbgovernor ID as assigned to the governor
     pub executor_id: ExecutorId,
     /// Executor task name prefix in task names
     pub executor_type: String,
@@ -155,7 +155,7 @@ mod tests {
     fn test_register() {
         let s =
             r#"{"register": {"protocol": "swp1", "executorId": 42, "executorType": "dummy"}}"#;
-        let m: ExecutorToWorkerMessage = serde_json::from_str(s).unwrap();
+        let m: ExecutorToGovernorMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
@@ -175,9 +175,9 @@ mod tests {
                 {"id": [3,12], "attributes": {}}
             ]
             }}"#;
-        let m: WorkerToExecutorMessage = serde_json::from_str(s).unwrap();
+        let m: GovernorToExecutorMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
-        if let &WorkerToExecutorMessage::Call(ref c) = &m {
+        if let &GovernorToExecutorMessage::Call(ref c) = &m {
             assert_eq!(
                 c.inputs[0].location,
                 Some(DataLocation::Memory(vec![0u8; 5]))
@@ -196,14 +196,14 @@ mod tests {
                 {"id": [3,12], "attributes": {}, "location": {"otherObject": [3, 6]}}
             ]
             }}"#;
-        let m: ExecutorToWorkerMessage = serde_json::from_str(s).unwrap();
+        let m: ExecutorToGovernorMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
     #[test]
     fn test_drop_cached() {
         let s = r#"{"dropCached": {"objects": [[1,2], [4,5]]}}"#;
-        let m: WorkerToExecutorMessage = serde_json::from_str(s).unwrap();
+        let m: GovernorToExecutorMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 

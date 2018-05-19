@@ -1,4 +1,4 @@
-use super::id::{ClientId, DataObjectId, SessionId, TaskId, WorkerId};
+use super::id::{ClientId, DataObjectId, SessionId, TaskId, GovernorId};
 use common::id::SId;
 use server::graph::{DataObject, Task};
 
@@ -7,13 +7,13 @@ use std::collections::HashMap;
 pub type EventId = i64;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct WorkerNewEvent {
-    pub worker: WorkerId, // TODO: Resources
+pub struct GovernorNewEvent {
+    pub governor: GovernorId, // TODO: Resources
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct WorkerRemovedEvent {
-    pub worker: WorkerId,
+pub struct GovernorRemovedEvent {
+    pub governor: GovernorId,
     pub error_msg: String,
 }
 
@@ -100,7 +100,7 @@ pub struct ClientUnkeepEvent {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TaskStartedEvent {
     pub task: TaskId,
-    pub worker: WorkerId,
+    pub governor: GovernorId,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -111,7 +111,7 @@ pub struct TaskFinishedEvent {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct DataObjectFinishedEvent {
     pub dataobject: DataObjectId,
-    pub worker: WorkerId,
+    pub governor: GovernorId,
     pub size: usize,
 }
 
@@ -120,7 +120,7 @@ pub type MemUsage = u8;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct MonitoringEvent {
-    pub worker: WorkerId,
+    pub governor: GovernorId,
     pub cpu_usage: Vec<CpuUsage>,            // Cpu usage in percent
     pub mem_usage: MemUsage,                 // Memory usage in bytes
     pub net_stat: HashMap<String, Vec<u64>>, // Network IO
@@ -129,7 +129,7 @@ pub struct MonitoringEvent {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct TaskFailedEvent {
     pub task: TaskId,
-    pub worker: WorkerId,
+    pub governor: GovernorId,
     pub error_msg: String,
 }
 
@@ -142,8 +142,8 @@ pub struct ClientInvalidRequestEvent {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Event {
-    WorkerNew(WorkerNewEvent),
-    WorkerRemoved(WorkerRemovedEvent),
+    GovernorNew(GovernorNewEvent),
+    GovernorRemoved(GovernorRemovedEvent),
 
     ClientNew(ClientNewEvent),
     ClientRemoved(ClientRemovedEvent),
@@ -169,8 +169,8 @@ pub enum Event {
 impl Event {
     pub fn event_type(&self) -> &'static str {
         match self {
-            &Event::WorkerNew(_) => "WorkerNew",
-            &Event::WorkerRemoved(_) => "WorkerRemoved",
+            &Event::GovernorNew(_) => "GovernorNew",
+            &Event::GovernorRemoved(_) => "GovernorRemoved",
             &Event::ClientNew(_) => "ClientNew",
             &Event::ClientRemoved(_) => "ClientRemoved",
             &Event::SessionNew(_) => "SessionNew",

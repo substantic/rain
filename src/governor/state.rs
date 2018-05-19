@@ -13,20 +13,20 @@ use common::comm::Connection;
 use common::convert::{FromCapnp, ToCapnp};
 use common::events;
 use common::fs::logdir::LogDir;
-use common::id::{empty_worker_id, DataObjectId, TaskId, WorkerId};
+use common::id::{empty_governor_id, DataObjectId, TaskId, GovernorId};
 use common::monitor::Monitor;
 use common::resources::Resources;
 use common::wrapped::WrappedRcRefCell;
 
-use worker::data::Data;
-use worker::data::transport::TransportView;
-use worker::fs::workdir::WorkDir;
-use worker::graph::{executor_command, DataObject, DataObjectRef, DataObjectState, Graph,
+use governor::data::Data;
+use governor::data::transport::TransportView;
+use governor::fs::workdir::WorkDir;
+use governor::graph::{executor_command, DataObject, DataObjectRef, DataObjectState, Graph,
                     ExecutorRef, TaskInput, TaskRef, TaskState};
-use worker::rpc::WorkerControlImpl;
-use worker::rpc::executor::check_registration;
-use worker::rpc::executor_serde::ExecutorToWorkerMessage;
-use worker::tasks::TaskInstance;
+use governor::rpc::GovernorControlImpl;
+use governor::rpc::executor::check_registration;
+use governor::rpc::executor_serde::ExecutorToGovernorMessage;
+use governor::tasks::TaskInstance;
 
 use capnp::capability::Promise;
 use capnp_rpc::rpc_twoparty_capnp;
@@ -39,7 +39,7 @@ use tokio_core::net::TcpStream;
 use tokio_core::reactor::Handle;
 use tokio_uds::UnixListener;
 
-use WORKER_PROTOCOL_VERSION;
+use GOVERNOR_PROTOCOL_VERSION;
 
 const MONITORING_INTERVAL: u64 = 5; // Monitoring interval in seconds
 const DELETE_WAIT_LIST_INTERVAL: u64 = 2; // How often is delete_wait_list checked in seconds
@@ -55,10 +55,10 @@ pub struct State {
     /// Tokio core handle
     handle: Handle,
 
-    /// Handle to WorkerUpstream (that resides in server)
-    upstream: Option<::worker_capnp::worker_upstream::Client>,
+    /// Handle to GovernorUpstream (that resides in server)
+    upstream: Option<::governor_capnp::governor_upstream::Client>,
 
-    remote_workers: HashMap<WorkerId, AsyncInitWrapper<::worker_capnp::worker_bootstrap::Client>>,
+    remote_governors: HashMap<GovernorId, AsyncInitWrapper<::governor_capnp::governor_bootstrap::Client>>,
 
     updated_objects: RcSet<DataObjectRef>,
     updated_tasks: RcSet<TaskRef>,
@@ -66,8 +66,8 @@ pub struct State {
     /// Transport views (2nd element of tuple is timeout)
     transport_views: HashMap<DataObjectId, (Rc<TransportView>, ::std::time::Instant)>,
 
-    /// A worker assigned to this worker
-    worker_id: WorkerId,
+    /// A governor assigned to this governor
+    governor_id: GovernorId,
 
     /// This is hard limit for number of simultaneously executed tasks
     /// The purpose is to limit task with empty resources
@@ -108,12 +108,12 @@ impl State {
     }
 
     #[inline]
-    pub fn worker_id(&self) -> &WorkerId {
-        &self.worker_id
+    pub fn governor_id(&self) -> &GovernorId {
+        &self.governor_id
     }
 
     #[inline]
-    pub fn upstream(&self) -> &Option<::worker_capnp::worker_upstream::Client> {
+    pub fn upstream(&self) -> &Option<::governor_capnp::governor_upstream::Client> {
         &self.upstream
     }
 
@@ -394,10 +394,10 @@ impl State {
                             let result = executor.clone();
 
                             let comm_future = connection.start_future(move |data| {
-                                let message: ExecutorToWorkerMessage =
+                                let message: ExecutorToGovernorMessage =
                                     ::serde_cbor::from_slice(&data).unwrap();
                                 match message {
-                                    ExecutorToWorkerMessage::Result(msg) => {
+                                    ExecutorToGovernorMessage::Result(msg) => {
                                         let mut sw = executor.get_mut();
                                         match sw.pick_finish_sender() {
                                         Some(sender) => { sender.send(msg).unwrap() },
@@ -406,7 +406,7 @@ impl State {
                                         }
                                     };
                                     }
-                                    ExecutorToWorkerMessage::Register(_) => {
+                                    ExecutorToGovernorMessage::Register(_) => {
                                         bail!("Executor send 'Register' message but it is already registered");
                                     }
                                 }
@@ -478,11 +478,11 @@ impl State {
     /// n_redirects is a protection against ifinite loop of redirections
     pub fn fetch_object(
         &mut self,
-        worker_id: &WorkerId,
+        governor_id: &GovernorId,
         dataobj_id: DataObjectId,
     ) -> Box<Future<Item = Data, Error = Error>> {
-        let is_server = worker_id.ip().is_unspecified();
-        let mut context = ::worker::rpc::fetch::FetchContext {
+        let is_server = governor_id.ip().is_unspecified();
+        let mut context = ::governor::rpc::fetch::FetchContext {
             state_ref: self.self_ref(),
             dataobj_id: dataobj_id,
             remote: None,
@@ -492,13 +492,13 @@ impl State {
             n_redirects: 0,
         };
         if is_server {
-            ::worker::rpc::fetch::fetch(context)
+            ::governor::rpc::fetch::fetch(context)
         } else {
             Box::new(
-                self.wait_for_remote_worker(&worker_id)
-                    .and_then(move |remote_worker| {
-                        context.remote = Some(remote_worker);
-                        ::worker::rpc::fetch::fetch(context)
+                self.wait_for_remote_governor(&governor_id)
+                    .and_then(move |remote_governor| {
+                        context.remote = Some(remote_governor);
+                        ::governor::rpc::fetch::fetch(context)
                     }),
             )
         }
@@ -568,7 +568,7 @@ impl State {
         }*/
     }
 
-    /// Remove task from worker, if running it is forced to stop
+    /// Remove task from governor, if running it is forced to stop
     /// If task does not exists, call is silently ignored
     pub fn stop_task(&mut self, task_id: &TaskId) {
         debug!("Stopping task {}", task_id);
@@ -639,30 +639,30 @@ impl State {
         }
     }
 
-    pub fn wait_for_remote_worker(
+    pub fn wait_for_remote_governor(
         &mut self,
-        worker_id: &WorkerId,
-    ) -> Box<Future<Item = Rc<::worker_capnp::worker_bootstrap::Client>, Error = Error>> {
-        if let Some(ref mut wrapper) = self.remote_workers.get_mut(worker_id) {
+        governor_id: &GovernorId,
+    ) -> Box<Future<Item = Rc<::governor_capnp::governor_bootstrap::Client>, Error = Error>> {
+        if let Some(ref mut wrapper) = self.remote_governors.get_mut(governor_id) {
             return wrapper.wait();
         }
 
         let wrapper = AsyncInitWrapper::new();
-        self.remote_workers.insert(worker_id.clone(), wrapper);
+        self.remote_governors.insert(governor_id.clone(), wrapper);
 
         let state = self.self_ref();
-        let worker_id = worker_id.clone();
+        let governor_id = governor_id.clone();
 
         Box::new(
-            TcpStream::connect(&worker_id, &self.handle)
+            TcpStream::connect(&governor_id, &self.handle)
                 .map(move |stream| {
-                    debug!("Connection to worker {} established", worker_id);
+                    debug!("Connection to governor {} established", governor_id);
                     let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
-                    let bootstrap: Rc<::worker_capnp::worker_bootstrap::Client> =
+                    let bootstrap: Rc<::governor_capnp::governor_bootstrap::Client> =
                         Rc::new(rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server));
                     let mut s = state.get_mut();
                     {
-                        let wrapper = s.remote_workers.get_mut(&worker_id).unwrap();
+                        let wrapper = s.remote_governors.get_mut(&governor_id).unwrap();
                         wrapper.set_value(bootstrap.clone());
                     }
                     s.spawn_panic_on_error(rpc_system.map_err(|e| e.into()));
@@ -714,12 +714,12 @@ impl StateRef {
             resources: resources.clone(),
             free_resources: resources,
             upstream: None,
-            remote_workers: HashMap::new(),
+            remote_governors: HashMap::new(),
             updated_objects: Default::default(),
             updated_tasks: Default::default(),
             work_dir: WorkDir::new(work_dir),
             log_dir: LogDir::new(log_dir),
-            worker_id: empty_worker_id(),
+            governor_id: empty_governor_id(),
             graph: Graph::new(),
             need_scheduling: false,
             monitor: Monitor::new(),
@@ -742,35 +742,35 @@ impl StateRef {
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
 
-        let bootstrap = ::worker_capnp::worker_bootstrap::ToClient::new(
-            ::worker::rpc::bootstrap::WorkerBootstrapImpl::new(self),
+        let bootstrap = ::governor_capnp::governor_bootstrap::ToClient::new(
+            ::governor::rpc::bootstrap::GovernorBootstrapImpl::new(self),
         ).from_server::<::capnp_rpc::Server>();
         let rpc_system = ::common::rpc::new_rpc_system(stream, Some(bootstrap.client));
         self.get()
             .spawn_panic_on_error(rpc_system.map_err(|e| e.into()));
     }
 
-    // This is called when worker connection to server is established
+    // This is called when governor connection to server is established
     pub fn on_connected_to_server(
         &self,
         stream: TcpStream,
         listen_address: SocketAddr,
         ready_file: Option<String>,
     ) {
-        info!("Connected to server; registering as worker");
+        info!("Connected to server; registering as governor");
         stream.set_nodelay(true).unwrap();
         let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
         let bootstrap: ::server_capnp::server_bootstrap::Client =
             rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        let worker_control = ::worker_capnp::worker_control::ToClient::new(WorkerControlImpl::new(
+        let governor_control = ::governor_capnp::governor_control::ToClient::new(GovernorControlImpl::new(
             self,
         )).from_server::<::capnp_rpc::Server>();
 
-        let mut req = bootstrap.register_as_worker_request();
+        let mut req = bootstrap.register_as_governor_request();
 
-        req.get().set_version(WORKER_PROTOCOL_VERSION);
-        req.get().set_control(worker_control);
+        req.get().set_version(GOVERNOR_PROTOCOL_VERSION);
+        req.get().set_control(governor_control);
         listen_address.to_capnp(&mut req.get().get_address().unwrap());
         self.get()
             .resources
@@ -782,13 +782,13 @@ impl StateRef {
             .and_then(move |response| {
                 let response = pry!(response.get());
                 let upstream = pry!(response.get_upstream());
-                let worker_id = pry!(response.get_worker_id());
+                let governor_id = pry!(response.get_governor_id());
                 let mut inner = state.get_mut();
                 inner.upstream = Some(upstream);
-                inner.worker_id = WorkerId::from_capnp(&worker_id);
+                inner.governor_id = GovernorId::from_capnp(&governor_id);
                 debug!("Registration completed");
 
-                // Create ready file - a file that is created when worker is connected & registered
+                // Create ready file - a file that is created when governor is connected & registered
                 if let Some(name) = ready_file {
                     ::common::fs::create_ready_file(Path::new(&name));
                 }
@@ -814,7 +814,7 @@ impl StateRef {
     ) {
         let handle = self.get().handle.clone();
 
-        // --- Start listening TCP/IP for worker2worker communications ----
+        // --- Start listening TCP/IP for governor2governor communications ----
         let listener = TcpListener::bind(&listen_address, &handle).unwrap();
         let port = listener.local_addr().unwrap().port();
         // Since listen port may be 0, we need to update the real port
@@ -842,15 +842,15 @@ impl StateRef {
             .for_each(move |_| {
                 debug!("Monitoring wakeup");
                 let mut s = state.get_mut();
-                let worker_id = s.worker_id;
+                let governor_id = s.governor_id;
 
                 // Check that we already know our address
-                if worker_id.ip().is_unspecified() {
+                if governor_id.ip().is_unspecified() {
                     debug!("Monitoring skipped, registration is not completed yet");
                     return Ok(());
                 }
 
-                let event = s.monitor.build_event(&worker_id);
+                let event = s.monitor.build_event(&governor_id);
                 s.send_event(event);
                 Ok(())
             })

@@ -3,38 +3,38 @@ use chrono::TimeZone;
 use common::Attributes;
 use common::convert::FromCapnp;
 use common::id::{DataObjectId, TaskId};
-use server::graph::{Worker, WorkerRef};
+use server::graph::{Governor, GovernorRef};
 use server::state::StateRef;
-use worker_capnp::worker_upstream;
+use governor_capnp::governor_upstream;
 
-pub struct WorkerUpstreamImpl {
+pub struct GovernorUpstreamImpl {
     state: StateRef,
-    worker: WorkerRef,
+    governor: GovernorRef,
 }
 
-impl WorkerUpstreamImpl {
-    pub fn new(state: &StateRef, worker: &WorkerRef) -> Self {
+impl GovernorUpstreamImpl {
+    pub fn new(state: &StateRef, governor: &GovernorRef) -> Self {
         Self {
             state: state.clone(),
-            worker: worker.clone(),
+            governor: governor.clone(),
         }
     }
 }
 
-impl Drop for WorkerUpstreamImpl {
+impl Drop for GovernorUpstreamImpl {
     fn drop(&mut self) {
-        error!("Connection to worker {} lost", self.worker.get_id());
+        error!("Connection to governor {} lost", self.governor.get_id());
         let mut s = self.state.get_mut();
-        s.remove_worker(&self.worker)
-            .expect("dropping worker upstream");
+        s.remove_governor(&self.governor)
+            .expect("dropping governor upstream");
     }
 }
 
-impl worker_upstream::Server for WorkerUpstreamImpl {
+impl governor_upstream::Server for GovernorUpstreamImpl {
     fn update_states(
         &mut self,
-        params: worker_upstream::UpdateStatesParams,
-        _: worker_upstream::UpdateStatesResults,
+        params: governor_upstream::UpdateStatesParams,
+        _: governor_upstream::UpdateStatesResults,
     ) -> Promise<(), ::capnp::Error> {
         let update = pry!(pry!(params.get()).get_update());
         let mut state = self.state.get_mut();
@@ -69,14 +69,14 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
             }
         }
 
-        state.updates_from_worker(&self.worker, obj_updates, task_updates);
+        state.updates_from_governor(&self.governor, obj_updates, task_updates);
         Promise::ok(())
     }
 
     fn get_client_session(
         &mut self,
-        _: worker_upstream::GetClientSessionParams,
-        _: worker_upstream::GetClientSessionResults,
+        _: governor_upstream::GetClientSessionParams,
+        _: governor_upstream::GetClientSessionResults,
     ) -> Promise<(), ::capnp::Error> {
         Promise::err(::capnp::Error::unimplemented(
             "get_client_session: method not implemented".to_string(), // TODO
@@ -85,8 +85,8 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
 
     fn push_events(
         &mut self,
-        params: worker_upstream::PushEventsParams,
-        _: worker_upstream::PushEventsResults,
+        params: governor_upstream::PushEventsParams,
+        _: governor_upstream::PushEventsResults,
     ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let cevents = pry!(params.get_events());
@@ -107,8 +107,8 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
 
     fn fetch(
         &mut self,
-        params: worker_upstream::FetchParams,
-        mut results: worker_upstream::FetchResults,
+        params: governor_upstream::FetchParams,
+        mut results: governor_upstream::FetchResults,
     ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let id = DataObjectId::from_capnp(&pry!(params.get_id()));
@@ -152,4 +152,4 @@ impl worker_upstream::Server for WorkerUpstreamImpl {
     }
 }
 
-impl Worker {}
+impl Governor {}

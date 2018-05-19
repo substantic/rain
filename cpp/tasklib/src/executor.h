@@ -1,5 +1,5 @@
-#ifndef RAINSW_SUBWORKER_H
-#define RAINSW_SUBWORKER_H
+#ifndef RAINSW_EXECUTOR_H
+#define RAINSW_EXECUTOR_H
 
 #include <memory>
 #include <string>
@@ -40,4 +40,4 @@ private:
 
 }
 
-#endif // RAINSW_SUBWORKER_H
+#endif // RAINSW_EXECUTOR_H

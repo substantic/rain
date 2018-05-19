@@ -3,11 +3,11 @@ use std::rc::Rc;
 use common::DataType;
 use common::convert::FromCapnp;
 use common::convert::ToCapnp;
-use common::id::{DataObjectId, WorkerId};
+use common::id::{DataObjectId, GovernorId};
 use errors::{Error, ErrorKind};
 use futures::{future, Future};
-use worker::StateRef;
-use worker::data::{Data, DataBuilder};
+use governor::StateRef;
+use governor::data::{Data, DataBuilder};
 
 use futures::IntoFuture;
 use futures::future::Either;
@@ -15,7 +15,7 @@ use futures::future::Either;
 pub struct FetchContext {
     pub state_ref: StateRef,
     pub dataobj_id: DataObjectId,
-    pub remote: Option<Rc<::worker_capnp::worker_bootstrap::Client>>,
+    pub remote: Option<Rc<::governor_capnp::governor_bootstrap::Client>>,
     pub builder: Option<DataBuilder>,
     pub offset: usize,
     pub size: usize,
@@ -30,7 +30,7 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
             let state = state_ref.get();
             let send = match context.remote {
                 Some(ref r) => {
-                    // fetch from worker
+                    // fetch from governor
                     let mut req = r.fetch_request();
                     {
                         let mut request = req.get();
@@ -108,10 +108,10 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                             if context.n_redirects > 32 {
                                 panic!("Too many redirections of fetch");
                             }
-                            let worker_id = WorkerId::from_capnp(&w.unwrap());
-                            Either::B(state.wait_for_remote_worker(&worker_id).and_then(
-                                move |remote_worker| {
-                                    context.remote = Some(remote_worker);
+                            let governor_id = GovernorId::from_capnp(&w.unwrap());
+                            Either::B(state.wait_for_remote_governor(&governor_id).and_then(
+                                move |remote_governor| {
+                                    context.remote = Some(remote_governor);
                                     Ok(future::Loop::Continue(context))
                                 },
                             ))

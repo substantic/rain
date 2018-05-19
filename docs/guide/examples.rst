@@ -58,11 +58,11 @@ Distributed cross-validation with libsvm
         client = Client("localhost", 7210)
         with client.new_session() as session:
 
-            # Load data - this is already task, so load is performed on worker
+            # Load data - this is already task, so load is performed on governor
             input_data = tasks.open(DATA_FILE)
 
             # Convert data - note that the function is marked @remote
-            # so it is not executed now, but on a worker
+            # so it is not executed now, but on a governor
             converted_data = convert_to_libsvm_format(input_data)
 
             # Using unix command "sort" to shuffle dataset
