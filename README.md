@@ -24,7 +24,7 @@ insightful monitoring on top.
 ## Features
 
 - **Dataflow programming.** Computation in Rain is defined as a flow graph of
-  tasks. Tasks may be built-in functions, Python code, or an external
+  tasks. Tasks may be built-in functions, Python/C++/Rust code, or an external
   applications, short and light or long-running and heavy. The system is
   designed to integrate any code into a pipeline, respecting its resource
   requirements, and to handle very large task graphs (hundreds thousands tasks).
@@ -33,11 +33,10 @@ insightful monitoring on top.
   from a single node deployments to large-scale distributed systems and clouds
   ranging thousands of cores.
 
-- **Rust core, Python API.** Rain is written in Rust for safety and efficiency
-  and has a high-level Python API to Rain core infrastructure, and even supports
-  Python tasks out-of-the-box. Nevertheless, Rain core infrastructure provides
-  language-independent interface that does not prevent adding support for other
-  languages in the future.
+- **Rust core, Python/C++/Rust API.** Rain is written in Rust for safety and
+  efficiency and has a high-level Python API to Rain core infrastructure, and
+  even supports Python tasks out-of-the-box. Rain also provides libraries for
+  writing own tasks in C++ and Rust.
 
 - **Monitoring.** Rain is designed to support both online and postmortem
   monitoring.
