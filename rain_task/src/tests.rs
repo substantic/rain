@@ -1,6 +1,6 @@
 use super::framing::SocketExt;
 use super::*;
-use librain::worker::rpc::subworker_serde::*;
+use librain::worker::rpc::executor_serde::*;
 use serde_cbor;
 use std::env;
 use std::fs;
@@ -13,7 +13,7 @@ use std::thread::{spawn, JoinHandle};
 /// received so far).
 fn dummy_worker(
     socket_path: &Path,
-    id: SubworkerId,
+    id: ExecutorId,
     name: &str,
     requests: Vec<CallMsg>,
 ) -> JoinHandle<Vec<ResultMsg>> {
@@ -24,17 +24,17 @@ fn dummy_worker(
         let (mut socket, addr) = main_socket.accept().unwrap();
         debug!("Dummy worker accepted connection from {:?}", addr);
         let data = socket.read_frame().unwrap();
-        let msg = serde_cbor::from_slice::<SubworkerToWorkerMessage>(&data).unwrap();
-        if let SubworkerToWorkerMessage::Register(ref reg) = msg {
-            assert_eq!(reg.subworker_id, id);
-            assert_eq!(reg.subworker_type, name);
+        let msg = serde_cbor::from_slice::<ExecutorToWorkerMessage>(&data).unwrap();
+        if let ExecutorToWorkerMessage::Register(ref reg) = msg {
+            assert_eq!(reg.executor_id, id);
+            assert_eq!(reg.executor_type, name);
             assert_eq!(reg.protocol, MSG_PROTOCOL);
         } else {
             panic!("expected Register msg");
         }
         let mut res = Vec::new();
         for r in requests {
-            let data = serde_cbor::to_vec(&WorkerToSubworkerMessage::Call(r)).unwrap();
+            let data = serde_cbor::to_vec(&WorkerToExecutorMessage::Call(r)).unwrap();
             let data = match socket.write_frame(&data).and_then(|_| socket.read_frame()) {
                 Err(Error(ErrorKind::Io(ref e), _))
                     if (e.kind() == io::ErrorKind::UnexpectedEof) =>
@@ -44,8 +44,8 @@ fn dummy_worker(
                 Err(e) => Err(e).unwrap(),
                 Ok(d) => d,
             };
-            let msg = serde_cbor::from_slice::<SubworkerToWorkerMessage>(&data).unwrap();
-            if let SubworkerToWorkerMessage::Result(result) = msg {
+            let msg = serde_cbor::from_slice::<ExecutorToWorkerMessage>(&data).unwrap();
+            if let ExecutorToWorkerMessage::Result(result) = msg {
                 res.push(result);
             } else {
                 panic!("expected Result msg");
@@ -55,16 +55,16 @@ fn dummy_worker(
     })
 }
 
-/// Setup helper to clean and create a test dir, setup a Subworker and create a dummy worker.
-fn setup(name: &str, requests: Vec<CallMsg>) -> (Subworker, JoinHandle<Vec<ResultMsg>>) {
+/// Setup helper to clean and create a test dir, setup a Executor and create a dummy worker.
+fn setup(name: &str, requests: Vec<CallMsg>) -> (Executor, JoinHandle<Vec<ResultMsg>>) {
     // let _ = env_logger::try_init(); // Optional logging for beter debug (but normally too noisy)
     let p: PathBuf = env::current_dir().unwrap().join("testing").join(name);
     if p.exists() {
         fs::remove_dir_all(&p).unwrap();
     }
     fs::create_dir_all(&p).unwrap();
-    let sock_path = p.join("subworker.socket");
-    let s = Subworker::with_params(name, 42, &sock_path, &p);
+    let sock_path = p.join("executor.socket");
+    let s = Executor::with_params(name, 42, &sock_path, &p);
     let handle = dummy_worker(&sock_path, 42, name, requests);
     (s, handle)
 }
@@ -175,7 +175,7 @@ fn run_missing_task() {
 #[should_panic(expected = "already present")]
 fn register_task_twice() {
     let p: PathBuf = "".into();
-    let mut s = Subworker::with_params("", 1, &p, &p);
+    let mut s = Executor::with_params("", 1, &p, &p);
     s.register_task("task1", task1);
     s.register_task("task1", |_ctx, _ins, _outs| Ok(()));
 }
@@ -183,7 +183,7 @@ fn register_task_twice() {
 #[test]
 fn register_task() {
     let p: PathBuf = "".into();
-    let mut s = Subworker::with_params("", 1, &p, &p);
+    let mut s = Executor::with_params("", 1, &p, &p);
     s.register_task("task1a", task1);
     s.register_task("task1b", task1);
     s.register_task("task2", |_ctx, _ins, _outs| Ok(()));
@@ -507,7 +507,7 @@ fn read_set_content_type() {
     register_task!(s, "foo", [I O], |_ctx, i: &DataInstance, o: &mut Output| {
         assert_eq!(i.get_content_type(), "text");
         assert_eq!(o.get_content_type(), "text");
-        o.set_content_type("text").unwrap();        
+        o.set_content_type("text").unwrap();
         Ok(())
         });
     s.run();

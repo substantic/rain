@@ -6,7 +6,7 @@ def hello(obj):
 
 
 def test_rustsw_hello(test_env):
-    test_env.start(1, subworker="rusttester")
+    test_env.start(1, executor="rusttester")
     with test_env.client.new_session() as s:
         t1 = hello(blob("world"))
         t1.keep_outputs()

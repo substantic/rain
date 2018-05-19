@@ -6,12 +6,12 @@
 #include <sys/mman.h>
 
 
-rainsw::DataInstance::~DataInstance()
+tasklib::DataInstance::~DataInstance()
 {
 
 }
 
-cbor_item_t *rainsw::DataInstance::make_output_spec(cbor_item_t *output_item) const
+cbor_item_t *tasklib::DataInstance::make_output_spec(cbor_item_t *output_item) const
 {
     cbor_item_t *root = cbor_new_definite_map(3);
     cbor_map_add(root, (struct cbor_pair) {
@@ -33,7 +33,7 @@ cbor_item_t *rainsw::DataInstance::make_output_spec(cbor_item_t *output_item) co
     return root;
 }
 
-rainsw::DataInstancePtr rainsw::DataInstance::from_input_spec(cbor_item_t *item)
+tasklib::DataInstancePtr tasklib::DataInstance::from_input_spec(cbor_item_t *item)
 {
    cbor_item_t *location = cb_map_lookup(item, "location");
 
@@ -60,25 +60,25 @@ rainsw::DataInstancePtr rainsw::DataInstance::from_input_spec(cbor_item_t *item)
    return result;
 }
 
-std::string rainsw::DataInstance::read_as_string()
+std::string tasklib::DataInstance::read_as_string()
 {
    auto p = get_ptr();
    std::string s(p, p + get_size());
    return s;
 }
 
-rainsw::MemDataInstance::MemDataInstance(std::vector<unsigned char> &&data)
+tasklib::MemDataInstance::MemDataInstance(std::vector<unsigned char> &&data)
    : data(std::move(data))
 {
 
 }
 
-rainsw::MemDataInstance::~MemDataInstance()
+tasklib::MemDataInstance::~MemDataInstance()
 {
 
 }
 
-cbor_item_t *rainsw::MemDataInstance::make_location() const
+cbor_item_t *tasklib::MemDataInstance::make_location() const
 {
     cbor_item_t *root = cbor_new_definite_array(2);
     cbor_array_push(root, cbor_move(cbor_build_string("memory")));
@@ -86,12 +86,12 @@ cbor_item_t *rainsw::MemDataInstance::make_location() const
     return root;
 }
 
-rainsw::FileDataInstance::FileDataInstance(const std::string &path) : path(path), data(nullptr), size(INVALID_SIZE)
+tasklib::FileDataInstance::FileDataInstance(const std::string &path) : path(path), data(nullptr), size(INVALID_SIZE)
 {
 
 }
 
-rainsw::FileDataInstance::~FileDataInstance()
+tasklib::FileDataInstance::~FileDataInstance()
 {
     if (data) {
         assert(size != INVALID_SIZE);
@@ -99,7 +99,7 @@ rainsw::FileDataInstance::~FileDataInstance()
     }
 }
 
-size_t rainsw::FileDataInstance::get_size() const
+size_t tasklib::FileDataInstance::get_size() const
 {
     std::lock_guard<std::mutex> lock(mutex);
     if (INVALID_SIZE == size) {
@@ -108,7 +108,7 @@ size_t rainsw::FileDataInstance::get_size() const
     return size;
 }
 
-const unsigned char *rainsw::FileDataInstance::get_ptr() const
+const unsigned char *tasklib::FileDataInstance::get_ptr() const
 {
     std::lock_guard<std::mutex> lock(mutex);
     if (!data) {
@@ -127,7 +127,7 @@ const unsigned char *rainsw::FileDataInstance::get_ptr() const
     return data;
 }
 
-int rainsw::FileDataInstance::open() const
+int tasklib::FileDataInstance::open() const
 {
     int fd = ::open(path.c_str(), O_RDONLY,  S_IRUSR | S_IWUSR);
     if (fd < 0) {
@@ -137,7 +137,7 @@ int rainsw::FileDataInstance::open() const
     return fd;
 }
 
-cbor_item_t *rainsw::FileDataInstance::make_location() const
+cbor_item_t *tasklib::FileDataInstance::make_location() const
 {
     cbor_item_t *root = cbor_new_definite_array(2);
     cbor_array_push(root, cbor_move(cbor_build_string("path")));

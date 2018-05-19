@@ -106,9 +106,9 @@ OutputSpec = collections.namedtuple(
     'OutputSpec', ['label', 'id', 'encode', 'attributes'])
 
 
-class Subworker:
+class Executor:
 
-    def __init__(self, address, subworker_id, task_path, stage_path):
+    def __init__(self, address, executor_id, task_path, stage_path):
         self.task_path = task_path
         self.stage_path = stage_path
         self.cache = {}
@@ -127,8 +127,8 @@ class Subworker:
         self.socket.send_message(["register",
                                   {
                                     "protocol": SUBWORKER_PROTOCOL,
-                                    "subworkerId": subworker_id,
-                                    "subworkerType": "py"
+                                    "executorId": executor_id,
+                                    "executorType": "py"
                                   }])
 
     def run(self):
@@ -273,9 +273,9 @@ def get_environ_int(name):
 
 
 def main():
-    subworker_id = get_environ_int("RAIN_SUBWORKER_ID")
+    executor_id = get_environ_int("RAIN_SUBWORKER_ID")
 
-    print("Initalizing subworker {} ...".format(subworker_id))
+    print("Initalizing executor {} ...".format(executor_id))
     print("Working directory: ".format(os.getcwd()))
     sys.stdout.flush()
 
@@ -285,10 +285,10 @@ def main():
     stage_path = os.path.abspath("stage")
     task_path = os.path.abspath("task")
 
-    subworker = Subworker(get_environ("RAIN_SUBWORKER_SOCKET"),
-                          subworker_id,
+    executor = Executor(get_environ("RAIN_SUBWORKER_SOCKET"),
+                          executor_id,
                           task_path,
                           stage_path)
-    print("Subworker initialized")
+    print("Executor initialized")
     sys.stdout.flush()
-    subworker.run()
+    executor.run()

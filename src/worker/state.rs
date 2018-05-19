@@ -21,11 +21,11 @@ use common::wrapped::WrappedRcRefCell;
 use worker::data::Data;
 use worker::data::transport::TransportView;
 use worker::fs::workdir::WorkDir;
-use worker::graph::{subworker_command, DataObject, DataObjectRef, DataObjectState, Graph,
-                    SubworkerRef, TaskInput, TaskRef, TaskState};
+use worker::graph::{executor_command, DataObject, DataObjectRef, DataObjectState, Graph,
+                    ExecutorRef, TaskInput, TaskRef, TaskState};
 use worker::rpc::WorkerControlImpl;
-use worker::rpc::subworker::check_registration;
-use worker::rpc::subworker_serde::SubworkerToWorkerMessage;
+use worker::rpc::executor::check_registration;
+use worker::rpc::executor_serde::ExecutorToWorkerMessage;
 use worker::tasks::TaskInstance;
 
 use capnp::capability::Promise;
@@ -87,9 +87,9 @@ pub struct State {
 
     monitor: Monitor,
 
-    // Map from name of subworkers to its arguments
-    // e.g. "py" => ["python", "-m", "rain.subworker"]
-    subworker_args: HashMap<String, Vec<String>>,
+    // Map from name of executors to its arguments
+    // e.g. "py" => ["python", "-m", "rain.executor"]
+    executor_args: HashMap<String, Vec<String>>,
 
     self_ref: Option<StateRef>,
 }
@@ -282,41 +282,41 @@ impl State {
         self.spawn_panic_on_error(req.send().promise.map(|_| ()).map_err(|e| e.into()));
     }
 
-    fn subworker_cleanup(&mut self, subworker_ref: &SubworkerRef) {
-        self.graph.idle_subworkers.remove(&subworker_ref);
+    fn executor_cleanup(&mut self, executor_ref: &ExecutorRef) {
+        self.graph.idle_executors.remove(&executor_ref);
         for (_, obj_ref) in &self.graph.objects {
-            obj_ref.get_mut().subworker_cache.remove(&subworker_ref);
+            obj_ref.get_mut().executor_cache.remove(&executor_ref);
         }
     }
 
-    pub fn get_subworker(
+    pub fn get_executor(
         &mut self,
-        subworker_type: &str,
-    ) -> Result<Box<Future<Item = SubworkerRef, Error = Error>>> {
+        executor_type: &str,
+    ) -> Result<Box<Future<Item = ExecutorRef, Error = Error>>> {
         use tokio_process::CommandExt;
 
         let sw_result = self.graph
-            .idle_subworkers
+            .idle_executors
             .iter()
-            .find(|sw| sw.get().subworker_type() == subworker_type)
+            .find(|sw| sw.get().executor_type() == executor_type)
             .cloned();
         match sw_result {
             None => {
-                if let Some(args) = self.subworker_args.get(subworker_type) {
-                    let subworker_id = self.graph.make_id();
-                    let subworker_type = subworker_type.to_string();
+                if let Some(args) = self.executor_args.get(executor_type) {
+                    let executor_id = self.graph.make_id();
+                    let executor_type = executor_type.to_string();
                     info!(
-                        "Staring new subworker type={} id={}",
-                        subworker_type, subworker_id
+                        "Staring new executor type={} id={}",
+                        executor_type, executor_id
                     );
-                    let subworker_dir = self.work_dir.make_subworker_work_dir(subworker_id)?;
-                    let listen_path = subworker_dir.path().join("socket");
+                    let executor_dir = self.work_dir.make_executor_work_dir(executor_id)?;
+                    let listen_path = executor_dir.path().join("socket");
 
-                    // --- Start listening Unix socket for subworkers ----
+                    // --- Start listening Unix socket for executors ----
                     let listener =
                         {
                             let backup = ::std::env::current_dir().unwrap();
-                            ::std::env::set_current_dir(subworker_dir.path()).unwrap();
+                            ::std::env::set_current_dir(executor_dir.path()).unwrap();
                             let result = UnixListener::bind("socket", &self.handle);
                             ::std::env::set_current_dir(backup).unwrap();
                             result
@@ -324,11 +324,11 @@ impl State {
                             .unwrap();
 
                     let program_name = &args[0];
-                    let mut command = subworker_command(
-                        &subworker_dir,
+                    let mut command = executor_command(
+                        &executor_dir,
                         &listen_path,
                         &self.log_dir,
-                        subworker_id,
+                        executor_id,
                         program_name,
                         &args[1..],
                     )?;
@@ -337,38 +337,38 @@ impl State {
                         .status_async2(&self.handle)
                         .map_err(|e| {
                             format!(
-                                "Subworker command '{}' failed: {:?}",
+                                "Executor command '{}' failed: {:?}",
                                 program_name,
                                 ::std::error::Error::description(&e)
                             )
                         })?
                         .map_err(|e| {
                             format!(
-                                "Subworker command failed: {:?}",
+                                "Executor command failed: {:?}",
                                 ::std::error::Error::description(&e)
                             ).into()
                         })
                         .and_then(move |status| {
-                            error!("Subworker {} terminated with {}", subworker_id, status);
-                            bail!("Subworker unexpectedly terminated with {}", status);
+                            error!("Executor {} terminated with {}", executor_id, status);
+                            bail!("Executor unexpectedly terminated with {}", status);
                         });
 
-                    let subworker_type2 = subworker_type.clone();
+                    let executor_type2 = executor_type.clone();
                     let listen_future = listener
                         .incoming()
                         .into_future()
-                        .map_err(|_| "Subworker connection failed".into())
+                        .map_err(|_| "Executor connection failed".into())
                         .and_then(move |(r, _)| {
-                            info!("Connection for subworker id={}", subworker_id);
+                            info!("Connection for executor id={}", executor_id);
                             let (raw_stream, _) = r.unwrap();
                             let stream = ::common::comm::create_protocol_stream(raw_stream);
                             stream
                                 .into_future()
                                 .map_err(|(e, _)| {
-                                    format!("Subworker error: Error on unregistered subworker connection: {:?}", e).into()
+                                    format!("Executor error: Error on unregistered executor connection: {:?}", e).into()
                                 })
                                 .and_then(move |(r, stream)| {
-                                    check_registration(r, subworker_id, &subworker_type2)
+                                    check_registration(r, executor_id, &executor_type2)
                                         .map(|()| stream)
                                 })
                         });
@@ -384,30 +384,30 @@ impl State {
                             };
                             let connection = Connection::from(stream);
                             let sender = connection.sender();
-                            let subworker = SubworkerRef::new(
-                                subworker_id,
-                                subworker_type,
+                            let executor = ExecutorRef::new(
+                                executor_id,
+                                executor_type,
                                 sender,
-                                subworker_dir,
+                                executor_dir,
                             );
-                            let subworker2 = subworker.clone();
-                            let result = subworker.clone();
+                            let executor2 = executor.clone();
+                            let result = executor.clone();
 
                             let comm_future = connection.start_future(move |data| {
-                                let message: SubworkerToWorkerMessage =
+                                let message: ExecutorToWorkerMessage =
                                     ::serde_cbor::from_slice(&data).unwrap();
                                 match message {
-                                    SubworkerToWorkerMessage::Result(msg) => {
-                                        let mut sw = subworker.get_mut();
+                                    ExecutorToWorkerMessage::Result(msg) => {
+                                        let mut sw = executor.get_mut();
                                         match sw.pick_finish_sender() {
                                         Some(sender) => { sender.send(msg).unwrap() },
                                         None => {
-                                            bail!("No task is currentl running in subworker, but 'result' received")
+                                            bail!("No task is currentl running in executor, but 'result' received")
                                         }
                                     };
                                     }
-                                    SubworkerToWorkerMessage::Register(_) => {
-                                        bail!("Subworker send 'Register' message but it is already registered");
+                                    ExecutorToWorkerMessage::Register(_) => {
+                                        bail!("Executor send 'Register' message but it is already registered");
                                     }
                                 }
                                 Ok(())
@@ -416,13 +416,13 @@ impl State {
                             let future = comm_future.select(command_future).then(move |r| {
                                 match r {
                                     Ok(_) => {
-                                        debug!("Subworker terminating");
+                                        debug!("Executor terminating");
                                     }
-                                    Err((e, _)) => error!("Subworker failed: {}", e),
+                                    Err((e, _)) => error!("Executor failed: {}", e),
                                 };
-                                subworker2.get_mut().pick_finish_sender(); // just picke sender and them it away
+                                executor2.get_mut().pick_finish_sender(); // just picke sender and them it away
                                 let mut state = state_ref2.get_mut();
-                                state.subworker_cleanup(&subworker2);
+                                state.executor_cleanup(&executor2);
                                 Ok(())
                             });
                             let state = state_ref.get();
@@ -435,11 +435,11 @@ impl State {
                         });
                     Ok(Box::new(ready_future))
                 } else {
-                    bail!("Subworker '{}' is not registered", subworker_type);
+                    bail!("Executor '{}' is not registered", executor_type);
                 }
             }
             Some(sw) => {
-                self.graph.idle_subworkers.remove(&sw);
+                self.graph.idle_executors.remove(&sw);
                 Ok(Box::new(Ok(sw).into_future()))
             }
         }
@@ -507,7 +507,7 @@ impl State {
     pub fn remove_object(&mut self, object: &mut DataObject) {
         debug!("Removing object {}", object.id);
         let id_list = [object.id];
-        for sw in ::std::mem::replace(&mut object.subworker_cache, Default::default()) {
+        for sw in ::std::mem::replace(&mut object.executor_cache, Default::default()) {
             sw.get().send_remove_cached_objects(&id_list);
         }
         object.set_as_removed();
@@ -704,7 +704,7 @@ impl StateRef {
         work_dir: PathBuf,
         log_dir: PathBuf,
         n_cpus: u32,
-        subworkers: HashMap<String, Vec<String>>,
+        executors: HashMap<String, Vec<String>>,
     ) -> Self {
         let resources = Resources { cpus: n_cpus };
 
@@ -723,7 +723,7 @@ impl StateRef {
             graph: Graph::new(),
             need_scheduling: false,
             monitor: Monitor::new(),
-            subworker_args: subworkers,
+            executor_args: executors,
             self_ref: None,
             delete_list_max_timeout: ::std::env::var("RAIN_DELETE_LIST_TIMEOUT")
                 .ok()

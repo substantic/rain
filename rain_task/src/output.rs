@@ -7,10 +7,10 @@ use std::sync::{Mutex, MutexGuard};
 use std::{fmt, fs, mem};
 
 use librain::common::id::SId;
-use librain::common::id::{DataObjectId, SubworkerId, TaskId};
+use librain::common::id::{DataObjectId, ExecutorId, TaskId};
 use librain::common::Attributes;
 use librain::common::DataType;
-use librain::worker::rpc::subworker_serde::*;
+use librain::worker::rpc::executor_serde::*;
 
 use super::*;
 
@@ -89,7 +89,7 @@ impl<'a> Output<'a> {
 
     /// Consume self, yielding a `DataObjectSpec` for `ResultMsg` and
     /// a flag whether the output object was cached (only possible if requested).
-    /// Currently, this subworker never caches.
+    /// Currently, this executor never caches.
     ///
     /// NOTE: The returned path may be still an open file until this Output is dropped.
     pub(crate) fn into_output_spec(self) -> (DataObjectSpec, bool) {
@@ -241,7 +241,7 @@ impl<'a> Output<'a> {
 
     /// Get the content-type of the object.
     ///
-    /// Returns the type set in the subworker if any, or the type in the spec.
+    /// Returns the type set in the executor if any, or the type in the spec.
     /// Returns "" for directories.
     pub fn get_content_type(&self) -> String {
         if self.get_data_type() != DataType::Blob {

@@ -5,7 +5,7 @@
 #include "cbor.h"
 #include "common.h"
 
-namespace rainsw {
+namespace tasklib {
     extern std::shared_ptr<spdlog::logger> logger;
     void log_errno_and_exit(const char *tmp)  __attribute__ ((noreturn));
     void log_cbor_error_and_exit() __attribute__ ((noreturn));

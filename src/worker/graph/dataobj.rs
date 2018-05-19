@@ -5,8 +5,8 @@ use common::{Attributes, DataType, RcSet};
 use errors::{ErrorKind, Result};
 use worker::WorkDir;
 use worker::data::Data;
-use worker::graph::SubworkerRef;
-use worker::rpc::subworker_serde::{DataLocation, DataObjectSpec};
+use worker::graph::ExecutorRef;
+use worker::rpc::executor_serde::{DataLocation, DataObjectSpec};
 
 use std::fmt;
 use std::net::SocketAddr;
@@ -44,7 +44,7 @@ pub struct DataObject {
     pub(in super::super) assigned: bool,
 
     /// Where are data object cached
-    pub(in super::super) subworker_cache: RcSet<SubworkerRef>,
+    pub(in super::super) executor_cache: RcSet<ExecutorRef>,
 
     /// ??? Is this necessary for worker?
     pub(in super::super) size: Option<usize>,
@@ -153,7 +153,7 @@ impl DataObject {
         self.set_data(Arc::new(data))
     }
 
-    pub fn create_input_spec(&self, label: &str, subworker_ref: &SubworkerRef) -> DataObjectSpec {
+    pub fn create_input_spec(&self, label: &str, executor_ref: &ExecutorRef) -> DataObjectSpec {
         DataObjectSpec {
             id: self.id,
             label: if label.is_empty() {
@@ -162,7 +162,7 @@ impl DataObject {
                 Some(label.to_string())
             },
             attributes: self.attributes.clone(),
-            location: if self.subworker_cache.contains(subworker_ref) {
+            location: if self.executor_cache.contains(executor_ref) {
                 Some(DataLocation::Cached)
             } else {
                 Some(self.data().create_location())
@@ -211,7 +211,7 @@ impl DataObjectRef {
                     attributes,
                     data_type,
                     new_attributes: Attributes::new(),
-                    subworker_cache: Default::default(),
+                    executor_cache: Default::default(),
                 });
                 e.insert(dataobj.clone());
                 dataobj

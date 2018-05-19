@@ -160,7 +160,7 @@ class Task:
             self.id, self.task_type)
 
     def __reduce__(self):
-        """Speciaization to replace with subworker.unpickle_input_object
+        """Speciaization to replace with executor.unpickle_input_object
         in Python task args while (cloud)pickling. Raises RainError when
         using task with `len(outputs) != 1` as a data object."""
         from . import pycode

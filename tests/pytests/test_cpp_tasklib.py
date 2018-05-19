@@ -17,7 +17,7 @@ def cpp_invalid():
 
 
 def test_cpp_hello_mem(test_env):
-    test_env.start(1, subworker="cpptester")
+    test_env.start(1, executor="cpptester")
     with test_env.client.new_session() as s:
         t1 = cpp_hello(blob("world"))
         t1.output.keep()
@@ -26,7 +26,7 @@ def test_cpp_hello_mem(test_env):
 
 
 def test_cpp_hello_file(test_env):
-    test_env.start(1, subworker="cpptester")
+    test_env.start(1, executor="cpptester")
     with test_env.client.new_session() as s:
         d1 = blob("WORLD")
         t0 = tasks.execute("ls",
@@ -39,7 +39,7 @@ def test_cpp_hello_file(test_env):
 
 
 def test_cpp_fail(test_env):
-    test_env.start(1, subworker="cpptester")
+    test_env.start(1, executor="cpptester")
     with test_env.client.new_session() as s:
         t1 = cpp_fail(blob("ABCD"))
         s.submit()
@@ -48,7 +48,7 @@ def test_cpp_fail(test_env):
 
 
 def test_cpp_invalid_inputs(test_env):
-    test_env.start(1, subworker="cpptester")
+    test_env.start(1, executor="cpptester")
     with test_env.client.new_session() as s:
         obj = blob("WORLD")
         t1 = Task("cpptester/hello", inputs=(obj, obj, obj), outputs=1)
@@ -58,7 +58,7 @@ def test_cpp_invalid_inputs(test_env):
 
 
 def test_cpp_invalid_outputs(test_env):
-    test_env.start(1, subworker="cpptester")
+    test_env.start(1, executor="cpptester")
     with test_env.client.new_session() as s:
         obj = blob("WORLD")
         t1 = Task("cpptester/hello", inputs=(obj,), outputs=3)
@@ -68,7 +68,7 @@ def test_cpp_invalid_outputs(test_env):
 
 
 def test_cpp_invalid(test_env):
-    test_env.start(1, subworker="cpptester")
+    test_env.start(1, executor="cpptester")
     with test_env.client.new_session() as s:
         t1 = Task("cpptester/this_should_not_exist", outputs=0)
         s.submit()

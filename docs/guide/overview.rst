@@ -51,8 +51,8 @@ What is in the box
 
 Rain infrastructure composes of a central **server** component and **worker**
 components, that may run on different machines. A worker may spawn one or more
-**subworkers** that are local processes that provides execution of an external
-code. Rain is distributed with Python subworker. Workers communicate via
+**executors** that are local processes that provides execution of an external
+code. Rain is distributed with Python executor. Workers communicate via
 direct connections to exchange data.
 
 Users interacts with server via
@@ -137,13 +137,13 @@ are semantic and usage issues about resources, scheduling, multiple consumers
 and resiliency.
 
 
-Plain C/C++ tasks and subworkers
+Plain C/C++ tasks and executors
 --------------------------------
 
 Right now, the available tasks are either built in, external programs or python
 routines. It should be possible and straightforward to turn your C or C++ (or
-other language) function to a custom task by creating a new subworker. We plan a
-simple C library subworker scaffold that will allow easy gray-box subworkers.
+other language) function to a custom task by creating a new executor. We plan a
+simple C library executor scaffold that will allow easy gray-box executors.
 You do not have to link against Rain, which should make deployment easier.
 
 
@@ -201,7 +201,7 @@ Roadmap
 v0.3
 ----
 
-* Worker/Subworker crash resilience
+* Worker/Executor crash resilience
 * More clever scheduler
 
 v0.2

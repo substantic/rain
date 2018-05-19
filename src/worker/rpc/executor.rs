@@ -4,11 +4,11 @@ use std::sync::Arc;
 
 use bytes::BytesMut;
 use common::DataType;
-use common::id::SubworkerId;
+use common::id::ExecutorId;
 use worker::State;
 use worker::data::{Data, Storage};
-use worker::rpc::subworker_serde::SubworkerToWorkerMessage;
-use worker::rpc::subworker_serde::{DataLocation, DataObjectSpec};
+use worker::rpc::executor_serde::ExecutorToWorkerMessage;
+use worker::rpc::executor_serde::{DataLocation, DataObjectSpec};
 
 use errors::Result;
 
@@ -16,7 +16,7 @@ static PROTOCOL_VERSION: &'static str = "cbor-1";
 
 pub fn data_output_from_spec(
     state: &State,
-    subworker_dir: &Path,
+    executor_dir: &Path,
     spec: DataObjectSpec,
     data_type: DataType,
 ) -> Result<Arc<Data>> {
@@ -27,8 +27,8 @@ pub fn data_output_from_spec(
             if !source_path.is_absolute() {
                 bail!("Path of dataobject is not absolute");
             }
-            if !source_path.starts_with(subworker_dir) {
-                bail!("Path of dataobject is not in subworker dir");
+            if !source_path.starts_with(executor_dir) {
+                bail!("Path of dataobject is not in executor dir");
             }
             let work_dir = state.work_dir();
             let target_path = work_dir.new_path_for_dataobject();
@@ -50,34 +50,34 @@ pub fn data_output_from_spec(
 
 pub fn check_registration(
     data: Option<BytesMut>,
-    subworker_id: SubworkerId,
-    subworker_type: &str,
+    executor_id: ExecutorId,
+    executor_type: &str,
 ) -> Result<()> {
     match data {
         Some(data) => {
-            let message: SubworkerToWorkerMessage = ::serde_cbor::from_slice(&data).unwrap();
-            if let SubworkerToWorkerMessage::Register(msg) = message {
+            let message: ExecutorToWorkerMessage = ::serde_cbor::from_slice(&data).unwrap();
+            if let ExecutorToWorkerMessage::Register(msg) = message {
                 debug!(
-                    "Subworker id={} registered: protocol={} id={} type={}",
-                    subworker_id, msg.protocol, msg.subworker_id, msg.subworker_type
+                    "Executor id={} registered: protocol={} id={} type={}",
+                    executor_id, msg.protocol, msg.executor_id, msg.executor_type
                 );
                 if msg.protocol != PROTOCOL_VERSION {
                     bail!(
-                        "Subworker error: registered with invalid protocol; expected = {}",
+                        "Executor error: registered with invalid protocol; expected = {}",
                         PROTOCOL_VERSION
                     );
                 }
-                if msg.subworker_id != subworker_id {
-                    bail!("Subworker error: registered with invalid id");
+                if msg.executor_id != executor_id {
+                    bail!("Executor error: registered with invalid id");
                 }
-                if msg.subworker_type != subworker_type {
-                    bail!("Subworker error: registered with invalid type");
+                if msg.executor_type != executor_type {
+                    bail!("Executor error: registered with invalid type");
                 }
             } else {
-                bail!("Subworker error: Not registered by first message");
+                bail!("Executor error: Not registered by first message");
             }
         }
-        None => bail!("Subworker error: Closed connection without registration"),
+        None => bail!("Executor error: Closed connection without registration"),
     };
     Ok(())
 }

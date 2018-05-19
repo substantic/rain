@@ -1,19 +1,19 @@
 #include <sstream>
 
-#include "subworker.h"
+#include "executor.h"
 #include "log.h"
 #include "cbor.h"
 #include "utils.h"
 #include "ids.h"
 #include "datainstance.h"
 
-rainsw::Subworker::Subworker(const std::string &type_name) : type_name(type_name)
+tasklib::Executor::Executor(const std::string &type_name) : type_name(type_name)
 {
     spdlog::set_pattern("%H:%M:%S [%l] %v");
     spdlog::set_level(spdlog::level::debug);
 }
 
-void rainsw::Subworker::start()
+void tasklib::Executor::start()
 {
    init();
 
@@ -23,7 +23,7 @@ void rainsw::Subworker::start()
    };
 }
 
-void rainsw::Subworker::process_message(std::vector<char> &data)
+void tasklib::Executor::process_message(std::vector<char> &data)
 {
    logger->debug("Message received");
    struct cbor_load_result result;
@@ -58,7 +58,7 @@ void rainsw::Subworker::process_message(std::vector<char> &data)
    cbor_decref(&msg_data);
 }
 
-void rainsw::Subworker::process_message_call(cbor_item_t *msg_data)
+void tasklib::Executor::process_message_call(cbor_item_t *msg_data)
 {
    //cbor_describe(msg_data, stdout);
    std::string method = cb_map_lookup_string(msg_data, "method");
@@ -68,7 +68,7 @@ void rainsw::Subworker::process_message_call(cbor_item_t *msg_data)
 
    auto fn = registered_tasks.find(method);
    if (fn == registered_tasks.end()) {
-        send_error(std::string("Method '") + method + "' not found in subworker", id_item);
+        send_error(std::string("Method '") + method + "' not found in executor", id_item);
         return;
    }
 
@@ -137,7 +137,7 @@ void rainsw::Subworker::process_message_call(cbor_item_t *msg_data)
    send_message("result", result_data);
 }
 
-void rainsw::Subworker::send_error(const std::string &error_msg, cbor_item_t *id_item)
+void tasklib::Executor::send_error(const std::string &error_msg, cbor_item_t *id_item)
 {
     // TODO: This needs real JSON serialization
     std::string message = '"' + error_msg + '"';
@@ -164,29 +164,29 @@ void rainsw::Subworker::send_error(const std::string &error_msg, cbor_item_t *id
     send_message("result", result_data);
 }
 
-void rainsw::Subworker::add_task(const std::string &name, const rainsw::TaskFunction &fn)
+void tasklib::Executor::add_task(const std::string &name, const tasklib::TaskFunction &fn)
 {
     registered_tasks[name] = fn;
 }
 
-void rainsw::Subworker::init()
+void tasklib::Executor::init()
 {
-   logger->info("Starting subworker");
+   logger->info("Starting executor");
 
    char *socket_path = std::getenv("RAIN_SUBWORKER_SOCKET");
    if (!socket_path) {
        logger->error("Env variable 'RAIN_SUBWORKER_SOCKET' not found");
-       logger->error("It seems that subworker is not running in Rain environment");
+       logger->error("It seems that executor is not running in Rain environment");
        exit(1);
    }
 
-   char *subworker_id = std::getenv("RAIN_SUBWORKER_ID");
-   if (!subworker_id) {
+   char *executor_id = std::getenv("RAIN_SUBWORKER_ID");
+   if (!executor_id) {
       logger->error("Env variable 'RAIN_SUBWORKER_ID' not found");
       exit(1);
    }
    size_t sw_id;
-   std::stoi (subworker_id,&sw_id);
+   std::stoi (executor_id,&sw_id);
    connection.connect(socket_path);
 
    logger->info("Sending registration message ...");
@@ -197,17 +197,17 @@ void rainsw::Subworker::init()
       .value = cbor_move(cbor_build_string("cbor-1"))
    });
    cbor_map_add(data, (struct cbor_pair) {
-      .key = cbor_move(cbor_build_string("subworkerType")),
+      .key = cbor_move(cbor_build_string("executorType")),
       .value = cbor_move(cbor_build_string(type_name.c_str()))
    });
    cbor_map_add(data, (struct cbor_pair) {
-      .key = cbor_move(cbor_build_string("subworkerId")),
+      .key = cbor_move(cbor_build_string("executorId")),
       .value = cbor_move(cbor_build_uint32(sw_id))
    });
    send_message("register", data);
 }
 
-void rainsw::Subworker::send_message(const char *name, cbor_item_t *data)
+void tasklib::Executor::send_message(const char *name, cbor_item_t *data)
 {
    cbor_item_t *root = cbor_new_definite_array(2);
    cbor_check(root);

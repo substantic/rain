@@ -1,6 +1,6 @@
 use chrono;
-use librain::common::id::{DataObjectId, SubworkerId, TaskId};
-use librain::worker::rpc::subworker_serde::*;
+use librain::common::id::{DataObjectId, ExecutorId, TaskId};
+use librain::worker::rpc::executor_serde::*;
 
 use super::*;
 use std::borrow::Borrow;
@@ -12,39 +12,39 @@ use std::{env, fs};
 pub const STAGING_DIR: &str = "staging";
 pub const TASKS_DIR: &str = "tasks";
 
-/// Alias type for a subworker task function with arbitrary number of inputs
+/// Alias type for a executor task function with arbitrary number of inputs
 /// and outputs.
 pub type TaskFn = Fn(&mut Context, &[DataInstance], &mut [Output]) -> TaskResult<()> + Send + Sync;
 //pub trait TaskFn: Fn(&mut Context, &[DataInstance], &mut [Output]) -> TaskResult<()> + Send + Sync {}
 
-/// The subworker event loop and the set of registered tasks.
-pub struct Subworker {
+/// The executor event loop and the set of registered tasks.
+pub struct Executor {
     /// An identifier for the local worker
-    subworker_id: SubworkerId,
-    /// Any name given to the subworker type (denoting the group of provided tasks)
-    subworker_type: String,
+    executor_id: ExecutorId,
+    /// Any name given to the executor type (denoting the group of provided tasks)
+    executor_type: String,
     /// Path to the socket (should be absolute)
     socket_path: PathBuf,
     /// Registered task functions
     tasks: HashMap<String, Box<TaskFn>>,
-    /// Subworker working directory
+    /// Executor working directory
     working_dir: PathBuf,
-    /// Subworker staging subdirectory
+    /// Executor staging subdirectory
     staging_dir: PathBuf,
-    /// Subworker subdirectory with individual tasks
+    /// Executor subdirectory with individual tasks
     tasks_dir: PathBuf,
-    /// Prevent running `Subworker::run` repeatedly
+    /// Prevent running `Executor::run` repeatedly
     was_run: bool,
     /// If true, failed task directories (but not outputs) are kept in "tasks/"
     keep_failed_tasks: bool,
 }
 
-impl Subworker {
-    /// Create a subworker based on env variables `RAIN_SUBWORKER_ID` and `RAIN_SUBWORKER_SOCKET`
-    /// and working dir in the current directory. See also `Subworker::with_params`.
+impl Executor {
+    /// Create a executor based on env variables `RAIN_SUBWORKER_ID` and `RAIN_SUBWORKER_SOCKET`
+    /// and working dir in the current directory. See also `Executor::with_params`.
     ///
     /// Panics when either env variable is missing or invalid.
-    pub fn new(subworker_type: &str) -> Self {
+    pub fn new(executor_type: &str) -> Self {
         let id = env::var("RAIN_SUBWORKER_ID")
             .expect("Env variable RAIN_SUBWORKER_ID required")
             .parse()
@@ -53,20 +53,20 @@ impl Subworker {
             .expect("Env variable RAIN_SUBWORKER_SOCKET required")
             .into();
         let workdir = env::current_dir().unwrap();
-        Subworker::with_params(subworker_type, id, &socket, &workdir)
+        Executor::with_params(executor_type, id, &socket, &workdir)
     }
 
     /// Creates a Sbworker with the given attributes. Note that the attributes are only
     /// recorded at this point and no initialization is performed.
     pub fn with_params(
-        subworker_type: &str,
-        subworker_id: SubworkerId,
+        executor_type: &str,
+        executor_id: ExecutorId,
         socket_path: &Path,
         working_dir: &Path,
     ) -> Self {
-        Subworker {
-            subworker_type: subworker_type.into(),
-            subworker_id,
+        Executor {
+            executor_type: executor_type.into(),
+            executor_id,
             socket_path: socket_path.into(),
             tasks: HashMap::new(),
             staging_dir: working_dir.join(STAGING_DIR),
@@ -99,19 +99,19 @@ impl Subworker {
         self.tasks.insert(key, Box::new(task_fun));
     }
 
-    /// Run the subworker loop, connecting to the worker, registering and handling requests
+    /// Run the executor loop, connecting to the worker, registering and handling requests
     /// until the connection is closed. May be only called once.
     ///
     /// Panics on any error outside of the task functions. See `README.md` for rationale.
     pub fn run(&mut self) {
         if self.was_run {
-            panic!("Subworker::run may only be ran once");
+            panic!("Executor::run may only be ran once");
         }
         self.was_run = true;
         // Prepare the directories
         if self.staging_dir.exists() || self.tasks_dir.exists() {
             panic!(
-                "Subworker must be ran in a clean directory (workdir: {:?})",
+                "Executor must be ran in a clean directory (workdir: {:?})",
                 self.working_dir
             );
         }
@@ -120,7 +120,7 @@ impl Subworker {
         // Connect to socket
         info!(
             "Connecting to worker at socket {:?} with ID {}",
-            self.socket_path, self.subworker_id
+            self.socket_path, self.executor_id
         );
         if !self.socket_path.exists() {
             panic!("Socket file not found at {:?}", self.socket_path);
@@ -133,15 +133,15 @@ impl Subworker {
         env::set_current_dir(&self.working_dir).expect("error chdir to working dir");
         // Register and run the task loop, catching any errors
         let res = (|| {
-            let regmsg = SubworkerToWorkerMessage::Register(self.register());
+            let regmsg = ExecutorToWorkerMessage::Register(self.register());
             sock.write_msg(&regmsg)?;
             loop {
                 match sock.read_msg()? {
-                    WorkerToSubworkerMessage::Call(call_msg) => {
+                    WorkerToExecutorMessage::Call(call_msg) => {
                         let reply = self.handle_call(call_msg);
-                        sock.write_msg(&SubworkerToWorkerMessage::Result(reply))?;
+                        sock.write_msg(&ExecutorToWorkerMessage::Result(reply))?;
                     }
-                    WorkerToSubworkerMessage::DropCached(drop_msg) => {
+                    WorkerToExecutorMessage::DropCached(drop_msg) => {
                         if !drop_msg.objects.is_empty() {
                             panic!("received nonempty dropCached request with no cached objects");
                         }
@@ -164,8 +164,8 @@ impl Subworker {
     fn register(&mut self) -> RegisterMsg {
         RegisterMsg {
             protocol: MSG_PROTOCOL.into(),
-            subworker_id: self.subworker_id,
-            subworker_type: self.subworker_type.clone(),
+            executor_id: self.executor_id,
+            executor_type: self.executor_type.clone(),
         }
     }
 
@@ -185,8 +185,8 @@ impl Subworker {
         match self.tasks.get(&call_msg.method) {
             None => {
                 debug!(
-                    "Task {:?} not found in subworker {:?}",
-                    call_msg.method, self.subworker_type
+                    "Task {:?} not found in executor {:?}",
+                    call_msg.method, self.executor_type
                 );
                 context.success = false;
                 context
@@ -194,8 +194,8 @@ impl Subworker {
                     .set(
                         "error",
                         format!(
-                            "Task {:?} not found in subworker {:?}",
-                            call_msg.method, self.subworker_type
+                            "Task {:?} not found in executor {:?}",
+                            call_msg.method, self.executor_type
                         ),
                     )
                     .unwrap();

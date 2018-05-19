@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use common::DataType;
-use worker::rpc::subworker_serde::DataLocation;
+use worker::rpc::executor_serde::DataLocation;
 
 use errors::Result;
 

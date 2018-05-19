@@ -212,7 +212,7 @@ def test_string_output(test_env):
         assert b"Hello world!" == t1.output.fetch().get_bytes()
 
 
-def test_py_same_subworker(test_env):
+def test_py_same_executor(test_env):
 
     @remote()
     def first(ctx):

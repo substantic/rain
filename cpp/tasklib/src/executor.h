@@ -11,14 +11,14 @@
 #include "cbor.h"
 #include "context.h"
 
-namespace rainsw {
+namespace tasklib {
 
 using TaskFunction = std::function<void(Context&, DataInstanceVec&, DataInstanceVec&)>;
 
-class Subworker {
+class Executor {
 
 public:
-    Subworker(const std::string &type_name);
+    Executor(const std::string &type_name);
     void start();
     void add_task(const std::string &name, const TaskFunction &fn);
 

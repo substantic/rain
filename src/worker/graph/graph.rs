@@ -1,6 +1,6 @@
-use super::{DataObjectRef, SubworkerRef, TaskRef};
+use super::{DataObjectRef, ExecutorRef, TaskRef};
 use common::RcSet;
-use common::id::{DataObjectId, Id, SubworkerId, TaskId};
+use common::id::{DataObjectId, Id, ExecutorId, TaskId};
 use std::collections::HashMap;
 use worker::tasks::TaskInstance;
 
@@ -9,8 +9,8 @@ pub struct Graph {
     pub running_tasks: HashMap<TaskId, TaskInstance>,
     pub tasks: HashMap<TaskId, TaskRef>,
     pub objects: HashMap<DataObjectId, DataObjectRef>,
-    pub subworkers: HashMap<SubworkerId, SubworkerRef>,
-    pub idle_subworkers: RcSet<SubworkerRef>,
+    pub executors: HashMap<ExecutorId, ExecutorRef>,
+    pub idle_executors: RcSet<ExecutorRef>,
 
     /// List of unsued objects, the value is time when it should be freed
     /// This is list is periodically checked
@@ -27,8 +27,8 @@ impl Graph {
             running_tasks: HashMap::new(),
             tasks: HashMap::new(),
             objects: HashMap::new(),
-            subworkers: HashMap::new(),
-            idle_subworkers: Default::default(),
+            executors: HashMap::new(),
+            idle_executors: Default::default(),
             delete_wait_list: Default::default(),
             id_counter: 0,
         }

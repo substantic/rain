@@ -125,7 +125,7 @@ impl worker_control::Server for WorkerControlImpl {
             let mut attributes = Attributes::from_capnp(&co.get_attributes().unwrap());
 
             // TEMPORARY HACK
-            // we need to propagate data type subworker
+            // we need to propagate data type executor
             // this should be removed when new attributes are finished
             attributes.set("type", data_type.to_attribute()).unwrap();
 
