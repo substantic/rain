@@ -12,8 +12,8 @@ use std::io::BufRead;
 use std::io::BufReader;
 
 pub struct StarterConfig {
-    /// Number of local worker that will be spawned
-    pub local_workers: Vec<Option<u32>>,
+    /// Number of local governor that will be spawned
+    pub local_governors: Vec<Option<u32>>,
 
     /// Listening address of server
     pub server_listen_address: SocketAddr,
@@ -24,7 +24,7 @@ pub struct StarterConfig {
     /// Directory where logs are stored (absolute path)
     pub log_dir: PathBuf,
 
-    pub worker_host_file: Option<PathBuf>,
+    pub governor_host_file: Option<PathBuf>,
 
     /// Shell command that is executed fist after ssh connection
     pub remote_init: String,
@@ -37,7 +37,7 @@ pub struct StarterConfig {
 
 impl StarterConfig {
     pub fn new(
-        local_workers: Vec<Option<u32>>,
+        local_governors: Vec<Option<u32>>,
         server_listen_address: SocketAddr,
         server_http_listen_address: SocketAddr,
         log_dir: &Path,
@@ -46,11 +46,11 @@ impl StarterConfig {
         run_prefix: Vec<String>,
     ) -> Self {
         Self {
-            local_workers,
+            local_governors,
             server_listen_address,
             server_http_listen_address,
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
-            worker_host_file: None,
+            governor_host_file: None,
             remote_init,
             reserve_cpu_on_server,
             run_prefix,
@@ -59,19 +59,19 @@ impl StarterConfig {
 
     pub fn autoconf_pbs(&mut self) -> Result<()> {
         info!("Configuring PBS environment");
-        if self.worker_host_file.is_some() {
-            bail!("Options --autoconf=pbs and --worker_host_file are not compatible");
+        if self.governor_host_file.is_some() {
+            bail!("Options --autoconf=pbs and --governor_host_file are not compatible");
         }
         let nodefile = ::std::env::var("PBS_NODEFILE");
         match nodefile {
             Err(_) => bail!("Variable PBS_NODEFILE not defined, are you running inside PBS?"),
-            Ok(path) => self.worker_host_file = Some(PathBuf::from(path)),
+            Ok(path) => self.governor_host_file = Some(PathBuf::from(path)),
         }
         Ok(())
     }
 }
 
-/// Starts server & workers
+/// Starts server & governors
 pub struct Starter {
     /// Configuration of starter
     config: StarterConfig,
@@ -89,7 +89,7 @@ pub struct Starter {
 fn read_host_file(path: &Path) -> Result<Vec<String>> {
     let file = BufReader::new(File::open(path).map_err(|e| {
         format!(
-            "Cannot open worker host file {:?}: {}",
+            "Cannot open governor host file {:?}: {}",
             path,
             ::std::error::Error::description(&e)
         )
@@ -121,28 +121,28 @@ impl Starter {
 
     /// Main method of starter that launch everything
     pub fn start(&mut self) -> Result<()> {
-        if !self.config.local_workers.is_empty() && self.config.worker_host_file.is_some() {
-            bail!("Cannot combine remote & local workers");
+        if !self.config.local_governors.is_empty() && self.config.governor_host_file.is_some() {
+            bail!("Cannot combine remote & local governors");
         }
 
-        let worker_hosts = if let Some(ref path) = self.config.worker_host_file {
+        let governor_hosts = if let Some(ref path) = self.config.governor_host_file {
             read_host_file(path)?
         } else {
             Vec::new()
         };
 
-        if self.config.local_workers.is_empty() && worker_hosts.is_empty() {
-            bail!("No workers are specified.");
+        if self.config.local_governors.is_empty() && governor_hosts.is_empty() {
+            bail!("No governors are specified.");
         }
 
         self.start_server()?;
         self.busy_wait_for_ready()?;
 
-        if !self.config.local_workers.is_empty() {
-            self.start_local_workers()?;
+        if !self.config.local_governors.is_empty() {
+            self.start_local_governors()?;
         }
-        if !worker_hosts.is_empty() {
-            self.start_remote_workers(&worker_hosts)?;
+        if !governor_hosts.is_empty() {
+            self.start_remote_governors(&governor_hosts)?;
         }
         self.busy_wait_for_ready()?;
         Ok(())
@@ -214,19 +214,19 @@ impl Starter {
         Ok(())
     }
 
-    fn start_remote_workers(&mut self, worker_hosts: &[String]) -> Result<()> {
-        info!("Starting {} remote worker(s)", worker_hosts.len());
+    fn start_remote_governors(&mut self, governor_hosts: &[String]) -> Result<()> {
+        info!("Starting {} remote governor(s)", governor_hosts.len());
         let (program, program_args) = self.local_rain_command();
         let dir = ::std::env::current_dir().unwrap(); // TODO: Do it configurable
         let server_address = self.server_address(false);
 
-        for (i, host) in worker_hosts.iter().enumerate() {
+        for (i, host) in governor_hosts.iter().enumerate() {
             info!(
                 "Connecting to {} (remote log dir: {:?})",
                 host, self.config.log_dir
             );
-            let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
-            let name = format!("worker-{}", i);
+            let ready_file = self.create_tmp_filename(&format!("governor-{}-ready", i));
+            let name = format!("governor-{}", i);
             let mut process = RemoteProcess::new(
                 name,
                 host,
@@ -240,7 +240,7 @@ impl Starter {
                     CPUS=detect \n\
                     fi \n\
                     {remote_init}
-                    {program} {program_args} worker {server_address} --cpus=$CPUS --ready-file {ready_file:?}",
+                    {program} {program_args} governor {server_address} --cpus=$CPUS --ready-file {ready_file:?}",
                     program = program,
                     remote_init = self.config.remote_init,
                     program_args = program_args.join(" "),
@@ -250,7 +250,7 @@ impl Starter {
                 )
             } else {
                 format!(
-                    "{remote_init}\n{program} {program_args} worker {server_address} --ready-file {ready_file:?}",
+                    "{remote_init}\n{program} {program_args} governor {server_address} --ready-file {ready_file:?}",
                     program = program,
                     remote_init = self.config.remote_init,
                     program_args = program_args.join(" "),
@@ -273,34 +273,34 @@ impl Starter {
         format!("{}:{}", hostname, self.config.server_listen_address.port())
     }
 
-    fn start_local_workers(&mut self) -> Result<()> {
+    fn start_local_governors(&mut self) -> Result<()> {
         info!(
-            "Starting {} local worker(s)",
-            self.config.local_workers.len()
+            "Starting {} local governor(s)",
+            self.config.local_governors.len()
         );
         let server_address = self.server_address(true);
         let (program, program_args) = self.local_rain_command();
-        let workers: Vec<_> = self.config
-            .local_workers
+        let governors: Vec<_> = self.config
+            .local_governors
             .iter()
             .cloned()
             .enumerate()
             .collect();
-        for (i, resource) in workers {
-            let ready_file = self.create_tmp_filename(&format!("worker-{}-ready", i));
+        for (i, resource) in governors {
+            let ready_file = self.create_tmp_filename(&format!("governor-{}-ready", i));
             let mut cmd = Command::new(&program);
             cmd.args(&program_args)
-                .arg("worker")
+                .arg("governor")
                 .arg(&server_address)
                 .arg("--logdir")
-                .arg(self.config.log_dir.join(format!("worker-{}", i)))
+                .arg(self.config.log_dir.join(format!("governor-{}", i)))
                 .arg("--ready-file")
                 .arg(&ready_file);
             if let Some(cpus) = resource {
                 cmd.arg("--cpus");
                 cmd.arg(cpus.to_string());
             }
-            self.spawn_process(&format!("worker-{}", i), &ready_file, &mut cmd)?;
+            self.spawn_process(&format!("governor-{}", i), &ready_file, &mut cmd)?;
         }
         Ok(())
     }

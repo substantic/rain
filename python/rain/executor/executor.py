@@ -16,7 +16,7 @@ from .context import Context
 from ..common.datatype import DataType
 
 
-SUBWORKER_PROTOCOL = "cbor-1"
+EXECUTOR_PROTOCOL = "cbor-1"
 
 
 # List of input data objects while Py task arguments are unpickled.
@@ -59,7 +59,7 @@ def store_attributes(attributes):
     return dict((k, json.dumps(v)) for k, v in attributes.items())
 
 
-def load_worker_object(data, cache):
+def load_governor_object(data, cache):
     object_id = tuple(data["id"])
 
     location = data["location"]
@@ -126,7 +126,7 @@ class Executor:
         self.socket = SocketWrapper(sock)
         self.socket.send_message(["register",
                                   {
-                                    "protocol": SUBWORKER_PROTOCOL,
+                                    "protocol": EXECUTOR_PROTOCOL,
                                     "executorId": executor_id,
                                     "executorType": "py"
                                   }])
@@ -145,7 +145,7 @@ class Executor:
 
             inputs = []
             for dataobj in data["inputs"]:
-                obj = load_worker_object(dataobj, self.cache)
+                obj = load_governor_object(dataobj, self.cache)
                 inputs.append(obj)
 
             self.cache[inputs[0]._object_id] = inputs[0]
@@ -273,7 +273,7 @@ def get_environ_int(name):
 
 
 def main():
-    executor_id = get_environ_int("RAIN_SUBWORKER_ID")
+    executor_id = get_environ_int("RAIN_EXECUTOR_ID")
 
     print("Initalizing executor {} ...".format(executor_id))
     print("Working directory: ".format(os.getcwd()))
@@ -285,7 +285,7 @@ def main():
     stage_path = os.path.abspath("stage")
     task_path = os.path.abspath("task")
 
-    executor = Executor(get_environ("RAIN_SUBWORKER_SOCKET"),
+    executor = Executor(get_environ("RAIN_EXECUTOR_SOCKET"),
                           executor_id,
                           task_path,
                           stage_path)

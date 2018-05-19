@@ -30,10 +30,10 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use nix::unistd::getpid;
 
 use librain::errors::Result;
-use librain::{server, worker, VERSION};
+use librain::{server, governor, VERSION};
 
 const DEFAULT_SERVER_PORT: u16 = 7210;
-const DEFAULT_WORKER_PORT: u16 = 0;
+const DEFAULT_GOVERNOR_PORT: u16 = 0;
 
 const DEFAULT_HTTP_SERVER_PORT: u16 = 8080;
 
@@ -114,7 +114,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 fn default_working_directory() -> PathBuf {
     let pid = getpid();
     let hostname = ::librain::common::sys::get_hostname();
-    PathBuf::from("/tmp/rain-work").join(format!("worker-{}-{}", hostname, pid))
+    PathBuf::from("/tmp/rain-work").join(format!("governor-{}-{}", hostname, pid))
 }
 
 fn default_logging_directory(basename: &str) -> PathBuf {
@@ -149,11 +149,11 @@ struct ExecutorConfig {
 }
 
 #[derive(Deserialize)]
-struct WorkerConfig {
+struct GovernorConfig {
     executors: HashMap<String, ExecutorConfig>,
 }
 
-impl WorkerConfig {
+impl GovernorConfig {
     pub fn read_file(path: &Path) -> Result<Self> {
         let mut file = ::std::fs::File::open(path)?;
         let mut content = String::new();
@@ -162,10 +162,10 @@ impl WorkerConfig {
     }
 }
 
-fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    info!("Starting Rain {} worker", VERSION);
+fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
+    info!("Starting Rain {} governor", VERSION);
     let ready_file = cmd_args.value_of("READY_FILE");
-    let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_WORKER_PORT);
+    let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_GOVERNOR_PORT);
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
     let mut server_address = cmd_args.value_of("SERVER_ADDRESS").unwrap().to_string();
 
@@ -188,9 +188,9 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     };
 
     let state = {
-        let config = cmd_args.value_of("WORKER_CONFIG").map(|path| {
+        let config = cmd_args.value_of("GOVERNOR_CONFIG").map(|path| {
             info!("Reading config file: {}", path);
-            WorkerConfig::read_file(Path::new(path)).unwrap_or_else(|e| {
+            GovernorConfig::read_file(Path::new(path)).unwrap_or_else(|e| {
                 error!("Reading config file failed: {}", e.description());
                 exit(1);
             })
@@ -239,7 +239,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         let log_dir = cmd_args
             .value_of("LOG_DIR")
             .map(PathBuf::from)
-            .unwrap_or_else(|| default_logging_directory("worker"));
+            .unwrap_or_else(|| default_logging_directory("governor"));
 
         ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
             error!("{}", e);
@@ -276,7 +276,7 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
             }
         });
 
-        worker::state::StateRef::new(
+        governor::state::StateRef::new(
             tokio_core.handle(),
             work_dir,
             log_dir,
@@ -311,25 +311,25 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         exit(1);
     });
 
-    let mut local_workers = Vec::new();
+    let mut local_governors = Vec::new();
 
-    if cmd_args.is_present("SIMPLE") && cmd_args.is_present("LOCAL_WORKERS") {
-        error!("--simple and --local-workers are mutually exclusive");
+    if cmd_args.is_present("SIMPLE") && cmd_args.is_present("LOCAL_GOVERNORS") {
+        error!("--simple and --local-governors are mutually exclusive");
         exit(1);
     }
 
     if cmd_args.is_present("SIMPLE") {
-        local_workers.push(None);
+        local_governors.push(None);
     }
 
-    if let Some(workers) = cmd_args.value_of("LOCAL_WORKERS") {
-        local_workers = match ::serde_json::from_str(workers) {
+    if let Some(governors) = cmd_args.value_of("LOCAL_GOVERNORS") {
+        local_governors = match ::serde_json::from_str(governors) {
             Ok(cpus) => {
                 let cpus: Vec<u32> = cpus;
                 cpus.iter().map(|x| Some(*x)).collect()
             }
             Err(_) => {
-                error!("Invalid format for --local-workers");
+                error!("Invalid format for --local-governors");
                 exit(1);
             }
         }
@@ -345,7 +345,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 
     let mut config = start::starter::StarterConfig::new(
-        local_workers,
+        local_governors,
         listen_address,
         http_listen_address,
         &log_dir,
@@ -354,7 +354,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         run_prefix,
     );
 
-    config.worker_host_file = cmd_args.value_of("WORKER_HOST_FILE").map(PathBuf::from);
+    config.governor_host_file = cmd_args.value_of("GOVERNOR_HOST_FILE").map(PathBuf::from);
 
     // Autoconf
     match cmd_args.value_of("AUTOCONF") {
@@ -455,9 +455,9 @@ fn main() {
                     .long("--ready-file")
                     .help("Create a file when server is initialized and ready to accept connections")
                     .takes_value(true)))
-        .subcommand( // ---- WORKER ----
-            SubCommand::with_name("worker")
-                .about("Rain worker")
+        .subcommand( // ---- GOVERNOR ----
+            SubCommand::with_name("governor")
+                .about("Rain governor")
                 .arg(Arg::with_name("SERVER_ADDRESS")
                     .help("Listening address: port/address/address:port (default 0.0.0.0:7210)")
                     .required(true))
@@ -472,38 +472,38 @@ fn main() {
                     .help("Number of cpus or 'detect' (default = detect)")
                     .value_name("N")
                     .default_value("detect"))
-                .arg(Arg::with_name("WORKER_CONFIG")
+                .arg(Arg::with_name("GOVERNOR_CONFIG")
                     .long("--config")
                     .help("Path to configuration file")
                     .takes_value(true))
                 .arg(Arg::with_name("WORK_DIR")
                     .long("--workdir")
-                    .help("Workding directory (default /tmp/rain-work/worker-$HOSTANE-$PID)")
+                    .help("Workding directory (default /tmp/rain-work/governor-$HOSTANE-$PID)")
                     .value_name("DIR")
                     .takes_value(true))
                 .arg(Arg::with_name("LOG_DIR")
                     .long("--logdir")
-                    .help("Logging directory (default /tmp/rain-logs/worker-$HOSTANE-$PID)")
+                    .help("Logging directory (default /tmp/rain-logs/governor-$HOSTANE-$PID)")
                     .takes_value(true))
                 .arg(Arg::with_name("READY_FILE")
                     .long("--ready-file")
                     .value_name("DIR")
-                    .help("Create a file when worker is initialized and connected to the server")
+                    .help("Create a file when governor is initialized and connected to the server")
                     .takes_value(true)))
         .subcommand( // ---- START ----
             SubCommand::with_name("start")
-                .about("Start server & workers at once")
+                .about("Start server & governors at once")
                 .arg(Arg::with_name("SIMPLE")
                     .long("--simple")
-                    .help("Start server and one local worker"))
-                .arg(Arg::with_name("LOCAL_WORKERS")
-                    .long("--local-workers")
-                    .help("Specify local workers (e.g. --local-workers=[4,4])")
+                    .help("Start server and one local governor"))
+                .arg(Arg::with_name("LOCAL_GOVERNORS")
+                    .long("--local-governors")
+                    .help("Specify local governors (e.g. --local-governors=[4,4])")
                      .value_name("RESOURCES")
                     .takes_value(true))
-                .arg(Arg::with_name("WORKER_HOST_FILE")
-                     .long("--worker-host-file")
-                     .help("File with hosts for workers, one each line")
+                .arg(Arg::with_name("GOVERNOR_HOST_FILE")
+                     .long("--governor-host-file")
+                     .help("File with hosts for governors, one each line")
                      .value_name("FILE")
                      .takes_value(true))
                 .arg(Arg::with_name("AUTOCONF")
@@ -537,17 +537,17 @@ fn main() {
                     .takes_value(true))
                 .arg(Arg::with_name("WORK_DIR")
                     .long("--workdir")
-                    .help("Working directory for workers (default /tmp/rain-work/worker-$HOSTANE-$PID)")
+                    .help("Working directory for governors (default /tmp/rain-work/governor-$HOSTANE-$PID)")
                     .takes_value(true))
                 .arg(Arg::with_name("LOG_DIR")
                     .long("--logdir")
-                    .help("Logging directory for workers & server (default /tmp/rain-logs/run-$HOSTANE-$PID)")
+                    .help("Logging directory for governors & server (default /tmp/rain-logs/run-$HOSTANE-$PID)")
                     .takes_value(true)))
         .get_matches();
 
     match args.subcommand() {
         ("server", Some(cmd_args)) => run_server(&args, cmd_args),
-        ("worker", Some(cmd_args)) => run_worker(&args, cmd_args),
+        ("governor", Some(cmd_args)) => run_governor(&args, cmd_args),
         ("start", Some(cmd_args)) => run_starter(&args, cmd_args),
         _ => {
             error!("No subcommand provided.");

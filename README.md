@@ -63,7 +63,7 @@ $ tar xvf rain-v0.2.1-linux-x64.tar.xz
 $ pip3 install https://github.com/substantic/rain/releases/download/v0.2.1/rain-0.2.1-py3-none-any.whl
 ```
 
-* Start server & a single local worker
+* Start server & a single local governor
 
 ```
 $ ./rain-v0.2.1-linux-x86/rain start --simple

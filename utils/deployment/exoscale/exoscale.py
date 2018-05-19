@@ -141,7 +141,7 @@ def install(args):
 def start(args):
     nodes = get_nodes(args)
     server_ip = list(nodes.values())[0]
-    os.popen("{} {}@{} \"rain start --worker-host-file ~/node-list\""
+    os.popen("{} {}@{} \"rain start --governor-host-file ~/node-list\""
              .format(SSH_CMD, SSH_USERNAME, server_ip))
     print("Server IP: {}".format(list(nodes.values())[0]))
 

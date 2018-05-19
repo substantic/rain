@@ -3,7 +3,7 @@ import { NavbarBrand } from 'reactstrap';
 import { Nav, Navbar, NavItem, NavLink} from 'reactstrap';
 import './App.css';
 import Sessions from './components/Sessions.js';
-import Workers from './components/Workers.js';
+import Governors from './components/Governors.js';
 import Session from './components/Session.js';
 import { Route, BrowserRouter, Switch, Link } from 'react-router-dom';
 
@@ -32,7 +32,7 @@ class App extends Component {
         <Navbar>
         <Nav>
           <NavItem><NavLink tag={Link} to="/sessions">Sessions</NavLink></NavItem>
-          <NavItem><NavLink tag={Link} to="/workers">Workers</NavLink></NavItem>
+          <NavItem><NavLink tag={Link} to="/governors">Governors</NavLink></NavItem>
         </Nav>
         <NavbarBrand>Rain</NavbarBrand>
         </Navbar>
@@ -40,7 +40,7 @@ class App extends Component {
           <div className="container">
           <Switch>
           <Route path="/session/:id" render={props => <Session id={props.match.params.id}/>} />
-          <Route path="/workers" render={() => <Workers/>}/>
+          <Route path="/governors" render={() => <Governors/>}/>
           <Route path="/sessions" render={() => <Sessions/>}/>
           <Route path="/" render={() => <Sessions/>}/>
           </Switch>

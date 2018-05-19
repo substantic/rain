@@ -43,8 +43,8 @@ Detailed long message describing what and why the commit happens.
 
 ## Scopes
 
-* [client] / [server] / [worker] / [executor] - Changes in client, server,  ...
-* [backend] # server + worker (+ executors)
+* [client] / [server] / [governor] / [executor] - Changes in client, server,  ...
+* [backend] # server + governor (+ executors)
 * [all] - High impact change in many places
 * [starter] - Functionality under "rain start" command
 * [api] - Interface visible to user, Python API, command-line interface

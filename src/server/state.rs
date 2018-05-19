@@ -8,7 +8,7 @@ use tokio_core::net::{TcpListener, TcpStream};
 use tokio_core::reactor::Handle;
 
 use common::convert::ToCapnp;
-use common::id::{ClientId, DataObjectId, SId, SessionId, TaskId, WorkerId};
+use common::id::{ClientId, DataObjectId, SId, SessionId, TaskId, GovernorId};
 use common::resources::Resources;
 use common::rpc::new_rpc_system;
 use common::wrapped::WrappedRcRefCell;
@@ -16,7 +16,7 @@ use common::{Attributes, ConsistencyCheck};
 use common::{DataType, RcSet};
 use errors::Result;
 use server::graph::{ClientRef, DataObjectRef, DataObjectState, Graph, SessionError, SessionRef,
-                    TaskInput, TaskRef, TaskState, WorkerRef};
+                    TaskInput, TaskRef, TaskState, GovernorRef};
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{ReactiveScheduler, UpdatedIn};
 
@@ -29,7 +29,7 @@ use common::logging::sqlite_logger::SQLiteLogger;
 
 const LOGGING_INTERVAL: u64 = 1; // Logging interval in seconds
 
-/// How long should be ID from worker ignored when it is task/object is unassigned
+/// How long should be ID from governor ignored when it is task/object is unassigned
 const IGNORE_ID_TIME_SECONDS: u64 = 30;
 
 pub struct State {
@@ -37,7 +37,7 @@ pub struct State {
     pub(super) graph: Graph,
 
     /// Id of recently closed sessions, that should be ignored for incoming messages
-    /// from worker
+    /// from governor
     pub(in super::super) ignored_sessions: HashSet<SessionId>,
 
     /// Tokio core handle.
@@ -47,8 +47,8 @@ pub struct State {
 
     pub(super) updates: UpdatedIn,
 
-    /// Workers that will checked by reactor in the next turn()
-    underload_workers: RcSet<WorkerRef>,
+    /// Governors that will checked by reactor in the next turn()
+    underload_governors: RcSet<GovernorRef>,
 
     scheduler: ReactiveScheduler,
 
@@ -67,30 +67,30 @@ pub struct State {
 }
 
 impl State {
-    /// Add new worker, register it in the graph
-    pub fn add_worker(
+    /// Add new governor, register it in the graph
+    pub fn add_governor(
         &mut self,
         address: SocketAddr,
-        control: Option<::worker_capnp::worker_control::Client>,
+        control: Option<::governor_capnp::governor_control::Client>,
         resources: Resources,
-    ) -> Result<WorkerRef> {
-        debug!("New worker {}", address);
-        if self.graph.workers.contains_key(&address) {
-            bail!("State already contains worker {}", address);
+    ) -> Result<GovernorRef> {
+        debug!("New governor {}", address);
+        if self.graph.governors.contains_key(&address) {
+            bail!("State already contains governor {}", address);
         }
-        let w = WorkerRef::new(address, control, resources);
-        self.graph.workers.insert(w.get_id(), w.clone());
-        self.underload_workers.insert(w.clone());
-        self.logger.add_new_worker_event(w.get_id());
+        let w = GovernorRef::new(address, control, resources);
+        self.graph.governors.insert(w.get_id(), w.clone());
+        self.underload_governors.insert(w.clone());
+        self.logger.add_new_governor_event(w.get_id());
         Ok(w)
     }
 
-    /// Remove the worker from the graph, forcefully unassigning all tasks and objects.
-    /// TODO: better specs and context of worker removal
-    pub fn remove_worker(&mut self, _worker: &WorkerRef) -> Result<()> {
+    /// Remove the governor from the graph, forcefully unassigning all tasks and objects.
+    /// TODO: better specs and context of governor removal
+    pub fn remove_governor(&mut self, _governor: &GovernorRef) -> Result<()> {
         unimplemented!() /*
             pub fn delete(self, graph: &mut Graph) {
-        debug!("Deleting worker {}", self.get_id());
+        debug!("Deleting governor {}", self.get_id());
         // remove from objects
         for o in self.get_mut().assigned_objects.iter() {
             assert!(o.get_mut().assigned.remove(&self));
@@ -106,22 +106,22 @@ impl State {
             t.get_mut().scheduled = None;
         }
         // remove from graph
-        graph.workers.remove(&self.get().id).unwrap();
+        graph.governors.remove(&self.get().id).unwrap();
         // assert that we hold the last reference, then drop it
         assert_eq!(self.get_num_refs(), 1);
         */
     }
 
-    /// Put the worker into a failed state, unassigning all tasks and objects.
+    /// Put the governor into a failed state, unassigning all tasks and objects.
     /// Needs a lot of cleanup and recovery to avoid panic. Now just panics :-)
-    pub fn fail_worker(&mut self, worker: &mut WorkerRef, cause: String) -> Result<()> {
-        debug!("Failing worker {} with cause {:?}", worker.get_id(), cause);
-        assert!(worker.get_mut().error.is_none());
-        worker.get_mut().error = Some(cause.clone());
+    pub fn fail_governor(&mut self, governor: &mut GovernorRef, cause: String) -> Result<()> {
+        debug!("Failing governor {} with cause {:?}", governor.get_id(), cause);
+        assert!(governor.get_mut().error.is_none());
+        governor.get_mut().error = Some(cause.clone());
         // TODO: Cleanup and recovery if possible
         self.logger
-            .add_worker_removed_event(worker.get_id(), cause.clone());
-        panic!("Worker {} error: {:?}", worker.get_id(), cause);
+            .add_governor_removed_event(governor.get_id(), cause.clone());
+        panic!("Governor {} error: {:?}", governor.get_id(), cause);
     }
 
     /// Add new client, register it in the graph
@@ -203,7 +203,7 @@ impl State {
         Ok(())
     }
 
-    /// Remove a session and all the tasks and objects, both from the graph and from the workers,
+    /// Remove a session and all the tasks and objects, both from the graph and from the governors,
     /// cancel all the finish hooks.
     pub fn remove_session(&mut self, session: &SessionRef) -> Result<()> {
         debug!(
@@ -269,7 +269,7 @@ impl State {
         Ok(oref)
     }
 
-    /// Remove the object from the graph and workers (with RPC calls).
+    /// Remove the object from the graph and governors (with RPC calls).
     /// Fails with no change in the graph if there are any tasks linked to the object.
     pub fn remove_object(&mut self, oref: &DataObjectRef) -> Result<()> {
         oref.check_consistency_opt().unwrap(); // non-recoverable
@@ -317,13 +317,13 @@ impl State {
         Ok(tref)
     }
 
-    /// Remove task from the graph, from the workers and unlink from adjacent objects.
+    /// Remove task from the graph, from the governors and unlink from adjacent objects.
     /// WARNING: May leave objects without producers. You should check for them after removing all
     /// the tasks and objects in bulk.
     pub fn remove_task(&mut self, tref: &TaskRef) -> Result<()> {
         //tref.check_consistency_opt().unwrap(); // non-recoverable
 
-        // unassign from worker
+        // unassign from governor
         if tref.get().assigned.is_some() {
             self.unassign_task(tref);
         }
@@ -344,10 +344,10 @@ impl State {
         self.ignored_sessions.contains(&object_id.get_session_id())
     }
 
-    pub fn worker_by_id(&self, id: WorkerId) -> Result<WorkerRef> {
-        match self.graph.workers.get(&id) {
+    pub fn governor_by_id(&self, id: GovernorId) -> Result<GovernorRef> {
+        match self.graph.governors.get(&id) {
             Some(w) => Ok(w.clone()),
-            None => Err(format!("Worker {:?} not found", id))?,
+            None => Err(format!("Governor {:?} not found", id))?,
         }
     }
 
@@ -456,14 +456,14 @@ impl State {
         Ok(())
     }
 
-    /// Assign a `Finished` object to a worker and send the object metadata.
-    /// Panics if the object is already assigned on the worker or not Finished.
-    pub fn assign_object(&mut self, object: &DataObjectRef, wref: &WorkerRef) {
+    /// Assign a `Finished` object to a governor and send the object metadata.
+    /// Panics if the object is already assigned on the governor or not Finished.
+    pub fn assign_object(&mut self, object: &DataObjectRef, wref: &GovernorRef) {
         assert_eq!(object.get().state, DataObjectState::Finished);
         assert!(!object.get().assigned.contains(wref));
         object.check_consistency_opt().unwrap(); // non-recoverable
         wref.check_consistency_opt().unwrap(); // non-recoverable
-        let empty_worker_id = ::common::id::empty_worker_id();
+        let empty_governor_id = ::common::id::empty_governor_id();
 
         // Create request
         let mut req = wref.get().control.as_ref().unwrap().add_nodes_request();
@@ -471,7 +471,7 @@ impl State {
             let mut new_objects = req.get().init_new_objects(1);
             let mut co = &mut new_objects.reborrow().get(0);
             let o = object.get();
-            o.to_worker_capnp(&mut co);
+            o.to_governor_capnp(&mut co);
             let placement = o.located
                 .iter()
                 .next()
@@ -479,7 +479,7 @@ impl State {
                 .unwrap_or_else(|| {
                     // If there is no placement, then server is the source of datobject
                     assert!(o.data.is_some());
-                    empty_worker_id.clone()
+                    empty_governor_id.clone()
                 });
             placement.to_capnp(&mut co.reborrow().get_placement().unwrap());
             co.set_assigned(true);
@@ -498,18 +498,18 @@ impl State {
         wref.check_consistency_opt().unwrap(); // non-recoverable
     }
 
-    // Remove object from workers (not server)
+    // Remove object from governors (not server)
     pub fn purge_object(&mut self, object: &DataObjectRef) {
         object.unschedule();
         let assigned = object.get().assigned.clone();
-        for worker in assigned {
-            self.unassign_object(object, &worker);
+        for governor in assigned {
+            self.unassign_object(object, &governor);
         }
     }
 
-    /// Unassign an object from a worker and send the unassign call.
-    /// Panics if the object is not assigned on the worker.
-    pub fn unassign_object(&mut self, object: &DataObjectRef, wref: &WorkerRef) {
+    /// Unassign an object from a governor and send the unassign call.
+    /// Panics if the object is not assigned on the governor.
+    pub fn unassign_object(&mut self, object: &DataObjectRef, wref: &GovernorRef) {
         debug!("unassign_object {:?} at {:?}", object, wref);
         assert!(object.get().assigned.contains(wref));
         object.check_consistency_opt().unwrap(); // non-recoverable
@@ -553,9 +553,9 @@ impl State {
         wref.check_consistency_opt().unwrap(); // non-recoverable
     }
 
-    /// Assign and send the task to the worker it is scheduled for.
+    /// Assign and send the task to the governor it is scheduled for.
     /// Panics when the task is not scheduled or not ready.
-    /// Assigns output objects to the worker, input objects are not assigned.
+    /// Assigns output objects to the governor, input objects are not assigned.
     pub fn assign_task(&mut self, task: &TaskRef) {
         task.check_consistency_opt().unwrap(); // non-recoverable
 
@@ -565,14 +565,14 @@ impl State {
             assert!(t.scheduled.is_some());
             assert!(t.assigned.is_none());
 
-            // Collect input objects: pairs (object, worker_id) where worker_id is placement of object
-            let mut objects: Vec<(DataObjectRef, WorkerId)> = Vec::new();
+            // Collect input objects: pairs (object, governor_id) where governor_id is placement of object
+            let mut objects: Vec<(DataObjectRef, GovernorId)> = Vec::new();
 
             let wref = t.scheduled.as_ref().unwrap().clone();
             t.assigned = Some(wref.clone());
-            let worker_id = wref.get_id();
-            let empty_worker_id = ::common::id::empty_worker_id();
-            debug!("Assiging task id={} to worker={}", t.id, worker_id);
+            let governor_id = wref.get_id();
+            let empty_governor_id = ::common::id::empty_governor_id();
+            debug!("Assiging task id={} to governor={}", t.id, governor_id);
 
             for input in t.inputs.iter() {
                 let o = input.object.get_mut();
@@ -585,14 +585,14 @@ impl State {
                         .unwrap_or_else(|| {
                             // If there is no placement, then server is the source of datobject
                             assert!(o.data.is_some());
-                            empty_worker_id.clone()
+                            empty_governor_id.clone()
                         });
                     objects.push((input.object.clone(), placement));
                 }
             }
 
             for output in t.outputs.iter() {
-                objects.push((output.clone(), worker_id.clone()));
+                objects.push((output.clone(), governor_id.clone()));
                 output.get_mut().assigned.insert(wref.clone());
                 wref.get_mut().assigned_objects.insert(output.clone());
             }
@@ -607,7 +607,7 @@ impl State {
                     let mut co = &mut new_objects.reborrow().get(i as u32);
                     placement.to_capnp(&mut co.reborrow().get_placement().unwrap());
                     let obj = object.get();
-                    obj.to_worker_capnp(&mut co);
+                    obj.to_governor_capnp(&mut co);
                     // only assign output tasks - they are all assigned
                     co.set_assigned(obj.assigned.contains(&wref));
                 }
@@ -616,7 +616,7 @@ impl State {
             // Serialize the task
             {
                 let new_tasks = req.get().init_new_tasks(1);
-                t.to_worker_capnp(&mut new_tasks.get(0));
+                t.to_governor_capnp(&mut new_tasks.get(0));
             }
 
             self.handle.spawn(
@@ -643,8 +643,8 @@ impl State {
         task.check_consistency_opt().unwrap(); // non-recoverable
     }
 
-    /// Unassign task from the worker it is assigned to and send the unassign call.
-    /// Panics when the task is not assigned to the given worker or scheduled there.
+    /// Unassign task from the governor it is assigned to and send the unassign call.
+    /// Panics when the task is not assigned to the given governor or scheduled there.
     pub fn unassign_task(&mut self, task: &TaskRef) {
         let wref = task.get().assigned.as_ref().unwrap().clone(); // non-recoverable
 
@@ -701,9 +701,9 @@ impl State {
     /// Update any assignments depending on the task state, and set to Ready on all inputs ready.
     ///
     /// * Check if all task inputs are ready, and switch state.
-    /// * Check if a ready task is scheduled and queue it on the worker (`scheduled_ready`).
+    /// * Check if a ready task is scheduled and queue it on the governor (`scheduled_ready`).
     /// * Check if a task is assigned and not scheduled or scheduled elsewhere,
-    ///   then unassign and possibly enqueue as a ready task on scheduled worker.
+    ///   then unassign and possibly enqueue as a ready task on scheduled governor.
     /// * Check if a task is finished, then unschedule and cleanup.
     /// * Failed task is an error here.
     pub fn update_task_assignment(&mut self, tref: &TaskRef) {
@@ -751,24 +751,24 @@ impl State {
         tref.check_consistency_opt().unwrap(); // unrecoverable
     }
 
-    /// Update finished object assignment to match the schedule on the given worker (optional) and
+    /// Update finished object assignment to match the schedule on the given governor (optional) and
     /// needed-ness. NOP for Unfinished and Removed objects.
     ///
-    /// If worker is given, updates the assignment on the worker to match the
+    /// If governor is given, updates the assignment on the governor to match the
     /// scheduling there. Object is unassigned only if located elsewhere or not needed.
     ///
     /// Then, if the object is not scheduled and not needed, it is unassigned and set to Removed.
-    /// If the object is scheduled but located on more workers than scheduled on (this can happen
+    /// If the object is scheduled but located on more governors than scheduled on (this can happen
     /// e.g. when scheduled after the needed object was located but not scheduled), the located
-    /// list is pruned to only match the scheduled list (possibly plus one remaining worker if no
-    /// scheduled workers have it located).
-    pub fn update_object_assignments(&mut self, oref: &DataObjectRef, worker: Option<&WorkerRef>) {
+    /// list is pruned to only match the scheduled list (possibly plus one remaining governor if no
+    /// scheduled governors have it located).
+    pub fn update_object_assignments(&mut self, oref: &DataObjectRef, governor: Option<&GovernorRef>) {
         let ostate = oref.get().state;
         match ostate {
             DataObjectState::Unfinished => (),
             DataObjectState::Removed => (),
             DataObjectState::Finished => {
-                if let Some(ref wref) = worker {
+                if let Some(ref wref) = governor {
                     if wref.get().scheduled_objects.contains(oref) {
                         if !wref.get().assigned_objects.contains(oref)
                             && oref.get().state == DataObjectState::Finished
@@ -804,20 +804,20 @@ impl State {
         oref.check_consistency_opt().unwrap(); // unrecoverable
     }
 
-    /// Process state updates from one Worker.
-    pub fn updates_from_worker(
+    /// Process state updates from one Governor.
+    pub fn updates_from_governor(
         &mut self,
-        worker: &WorkerRef,
+        governor: &GovernorRef,
         obj_updates: Vec<(DataObjectRef, DataObjectState, usize, Attributes)>,
         task_updates: Vec<(TaskRef, TaskState, Attributes)>,
     ) {
         debug!(
             "Update states for {:?}, objs: {}, tasks: {}",
-            worker,
+            governor,
             obj_updates.len(),
             task_updates.len()
         );
-        worker.check_consistency_opt().unwrap(); // non-recoverable
+        governor.check_consistency_opt().unwrap(); // non-recoverable
 
         let mut ignore_check_again = false;
 
@@ -837,7 +837,7 @@ impl State {
                         t.attributes.update(attributes);
                         t.scheduled = None;
                         t.assigned = None;
-                        let mut w = worker.get_mut();
+                        let mut w = governor.get_mut();
                         w.scheduled_tasks.remove(&tref);
                         w.assigned_tasks.remove(&tref);
                         w.active_resources -= t.resources.cpus();
@@ -858,20 +858,20 @@ impl State {
                         }
                     }
 
-                    self.underload_workers.insert(worker.clone());
+                    self.underload_governors.insert(governor.clone());
                 }
                 TaskState::Running => {
                     let mut t = tref.get_mut();
                     assert_eq!(t.state, TaskState::Assigned);
                     t.state = state;
                     t.attributes = attributes;
-                    self.logger.add_task_started_event(t.id, worker.get_id());
+                    self.logger.add_task_started_event(t.id, governor.get_id());
                 }
                 TaskState::Failed => {
                     debug!(
                         "Task {:?} failed on {:?} with attributes {:?}",
                         *tref.get(),
-                        worker,
+                        governor,
                         attributes
                     );
                     let error_message: String = attributes.get("error").unwrap_or_else(|_| {
@@ -884,7 +884,7 @@ impl State {
                         .unwrap_or_else(|_| Some("Invalid value in 'debug' attribute".to_string()));
 
                     ignore_check_again = true;
-                    self.underload_workers.insert(worker.clone());
+                    self.underload_governors.insert(governor.clone());
                     tref.get_mut().state = state;
                     tref.get_mut().attributes = attributes;
                     let session = tref.get().session.clone();
@@ -893,13 +893,13 @@ impl State {
                         .unwrap();
                     self.logger.add_task_failed_event(
                         tref.get().id,
-                        worker.get_id(),
+                        governor.get_id(),
                         error_message,
                     );
                 }
                 _ => panic!(
-                    "Invalid worker {:?} task {:?} state update to {:?}",
-                    worker,
+                    "Invalid governor {:?} task {:?} state update to {:?}",
+                    governor,
                     *tref.get(),
                     state
                 ),
@@ -912,17 +912,17 @@ impl State {
                 .objects
                 .entry(oref.clone())
                 .or_insert(Default::default())
-                .insert(worker.clone());
+                .insert(governor.clone());
             match state {
                 DataObjectState::Finished => {
-                    if !oref.get().assigned.contains(&worker) {
-                        // We did not assign the object to the worker
+                    if !oref.get().assigned.contains(&governor) {
+                        // We did not assign the object to the governor
                         // It means that it was an input of scheduled tasks, but object
                         // was not directly scheduled
                         continue;
                     }
-                    oref.get_mut().located.insert(worker.clone());
-                    worker.get_mut().located_objects.insert(oref.clone());
+                    oref.get_mut().located.insert(governor.clone());
+                    governor.get_mut().located_objects.insert(oref.clone());
                     let cur_state = oref.get().state; // To satisfy the reborrow checker
                     match cur_state {
                         DataObjectState::Unfinished => {
@@ -941,19 +941,19 @@ impl State {
                                 self.update_task_assignment(&cref);
                             }
                             if oref.get().is_needed() {
-                                self.update_object_assignments(&oref, Some(worker));
+                                self.update_object_assignments(&oref, Some(governor));
                             } else {
                                 self.purge_object(&oref);
                             }
                         }
                         DataObjectState::Finished => {
-                            // cloning to some other worker done
-                            self.update_object_assignments(&oref, Some(worker));
+                            // cloning to some other governor done
+                            self.update_object_assignments(&oref, Some(governor));
                         }
                         _ => {
                             panic!(
-                                "worker {:?} set object {:?} state to {:?}",
-                                worker,
+                                "governor {:?} set object {:?} state to {:?}",
+                                governor,
                                 *oref.get(),
                                 state
                             );
@@ -962,25 +962,25 @@ impl State {
                 }
                 _ => {
                     panic!(
-                        "worker {:?} set object {:?} state to {:?}",
-                        worker,
+                        "governor {:?} set object {:?} state to {:?}",
+                        governor,
                         *oref.get(),
                         state
                     );
                 }
             }
         }
-        worker.check_consistency_opt().unwrap(); // non-recoverable
+        governor.check_consistency_opt().unwrap(); // non-recoverable
     }
 
-    /// For all workers, if the worker is not overbooked and has ready messages, distribute
-    /// more scheduled ready tasks to workers.
+    /// For all governors, if the governor is not overbooked and has ready messages, distribute
+    /// more scheduled ready tasks to governors.
     pub fn distribute_tasks(&mut self) {
-        if self.underload_workers.is_empty() {
+        if self.underload_governors.is_empty() {
             return;
         }
         debug!("Distributing tasks");
-        for wref in &::std::mem::replace(&mut self.underload_workers, Default::default()) {
+        for wref in &::std::mem::replace(&mut self.underload_governors, Default::default()) {
             //let mut w = wref.get_mut();
             // TODO: Customize the overbook limit
             while wref.get().assigned_tasks.len() < 128
@@ -1021,7 +1021,7 @@ impl State {
         for tref in changed.tasks.iter() {
             self.update_task_assignment(tref);
         }
-        self.underload_workers = self.graph.workers.values().map(|w| w.clone()).collect();
+        self.underload_governors = self.graph.governors.values().map(|w| w.clone()).collect();
     }
 
     pub fn handle(&self) -> &Handle {
@@ -1030,7 +1030,7 @@ impl State {
 }
 
 impl ConsistencyCheck for State {
-    /// Check consistency of all tasks, objects, workers, clients and sessions. Quite slow.
+    /// Check consistency of all tasks, objects, governors, clients and sessions. Quite slow.
     fn check_consistency(&self) -> Result<()> {
         debug!("Checking State consistency");
         for tr in self.graph.tasks.values() {
@@ -1039,7 +1039,7 @@ impl ConsistencyCheck for State {
         for or in self.graph.objects.values() {
             or.check_consistency()?;
         }
-        for wr in self.graph.workers.values() {
+        for wr in self.graph.governors.values() {
             wr.check_consistency()?;
         }
         for sr in self.graph.sessions.values() {
@@ -1070,7 +1070,7 @@ impl StateRef {
             http_listen_address: http_listen_address,
             handle: handle,
             scheduler: Default::default(),
-            underload_workers: Default::default(),
+            underload_governors: Default::default(),
             updates: Default::default(),
             stop_server: false,
             self_ref: None,
@@ -1153,7 +1153,7 @@ impl StateRef {
             self.get().check_consistency_opt().unwrap(); // unrecoverable
         }
 
-        // Assign ready tasks to workers (up to overbook limit)
+        // Assign ready tasks to governors (up to overbook limit)
         self.get_mut().distribute_tasks();
         !self.get().stop_server
     }

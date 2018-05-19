@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-//use common::id::{SessionId, WorkerId, DataObjectId, TaskId, ClientId, SId};
+//use common::id::{SessionId, GovernorId, DataObjectId, TaskId, ClientId, SId};
 use super::logger::{Logger, SearchCriteria};
 use common::events;
 use common::logging::logger::QueryEvents;
@@ -189,11 +189,11 @@ impl Logger for SQLiteLogger {
 
 mod tests {
     use super::*;
-    use common::id::WorkerId;
+    use common::id::GovernorId;
     use std::net::{IpAddr, Ipv4Addr};
 
-    fn create_test_worker_id() -> WorkerId {
-        WorkerId::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 9010)
+    fn create_test_governor_id() -> GovernorId {
+        GovernorId::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 9010)
     }
 
     fn create_logger() -> SQLiteLogger {
@@ -218,11 +218,11 @@ mod tests {
     }
 
     #[test]
-    fn test_add_new_worker_event() {
+    fn test_add_new_governor_event() {
         let mut logger = create_logger();
-        let w = create_test_worker_id();
-        logger.add_new_worker_event(w);
-        let et = events::Event::WorkerNew(events::WorkerNewEvent { worker: w });
+        let w = create_test_governor_id();
+        logger.add_new_governor_event(w);
+        let et = events::Event::GovernorNew(events::GovernorNewEvent { governor: w });
         assert!(logger.events[0].event == et);
     }
 }

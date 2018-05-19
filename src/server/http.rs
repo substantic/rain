@@ -65,20 +65,20 @@ fn lite_dashboard(state: &StateRef) -> ResponseFuture {
     <body>
     <h1>Rain / Dashboard Lite</h1>
     <p>{time}</p>
-    <h2>Workers</h2>
+    <h2>Governors</h2>
     <table>
     <thead><tr><th>ID<th>cpus</tr>
     </thead>
-    {worker_tab}
+    {governor_tab}
     </table>
     </body>
     </html>",
         time = ::chrono::Utc::now(),
-        worker_tab =
+        governor_tab =
             wrap_elements(
                 "<tr>",
                 "</tr>",
-                state.get().graph.workers.iter().map(|(id, ref wref)| {
+                state.get().graph.governors.iter().map(|(id, ref wref)| {
                     format!("<td>{}</td><td>{}</td>", id, wref.get().resources.cpus)
                 }),
             )

@@ -3,11 +3,11 @@ use futures::Future;
 
 use common::DataType;
 use errors::{Error, Result};
-use worker::graph::{ExecutorRef, TaskRef, TaskState};
-use worker::rpc::executor::data_output_from_spec;
-use worker::rpc::executor_serde::ResultMsg;
-use worker::state::State;
-use worker::tasks;
+use governor::graph::{ExecutorRef, TaskRef, TaskState};
+use governor::rpc::executor::data_output_from_spec;
+use governor::rpc::executor_serde::ResultMsg;
+use governor::state::State;
+use governor::tasks;
 
 /// Instance represents a running task. It contains resource allocations and
 /// allows to signal finishing of data objects.
@@ -29,7 +29,7 @@ pub type TaskResult = Result<Box<TaskFuture>>;
 
 #[derive(Serialize)]
 struct AttributeInfo {
-    worker: String,
+    governor: String,
     start: String,
     duration: i64,
 }
@@ -125,7 +125,7 @@ impl TaskInstance {
                     state.free_resources(&task.resources);
 
                     let info = AttributeInfo {
-                        worker: format!("{}", state.worker_id()),
+                        governor: format!("{}", state.governor_id()),
                         start: instance.start_timestamp.to_rfc3339(),
                         duration: (Utc::now().signed_duration_since(instance.start_timestamp))
                             .num_milliseconds(),

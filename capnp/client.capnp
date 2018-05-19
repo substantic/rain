@@ -1,7 +1,7 @@
 @0xb3195a92eff52478;
 
 using import "common.capnp".TaskId;
-using import "common.capnp".WorkerId;
+using import "common.capnp".GovernorId;
 using import "common.capnp".DataObjectId;
 using import "common.capnp".Attributes;
 using import "common.capnp".SessionId;
@@ -12,8 +12,8 @@ using import "common.capnp".Resources;
 using import "common.capnp".DataType;
 using import "common.capnp".FetchResult;
 
-struct WorkerInfo {
-    workerId @0: WorkerId;
+struct GovernorInfo {
+    governorId @0: GovernorId;
     tasks @1 :List(TaskId);
     objects @2 :List(DataObjectId);
     objectsToDelete @3 :List(DataObjectId);
@@ -21,7 +21,7 @@ struct WorkerInfo {
 }
 
 struct ServerInfo {
-  workers @0 :List(WorkerInfo);
+  governors @0 :List(GovernorInfo);
 }
 
 interface ClientService {
@@ -32,7 +32,7 @@ interface ClientService {
     # Ask for a new session
 
     closeSession @2 (sessionId :SessionId) -> ();
-    # Remove session from worker, all running tasks are stopped,
+    # Remove session from governor, all running tasks are stopped,
     # all existing data objects are removed
 
     submit @3 (tasks :List(Task), objects :List(DataObject)) -> ();

@@ -65,11 +65,11 @@ class TestEnv(Env):
     def __init__(self):
         Env.__init__(self)
         self._client = None
-        self.worker_defs = None
+        self.governor_defs = None
         self.id_counter = 1
 
         self.server = None
-        self.workers = []
+        self.governors = []
         self.do_final_check = True
 
     @property
@@ -80,16 +80,16 @@ class TestEnv(Env):
         self.do_final_check = False
 
     def start(self,
-              n_workers=None,
+              n_governors=None,
               n_cpus=1,
               listen_addr=None,
               listen_port=None,
               http_port=None,
-              worker_defs=None,
+              governor_defs=None,
               delete_list_timeout=None,
               executor=None):
         """
-        Start infrastructure: server & n workers
+        Start infrastructure: server & n governors
         """
 
         config = None
@@ -98,7 +98,7 @@ class TestEnv(Env):
                      "      command = \"{}\"\n".format(executor, executors[executor])
 
         if config:
-            with open(os.path.join(WORK_DIR, "worker.config"), "w") as f:
+            with open(os.path.join(WORK_DIR, "governor.config"), "w") as f:
                 f.write(config)
 
         env = os.environ.copy()
@@ -132,12 +132,12 @@ class TestEnv(Env):
 
         server_ready_file = os.path.join(WORK_DIR, "server-ready")
 
-        assert (n_workers is None) != (worker_defs is None)
-        if n_workers is not None:
-            worker_defs = (n_cpus,) * n_workers
+        assert (n_governors is None) != (governor_defs is None)
+        if n_governors is not None:
+            governor_defs = (n_cpus,) * n_governors
 
-        assert self.worker_defs is None
-        self.worker_defs = worker_defs
+        assert self.governor_defs is None
+        self.governor_defs = governor_defs
 
         # Start SERVER
         args = (RAIN_BIN, "server",
@@ -157,43 +157,43 @@ class TestEnv(Env):
                 raise Exception("Server not started after 5 s (watching {!r})"
                                 .format(server_ready_file))
 
-        # Start WORKERS
-        self.workers = []
+        # Start GOVERNORS
+        self.governors = []
 
-        worker_ready_files = []
-        for i, cpus in enumerate(worker_defs):
-            name = "worker{}".format(i)
+        governor_ready_files = []
+        for i, cpus in enumerate(governor_defs):
+            name = "governor{}".format(i)
             ready_file = os.path.join(WORK_DIR, name + "-ready")
-            worker_ready_files.append(ready_file)
-            wdir = os.path.join(WORK_DIR, "worker-{}".format(i))
+            governor_ready_files.append(ready_file)
+            wdir = os.path.join(WORK_DIR, "governor-{}".format(i))
             args = [RAIN_BIN,
-                    "worker", "127.0.0.1:" + str(port),
+                    "governor", "127.0.0.1:" + str(port),
                     "--ready-file", ready_file,
                     "--cpus", str(cpus),
                     "--logdir", os.path.join(wdir, "logs"),
                     "--workdir", os.path.join(wdir, "work")]
             if config:
-                args += ["--config", "worker.config"]
-            self.workers.append(self.start_process(name, args, env=env))
+                args += ["--config", "governor.config"]
+            self.governors.append(self.start_process(name, args, env=env))
 
         it = 0
-        while not all(os.path.isfile(f) for f in worker_ready_files):
+        while not all(os.path.isfile(f) for f in governor_ready_files):
             time.sleep(0.05)
             self.check_running_processes()
             it += 1
             if it > 100:
-                raise Exception("Workers not started after 5 s")
+                raise Exception("Governors not started after 5 s")
 
         self.check_running_processes()
 
     def check_running_processes(self):
         """Checks that everything is still running"""
-        for i, worker in enumerate(self.workers):
-            if worker.poll() is not None:
-                self.workers = []
+        for i, governor in enumerate(self.governors):
+            if governor.poll() is not None:
+                self.governors = []
                 raise Exception(
-                    "Worker {0} crashed "
-                    "(log in {1}/worker{0}.out; "
+                    "Governor {0} crashed "
+                    "(log in {1}/governor{0}.out; "
                     "Note: If you are running more tests, "
                     "log may be overridden or deleted)".format(i, WORK_DIR))
 
@@ -221,9 +221,9 @@ class TestEnv(Env):
         if self._client:
             time.sleep(0.1)
             info = self._client.get_server_info()
-            workers = info["workers"]
-            assert len(workers) == len(self.worker_defs)
-            for w in workers:
+            governors = info["governors"]
+            assert len(governors) == len(self.governor_defs)
+            for w in governors:
                 assert not w["tasks"]
                 invalid = [o for o in w["objects"] if o not in w["objects_to_delete"]]
                 assert not invalid

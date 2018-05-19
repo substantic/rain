@@ -24,9 +24,9 @@ This section demonstrate how to start Rain infrastructure locally and execute
 a simple "Hello world" application.
 
 - **Start Rain infrastructue** Although, the components of Rain (server and
-  worker(s)) can be started manually, in order to simplify this process, we
+  governor(s)) can be started manually, in order to simplify this process, we
   provide "rain start" command to do it for you automatically. The following
-  command starts server and one local worker. (Starting Rain infrastructure on
+  command starts server and one local governor. (Starting Rain infrastructure on
   distributed systems is described in :ref:`start-rain`.)::
 
   $ rain start --simple

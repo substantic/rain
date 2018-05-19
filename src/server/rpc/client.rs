@@ -47,33 +47,33 @@ impl client_service::Server for ClientServiceImpl {
         let s = self.state.get();
 
         let futures: Vec<_> = s.graph
-            .workers
+            .governors
             .iter()
-            .map(|(worker_id, worker)| {
-                let w = worker.get();
+            .map(|(governor_id, governor)| {
+                let w = governor.get();
                 let control = w.control.as_ref().unwrap();
-                let worker_id = worker_id.clone();
+                let governor_id = governor_id.clone();
                 let resources = w.resources.clone();
                 control
                     .get_info_request()
                     .send()
                     .promise
-                    .map(move |r| (worker_id, r, resources))
+                    .map(move |r| (governor_id, r, resources))
             })
             .collect();
 
         Promise::from_future(future::join_all(futures).map(move |rs| {
             let results = results.get();
-            let mut workers = results.init_workers(rs.len() as u32);
-            for (i, &(ref worker_id, ref r, ref resources)) in rs.iter().enumerate() {
-                let mut w = workers.reborrow().get(i as u32);
+            let mut governors = results.init_governors(rs.len() as u32);
+            for (i, &(ref governor_id, ref r, ref resources)) in rs.iter().enumerate() {
+                let mut w = governors.reborrow().get(i as u32);
                 let r = r.get().unwrap();
                 w.set_tasks(r.get_tasks().unwrap()).unwrap();
                 w.set_objects(r.get_objects().unwrap()).unwrap();
                 w.set_objects_to_delete(r.get_objects_to_delete().unwrap())
                     .unwrap();
                 resources.to_capnp(&mut w.reborrow().get_resources().unwrap());
-                worker_id.to_capnp(&mut w.get_worker_id().unwrap());
+                governor_id.to_capnp(&mut w.get_governor_id().unwrap());
             }
             ()
         }))
@@ -425,12 +425,12 @@ impl client_service::Server for ClientServiceImpl {
                         // Fetching uploaded objects is not implemented yet
                         unimplemented!();
                     }
-                    let worker_ref = obj.located.iter().next().unwrap().clone();
-                    let mut worker = worker_ref.get_mut();
-                    debug!("Redirecting client fetch id={} to {}", worker.id(), id);
+                    let governor_ref = obj.located.iter().next().unwrap().clone();
+                    let mut governor = governor_ref.get_mut();
+                    debug!("Redirecting client fetch id={} to {}", governor.id(), id);
                     future::Either::B(
-                        worker
-                            .wait_for_data_connection(&worker_ref, &state_ref)
+                        governor
+                            .wait_for_data_connection(&governor_ref, &state_ref)
                             .and_then(move |data_conn| {
                                 let mut req = data_conn.fetch_request();
                                 {

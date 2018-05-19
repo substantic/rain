@@ -11,9 +11,9 @@ def test_get_info(test_env):
     client = test_env.client
 
     info = client.get_server_info()
-    workers = info["workers"]
-    assert len(workers) == 2
-    for w in workers:
+    governors = info["governors"]
+    assert len(governors) == 2
+    for w in governors:
         assert w["tasks"] == []
         assert w["objects"] == []
 

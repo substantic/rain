@@ -1,6 +1,6 @@
 use super::framing::SocketExt;
 use super::*;
-use librain::worker::rpc::executor_serde::*;
+use librain::governor::rpc::executor_serde::*;
 use serde_cbor;
 use std::env;
 use std::fs;
@@ -8,10 +8,10 @@ use std::io::Read;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::thread::{spawn, JoinHandle};
 
-/// Start dummy worker RPC in another thread, waiting for registration and submitting given task calls.
+/// Start dummy governor RPC in another thread, waiting for registration and submitting given task calls.
 /// Returns a list of received task relies (if there is an I/O error, the thread returns successfully
 /// received so far).
-fn dummy_worker(
+fn dummy_governor(
     socket_path: &Path,
     id: ExecutorId,
     name: &str,
@@ -22,10 +22,10 @@ fn dummy_worker(
     let name: String = name.into();
     spawn(move || {
         let (mut socket, addr) = main_socket.accept().unwrap();
-        debug!("Dummy worker accepted connection from {:?}", addr);
+        debug!("Dummy governor accepted connection from {:?}", addr);
         let data = socket.read_frame().unwrap();
-        let msg = serde_cbor::from_slice::<ExecutorToWorkerMessage>(&data).unwrap();
-        if let ExecutorToWorkerMessage::Register(ref reg) = msg {
+        let msg = serde_cbor::from_slice::<ExecutorToGovernorMessage>(&data).unwrap();
+        if let ExecutorToGovernorMessage::Register(ref reg) = msg {
             assert_eq!(reg.executor_id, id);
             assert_eq!(reg.executor_type, name);
             assert_eq!(reg.protocol, MSG_PROTOCOL);
@@ -34,7 +34,7 @@ fn dummy_worker(
         }
         let mut res = Vec::new();
         for r in requests {
-            let data = serde_cbor::to_vec(&WorkerToExecutorMessage::Call(r)).unwrap();
+            let data = serde_cbor::to_vec(&GovernorToExecutorMessage::Call(r)).unwrap();
             let data = match socket.write_frame(&data).and_then(|_| socket.read_frame()) {
                 Err(Error(ErrorKind::Io(ref e), _))
                     if (e.kind() == io::ErrorKind::UnexpectedEof) =>
@@ -44,8 +44,8 @@ fn dummy_worker(
                 Err(e) => Err(e).unwrap(),
                 Ok(d) => d,
             };
-            let msg = serde_cbor::from_slice::<ExecutorToWorkerMessage>(&data).unwrap();
-            if let ExecutorToWorkerMessage::Result(result) = msg {
+            let msg = serde_cbor::from_slice::<ExecutorToGovernorMessage>(&data).unwrap();
+            if let ExecutorToGovernorMessage::Result(result) = msg {
                 res.push(result);
             } else {
                 panic!("expected Result msg");
@@ -55,7 +55,7 @@ fn dummy_worker(
     })
 }
 
-/// Setup helper to clean and create a test dir, setup a Executor and create a dummy worker.
+/// Setup helper to clean and create a test dir, setup a Executor and create a dummy governor.
 fn setup(name: &str, requests: Vec<CallMsg>) -> (Executor, JoinHandle<Vec<ResultMsg>>) {
     // let _ = env_logger::try_init(); // Optional logging for beter debug (but normally too noisy)
     let p: PathBuf = env::current_dir().unwrap().join("testing").join(name);
@@ -65,7 +65,7 @@ fn setup(name: &str, requests: Vec<CallMsg>) -> (Executor, JoinHandle<Vec<Result
     fs::create_dir_all(&p).unwrap();
     let sock_path = p.join("executor.socket");
     let s = Executor::with_params(name, 42, &sock_path, &p);
-    let handle = dummy_worker(&sock_path, 42, name, requests);
+    let handle = dummy_governor(&sock_path, 42, name, requests);
     (s, handle)
 }
 

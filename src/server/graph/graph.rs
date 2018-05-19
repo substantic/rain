@@ -1,11 +1,11 @@
-use super::{ClientRef, DataObjectRef, SessionRef, TaskRef, WorkerRef};
-use common::id::{ClientId, DataObjectId, SessionId, TaskId, WorkerId};
+use super::{ClientRef, DataObjectRef, SessionRef, TaskRef, GovernorRef};
+use common::id::{ClientId, DataObjectId, SessionId, TaskId, GovernorId};
 use std::collections::HashMap;
 
 #[derive(Clone, Default)]
 pub struct Graph {
     /// Contained objects
-    pub(in super::super) workers: HashMap<WorkerId, WorkerRef>,
+    pub(in super::super) governors: HashMap<GovernorId, GovernorRef>,
     pub(in super::super) tasks: HashMap<TaskId, TaskRef>,
     pub(in super::super) objects: HashMap<DataObjectId, DataObjectRef>,
     pub(in super::super) sessions: HashMap<SessionId, SessionRef>,
@@ -29,13 +29,13 @@ impl Graph {
 #[cfg(test)]
 
 mod tests {
-    use super::super::{ClientRef, DataObjectRef, Graph, SessionRef, TaskInput, TaskRef, WorkerRef};
+    use super::super::{ClientRef, DataObjectRef, Graph, SessionRef, TaskInput, TaskRef, GovernorRef};
     use common::attributes::Attributes;
     use common::id::{DataObjectId, SId, TaskId};
     use common::resources::Resources;
 
     fn create_test_graph(
-        workers: usize,
+        governors: usize,
         clients: usize,
         sessions: usize,
         tasks: usize,
@@ -44,8 +44,8 @@ mod tests {
         use common::DataType;
 
         let g = Graph::new();
-        for wi in 0..workers {
-            WorkerRef::new(
+        for wi in 0..governors {
+            GovernorRef::new(
                 format!("0.0.0.{}:67", wi + 1).parse().unwrap(),
                 None,
                 Resources { cpus: 8 },
@@ -92,7 +92,7 @@ mod tests {
                 }
             }
         }
-        // TODO: add some worker links
+        // TODO: add some governor links
         g
     }
 
@@ -102,17 +102,17 @@ mod tests {
         let g = create_test_graph(4, 2, 3, 10, 20);
 
         assert!(!g.objects.is_empty());
-        assert!(!g.workers.is_empty());
+        assert!(!g.governors.is_empty());
 
         //let client_rcs: Vec<_> = g.clients.values().map(|x| x.clone()).collect();
-        //let worker_rcs: Vec<_> = g.workers.values().map(|x| x.clone()).collect();
+        //let governor_rcs: Vec<_> = g.governors.values().map(|x| x.clone()).collect();
 
         // FIXME!
         //for c in client_rcs { c.delete(&mut g); }
-        //for w in worker_rcs { w.delete(&mut g); }
+        //for w in governor_rcs { w.delete(&mut g); }
 
         assert!(g.clients.is_empty());
-        assert!(g.workers.is_empty());
+        assert!(g.governors.is_empty());
         assert!(g.tasks.is_empty());
         assert!(g.objects.is_empty());
         assert!(g.sessions.is_empty());

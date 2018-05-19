@@ -1,6 +1,6 @@
 use chrono;
 use librain::common::id::{DataObjectId, ExecutorId, TaskId};
-use librain::worker::rpc::executor_serde::*;
+use librain::governor::rpc::executor_serde::*;
 
 use super::*;
 use std::borrow::Borrow;
@@ -19,7 +19,7 @@ pub type TaskFn = Fn(&mut Context, &[DataInstance], &mut [Output]) -> TaskResult
 
 /// The executor event loop and the set of registered tasks.
 pub struct Executor {
-    /// An identifier for the local worker
+    /// An identifier for the local governor
     executor_id: ExecutorId,
     /// Any name given to the executor type (denoting the group of provided tasks)
     executor_type: String,
@@ -40,23 +40,23 @@ pub struct Executor {
 }
 
 impl Executor {
-    /// Create a executor based on env variables `RAIN_SUBWORKER_ID` and `RAIN_SUBWORKER_SOCKET`
+    /// Create a executor based on env variables `RAIN_EXECUTOR_ID` and `RAIN_EXECUTOR_SOCKET`
     /// and working dir in the current directory. See also `Executor::with_params`.
     ///
     /// Panics when either env variable is missing or invalid.
     pub fn new(executor_type: &str) -> Self {
-        let id = env::var("RAIN_SUBWORKER_ID")
-            .expect("Env variable RAIN_SUBWORKER_ID required")
+        let id = env::var("RAIN_EXECUTOR_ID")
+            .expect("Env variable RAIN_EXECUTOR_ID required")
             .parse()
-            .expect("Error parsing RAIN_SUBWORKER_ID");
-        let socket: PathBuf = env::var_os("RAIN_SUBWORKER_SOCKET")
-            .expect("Env variable RAIN_SUBWORKER_SOCKET required")
+            .expect("Error parsing RAIN_EXECUTOR_ID");
+        let socket: PathBuf = env::var_os("RAIN_EXECUTOR_SOCKET")
+            .expect("Env variable RAIN_EXECUTOR_SOCKET required")
             .into();
         let workdir = env::current_dir().unwrap();
         Executor::with_params(executor_type, id, &socket, &workdir)
     }
 
-    /// Creates a Sbworker with the given attributes. Note that the attributes are only
+    /// Creates a Sbgovernor with the given attributes. Note that the attributes are only
     /// recorded at this point and no initialization is performed.
     pub fn with_params(
         executor_type: &str,
@@ -99,7 +99,7 @@ impl Executor {
         self.tasks.insert(key, Box::new(task_fun));
     }
 
-    /// Run the executor loop, connecting to the worker, registering and handling requests
+    /// Run the executor loop, connecting to the governor, registering and handling requests
     /// until the connection is closed. May be only called once.
     ///
     /// Panics on any error outside of the task functions. See `README.md` for rationale.
@@ -119,7 +119,7 @@ impl Executor {
         fs::create_dir(&self.tasks_dir).expect("error creating tasks dir");
         // Connect to socket
         info!(
-            "Connecting to worker at socket {:?} with ID {}",
+            "Connecting to governor at socket {:?} with ID {}",
             self.socket_path, self.executor_id
         );
         if !self.socket_path.exists() {
@@ -133,15 +133,15 @@ impl Executor {
         env::set_current_dir(&self.working_dir).expect("error chdir to working dir");
         // Register and run the task loop, catching any errors
         let res = (|| {
-            let regmsg = ExecutorToWorkerMessage::Register(self.register());
+            let regmsg = ExecutorToGovernorMessage::Register(self.register());
             sock.write_msg(&regmsg)?;
             loop {
                 match sock.read_msg()? {
-                    WorkerToExecutorMessage::Call(call_msg) => {
+                    GovernorToExecutorMessage::Call(call_msg) => {
                         let reply = self.handle_call(call_msg);
-                        sock.write_msg(&ExecutorToWorkerMessage::Result(reply))?;
+                        sock.write_msg(&ExecutorToGovernorMessage::Result(reply))?;
                     }
-                    WorkerToExecutorMessage::DropCached(drop_msg) => {
+                    GovernorToExecutorMessage::DropCached(drop_msg) => {
                         if !drop_msg.objects.is_empty() {
                             panic!("received nonempty dropCached request with no cached objects");
                         }
@@ -160,7 +160,7 @@ impl Executor {
         }
     }
 
-    /// Create a register message to the worker.
+    /// Create a register message to the governor.
     fn register(&mut self) -> RegisterMsg {
         RegisterMsg {
             protocol: MSG_PROTOCOL.into(),
@@ -172,7 +172,7 @@ impl Executor {
     /// Handle one call msg: decode, run the task function, cleanup finished task
     /// (and already staged files on failure), create reply message.
     ///
-    /// Panics on any IO error. TaskErrors are handled and returned to the worker.
+    /// Panics on any IO error. TaskErrors are handled and returned to the governor.
     fn handle_call(&mut self, call_msg: CallMsg) -> ResultMsg {
         let task_name = format!(
             "{}-task-{}_{}",

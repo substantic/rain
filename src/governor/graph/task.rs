@@ -6,7 +6,7 @@ use std::sync::Arc;
 use common::resources::Resources;
 use common::wrapped::WrappedRcRefCell;
 use std::fmt;
-use worker::data::Data;
+use governor::data::Data;
 
 use errors::Result;
 

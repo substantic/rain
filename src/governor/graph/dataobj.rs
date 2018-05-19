@@ -1,12 +1,12 @@
 use super::{Graph, TaskRef};
-use common::id::{DataObjectId, WorkerId};
+use common::id::{DataObjectId, GovernorId};
 use common::wrapped::WrappedRcRefCell;
 use common::{Attributes, DataType, RcSet};
 use errors::{ErrorKind, Result};
-use worker::WorkDir;
-use worker::data::Data;
-use worker::graph::ExecutorRef;
-use worker::rpc::executor_serde::{DataLocation, DataObjectSpec};
+use governor::WorkDir;
+use governor::data::Data;
+use governor::graph::ExecutorRef;
+use governor::rpc::executor_serde::{DataLocation, DataObjectSpec};
 
 use std::fmt;
 use std::net::SocketAddr;
@@ -36,7 +36,7 @@ pub struct DataObject {
 
     pub(in super::super) state: DataObjectState,
 
-    /// Task that produces data object; it is None if task not computed in this worker
+    /// Task that produces data object; it is None if task not computed in this governor
     // producer: Option<Task>,
     /// Consumer set, e.g. to notify of completion.
     pub(in super::super) consumers: RcSet<TaskRef>,
@@ -46,7 +46,7 @@ pub struct DataObject {
     /// Where are data object cached
     pub(in super::super) executor_cache: RcSet<ExecutorRef>,
 
-    /// ??? Is this necessary for worker?
+    /// ??? Is this necessary for governor?
     pub(in super::super) size: Option<usize>,
 
     /// Label may be the role that the output has in the `producer`, or it may be
@@ -127,7 +127,7 @@ impl DataObject {
         }
     }
 
-    pub fn remote(&self) -> Option<WorkerId> {
+    pub fn remote(&self) -> Option<GovernorId> {
         match self.state {
             DataObjectState::Remote(ref addr) | DataObjectState::Pulling((ref addr, _)) => {
                 Some(*addr)

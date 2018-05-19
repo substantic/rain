@@ -173,16 +173,16 @@ void tasklib::Executor::init()
 {
    logger->info("Starting executor");
 
-   char *socket_path = std::getenv("RAIN_SUBWORKER_SOCKET");
+   char *socket_path = std::getenv("RAIN_EXECUTOR_SOCKET");
    if (!socket_path) {
-       logger->error("Env variable 'RAIN_SUBWORKER_SOCKET' not found");
+       logger->error("Env variable 'RAIN_EXECUTOR_SOCKET' not found");
        logger->error("It seems that executor is not running in Rain environment");
        exit(1);
    }
 
-   char *executor_id = std::getenv("RAIN_SUBWORKER_ID");
+   char *executor_id = std::getenv("RAIN_EXECUTOR_ID");
    if (!executor_id) {
-      logger->error("Env variable 'RAIN_SUBWORKER_ID' not found");
+      logger->error("Env variable 'RAIN_EXECUTOR_ID' not found");
       exit(1);
    }
    size_t sw_id;

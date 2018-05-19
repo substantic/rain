@@ -1,26 +1,26 @@
 use capnp::capability::Promise;
 use common::convert::FromCapnp;
 use common::id::DataObjectId;
-use worker::StateRef;
-use worker_capnp::worker_bootstrap;
+use governor::StateRef;
+use governor_capnp::governor_bootstrap;
 
-impl WorkerBootstrapImpl {
+impl GovernorBootstrapImpl {
     pub fn new(state: &StateRef) -> Self {
-        WorkerBootstrapImpl {
+        GovernorBootstrapImpl {
             state: state.clone(),
         }
     }
 }
 
-pub struct WorkerBootstrapImpl {
+pub struct GovernorBootstrapImpl {
     state: StateRef,
 }
 
-impl worker_bootstrap::Server for WorkerBootstrapImpl {
+impl governor_bootstrap::Server for GovernorBootstrapImpl {
     fn fetch(
         &mut self,
-        params: worker_bootstrap::FetchParams,
-        mut results: worker_bootstrap::FetchResults,
+        params: governor_bootstrap::FetchParams,
+        mut results: governor_bootstrap::FetchResults,
     ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let id = DataObjectId::from_capnp(&pry!(params.get_id()));
@@ -32,7 +32,7 @@ impl worker_bootstrap::Server for WorkerBootstrapImpl {
         let mut results = results.get();
 
         if transport_view.is_none() {
-            debug!("Worker responding 'not here' for id={}", id);
+            debug!("Governor responding 'not here' for id={}", id);
             results.get_status().set_not_here(());
             return Promise::ok(());
         }

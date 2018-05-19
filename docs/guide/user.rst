@@ -6,7 +6,7 @@ Basic terms
 ===========
 
 **Task** is a basic unit of work in Rain, it reads inputs and produces outputs.
-Tasks are executed on computational nodes (computers where Rain workers are
+Tasks are executed on computational nodes (computers where Rain governors are
 running). Tasks can be external programs, python functions, and basic built-in
 operations.
 
@@ -220,14 +220,14 @@ the task graph.
 Built-in tasks
 ==============
 
-The following four tasks are supported directly by Rain worker:
+The following four tasks are supported directly by Rain governor:
 
 * *concat* (:func:`rain.client.tasks.export`) Concatencates inputs into one
   resulting blob.
 * *export* (:func:`rain.client.tasks.export`) Saves data object to a filesystem.
-  The data are saved into local file system of the worker on which the task is
+  The data are saved into local file system of the governor on which the task is
   executed. This task is usually used for saving files to a distributed file
-  system, hence it does not matter which worker performs the task.
+  system, hence it does not matter which governor performs the task.
 * *open* (:func:`rain.client.tasks.open`) Creates data object from a file (Note:
   The current version does not support tracking external resources; therefore,
   this operation "internalize" file, i.e. it makes a copy of it into the working
@@ -287,9 +287,9 @@ The idea is that this directory is program's sandbox where input data objects
 are mapped and files created in this directory may be moved out as new data
 objects when computation completes. Therefore, in contrast with many other
 workflow systems, programs in rain should not be called with absolute paths in
-arguments but use relative paths (to stay in its working directory). Workers try
+arguments but use relative paths (to stay in its working directory). Governors try
 to avoid unnecessary data object replication in the cases when a data object is
-used by multiple tasks that run on the same worker.
+used by multiple tasks that run on the same governor.
 
 If the executed program terminates with a non-zero code, then tasks fails and
 content of standard error output is written into the error message.
@@ -497,7 +497,7 @@ Rain task. Let us consider the following example::
 
 The decorator changes the behavior of the decorated function in a way that
 calling it no longer executes it in the client but creates a task that executes
-the function in a python executor. Worker starts and manages executors as
+the function in a python executor. Governor starts and manages executors as
 necessary, there is no need of any action from the user.
 
 The decorated function should accept at least one argument. As the first
@@ -527,7 +527,7 @@ contains data defined by the object::
       # Create data object
       data = blob("Rain!")
 
-      # Creates a task calling function 'hello' in worker
+      # Creates a task calling function 'hello' in governor
       t = hello(b"Hello ", data)
 
       t.output.keep()
@@ -729,8 +729,8 @@ A client may ask for attributes of any task/object as long as session is open;
         # Download recent attributes
         task.update()
 
-        # Print name of worker where task was executed
-        print(task.attributes["info"]["worker"])
+        # Print name of governor where task was executed
+        print(task.attributes["info"]["governor"])
 
 TODO: List of built-in attributes
 
@@ -855,8 +855,8 @@ Rain knows two methods of maping a data objects onto filesystem.
 * **write** - creates a fresh copy of data objects is created on filesystem that
   can be freely modified. Changes of the file is *not* propagated back to data
   object.
-* **link** - symlink to the internal storage of worker. The user can only read
-this data. This method may silently fall back to 'write' when worker has no file
+* **link** - symlink to the internal storage of governor. The user can only read
+this data. This method may silently fall back to 'write' when governor has no file
 system representation of the object.
 
 Task :func:`tasks.execute` maps files by **link** method. It can be changed by

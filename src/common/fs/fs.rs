@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::exit;
 
 /// Create "ready file", a file that is created when Rain is fully initialized
-/// What it exactly means depends on type of execution (server/worker/...)
+/// What it exactly means depends on type of execution (server/governor/...)
 /// When creation failed, the program is terminated, since the outer waiter
 /// cannot be informed about progress
 pub fn create_ready_file(path: &Path) {

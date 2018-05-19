@@ -26,7 +26,7 @@ class Task:
     attributes are updated on `Task.update()`, `Task.fetch()` and `Task.wait()`.
 
     Args:
-        task_type (`str`): Task-type name known to rain workers.
+        task_type (`str`): Task-type name known to rain governors.
         config: Any task-specific config.
         inputs (`LabeledList` or sequence): Sequence of `Input` or `DataObject`.
         outputs (`LabeledList` or sequence): Specification of `Output`\ s for the task.

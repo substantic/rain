@@ -10,7 +10,7 @@ use librain::common::id::SId;
 use librain::common::id::{DataObjectId, ExecutorId, TaskId};
 use librain::common::Attributes;
 use librain::common::DataType;
-use librain::worker::rpc::executor_serde::*;
+use librain::governor::rpc::executor_serde::*;
 
 use super::*;
 
@@ -177,7 +177,7 @@ impl<'a> Output<'a> {
     }
 
     /// Set the output to a given input data object.
-    /// No data is copied in this case and the worker is informed of the pass-through.
+    /// No data is copied in this case and the governor is informed of the pass-through.
     /// The input *must* belong to the same task (this is not checked).
     /// Not allowed if the output was submitted or written to.
     pub fn stage_input(&mut self, object: &DataInstance) -> TaskResult<()> {

@@ -2,19 +2,19 @@ use std::sync::Arc;
 
 use capnp::capability::Promise;
 use common::convert::{FromCapnp, ToCapnp};
-use common::id::{DataObjectId, TaskId, WorkerId};
+use common::id::{DataObjectId, TaskId, GovernorId};
 use common::{Attributes, DataType, Resources};
 use errors::{Error, ErrorKind};
 use futures::future::Future;
-use worker::StateRef;
-use worker::graph::{DataObjectState, TaskInput};
-use worker_capnp::worker_control;
+use governor::StateRef;
+use governor::graph::{DataObjectState, TaskInput};
+use governor_capnp::governor_control;
 
-pub struct WorkerControlImpl {
+pub struct GovernorControlImpl {
     state: StateRef,
 }
 
-impl WorkerControlImpl {
+impl GovernorControlImpl {
     pub fn new(state: &StateRef) -> Self {
         Self {
             state: state.clone(),
@@ -22,18 +22,18 @@ impl WorkerControlImpl {
     }
 }
 
-impl Drop for WorkerControlImpl {
+impl Drop for GovernorControlImpl {
     fn drop(&mut self) {
         error!("Lost connection to the server");
         // exit(1);
     }
 }
 
-impl worker_control::Server for WorkerControlImpl {
-    fn get_worker_resources(
+impl governor_control::Server for GovernorControlImpl {
+    fn get_governor_resources(
         &mut self,
-        _params: worker_control::GetWorkerResourcesParams,
-        mut results: worker_control::GetWorkerResourcesResults,
+        _params: governor_control::GetGovernorResourcesParams,
+        mut results: governor_control::GetGovernorResourcesResults,
     ) -> Promise<(), ::capnp::Error> {
         results
             .get()
@@ -43,8 +43,8 @@ impl worker_control::Server for WorkerControlImpl {
 
     fn unassign_objects(
         &mut self,
-        params: worker_control::UnassignObjectsParams,
-        mut _results: worker_control::UnassignObjectsResults,
+        params: governor_control::UnassignObjectsParams,
+        mut _results: governor_control::UnassignObjectsResults,
     ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let objects = pry!(params.get_objects());
@@ -58,7 +58,7 @@ impl worker_control::Server for WorkerControlImpl {
             let mut obj = dataobject.get_mut();
             if !obj.assigned {
                 return Promise::err(::capnp::Error::failed(
-                    "Object exists in worker but is not assigned".into(),
+                    "Object exists in governor but is not assigned".into(),
                 ));
             }
             obj.assigned = false;
@@ -69,8 +69,8 @@ impl worker_control::Server for WorkerControlImpl {
 
     fn stop_tasks(
         &mut self,
-        params: worker_control::StopTasksParams,
-        mut _results: worker_control::StopTasksResults,
+        params: governor_control::StopTasksParams,
+        mut _results: governor_control::StopTasksResults,
     ) -> Promise<(), ::capnp::Error> {
         let params = pry!(params.get());
         let mut state = self.state.get_mut();
@@ -83,8 +83,8 @@ impl worker_control::Server for WorkerControlImpl {
 
     fn add_nodes(
         &mut self,
-        params: worker_control::AddNodesParams,
-        mut _results: worker_control::AddNodesResults,
+        params: governor_control::AddNodesParams,
+        mut _results: governor_control::AddNodesResults,
     ) -> Promise<(), ::capnp::Error> {
         debug!("New tasks and objects");
         let params = pry!(params.get());
@@ -105,8 +105,8 @@ impl worker_control::Server for WorkerControlImpl {
                 continue;
             }
 
-            let placement = WorkerId::from_capnp(&co.get_placement().unwrap());
-            let (object_state, is_remote) = if placement == *state.worker_id() {
+            let placement = GovernorId::from_capnp(&co.get_placement().unwrap());
+            let (object_state, is_remote) = if placement == *state.governor_id() {
                 (DataObjectState::Assigned, false)
             } else {
                 (DataObjectState::Remote(placement), true)
@@ -184,13 +184,13 @@ impl worker_control::Server for WorkerControlImpl {
         for object in remote_objects {
             let object_ref = object.clone();
             let mut o = object.get_mut();
-            let worker_id = o.remote().unwrap();
+            let governor_id = o.remote().unwrap();
             let object_id = o.id;
             let (sender, receiver) = ::futures::unsync::oneshot::channel();
-            o.state = DataObjectState::Pulling((worker_id.clone(), sender));
+            o.state = DataObjectState::Pulling((governor_id.clone(), sender));
 
             let state_ref = self.state.clone();
-            let future = state.fetch_object(&worker_id, object_id).map(move |data| {
+            let future = state.fetch_object(&governor_id, object_id).map(move |data| {
                 object_ref.get_mut().set_data(Arc::new(data)).unwrap();
                 state_ref.get_mut().object_is_finished(&object_ref);
             });
@@ -215,8 +215,8 @@ impl worker_control::Server for WorkerControlImpl {
 
     fn get_info(
         &mut self,
-        _params: worker_control::GetInfoParams,
-        mut results: worker_control::GetInfoResults,
+        _params: governor_control::GetInfoParams,
+        mut results: governor_control::GetInfoResults,
     ) -> Promise<(), ::capnp::Error> {
         let mut result = results.get();
         let state = self.state.get();

@@ -49,10 +49,10 @@ straightforward installation and deployment with insightful monitoring on top.
 What is in the box
 ==================
 
-Rain infrastructure composes of a central **server** component and **worker**
-components, that may run on different machines. A worker may spawn one or more
+Rain infrastructure composes of a central **server** component and **governor**
+components, that may run on different machines. A governor may spawn one or more
 **executors** that are local processes that provides execution of an external
-code. Rain is distributed with Python executor. Workers communicate via
+code. Rain is distributed with Python executor. Governors communicate via
 direct connections to exchange data.
 
 Users interacts with server via
@@ -77,7 +77,7 @@ Rain Core Infrastructure
    * Basic scheduling heuristic respecting inter-task dependencies.
    * Rust implementation enabling easy build, deployment, and reliable run.
    * Distributed as all-in-one binary.
-   * Direct worker-to-worker communication.
+   * Direct governor-to-governor communication.
    * Basic dashboard for execution monitoring.
 
 
@@ -110,9 +110,9 @@ Resiliency
 
 The current version supports and propagates some failures (remote python task
 exceptions, external program errors) but other errors still cause server panic
-(e.g. worker node failure). The near-term goal is to have better failure modes
+(e.g. governor node failure). The near-term goal is to have better failure modes
 for introspection and possibly recovery. The system is designed to allow
-building resiliency against task or worker failures via checkpoints in the task
+building resiliency against task or governor failures via checkpoints in the task
 graph (keeping file copies). It is not clear how useful to our users this would
 be but it is on our radar.
 
@@ -201,7 +201,7 @@ Roadmap
 v0.3
 ----
 
-* Worker/Executor crash resilience
+* Governor/Executor crash resilience
 * More clever scheduler
 
 v0.2

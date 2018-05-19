@@ -17,9 +17,9 @@ def test_update_attributes(test_env):
         t1.wait()
         assert "info" not in t1.attributes
         t1.update()
-        assert t1.attributes["info"]["worker"].startswith("127.0.0.1:")
+        assert t1.attributes["info"]["governor"].startswith("127.0.0.1:")
         t1.update()
-        assert t1.attributes["info"]["worker"].startswith("127.0.0.1:")
+        assert t1.attributes["info"]["governor"].startswith("127.0.0.1:")
         assert 300 < int(t1.attributes["info"]["duration"]) < 600
         start = t1.attributes["info"]["start"]
         # rust sends time in more precision than python parses,

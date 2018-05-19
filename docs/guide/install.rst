@@ -57,29 +57,29 @@ Installation of Python API::
 Starting infrastructure
 =======================
 
-Starting local workers
+Starting local governors
 ----------------------
 
-The most simple case is running starting server and one worker with all
+The most simple case is running starting server and one governor with all
 resources of the local machine. The following command do all work for you::
 
   $ rain start --simple
 
 
-If you want to start more local workers, you can use the following command.
-It starts two workers with 4 assigned cpus and one with 2 assigned cpus::
+If you want to start more local governors, you can use the following command.
+It starts two governors with 4 assigned cpus and one with 2 assigned cpus::
 
   $ rain start --local-wokers=[4,4,2]
 
 
-Starting remote workers
+Starting remote governors
 -----------------------
 
 If you have more machines that are reachable via SSH you can use the following
 command. We assume that file ``my_hosts`` contains addresses of hosts, one per
 line::
 
-  $ rain start --worker-host-file=my_hosts
+  $ rain start --governor-host-file=my_hosts
 
 Let us note, that current version assumes that assumes for each host that Rain
 is placed in the same directory as on machine from which command is invoked.
@@ -89,7 +89,7 @@ machine), then you can simple run::
 
   $ rain start --autoconf=pbs
 
-It executes worker on each node allocated by PBS scheduler.
+It executes governor on each node allocated by PBS scheduler.
 
 .. note::
 
@@ -98,21 +98,21 @@ It executes worker on each node allocated by PBS scheduler.
 
    Another option (with less isolation) is to use option ``-S``::
 
-     $ rain start -S --worker-host-file=my_hosts
+     $ rain start -S --governor-host-file=my_hosts
 
    If a remote machine is actually localhost (and therefore runs Rain server)
-   then ``--cpus=-1`` argument is used for the worker on that machine, i.e. the
-   worker will consider one cpu less on that machine.
+   then ``--cpus=-1`` argument is used for the governor on that machine, i.e. the
+   governor will consider one cpu less on that machine.
 
 
-Starting workers manually
+Starting governors manually
 -------------------------
 
 If you need a special setup that is not covered by ``rain start`` you can
-simply start server and workers manually::
+simply start server and governors manually::
 
   $ rain server                    # Start server
-  $ rain worker <SERVER-ADDRESS>   # Start worker
+  $ rain governor <SERVER-ADDRESS>   # Start governor
 
 
 Arguments for program *rain*
@@ -128,16 +128,16 @@ Synopsis
   rain start --autoconf=CONF [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
            [--remote-init=COMMANDS]
-  rain start --local-workers [--listen=ADDRESS] [--http-listen=ADDRESS]
+  rain start --local-governors [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
-  rain start --worker-host-file=FILE [-S] [--listen=ADDRESS]
+  rain start --governor-host-file=FILE [-S] [--listen=ADDRESS]
            [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
            [--remote-init=COMMANDS]
 
   rain server [--listen=LISTEN_ADDRESS] [--http-listen=LISTEN_ADDRESS]
               [--logdir=DIR] [--ready-file=<FILE>]
-  rain worker [--cpus=N] [--workdir=DIR] [--logdir=DIR]
+  rain governor [--cpus=N] [--workdir=DIR] [--logdir=DIR]
               [--ready-file=FILE] SERVER_ADDRESS[:PORT]
   rain --version | -v
   rain --help | -h
@@ -146,25 +146,25 @@ Synopsis
 Command: start
 --------------
 
-Starts Rain infrastructure (server & workers), makes sure that everything is
+Starts Rain infrastructure (server & governors), makes sure that everything is
 ready and terminates.
 
 **--simple**
-  Starts server and one local worker that gains all resources of the local
+  Starts server and one local governor that gains all resources of the local
   machine.
 
 **--autoconf=CONF**
   Automatic configuration from the environment. Possible options are:
 
   - *pbs* - If executed in an PBS job, it starts server on current node and
-    worker on each node.
+    governor on each node.
 
-**--local-workers=RESOURCES**
-  Start local with a given number of cpus. E.g. --local-workers=[4,4,2]
-  starts three workers: two with 4 cpus and one with 2 cpus.
+**--local-governors=RESOURCES**
+  Start local with a given number of cpus. E.g. --local-governors=[4,4,2]
+  starts three governors: two with 4 cpus and one with 2 cpus.
 
-**--worker-host-file=FILE**
-  Starts local server and remote workers. FILE should be file containing
+**--governor-host-file=FILE**
+  Starts local server and remote governors. FILE should be file containing
   name of hosts, one per line.
 
   The current version assumes the following of each host:
@@ -174,7 +174,7 @@ ready and terminates.
     from which that ``rain start`` is executed.
 
 **-S**
-  Serves for reserving a CPU on server node. If remote worker
+  Serves for reserving a CPU on server node. If remote governor
   detects that it is running on the same machine as server then it
   is executed with ``--cpus=-1``.
 
@@ -192,10 +192,10 @@ ready and terminates.
   analytical tools (e.g. --runprefix="valgrind --tool=callgrind")
 
 **--logdir=DIR**
-  The option is unchanged propagated into the server and workers.
+  The option is unchanged propagated into the server and governors.
 
 **--workdir=DIR**
-  The option is unchanged propagated into workers.
+  The option is unchanged propagated into governors.
 
 **--remote-init=COMMAND**
   Commands executed on each remote connection. For example:
@@ -217,17 +217,17 @@ Runs Rain server.
   and ready to accept connections.
 
 
-Command: worker
+Command: governor
 ---------------
 
-Runs Rain worker.
+Runs Rain governor.
 
 **SERVER_ADDRESS[:PORT]**
   An address where a server listens. If the port is omitted than port 7210 is
   used.
 
 **--cpus=N**
-  Set a number of cpus available to the worker (default: 'detect')
+  Set a number of cpus available to the governor (default: 'detect')
 
   * If 'detect' is used then the all cores in the machine is used.
   * If a positive number is used then value is used as the number of available
@@ -237,21 +237,21 @@ Runs Rain worker.
     of available cpus.
 
 **--listen=(PORT|ADDRESS|ADDRESS:PORT)**
-  Set listening address of worker for worker-to-worker connections. When port is
+  Set listening address of governor for governor-to-governor connections. When port is
   0 then a open random port is assigned. The default is 0.0.0.0:0.
 
 **--logdir=DIR**
-  Set the logging directory for the worker. Default is
-  ``/tmp/rain/logs/worker-<HOSTNAME>-<PID>/logs``.
+  Set the logging directory for the governor. Default is
+  ``/tmp/rain/logs/governor-<HOSTNAME>-<PID>/logs``.
 
 **--workdir=DIR**
-  Set the working directory where the worker stores intermediate results.
-  The defautl is ``/tmp/rain/work/worker-<HOSTNAME>-<PID>``
+  Set the working directory where the governor stores intermediate results.
+  The defautl is ``/tmp/rain/work/governor-<HOSTNAME>-<PID>``
 
   .. warning::
      Rain assumes that working directory is placed on a fast device (ideally
      ramdisk). Avoid placing workdir on a network file system.
 
 **--ready-file=FILE**
-  Creates the file containing a single line "ready", when the worker is
-  connected to server and ready to accept worker-to-worker connections.
+  Creates the file containing a single line "ready", when the governor is
+  connected to server and ready to accept governor-to-governor connections.
