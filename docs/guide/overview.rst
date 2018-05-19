@@ -52,8 +52,8 @@ What is in the box
 Rain infrastructure composes of a central **server** component and **governor**
 components, that may run on different machines. A governor may spawn one or more
 **executors** that are local processes that provides execution of an external
-code. Rain is distributed with Python executor. Governors communicate via
-direct connections to exchange data.
+code. Rain is distributed with Python executor. Rain also provides libraries
+for C++ and Rust for writing own specialized executors.
 
 Users interacts with server via
 **client** applications. Rain is distributed with Python client API.
@@ -79,6 +79,10 @@ Rain Core Infrastructure
    * Distributed as all-in-one binary.
    * Direct governor-to-governor communication.
    * Basic dashboard for execution monitoring.
+
+Executors
+---------
+   * Possibility to define own tasks in Python, C++, and Rust
 
 
 Future directions
@@ -137,16 +141,6 @@ are semantic and usage issues about resources, scheduling, multiple consumers
 and resiliency.
 
 
-Plain C/C++ tasks and executors
---------------------------------
-
-Right now, the available tasks are either built in, external programs or python
-routines. It should be possible and straightforward to turn your C or C++ (or
-other language) function to a custom task by creating a new executor. We plan a
-simple C library executor scaffold that will allow easy gray-box executors.
-You do not have to link against Rain, which should make deployment easier.
-
-
 REST client interface
 ---------------------
 
@@ -198,13 +192,4 @@ TODO
 Roadmap
 =======
 
-v0.3
-----
-
-* Governor/Executor crash resilience
-* More clever scheduler
-
-v0.2
-----
-
-* Directories as blobs
+https://github.com/substantic/rain/issues/26
