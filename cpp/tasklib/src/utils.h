@@ -4,7 +4,7 @@
 #include <cbor.h>
 #include <string>
 
-namespace rainsw {
+namespace tasklib {
 
    cbor_item_t* cb_map_lookup(const cbor_item_t *item, const char *name);
    std::string cb_map_lookup_string(const cbor_item_t *item, const char *name);

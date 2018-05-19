@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(rainsw)
+project(tasklib)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -34,13 +34,13 @@ pkg_check_modules(CBOR REQUIRED libcbor)
 
 # Create a library called "Hello" which includes the source file "hello.cxx".
 # The extension is already found. Any number of sources could be listed here.
-add_library(rainsw
+add_library(tasklib
   src/connection.cpp
   src/connection.h
   src/datainstance.cpp
   src/datainstance.h
-  src/subworker.cpp
-  src/subworker.h
+  src/executor.cpp
+  src/executor.h
   src/ids.cpp
   src/ids.h
   src/utils.cpp
@@ -51,17 +51,17 @@ add_library(rainsw
   src/context.h
 )
 
-target_include_directories(rainsw PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_include_directories(rainsw PRIVATE
+target_include_directories(tasklib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(tasklib PRIVATE
         ${SPDLOG_ROOT}/src/spdlog/include
 	#        ${LIBCBOR_ROOT}/src/libcbor/src
 	#        ${LIBCBOR_ROOT}/src/libcbor-build
 )
-#add_dependencies(rainsw spdlog libcbor)
+#add_dependencies(tasklib spdlog libcbor)
 
 
 add_executable(tester
     tester/main.cpp)
 
 target_include_directories(tester PUBLIC ${CBOR_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries (tester rainsw ${CBOR_LIBRARIES} pthread)
+target_link_libraries (tester tasklib ${CBOR_LIBRARIES} pthread)

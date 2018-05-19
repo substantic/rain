@@ -141,16 +141,16 @@ fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
 }
 
 // TODO: Do some serious configuration file and unify configurations
-// Right now, it is just a quick hack for supporting subworkers
+// Right now, it is just a quick hack for supporting executors
 
 #[derive(Deserialize)]
-struct SubworkerConfig {
+struct ExecutorConfig {
     command: String,
 }
 
 #[derive(Deserialize)]
 struct WorkerConfig {
-    subworkers: HashMap<String, SubworkerConfig>,
+    executors: HashMap<String, ExecutorConfig>,
 }
 
 impl WorkerConfig {
@@ -253,23 +253,23 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
             server_address, server_addr
         );
 
-        let mut subworkers = HashMap::new();
+        let mut executors = HashMap::new();
 
-        // Default Python subworker
-        subworkers.insert(
+        // Default Python executor
+        executors.insert(
             "py".to_string(),
             vec![
                 "python3".to_string(),
                 "-m".to_string(),
-                "rain.subworker".to_string(),
+                "rain.executor".to_string(),
             ],
         );
 
         config.map(|config| {
-            for (name, swconfig) in &config.subworkers {
-                info!("Registering subworker {}", name);
-                debug!("Subworker command: {}", swconfig.command);
-                subworkers.insert(
+            for (name, swconfig) in &config.executors {
+                info!("Registering executor {}", name);
+                debug!("Executor command: {}", swconfig.command);
+                executors.insert(
                     name.to_string(),
                     swconfig.command.split(" ").map(|s| s.to_string()).collect(),
                 );
@@ -281,8 +281,8 @@ fn run_worker(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
             work_dir,
             log_dir,
             cpus as u32,
-            // Python subworker
-            subworkers,
+            // Python executor
+            executors,
         )
     };
 

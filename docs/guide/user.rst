@@ -471,7 +471,7 @@ Python tasks
 ============
 
 In addition to built-in tasks, Rain allows to run additional types of tasks via
-subworkers. Rain is shipped with Python subworker, that allows to execute
+executors. Rain is shipped with Python executor, that allows to execute
 arbitrary Python code.
 
 Decorator ``@remote``
@@ -497,7 +497,7 @@ Rain task. Let us consider the following example::
 
 The decorator changes the behavior of the decorated function in a way that
 calling it no longer executes it in the client but creates a task that executes
-the function in a python subworker. Worker starts and manages subworkers as
+the function in a python executor. Worker starts and manages executors as
 necessary, there is no need of any action from the user.
 
 The decorated function should accept at least one argument. As the first
@@ -873,7 +873,7 @@ Task :func:`tasks.execute` maps files by **link** method. It can be changed by
                 input_paths=[Input("myfile", dataobj=obj, write=True)])
 
 Data instance has methods ``write(path)`` and ``link(path)`` that performs the
-mapping to a given path. They can be used on both in subworker and in client.
+mapping to a given path. They can be used on both in executor and in client.
 Let us note that in the current version **link** in the client always falls back
 to **write**. Example::
 

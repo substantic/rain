@@ -3,9 +3,9 @@ use futures::Future;
 
 use common::DataType;
 use errors::{Error, Result};
-use worker::graph::{SubworkerRef, TaskRef, TaskState};
-use worker::rpc::subworker::data_output_from_spec;
-use worker::rpc::subworker_serde::ResultMsg;
+use worker::graph::{ExecutorRef, TaskRef, TaskState};
+use worker::rpc::executor::data_output_from_spec;
+use worker::rpc::executor_serde::ResultMsg;
 use worker::state::State;
 use worker::tasks;
 
@@ -21,7 +21,7 @@ pub struct TaskInstance {
     cancel_sender: Option<::futures::unsync::oneshot::Sender<()>>,
 
     start_timestamp: DateTime<Utc>,
-    //pub subworker: Option<SubworkerRef>
+    //pub executor: Option<ExecutorRef>
 }
 
 pub type TaskFuture = Future<Item = (), Error = Error>;
@@ -38,26 +38,26 @@ fn fail_unknown_type(_state: &mut State, task_ref: TaskRef) -> TaskResult {
     bail!("Unknown task type {}", task_ref.get().task_type)
 }
 
-/// Reference to subworker. When dropped it calls "kill()" method
+/// Reference to executor. When dropped it calls "kill()" method
 struct KillOnDrop {
-    subworker_ref: Option<SubworkerRef>,
+    executor_ref: Option<ExecutorRef>,
 }
 
 impl KillOnDrop {
-    pub fn new(subworker_ref: SubworkerRef) -> Self {
+    pub fn new(executor_ref: ExecutorRef) -> Self {
         KillOnDrop {
-            subworker_ref: Some(subworker_ref),
+            executor_ref: Some(executor_ref),
         }
     }
 
-    pub fn deactive(&mut self) -> SubworkerRef {
-        ::std::mem::replace(&mut self.subworker_ref, None).unwrap()
+    pub fn deactive(&mut self) -> ExecutorRef {
+        ::std::mem::replace(&mut self.executor_ref, None).unwrap()
     }
 }
 
 impl Drop for KillOnDrop {
     fn drop(&mut self) {
-        if let Some(ref sw) = self.subworker_ref {
+        if let Some(ref sw) = self.executor_ref {
             sw.get_mut().kill();
         }
     }
@@ -77,7 +77,7 @@ impl TaskInstance {
             let task_type: &str = task.task_type.as_ref();
             // Built-in task
             match task_type {
-                task_type if !task_type.starts_with("!") => Self::start_task_in_subworker,
+                task_type if !task_type.starts_with("!") => Self::start_task_in_executor,
                 "!run" => tasks::run::task_run,
                 "!concat" => tasks::basic::task_concat,
                 "!open" => tasks::basic::task_open,
@@ -167,7 +167,7 @@ impl TaskInstance {
         }
     }
 
-    fn start_task_in_subworker(state: &mut State, task_ref: TaskRef) -> TaskResult {
+    fn start_task_in_executor(state: &mut State, task_ref: TaskRef) -> TaskResult {
         let (future, method_name) = {
             let task = task_ref.get();
             let tokens: Vec<_> = task.task_type.split('/').collect();
@@ -175,23 +175,23 @@ impl TaskInstance {
                 bail!("Invalid task_type, does not contain '/'");
             }
             (
-                state.get_subworker(tokens.get(0).unwrap())?,
+                state.get_executor(tokens.get(0).unwrap())?,
                 tokens.get(1).unwrap().to_string(),
             )
         };
         let state_ref = state.self_ref();
-        Ok(Box::new(future.and_then(move |subworker_ref| {
-            // Run task in subworker
+        Ok(Box::new(future.and_then(move |executor_ref| {
+            // Run task in executor
 
-            // We wrap subworker into special struct that kill subworker when dropped
+            // We wrap executor into special struct that kill executor when dropped
             // This is can happen when task is terminated and feature dropped without finishhing
-            let mut sw_wrapper = KillOnDrop::new(subworker_ref.clone());
+            let mut sw_wrapper = KillOnDrop::new(executor_ref.clone());
             let task_ref2 = task_ref.clone();
             let task = task_ref2.get();
-            let subworker_ref2 = subworker_ref.clone();
-            let mut subworker = subworker_ref2.get_mut();
-            subworker
-                .send_task(&task, method_name, &subworker_ref)
+            let executor_ref2 = executor_ref.clone();
+            let mut executor = executor_ref2.get_mut();
+            executor
+                .send_task(&task, method_name, &executor_ref)
                 .then(move |r| {
                     sw_wrapper.deactive();
                     match r {
@@ -204,13 +204,13 @@ impl TaskInstance {
                         }) => {
                             let result: Result<()> = {
                                 let mut task = task_ref.get_mut();
-                                let subworker = subworker_ref.get();
-                                let work_dir = subworker.work_dir();
+                                let executor = executor_ref.get();
+                                let work_dir = executor.work_dir();
                                 assert!(task.id == task_id);
                                 task.new_attributes.update(attributes);
 
                                 if success {
-                                    debug!("Task id={} finished in subworker", task.id);
+                                    debug!("Task id={} finished in executor", task.id);
                                     for (co, output) in outputs.into_iter().zip(&task.outputs) {
                                         let attributes = co.attributes.clone();
 
@@ -237,8 +237,8 @@ impl TaskInstance {
                                     }
                                     Ok(())
                                 } else {
-                                    debug!("Task id={} failed in subworker", task.id);
-                                    Err("Task failed in subworker".into())
+                                    debug!("Task id={} failed in executor", task.id);
+                                    Err("Task failed in executor".into())
                                 }
                             };
 
@@ -249,15 +249,15 @@ impl TaskInstance {
                                 let obj_ref = state.graph.objects.get(&object_id).unwrap();
                                 obj_ref
                                     .get_mut()
-                                    .subworker_cache
-                                    .insert(subworker_ref.clone());
+                                    .executor_cache
+                                    .insert(executor_ref.clone());
                             }
 
-                            state.graph.idle_subworkers.insert(subworker_ref);
+                            state.graph.idle_executors.insert(executor_ref);
 
                             result
                         }
-                        Err(_) => Err("Lost connection to subworker".into()),
+                        Err(_) => Err("Lost connection to executor".into()),
                     }
                 })
         })))

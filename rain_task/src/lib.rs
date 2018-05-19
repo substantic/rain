@@ -20,11 +20,11 @@
 //! }
 //!
 //! fn main() {
-//!     let mut s = Subworker::new("greeter"); // The subworker type name
+//!     let mut s = Executor::new("greeter"); // The executor type name
 //!     // Use a macro to register the task.
 //!     // [I O] here specifies the type and order of parameters.
 //!     register_task!(s, "hello", [I O], task_hello);
-//!     s.run(); // Runs the subworker event loop
+//!     s.run(); // Runs the executor event loop
 //! }
 //! ```
 
@@ -51,9 +51,9 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use librain::common::id::SId;
-use librain::common::id::{DataObjectId, SubworkerId, TaskId};
+use librain::common::id::{DataObjectId, ExecutorId, TaskId};
 use librain::common::Attributes;
-use librain::worker::rpc::subworker_serde::*;
+use librain::worker::rpc::executor_serde::*;
 
 /// Maximal protocol message size (128 MB)
 pub const MAX_MSG_SIZE: usize = 128 * 1024 * 1024;
@@ -74,8 +74,8 @@ use framing::*;
 mod errors;
 use errors::*;
 
-mod subworker;
-use subworker::*;
+mod executor;
+use executor::*;
 
 mod output;
 use output::*;
@@ -90,7 +90,7 @@ pub use context::Context;
 pub use errors::{TaskError, TaskResult};
 pub use input::DataInstance;
 pub use output::Output;
-pub use subworker::{Subworker, TaskFn};
+pub use executor::{Executor, TaskFn};
 
 #[cfg(test)]
 mod tests;

@@ -1,5 +1,5 @@
 use super::{
-    Result, SubworkerToWorkerMessage, WorkerToSubworkerMessage, MAX_MSG_SIZE, MSG_PROTOCOL,
+    Result, ExecutorToWorkerMessage, WorkerToExecutorMessage, MAX_MSG_SIZE, MSG_PROTOCOL,
 };
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use serde_cbor;
@@ -10,19 +10,19 @@ use std::os::unix::net::UnixStream;
 pub(crate) trait SocketExt {
     fn write_frame(&mut self, &[u8]) -> Result<()>;
     fn read_frame(&mut self) -> Result<Vec<u8>>;
-    fn write_msg(&mut self, &SubworkerToWorkerMessage) -> Result<()>;
-    fn read_msg(&mut self) -> Result<WorkerToSubworkerMessage>;
+    fn write_msg(&mut self, &ExecutorToWorkerMessage) -> Result<()>;
+    fn read_msg(&mut self) -> Result<WorkerToExecutorMessage>;
 }
 
 impl SocketExt for UnixStream {
-    fn write_msg(&mut self, m: &SubworkerToWorkerMessage) -> Result<()> {
+    fn write_msg(&mut self, m: &ExecutorToWorkerMessage) -> Result<()> {
         let data = serde_cbor::to_vec(m).expect("error writing message as CBOR");
         self.write_frame(&data)
     }
 
-    fn read_msg(&mut self) -> Result<WorkerToSubworkerMessage> {
+    fn read_msg(&mut self) -> Result<WorkerToExecutorMessage> {
         let data = self.read_frame()?;
-        let msg = serde_cbor::from_slice::<WorkerToSubworkerMessage>(&data)
+        let msg = serde_cbor::from_slice::<WorkerToExecutorMessage>(&data)
             .expect("error parsing message as CBOR");
         Ok(msg)
     }

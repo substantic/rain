@@ -411,7 +411,7 @@
          id="tspan9465"
          x="482.99307"
          y="300.75378"
-         style="font-size:13.18104076px;line-height:1.25;stroke-width:1.04756463px">Subworker</tspan></text>
+         style="font-size:13.18104076px;line-height:1.25;stroke-width:1.04756463px">Executor</tspan></text>
     <rect
        style="color:#000000;display:inline;overflow:visible;visibility:visible;opacity:1;fill:#328cc1;fill-opacity:1;stroke:#1d2731;stroke-width:2.50778747;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;enable-background:accumulate"
        id="rect9467"
@@ -431,7 +431,7 @@
          x="482.99307"
          id="tspan9471"
          sodipodi:role="line"
-         style="font-size:13.18104076px;line-height:1.25;stroke-width:1.04756463px">Subworker</tspan></text>
+         style="font-size:13.18104076px;line-height:1.25;stroke-width:1.04756463px">Executor</tspan></text>
     <path
        sodipodi:nodetypes="cccc"
        inkscape:connector-curvature="0"
@@ -683,7 +683,7 @@
          x="482.99307"
          id="tspan9709"
          sodipodi:role="line"
-         style="font-size:13.18104076px;line-height:1.25;stroke-width:1.04756463px">Subworker</tspan></text>
+         style="font-size:13.18104076px;line-height:1.25;stroke-width:1.04756463px">Executor</tspan></text>
     <rect
        rx="4.5890894"
        ry="4.5890894"
@@ -703,7 +703,7 @@
          id="tspan9715"
          x="482.99307"
          y="444.06198"
-         style="font-size:13.18104076px;line-height:1.25;stroke-width:1.04756463px">Subworker</tspan></text>
+         style="font-size:13.18104076px;line-height:1.25;stroke-width:1.04756463px">Executor</tspan></text>
     <path
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:4.17964554;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        d="m 451.3635,409.696 h 11.32953 v -14.027 h 10.78999"

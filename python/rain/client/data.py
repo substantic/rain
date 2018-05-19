@@ -98,10 +98,10 @@ class DataObject:
                 pass
 
     def __reduce__(self):
-        """Speciaization to replace with subworker.unpickle_input_object
+        """Speciaization to replace with executor.unpickle_input_object
         in Python task args while (cloud)pickling."""
         from . import pycode
-        from ..subworker import subworker
+        from ..executor import executor
         if pycode._global_pickle_inputs is None:
             # call normal __reduce__
             return super().__reduce__()
@@ -109,7 +109,7 @@ class DataObject:
         input_name = "{}{{{}}}".format(base_name, counter)
         pycode._global_pickle_inputs[1] += 1
         inputs.append((input_name, self))
-        return (subworker.unpickle_input_object,
+        return (executor.unpickle_input_object,
                 (input_name, len(inputs) - 1,
                  input_proto.load, input_proto.content_type))
 

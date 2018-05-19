@@ -19,7 +19,7 @@ class DataInstance:
     Instance of Data object with data or file reference.
 
     This serves as a proxy to a *finished* `DataObject`.
-    The class is used in a python task in subworkers and as a result
+    The class is used in a python task in executors and as a result
     of `DataObject.fetch`.
 
     The user should not manually create this object, but always use `fetch()`
@@ -77,7 +77,7 @@ class DataInstance:
             assert "spec" in self.attributes
             self.attributes.setdefault("info", {})
         else:
-            # At subworker
+            # At executor
             self._object_id = object_id
             self.attributes = attributes if attributes is not None else {}
             self.attributes.setdefault("spec", {})

@@ -1,12 +1,12 @@
 #include "context.h"
 #include <sstream>
 
-rainsw::Context::Context(size_t n_args) : n_args(n_args), error(false)
+tasklib::Context::Context(size_t n_args) : n_args(n_args), error(false)
 {
 
 }
 
-bool rainsw::Context::check_n_args(size_t n)
+bool tasklib::Context::check_n_args(size_t n)
 {
     if (n == n_args) {
         return true;
@@ -17,7 +17,7 @@ bool rainsw::Context::check_n_args(size_t n)
     return false;
 }
 
-void rainsw::Context::set_error(const std::string &message)
+void tasklib::Context::set_error(const std::string &message)
 {
     error = true;
     error_message = message;

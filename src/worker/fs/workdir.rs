@@ -2,7 +2,7 @@ use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
 use super::tempfile::TempFileName;
-use common::id::{SId, SubworkerId, TaskId};
+use common::id::{SId, ExecutorId, TaskId};
 use errors::Result;
 
 pub struct WorkDir {
@@ -16,8 +16,8 @@ impl WorkDir {
         ::std::fs::create_dir(path.join("data")).unwrap();
         ::std::fs::create_dir(path.join("tasks")).unwrap();
         ::std::fs::create_dir(path.join("tmp")).unwrap();
-        ::std::fs::create_dir(path.join("subworkers")).unwrap();
-        ::std::fs::create_dir(path.join("subworkers/work")).unwrap();
+        ::std::fs::create_dir(path.join("executors")).unwrap();
+        ::std::fs::create_dir(path.join("executors/work")).unwrap();
         // Canonilize is very imporant here,
         // We often check if symlinks goes to data dir
         let path = ::std::fs::canonicalize(path).unwrap();
@@ -30,13 +30,13 @@ impl WorkDir {
 
     /*
     /// Get path to unix socket where worker is listening
-    pub fn subworker_listen_path(&self) -> PathBuf {
-        self.path.join(Path::new("subworkers/listen"))
+    pub fn executor_listen_path(&self) -> PathBuf {
+        self.path.join(Path::new("executors/listen"))
     }*/
 
-    /// Create subworker working directory
-    pub fn make_subworker_work_dir(&self, id: SubworkerId) -> Result<::tempdir::TempDir> {
-        ::tempdir::TempDir::new_in(self.path.join("subworkers/work"), &format!("{}", id))
+    /// Create executor working directory
+    pub fn make_executor_work_dir(&self, id: ExecutorId) -> Result<::tempdir::TempDir> {
+        ::tempdir::TempDir::new_in(self.path.join("executors/work"), &format!("{}", id))
             .map_err(|e| e.into())
     }
 

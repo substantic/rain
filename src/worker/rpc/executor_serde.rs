@@ -1,38 +1,38 @@
 use common::Attributes;
-use common::id::{DataObjectId, SubworkerId, TaskId};
+use common::id::{DataObjectId, ExecutorId, TaskId};
 use serde_bytes;
 use std::path::PathBuf;
 
-/// Message from subworker to worker.
+/// Message from executor to worker.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum SubworkerToWorkerMessage {
+pub enum ExecutorToWorkerMessage {
     Register(RegisterMsg),
     Result(ResultMsg),
 }
 
-/// Message from worker to subworker.
+/// Message from worker to executor.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum WorkerToSubworkerMessage {
+pub enum WorkerToExecutorMessage {
     Call(CallMsg),
     DropCached(DropCachedMsg),
 }
 
-/// First message sent from subworker to verify the protocol version,
-/// subworker ID and subworker type.
+/// First message sent from executor to verify the protocol version,
+/// executor ID and executor type.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct RegisterMsg {
-    /// Subworker protocol version
+    /// Executor protocol version
     pub protocol: String,
     /// SUbworker ID as assigned to the worker
-    pub subworker_id: SubworkerId,
-    /// Subworker task name prefix in task names
-    pub subworker_type: String,
+    pub executor_id: ExecutorId,
+    /// Executor task name prefix in task names
+    pub executor_type: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -41,7 +41,7 @@ pub struct RegisterMsg {
 pub struct CallMsg {
     /// Task ID
     pub task: TaskId,
-    /// Requested task type name (without `subworker_type` prefix)
+    /// Requested task type name (without `executor_type` prefix)
     pub method: String,
     /// Task attributes
     pub attributes: Attributes,
@@ -72,7 +72,7 @@ pub struct ResultMsg {
     pub outputs: Vec<DataObjectSpec>,
     /// If any objects with `cache_hint` were sent, report which were newly cached
     /// (does not include objects previously cached and now reported with `DataLocation::Cached`).
-    /// It is always allowed to cache no object and even omit this field (for simpler subworkers).
+    /// It is always allowed to cache no object and even omit this field (for simpler executors).
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     pub cached_objects: Vec<DataObjectId>,
@@ -96,9 +96,9 @@ pub struct DataObjectSpec {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub location: Option<DataLocation>,
-    /// If able, the subworker should cache this object, preferably in the
+    /// If able, the executor should cache this object, preferably in the
     /// unpacked form to save repeated unpacking (e.g. python cloudpickle).
-    /// If the subworker decides to cache the object, it must add it to
+    /// If the executor decides to cache the object, it must add it to
     /// `ResultMsg::cached_objects`.
     #[serde(skip_serializing_if = "::std::ops::Not::not")]
     #[serde(default)]
@@ -109,7 +109,7 @@ pub struct DataObjectSpec {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum DataLocation {
-    /// The data is present in the given path that is relative to the subworker working directory.
+    /// The data is present in the given path that is relative to the executor working directory.
     Path(PathBuf),
     /// The data is directly contained in the message. Only reccomended for
     /// small objects (under cca 128kB).
@@ -118,12 +118,12 @@ pub enum DataLocation {
     /// The data is identical to one of input objects.
     /// Only valid in `ResultMsg`.
     OtherObject(DataObjectId),
-    /// The input data is already cached (and possibly unpacked) in the subworker.
+    /// The input data is already cached (and possibly unpacked) in the executor.
     /// Only valid in `CallMsg::inputs`.
     Cached,
 }
 
-/// Instruct the subworker to drop the given cached objects.
+/// Instruct the executor to drop the given cached objects.
 /// It is an error to request dropping an object that is not cached.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -154,8 +154,8 @@ mod tests {
     #[test]
     fn test_register() {
         let s =
-            r#"{"register": {"protocol": "swp1", "subworkerId": 42, "subworkerType": "dummy"}}"#;
-        let m: SubworkerToWorkerMessage = serde_json::from_str(s).unwrap();
+            r#"{"register": {"protocol": "swp1", "executorId": 42, "executorType": "dummy"}}"#;
+        let m: ExecutorToWorkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
@@ -175,9 +175,9 @@ mod tests {
                 {"id": [3,12], "attributes": {}}
             ]
             }}"#;
-        let m: WorkerToSubworkerMessage = serde_json::from_str(s).unwrap();
+        let m: WorkerToExecutorMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
-        if let &WorkerToSubworkerMessage::Call(ref c) = &m {
+        if let &WorkerToExecutorMessage::Call(ref c) = &m {
             assert_eq!(
                 c.inputs[0].location,
                 Some(DataLocation::Memory(vec![0u8; 5]))
@@ -196,14 +196,14 @@ mod tests {
                 {"id": [3,12], "attributes": {}, "location": {"otherObject": [3, 6]}}
             ]
             }}"#;
-        let m: SubworkerToWorkerMessage = serde_json::from_str(s).unwrap();
+        let m: ExecutorToWorkerMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
     #[test]
     fn test_drop_cached() {
         let s = r#"{"dropCached": {"objects": [[1,2], [4,5]]}}"#;
-        let m: WorkerToSubworkerMessage = serde_json::from_str(s).unwrap();
+        let m: WorkerToExecutorMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 

@@ -4,7 +4,7 @@
 
 #include <sstream>
 
-rainsw::Sid rainsw::Sid::from(cbor_item_t *item)
+tasklib::Sid tasklib::Sid::from(cbor_item_t *item)
 {
    int size = cbor_array_size(item);
    if (size != 2) {
@@ -22,7 +22,7 @@ rainsw::Sid rainsw::Sid::from(cbor_item_t *item)
    return Sid(session_id, id);
 }
 
-std::string rainsw::Sid::to_string() const
+std::string tasklib::Sid::to_string() const
 {
    std::stringstream s;
    s << "[" << session_id << "," << id << "]";

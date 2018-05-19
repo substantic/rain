@@ -12,7 +12,7 @@
 
 #include "log.h"
 
-rainsw::Connection::Connection()
+tasklib::Connection::Connection()
 {
     int s = ::socket(PF_UNIX, SOCK_STREAM, 0);
 
@@ -23,11 +23,11 @@ rainsw::Connection::Connection()
     this->socket = s;
 }
 
-rainsw::Connection::~Connection() {
+tasklib::Connection::~Connection() {
    close(socket);
 }
 
-void rainsw::Connection::connect(const char *socket_path)
+void tasklib::Connection::connect(const char *socket_path)
 {
    struct sockaddr_un server_addr;
    bzero(&server_addr, sizeof(server_addr));
@@ -44,22 +44,22 @@ static void send_all(int socket, const unsigned char *data, size_t len) {
    {
        int i = ::send(socket, data, len, 0);
        if (i < 1) {
-           rainsw::log_errno_and_exit("Sending data failed");
+           tasklib::log_errno_and_exit("Sending data failed");
        }
        data += i;
        len -= i;
    }
 }
 
-void rainsw::Connection::send(const unsigned char * data, size_t len)
-{   
+void tasklib::Connection::send(const unsigned char * data, size_t len)
+{
    // TODO: Fix this on big-endian machines
    uint32_t size = len;
    send_all(socket, reinterpret_cast<const unsigned char*>(&size), sizeof(uint32_t));
    send_all(socket, data, len);
 }
 
-std::vector<char> rainsw::Connection::receive()
+std::vector<char> tasklib::Connection::receive()
 {
     const size_t READ_AT_ONCE = 128 * 1024;
     for(;;) {
@@ -78,7 +78,7 @@ std::vector<char> rainsw::Connection::receive()
         buffer.resize(sz + READ_AT_ONCE);
         int r = ::read(socket, &buffer[sz], READ_AT_ONCE);
         if (r < 0) {
-            rainsw::log_errno_and_exit("Reading data failed");
+            tasklib::log_errno_and_exit("Reading data failed");
         }
         if (r == 0) {
             logger->critical("Connection to server closed");

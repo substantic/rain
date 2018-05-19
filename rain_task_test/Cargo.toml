@@ -2,7 +2,7 @@
 name = "rain_task_test"
 version = "0.1.0"
 authors = ["Tomas Gavenciak <gavento@ucw.cz>"]
-description = "A testing Rain subworker in Rust."
+description = "A testing Rain executor in Rust."
 licence = "MIT"
 
 [dependencies]

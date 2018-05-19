@@ -8,8 +8,8 @@ from ..common.content_type import (check_content_type, encode_value)
 
 class Context:
 
-    def __init__(self, subworker, task_id):
-        self._subworker = subworker
+    def __init__(self, executor, task_id):
+        self._executor = executor
         self._id_counter = 0
         self._staged_paths = set()
         self._debug_messages = []
@@ -28,7 +28,7 @@ class Context:
         if os.path.isabs(path):
             raise Exception("Path '{}' has to be relative")
         target = os.path.join(
-            self._subworker.stage_path, str(self._id_counter))
+            self._executor.stage_path, str(self._id_counter))
         shutil.move(path, target)
         data = DataInstance(path=target, content_type=content_type, data_type=DataType.BLOB)
         self._staged_paths.add(data)
@@ -45,7 +45,7 @@ class Context:
         if os.path.isabs(path):
             raise Exception("Path '{}' has to be relative")
         target = os.path.join(
-            self._subworker.stage_path, str(self._id_counter))
+            self._executor.stage_path, str(self._id_counter))
         os.rename(path, target)
         data = DataInstance(path=target, content_type="dir", data_type=DataType.DIRECTORY)
         self._staged_paths.add(data)

@@ -74,7 +74,7 @@ where
             |_| panic!("Send channel failed!")).forward(write).map(|_| ());
         let read_future = read.map_err(|e| e.into()).for_each(on_message);
         let future = read_future.select(send_future).map(
-            |_| { panic!("Subworker connection closed") }).map_err(|(e, f)| on_error(e));
+            |_| { panic!("Executor connection closed") }).map_err(|(e, f)| on_error(e));
         handle.spawn(future);
     }*/
 

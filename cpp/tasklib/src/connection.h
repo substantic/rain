@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <vector>
 
-namespace rainsw {
+namespace tasklib {
 
 class Connection
 {
@@ -20,7 +20,7 @@ public:
     void send(const unsigned char *data, size_t len);
     std::vector<char> receive();
 
-private:    
+private:
     int socket;
     std::vector<char> buffer;
 };

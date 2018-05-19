@@ -57,7 +57,7 @@ macro_rules! register_task_make_call {
     }};
 }
 
-/// Register a given task function with complex arguments with the subworker.
+/// Register a given task function with complex arguments with the executor.
 ///
 /// The task function should take individual input and output parameters as specified by `$params`.
 /// On call, the supplied input and output lists are unpacked, both not enough and too many of each
@@ -87,8 +87,8 @@ macro_rules! register_task_make_call {
 
 #[macro_export]
 macro_rules! register_task {
-    ($subworker: expr, $name: expr, [$($params: tt)*], $taskfn: expr) => ({
-        $subworker.register_task($name, |ctx: &mut Context, ins: &[DataInstance], outs: &mut [Output]| -> TaskResult<()> {
+    ($executor: expr, $name: expr, [$($params: tt)*], $taskfn: expr) => ({
+        $executor.register_task($name, |ctx: &mut Context, ins: &[DataInstance], outs: &mut [Output]| -> TaskResult<()> {
             register_task_make_call!($taskfn, ins, outs, ($($params)*), (ctx))
         })
     });

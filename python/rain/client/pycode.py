@@ -155,7 +155,7 @@ class Remote:
                 name = "{}[{}]".format(args_name, i + 1 - code.co_argcount)
                 input_proto = self.inputs[args_name]
             # Within this session state, the DataObjects are seialized as
-            # subworker.unpickle_input_object call
+            # executor.unpickle_input_object call
             assert isinstance(input_proto, Input)
             with _pickle_inputs_context(name, input_objs, input_proto):
                 d = _checked_cloudpickle_to_string(argval, name=name)
@@ -166,7 +166,7 @@ class Remote:
         for name, argval in kwargs.items():
             input_proto = self.inputs[code.co_varnames[-1]]
             # Within this session state, the DataObjects are seialized as
-            # subworker.unpickle_input_object call
+            # executor.unpickle_input_object call
             with _pickle_inputs_context(name, input_objs, input_proto):
                 d = _checked_cloudpickle_to_string(argval, name=name)
                 pickled_kwargs[name] = d

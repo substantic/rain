@@ -14,7 +14,7 @@ fn task_hello(_ctx: &mut Context, input: &DataInstance, output: &mut Output) -> 
 
 fn main() {
     env_logger::init();
-    let mut s = Subworker::new("rusttester");
+    let mut s = Executor::new("rusttester");
     register_task!(s, "hello", [I O], task_hello);
     s.run();
 }
