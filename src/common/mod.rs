@@ -1,4 +1,4 @@
-pub mod asycinit;
+pub mod asyncinit;
 pub mod attributes;
 pub mod comm;
 pub mod convert;

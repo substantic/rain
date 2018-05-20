@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 use common::Attributes;
 use common::DataType;
 use common::RcSet;
-use common::asycinit::AsyncInitWrapper;
+use common::asyncinit::AsyncInitWrapper;
 use common::comm::Connection;
 use common::convert::{FromCapnp, ToCapnp};
 use common::events;
