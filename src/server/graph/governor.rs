@@ -6,7 +6,7 @@ use futures::Future;
 
 use super::super::state::StateRef;
 use super::{DataObjectRef, TaskRef};
-use common::asycinit::AsyncInitWrapper;
+use common::asyncinit::AsyncInitWrapper;
 use common::id::GovernorId;
 use common::resources::Resources;
 use common::wrapped::WrappedRcRefCell;
