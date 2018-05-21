@@ -103,6 +103,11 @@ impl State {
     }
 
     #[inline]
+    pub fn log_dir(&self) -> &LogDir {
+        &self.log_dir
+    }
+
+    #[inline]
     pub fn handle(&self) -> &Handle {
         &self.handle
     }

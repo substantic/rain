@@ -75,4 +75,13 @@ def test_cpp_invalid(test_env):
         with pytest.raises(TaskException, match='this_should_not_exist'):
             t1.wait()
 
+
+def test_cpp_panic(test_env):
+    test_env.start(1, executor="cpptester")
+    with test_env.client.new_session() as s:
+        t1 = Task("cpptester/panic", outputs=0)
+        s.submit()
+        with pytest.raises(TaskException, match='panicked on purpose'):
+            t1.wait()
+
 # TODO: Chain, task burst

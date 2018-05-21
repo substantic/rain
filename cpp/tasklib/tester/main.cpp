@@ -23,5 +23,14 @@ int main()
        ctx.set_error(input1->read_as_string());
    });
 
+   executor.add_task("panic", [](tasklib::Context &ctx, auto &inputs, auto &outputs) {
+       if (!ctx.check_n_args(0)) {
+           return;
+       }
+       fprintf(stderr, "The task panicked on purpose, by calling task 'panic'");
+       abort();
+   });
+
+
    executor.start();
 }
