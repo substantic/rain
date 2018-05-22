@@ -286,9 +286,9 @@ def main():
     task_path = os.path.abspath("task")
 
     executor = Executor(get_environ("RAIN_EXECUTOR_SOCKET"),
-                          executor_id,
-                          task_path,
-                          stage_path)
+                        executor_id,
+                        task_path,
+                        stage_path)
     print("Executor initialized")
     sys.stdout.flush()
     executor.run()

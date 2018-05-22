@@ -28,15 +28,6 @@ class ExecutorTester:
             s.submit()
             assert t1.output.fetch().get_bytes() == b"Hello world!"
 
-    def test_hello_mem(self, test_env):
-        self.start(test_env)
-        with test_env.client.new_session() as s:
-            t1 = self.task_hello(blob("world"))
-            t1.output.keep()
-            s.submit()
-            assert t1.output.fetch().get_bytes() == b"Hello world!"
-
-
     def test_hello_file(self, test_env):
         self.start(test_env)
         with test_env.client.new_session() as s:
@@ -57,7 +48,6 @@ class ExecutorTester:
             with pytest.raises(TaskException, match='ABCD'):
                 t1.wait()
 
-
     def test_invalid_inputs(self, test_env):
         self.start(test_env)
         with test_env.client.new_session() as s:
@@ -66,7 +56,6 @@ class ExecutorTester:
             s.submit()
             with pytest.raises(TaskException, match='3'):
                 t1.wait()
-
 
     def test_invalid_outputs(self, test_env):
         self.start(test_env)
@@ -77,7 +66,6 @@ class ExecutorTester:
             with pytest.raises(TaskException, match='3'):
                 t1.wait()
 
-
     def test_invalid(self, test_env):
         self.start(test_env)
         with test_env.client.new_session() as s:
@@ -85,7 +73,6 @@ class ExecutorTester:
             s.submit()
             with pytest.raises(TaskException, match='this_should_not_exist'):
                 t1.wait()
-
 
     def test_panic(self, test_env):
         self.start(test_env)

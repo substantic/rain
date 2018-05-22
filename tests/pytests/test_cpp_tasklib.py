@@ -1,9 +1,5 @@
-from rain.client import tasks, blob
-from rain.client import TaskException, Task, Input, Output
-
 from executor_tester import ExecutorTester
 
-import pytest
 
 tester = ExecutorTester("cpptester")
 
@@ -38,6 +34,7 @@ def test_cpp_panic(test_env):
 
 def test_cpp_hello_chain(test_env):
     tester.test_hello_chain(test_env)
+
 
 def test_cpp_hello_burst(test_env):
     tester.test_hello_burst(test_env)

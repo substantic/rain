@@ -1,14 +1,40 @@
-from rain.client import blob, Task
+from executor_tester import ExecutorTester
 
 
-def hello(obj):
-    return Task("rusttester/hello", inputs=(obj,), outputs=1)
+tester = ExecutorTester("rusttester")
 
 
-def test_rustsw_hello(test_env):
-    test_env.start(1, executor="rusttester")
-    with test_env.client.new_session() as s:
-        t1 = hello(blob("world"))
-        t1.keep_outputs()
-        s.submit()
-        assert t1.output.fetch().get_bytes() == b"Hello world!"
+def test_rust_hello_mem(test_env):
+    tester.test_hello_mem(test_env)
+
+
+def test_rust_hello_file(test_env):
+    tester.test_hello_file(test_env)
+
+
+def test_rust_fail(test_env):
+    tester.test_fail(test_env)
+
+
+def test_rust_invalid_inputs(test_env):
+    tester.test_invalid_inputs(test_env)
+
+
+def test_rust_invalid_outputs(test_env):
+    tester.test_invalid_outputs(test_env)
+
+
+def test_rust_invalid(test_env):
+    tester.test_invalid(test_env)
+
+
+def test_rust_panic(test_env):
+    tester.test_panic(test_env)
+
+
+def test_rust_hello_chain(test_env):
+    tester.test_hello_chain(test_env)
+
+
+def test_rust_hello_burst(test_env):
+    tester.test_hello_burst(test_env)
