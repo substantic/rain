@@ -1,4 +1,4 @@
-use super::id::{ClientId, DataObjectId, SessionId, TaskId, GovernorId};
+use super::id::{ClientId, DataObjectId, GovernorId, SessionId, TaskId};
 use common::id::SId;
 use server::graph::{DataObject, Task};
 

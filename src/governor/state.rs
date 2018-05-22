@@ -13,7 +13,7 @@ use common::comm::Connection;
 use common::convert::{FromCapnp, ToCapnp};
 use common::events;
 use common::fs::logdir::LogDir;
-use common::id::{empty_governor_id, DataObjectId, TaskId, GovernorId};
+use common::id::{empty_governor_id, DataObjectId, GovernorId, TaskId};
 use common::monitor::Monitor;
 use common::resources::Resources;
 use common::wrapped::WrappedRcRefCell;
@@ -21,8 +21,8 @@ use common::wrapped::WrappedRcRefCell;
 use governor::data::Data;
 use governor::data::transport::TransportView;
 use governor::fs::workdir::WorkDir;
-use governor::graph::{executor_command, DataObject, DataObjectRef, DataObjectState, Graph,
-                    ExecutorRef, TaskInput, TaskRef, TaskState};
+use governor::graph::{executor_command, DataObject, DataObjectRef, DataObjectState, ExecutorRef,
+                      Graph, TaskInput, TaskRef, TaskState};
 use governor::rpc::GovernorControlImpl;
 use governor::rpc::executor::check_registration;
 use governor::rpc::executor_serde::ExecutorToGovernorMessage;
@@ -58,7 +58,8 @@ pub struct State {
     /// Handle to GovernorUpstream (that resides in server)
     upstream: Option<::governor_capnp::governor_upstream::Client>,
 
-    remote_governors: HashMap<GovernorId, AsyncInitWrapper<::governor_capnp::governor_bootstrap::Client>>,
+    remote_governors:
+        HashMap<GovernorId, AsyncInitWrapper<::governor_capnp::governor_bootstrap::Client>>,
 
     updated_objects: RcSet<DataObjectRef>,
     updated_tasks: RcSet<TaskRef>,
@@ -389,12 +390,8 @@ impl State {
                             };
                             let connection = Connection::from(stream);
                             let sender = connection.sender();
-                            let executor = ExecutorRef::new(
-                                executor_id,
-                                executor_type,
-                                sender,
-                                executor_dir,
-                            );
+                            let executor =
+                                ExecutorRef::new(executor_id, executor_type, sender, executor_dir);
                             let executor2 = executor.clone();
                             let result = executor.clone();
 
@@ -663,8 +660,9 @@ impl State {
                 .map(move |stream| {
                     debug!("Connection to governor {} established", governor_id);
                     let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
-                    let bootstrap: Rc<::governor_capnp::governor_bootstrap::Client> =
-                        Rc::new(rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server));
+                    let bootstrap: Rc<
+                        ::governor_capnp::governor_bootstrap::Client,
+                    > = Rc::new(rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server));
                     let mut s = state.get_mut();
                     {
                         let wrapper = s.remote_governors.get_mut(&governor_id).unwrap();
@@ -768,9 +766,9 @@ impl StateRef {
         let bootstrap: ::server_capnp::server_bootstrap::Client =
             rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        let governor_control = ::governor_capnp::governor_control::ToClient::new(GovernorControlImpl::new(
-            self,
-        )).from_server::<::capnp_rpc::Server>();
+        let governor_control = ::governor_capnp::governor_control::ToClient::new(
+            GovernorControlImpl::new(self),
+        ).from_server::<::capnp_rpc::Server>();
 
         let mut req = bootstrap.register_as_governor_request();
 

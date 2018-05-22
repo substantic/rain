@@ -1,4 +1,4 @@
-use super::graph::{DataObjectRef, Graph, TaskRef, TaskState, GovernorRef};
+use super::graph::{DataObjectRef, GovernorRef, Graph, TaskRef, TaskState};
 use common::RcSet;
 use server::graph::SessionRef;
 use std::clone::Clone;

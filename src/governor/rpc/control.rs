@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use capnp::capability::Promise;
 use common::convert::{FromCapnp, ToCapnp};
-use common::id::{DataObjectId, TaskId, GovernorId};
+use common::id::{DataObjectId, GovernorId, TaskId};
 use common::{Attributes, DataType, Resources};
 use errors::{Error, ErrorKind};
 use futures::future::Future;
@@ -190,10 +190,12 @@ impl governor_control::Server for GovernorControlImpl {
             o.state = DataObjectState::Pulling((governor_id.clone(), sender));
 
             let state_ref = self.state.clone();
-            let future = state.fetch_object(&governor_id, object_id).map(move |data| {
-                object_ref.get_mut().set_data(Arc::new(data)).unwrap();
-                state_ref.get_mut().object_is_finished(&object_ref);
-            });
+            let future = state
+                .fetch_object(&governor_id, object_id)
+                .map(move |data| {
+                    object_ref.get_mut().set_data(Arc::new(data)).unwrap();
+                    state_ref.get_mut().object_is_finished(&object_ref);
+                });
             state.handle().spawn(
                 future
                     .map_err(move |e| {

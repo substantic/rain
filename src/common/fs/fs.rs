@@ -1,6 +1,6 @@
 use std::error::Error;
-use std::io::{Read, Write, Seek};
 use std::fs::File;
+use std::io::{Read, Seek, Write};
 use std::path::Path;
 use std::process::exit;
 
@@ -23,12 +23,14 @@ pub fn create_ready_file(path: &Path) {
     }
 }
 
-
-pub fn read_tail(filename: &Path, size: u64) -> Result<String>
-{
+pub fn read_tail(filename: &Path, size: u64) -> Result<String> {
     let mut file = File::open(filename)?;
     let end = file.seek(::std::io::SeekFrom::End(0))?;
-    file.seek(::std::io::SeekFrom::Start(if end > size { end - size } else { 0 }))?;
+    file.seek(::std::io::SeekFrom::Start(if end > size {
+        end - size
+    } else {
+        0
+    }))?;
     let mut result = String::new();
     file.read_to_string(&mut result)?;
     Ok(result)

@@ -118,15 +118,14 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             // 1) add governor
             // 2) create upstream
             // reason: upstream drop tries to remove governor
-            let governor = pry!(
-                state
-                    .get_mut()
-                    .add_governor(governor_id, Some(control), resources,)
-            );
-            let upstream = ::governor_capnp::governor_upstream::ToClient::new(GovernorUpstreamImpl::new(
-                &state,
-                &governor,
-            )).from_server::<::capnp_rpc::Server>();
+            let governor = pry!(state.get_mut().add_governor(
+                governor_id,
+                Some(control),
+                resources,
+            ));
+            let upstream = ::governor_capnp::governor_upstream::ToClient::new(
+                GovernorUpstreamImpl::new(&state, &governor),
+            ).from_server::<::capnp_rpc::Server>();
             results.get().set_upstream(upstream);
             governor_id.to_capnp(&mut results.get().get_governor_id().unwrap());
             Promise::ok(())

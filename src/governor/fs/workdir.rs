@@ -2,7 +2,7 @@ use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
 use super::tempfile::TempFileName;
-use common::id::{SId, ExecutorId, TaskId};
+use common::id::{ExecutorId, SId, TaskId};
 use errors::Result;
 
 pub struct WorkDir {

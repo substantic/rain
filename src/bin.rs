@@ -30,7 +30,7 @@ use clap::{App, Arg, ArgMatches, SubCommand};
 use nix::unistd::getpid;
 
 use librain::errors::Result;
-use librain::{server, governor, VERSION};
+use librain::{governor, server, VERSION};
 
 const DEFAULT_SERVER_PORT: u16 = 7210;
 const DEFAULT_GOVERNOR_PORT: u16 = 0;

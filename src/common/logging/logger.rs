@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use common::events;
 use common::events::{Event, ObjectDescriptor, TaskDescriptor};
-use common::id::{ClientId, DataObjectId, SessionId, TaskId, GovernorId};
+use common::id::{ClientId, DataObjectId, GovernorId, SessionId, TaskId};
 use errors::Error;
 use futures::Future;
 

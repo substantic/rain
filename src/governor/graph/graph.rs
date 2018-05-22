@@ -1,8 +1,8 @@
 use super::{DataObjectRef, ExecutorRef, TaskRef};
 use common::RcSet;
-use common::id::{DataObjectId, Id, ExecutorId, TaskId};
-use std::collections::HashMap;
+use common::id::{DataObjectId, ExecutorId, Id, TaskId};
 use governor::tasks::TaskInstance;
+use std::collections::HashMap;
 
 pub struct Graph {
     pub ready_tasks: Vec<TaskRef>,

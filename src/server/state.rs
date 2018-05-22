@@ -8,15 +8,15 @@ use tokio_core::net::{TcpListener, TcpStream};
 use tokio_core::reactor::Handle;
 
 use common::convert::ToCapnp;
-use common::id::{ClientId, DataObjectId, SId, SessionId, TaskId, GovernorId};
+use common::id::{ClientId, DataObjectId, GovernorId, SId, SessionId, TaskId};
 use common::resources::Resources;
 use common::rpc::new_rpc_system;
 use common::wrapped::WrappedRcRefCell;
 use common::{Attributes, ConsistencyCheck};
 use common::{DataType, RcSet};
 use errors::Result;
-use server::graph::{ClientRef, DataObjectRef, DataObjectState, Graph, SessionError, SessionRef,
-                    TaskInput, TaskRef, TaskState, GovernorRef};
+use server::graph::{ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionError,
+                    SessionRef, TaskInput, TaskRef, TaskState};
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{ReactiveScheduler, UpdatedIn};
 
@@ -115,7 +115,11 @@ impl State {
     /// Put the governor into a failed state, unassigning all tasks and objects.
     /// Needs a lot of cleanup and recovery to avoid panic. Now just panics :-)
     pub fn fail_governor(&mut self, governor: &mut GovernorRef, cause: String) -> Result<()> {
-        debug!("Failing governor {} with cause {:?}", governor.get_id(), cause);
+        debug!(
+            "Failing governor {} with cause {:?}",
+            governor.get_id(),
+            cause
+        );
         assert!(governor.get_mut().error.is_none());
         governor.get_mut().error = Some(cause.clone());
         // TODO: Cleanup and recovery if possible
@@ -762,7 +766,11 @@ impl State {
     /// e.g. when scheduled after the needed object was located but not scheduled), the located
     /// list is pruned to only match the scheduled list (possibly plus one remaining governor if no
     /// scheduled governors have it located).
-    pub fn update_object_assignments(&mut self, oref: &DataObjectRef, governor: Option<&GovernorRef>) {
+    pub fn update_object_assignments(
+        &mut self,
+        oref: &DataObjectRef,
+        governor: Option<&GovernorRef>,
+    ) {
         let ostate = oref.get().state;
         match ostate {
             DataObjectState::Unfinished => (),

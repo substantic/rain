@@ -1,5 +1,5 @@
-use super::{ClientRef, DataObjectRef, SessionRef, TaskRef, GovernorRef};
-use common::id::{ClientId, DataObjectId, SessionId, TaskId, GovernorId};
+use super::{ClientRef, DataObjectRef, GovernorRef, SessionRef, TaskRef};
+use common::id::{ClientId, DataObjectId, GovernorId, SessionId, TaskId};
 use std::collections::HashMap;
 
 #[derive(Clone, Default)]
@@ -29,7 +29,8 @@ impl Graph {
 #[cfg(test)]
 
 mod tests {
-    use super::super::{ClientRef, DataObjectRef, Graph, SessionRef, TaskInput, TaskRef, GovernorRef};
+    use super::super::{ClientRef, DataObjectRef, GovernorRef, Graph, SessionRef, TaskInput,
+                       TaskRef};
     use common::attributes::Attributes;
     use common::id::{DataObjectId, SId, TaskId};
     use common::resources::Resources;

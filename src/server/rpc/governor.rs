@@ -3,9 +3,9 @@ use chrono::TimeZone;
 use common::Attributes;
 use common::convert::FromCapnp;
 use common::id::{DataObjectId, TaskId};
+use governor_capnp::governor_upstream;
 use server::graph::{Governor, GovernorRef};
 use server::state::StateRef;
-use governor_capnp::governor_upstream;
 
 pub struct GovernorUpstreamImpl {
     state: StateRef,

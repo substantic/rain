@@ -1,7 +1,7 @@
 use futures::unsync::oneshot;
 use std::fmt;
 
-use super::{SessionRef, TaskRef, TaskState, GovernorRef};
+use super::{GovernorRef, SessionRef, TaskRef, TaskState};
 use common::DataType;
 use common::convert::ToCapnp;
 use common::id::{DataObjectId, SId};

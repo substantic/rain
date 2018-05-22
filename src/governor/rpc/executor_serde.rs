@@ -153,8 +153,7 @@ mod tests {
 
     #[test]
     fn test_register() {
-        let s =
-            r#"{"register": {"protocol": "swp1", "executorId": 42, "executorType": "dummy"}}"#;
+        let s = r#"{"register": {"protocol": "swp1", "executorId": 42, "executorType": "dummy"}}"#;
         let m: ExecutorToGovernorMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }

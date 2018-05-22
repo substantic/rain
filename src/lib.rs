@@ -36,8 +36,8 @@ extern crate tokio_uds;
 extern crate walkdir;
 
 pub mod common;
-pub mod server;
 pub mod governor;
+pub mod server;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const GOVERNOR_PROTOCOL_VERSION: i32 = 0;

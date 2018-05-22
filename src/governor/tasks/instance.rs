@@ -257,7 +257,12 @@ impl TaskInstance {
 
                             result
                         }
-                        Err(_) => Err(format!("Lost connection to executor\n{}", executor_ref.get().get_log_tails(state_ref.get().log_dir(), 400)).into()),
+                        Err(_) => Err(format!(
+                            "Lost connection to executor\n{}",
+                            executor_ref
+                                .get()
+                                .get_log_tails(state_ref.get().log_dir(), 400)
+                        ).into()),
                     }
                 })
         })))
