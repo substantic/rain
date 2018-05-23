@@ -4,6 +4,7 @@ import argparse
 import os
 import paramiko
 import base64
+import multiprocessing
 from collections import OrderedDict
 
 
@@ -89,6 +90,47 @@ def ssh(args):
     os.system("{} {}@{}".format(SSH_CMD, SSH_USERNAME, ip))
 
 
+def install_node(k, nodes, hosts, pub_key):
+    sess = create_ssh_session(nodes[k])
+    channel = sess.invoke_shell()
+    stdin = channel.makefile("wb")
+    stdout = channel.makefile("rb")
+    stderr = channel.makefile_stderr("rb")
+    stdin.write("echo '{}' >> ~/.ssh/authorized_keys\n".format(pub_key))
+    stdin.write("echo -e '{}' | sudo tee --append /etc/hosts\n".format(hosts))
+    if args.rain_binary:
+        os.system("scp {} {}@{}:~/rain ".format(args.rain_bin, SSH_USERNAME, nodes[k]))
+        stdin.write("sudo mv ~/rain /usr/local/bin/rain\n")
+    if args.rain_wheel:
+        rain_whl = os.path.basename(args.rain_wheel)
+        os.system("scp {} {}@{}:~/{}".format(args.rain_wheel, SSH_USERNAME, nodes[k], rain_whl))
+        stdin.write("pip3 install ~/{}\n".format(rain_whl))
+    if args.rain_download:
+        url_base = "https://github.com/substantic/rain/releases/download"
+        nightly = ""
+        if ".dev" in args.rain_download:
+            nightly = "nightly-"
+        bin_url = ("{}/{}v{}/rain-v{}-linux-x64.tar.xz"
+                   .format(url_base, nightly, args.rain_download, args.rain_download))
+        stdin.write("wget -O ~/rain.tar.xz {}\n".format(bin_url))
+        stdin.write("tar xf ~/rain.tar.xz\n")
+        stdin.write("sudo mv ./rain-v{}-linux-x64/rain /usr/local/bin/\n"
+                    .format(args.rain_download))
+
+        rain_whl = "rain-{}-py3-none-any.whl".format(args.rain_download)
+        python_url = ("{}/{}v{}/{}"
+                      .format(url_base, nightly, args.rain_download, rain_whl))
+        stdin.write("wget {}\n".format(python_url))
+        stdin.write("pip3 install ~/{}\n".format(rain_whl))
+    stdin.write("echo -e '{}' > ~/node-list\n".format("\n".join(nodes)))
+    stdin.write("exit\n")
+    print(stderr.read())
+    print(stdout.read().decode("utf-8"))
+    stdout.close()
+    stdin.close()
+    sess.close()
+
+
 def install(args):
     nodes = get_nodes(args)
     server_ip = list(nodes.values())[0]
@@ -97,45 +139,12 @@ def install(args):
     pub_key = os.popen("{} {}@{} \"cat ~/.ssh/id_rsa.pub\""
                        .format(SSH_CMD, SSH_USERNAME, server_ip)).read().rstrip()
     hosts = "\n".join(["{} {}".format(nodes[k], k) for k in nodes.keys()])
+    processes = []
     for k in nodes.keys():
-        sess = create_ssh_session(nodes[k])
-        channel = sess.invoke_shell()
-        stdin = channel.makefile("wb")
-        stdout = channel.makefile("rb")
-        stderr = channel.makefile_stderr("rb")
-        stdin.write("echo '{}' >> ~/.ssh/authorized_keys\n".format(pub_key))
-        stdin.write("echo -e '{}' | sudo tee --append /etc/hosts\n".format(hosts))
-        if args.rain_binary:
-            os.system("scp {} {}@{}:~/rain ".format(args.rain_bin, SSH_USERNAME, nodes[k]))
-            stdin.write("sudo mv ~/rain /usr/local/bin/rain\n")
-        if args.rain_wheel:
-            rain_whl = os.path.basename(args.rain_wheel)
-            os.system("scp {} {}@{}:~/{}".format(args.rain_wheel, SSH_USERNAME, nodes[k], rain_whl))
-            stdin.write("pip3 install ~/{}\n".format(rain_whl))
-        if args.rain_download:
-            url_base = "https://github.com/substantic/rain/releases/download"
-            nightly = ""
-            if ".dev" in args.rain_download:
-                nightly = "nightly-"
-            bin_url = ("{}/{}v{}/rain-v{}-linux-x64.tar.xz"
-                       .format(url_base, nightly, args.rain_download, args.rain_download))
-            stdin.write("wget -O ~/rain.tar.xz {}\n".format(bin_url))
-            stdin.write("tar xf ~/rain.tar.xz\n")
-            stdin.write("sudo mv ./rain-v{}-linux-x64/rain /usr/local/bin/\n"
-                        .format(args.rain_download))
-
-            rain_whl = "rain-{}-py3-none-any.whl".format(args.rain_download)
-            python_url = ("{}/{}v{}/{}"
-                          .format(url_base, nightly, args.rain_download, rain_whl))
-            stdin.write("wget {}\n".format(python_url))
-            stdin.write("pip3 install ~/{}\n".format(rain_whl))
-        stdin.write("echo -e '{}' > ~/node-list\n".format("\n".join(nodes)))
-        stdin.write("exit\n")
-        print(stderr.read())
-        print(stdout.read().decode("utf-8"))
-        stdout.close()
-        stdin.close()
-        sess.close()
+        p = multiprocessing.Process(target=install_node, args=(k, nodes, hosts, pub_key))
+        p.start()
+        processes.append(p)
+    [p.join() for p in processes]
 
 
 def start(args):
