@@ -1,7 +1,7 @@
 from executor_tester import ExecutorTester
 
 
-tester = ExecutorTester("cpptester")
+tester = ExecutorTester("cpptester", "cpp/tasklib/_build/tester")
 
 
 def test_cpp_hello_mem(test_env):
