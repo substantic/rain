@@ -14,14 +14,8 @@ PYTHON_DIR = os.path.join(ROOT, "python")
 WORK_DIR = os.path.join(PYTEST_DIR, "work")
 RAIN_BIN = os.environ.get("RAIN_TEST_BIN",
                           os.path.join(ROOT, "target", "debug", "rain"))
-CPPTESTER_BIN = os.path.join(ROOT, "cpp", "tasklib", "_build", "tester")
-RUSTTESTER_BIN = os.path.join(ROOT, "rain_task_test", "target", "debug", "rain_task_test")
-sys.path.insert(0, PYTHON_DIR)
 
-executors = {
-    "cpptester": CPPTESTER_BIN,
-    "rusttester": RUSTTESTER_BIN,
-}
+sys.path.insert(0, PYTHON_DIR)
 
 
 class Env:
@@ -94,8 +88,13 @@ class TestEnv(Env):
 
         config = None
         if executor:
+            name, path = executor
+            path = os.path.join(ROOT, path)
+            if not os.path.isfile(path):
+                raise Exception("Cannot find executor binary: {}".format(path))
+
             config = "[executors.{}]\n" \
-                     "      command = \"{}\"\n".format(executor, executors[executor])
+                     "      command = \"{}\"\n".format(name, path)
 
         if config:
             with open(os.path.join(WORK_DIR, "governor.config"), "w") as f:

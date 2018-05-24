@@ -5,8 +5,9 @@ import pytest
 
 class ExecutorTester:
 
-    def __init__(self, name):
+    def __init__(self, name, path):
         self.name = name
+        self.path = path
 
     def task(self, method, **kwargs):
         return Task(self.name + "/" + method, **kwargs)
@@ -18,7 +19,7 @@ class ExecutorTester:
         return self.task("fail", inputs=(obj,), outputs=0)
 
     def start(self, test_env, nodes=1):
-        test_env.start(nodes, executor=self.name)
+        test_env.start(nodes, executor=(self.name, self.path))
 
     def test_hello_mem(self, test_env):
         self.start(test_env)
