@@ -1,7 +1,13 @@
+import os
+
 from executor_tester import ExecutorTester
 
 
-tester = ExecutorTester("rusttester", "target/debug/rain_task_test")
+PYTEST_DIR = os.path.dirname(__file__)
+ROOT = os.path.dirname(os.path.dirname(PYTEST_DIR))
+RUST_TASK_TESTER = os.environ.get("RUST_TASK_TESTER",
+                                  os.path.join(ROOT, "target", "debug", "rain_task_test"))
+tester = ExecutorTester("rusttester", RUST_TASK_TESTER)
 
 
 def test_rust_hello_mem(test_env):
