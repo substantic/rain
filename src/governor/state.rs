@@ -25,6 +25,7 @@ use governor::graph::{executor_command, DataObject, DataObjectRef, DataObjectSta
                       Graph, TaskInput, TaskRef, TaskState};
 use governor::rpc::GovernorControlImpl;
 use governor::rpc::executor::check_registration;
+use governor::graph::executor::get_log_tails;
 use governor::rpc::executor_serde::ExecutorToGovernorMessage;
 use governor::tasks::TaskInstance;
 
@@ -339,6 +340,7 @@ impl State {
                         &args[1..],
                     )?;
 
+                    let state_ref = self.self_ref();
                     let command_future = command
                         .status_async2(&self.handle)
                         .map_err(|e| {
@@ -356,7 +358,9 @@ impl State {
                         })
                         .and_then(move |status| {
                             error!("Executor {} terminated with {}", executor_id, status);
-                            bail!("Executor unexpectedly terminated with {}", status);
+                            let (out_log_name, err_log_name) = state_ref.get().log_dir().executor_log_paths(executor_id);
+                            let logs = get_log_tails(&out_log_name, &err_log_name, 600);
+                            bail!("Executor unexpectedly terminated with {}\n{}", status, logs);
                         });
 
                     let executor_type2 = executor_type.clone();

@@ -40,6 +40,18 @@ impl Executor {
     }
 }
 
+pub fn get_log_tails(out_log_name: &Path, err_log_name: &Path, size: u64) -> String {
+    format!(
+        "{}\n\n{}\n",
+        ::common::fs::read_tail(&out_log_name, size)
+            .map(|s| format!("Content of stdout (last {} bytes):\n{}", size, s))
+            .unwrap_or_else(|e| format!("Cannot read stdout: {}", e.description())),
+        ::common::fs::read_tail(&err_log_name, size)
+            .map(|s| format!("Content of stderr (last {} bytes):\n{}", size, s))
+            .unwrap_or_else(|e| format!("Cannot read stderr: {}", e.description()))
+    )
+}
+
 impl Executor {
     // Kill executor, if the process is already killed than nothing happens
     pub fn kill(&mut self) {
@@ -51,15 +63,7 @@ impl Executor {
 
     pub fn get_log_tails(&self, log_dir: &LogDir, size: u64) -> String {
         let (out_log_name, err_log_name) = log_dir.executor_log_paths(self.executor_id);
-        format!(
-            "{}\n\n{}\n",
-            ::common::fs::read_tail(&out_log_name, size)
-                .map(|s| format!("Content of stdout (last {} bytes):\n{}", size, s))
-                .unwrap_or_else(|e| format!("Cannot read stdout: {}", e.description())),
-            ::common::fs::read_tail(&err_log_name, size)
-                .map(|s| format!("Content of stderr (last {} bytes):\n{}", size, s))
-                .unwrap_or_else(|e| format!("Cannot read stderr: {}", e.description()))
-        )
+        get_log_tails(&out_log_name, &err_log_name, size)
     }
 
     pub fn pick_finish_sender(&mut self) -> Option<::futures::unsync::oneshot::Sender<ResultMsg>> {
