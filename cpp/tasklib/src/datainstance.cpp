@@ -4,6 +4,8 @@
 
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
 
 tasklib::DataInstance::~DataInstance()

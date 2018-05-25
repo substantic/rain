@@ -57,7 +57,7 @@ target_include_directories(tasklib PRIVATE
 	#        ${LIBCBOR_ROOT}/src/libcbor/src
 	#        ${LIBCBOR_ROOT}/src/libcbor-build
 )
-#add_dependencies(tasklib spdlog libcbor)
+add_dependencies(tasklib spdlog)
 
 
 add_executable(tester
