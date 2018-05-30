@@ -35,7 +35,7 @@ class OutputBase:
 
         self.path = path
 
-    def to_json(self):
+    def _to_json(self):
         return {k: v for (k, v) in self.__dict__.items() if v is not None}
 
     def _check_for_task(self, task, order):
@@ -94,6 +94,16 @@ class OutputBase:
                 out.path = "out_{}".format(out.label)
 
         return out
+
+    def expect_dir(self):
+        """Raise TypeError if the Output is not a directory data-type."""
+        if self.data_type != DataType.DIRECTORY:
+            raise TypeError("Directory output object expected.")
+
+    def expect_blob(self):
+        """Raise TypeError if the Output is not a directory data-type."""
+        if self.data_type != DataType.BLOB:
+            raise TypeError("Directory output object expected.")
 
 
 class Output(OutputBase):
