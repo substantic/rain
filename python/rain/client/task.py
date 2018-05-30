@@ -2,14 +2,28 @@ from .session import get_active_session
 from .data import DataObject, to_data
 from .output import OutputBase
 from ..common import RainException, ID, LabeledList, ids
-from ..common.attributes import attributes_to_capnp
+from ..common.attributes import attributes_to_capnp, Attributes
 
 import traceback
 
 
-class Task:
+_task_type_register = {}
+
+
+class TaskMeta:
+    """A metaclass to register all subclasses of Task in `_task_type_register`."""
+    def __new__(meta, name, bases, clsdict):
+        global _task_type_register
+        cls = type.__new__(meta, name, bases, clsdict)
+        task_type = cls.TASK_TYPE
+        if task_type is not None:
+            _task_type_register[task_type] = cls
+        return cls
+
+
+class Task(metaclass=TaskMeta):
     """
-    A single task instance in the task graph.
+    A task instance in the task graph.
 
     `__init__` creates a single task instance, inserts it into `Session`
     and assigns it an `ID`. Creates output `DataObject` instances based
@@ -43,34 +57,40 @@ class Task:
         state (`TaskState` enum): Task state on last update.
         stack (str): Text description of stack when task was created, used for debug messages
     """
+    TASK_TYPE = None
     # State of object
     # None = Not submitted
-    state = None
-    id = None
-    config = None
-    stack = None
+    _state = None
+    _id = None
+    _stack = None
 
     def __init__(self,
-                 task_type,
+                 inputs,
+                 outputs, *,
                  config=None,
-                 inputs=(),
-                 outputs=None,
                  session=None,
+                 task_type=None,
                  cpus=1):
         if session is None:
             session = get_active_session()
-        self.session = session
-        self.id = session._register_task(self)
-        assert isinstance(self.id, ID)
+        self._session = session
+        self._id = session._register_task(self)
+        assert isinstance(self._id, ID)
 
-        self.task_type = task_type
-        self.attributes = {}
+        if task_type is not None:
+            self._task_type = task_type
+        else:
+            if self.TASK_TYPE is None:
+                raise ValueError("Provide {}.TASK_TYPE or task_type=... information.".format(self.__class__))
+            self._task_type = self.TASK_TYPE
+
+        self._attributes = Attributes()
 
         if config is not None:
-            self.attributes["config"] = config
+            self._attributes.spec.config = config
 
         if cpus is not None:
-            self.attributes["resources"] = {"cpus": cpus}
+            self._attributes.spec.resources['cpus'] = cpus
 
         def to_data_object(o):
             if isinstance(o, int):
@@ -81,7 +101,7 @@ class Task:
                 return o.create_data_object(session=session)
             if isinstance(o, DataObject):
                 return o
-            raise TypeError("Only `Output` and `str` allowed as outputs.")
+            raise TypeError("Only `OutputBase`, `DataObject` and `str` allowed as outputs.")
 
         if outputs is None:
             outputs = ()
@@ -90,8 +110,8 @@ class Task:
         else:
             outputs = tuple(to_data_object(obj) for obj in outputs)
 
-        self.outputs = LabeledList(pairs=((output.label, output)
-                                          for output in outputs))
+        self._outputs = LabeledList(pairs=((output.label, output)
+                                           for output in outputs))
 
         input_pairs = []
         for input in inputs:
@@ -100,11 +120,45 @@ class Task:
                 input_pairs.append((label, to_data(inp)))
             else:
                 input_pairs.append((None, to_data(input)))
-        self.inputs = LabeledList(pairs=input_pairs)
+        self._inputs = LabeledList(pairs=input_pairs)
 
         stack = traceback.extract_stack(None, 6)
         stack.pop()  # Last entry is not usefull, it is actually line above
-        self.stack = "".join(traceback.format_list(stack))
+        self._stack = "".join(traceback.format_list(stack))
+
+    @property
+    def id(self):
+        """Getter for Task ID"""
+        return self._id
+
+    @property
+    def state(self):
+        """Getter for Task state"""
+        return self._state
+
+    @property
+    def task_type(self):
+        """Getter for task_type identifier"""
+        return self._task_type
+
+    @property
+    def inputs(self):
+        """Getter for inputs LabeledList"""
+        return self._inputs
+
+    @property
+    def outputs(self):
+        """Getter for outputs LabeledList"""
+        return self._outputs
+
+    @property
+    def output(self):
+        """Getter for the only output of the task. Fails if `len(self.outputs)!=1`."""
+        count = len(self.outputs)
+        if count == 0 or count > 1:
+            raise RainException("Task {!r} has no unique output (outputs={})"
+                                .format(self, count))
+        return self.outputs[0]
 
     def keep_outputs(self):
         """Keep all output objects of the task."""
@@ -122,15 +176,15 @@ class Task:
             [`DataInstance`]: Fetched output data."""
         return [output.fetch() for output in self.outputs]
 
-    @property
-    def output(self):
-        count = len(self.outputs)
-        if count == 0 or count > 1:
-            raise RainException("Task {!r} has no unique output (outputs={})"
-                                .format(self, count))
-        return self.outputs[0]
+    def wait(self):
+        """Wait for the task to complete. See `Session.wait()`."""
+        self.session.wait((self,))
 
-    def to_capnp(self, out):
+    def update(self):
+        """Update task state and attributes. See `Session.update()`."""
+        self.session.update((self,))
+
+    def _to_capnp(self, out):
         ids.id_to_capnp(self.id, out.id)
         out.init("inputs", len(self.inputs))
 
@@ -145,19 +199,20 @@ class Task:
 
         out.taskType = self.task_type
         out.taskType = self.task_type
-        attributes_to_capnp(self.attributes, out.attributes)
+        self.attributes._to_capnp(out.attributes)
 
-    def wait(self):
-        """Wait for the task to complete. See `Session.wait()`."""
-        self.session.wait((self,))
-
-    def update(self):
-        """Update task state and attributes. See `Session.update()`."""
-        self.session.update((self,))
+    def _to_json(self):
+        return {
+            'id': self._id._to_json(),
+            'attributes': self._attributes._to_json(),
+            'inputs': self._inputs._to_json(),
+            'outputs': self._inputs._to_json(),
+            'state': self._state._to_json(),  
+        }
 
     def __repr__(self):
-        return "<Task id={} type={}>".format(
-            self.id, self.task_type)
+        return "<{} {}, inputs {}, outputs {}>".format(
+            self.__class__, self.id, self.task_type, self.inputs, self.outputs)
 
     def __reduce__(self):
         """Speciaization to replace with executor.unpickle_input_object

@@ -16,3 +16,14 @@ def format_size(size_bytes):
         return "{:.1} GB".format(size_bytes / 1e9)
     else:
         return "{:.1} TB".format(size_bytes / 1e12)
+
+
+def short_str(s, maxlen=32):
+    """
+    Convert `s` to string and cut it off to at most `maxlen` chars (with an ellipsis).
+    """
+    if not isinstance(s, str):
+        s = str(s)
+    if len(s) > maxlen:
+        s = s[:27] + "[...]"
+    return s
