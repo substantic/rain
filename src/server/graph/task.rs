@@ -6,31 +6,19 @@ use common::convert::ToCapnp;
 use common::id::{SId, TaskId};
 use common::resources::Resources;
 use common::wrapped::WrappedRcRefCell;
-use common::{Attributes, ConsistencyCheck, FinishHook, RcSet};
+use common::{ConsistencyCheck, FinishHook, RcSet};
+use common::attributes::{TaskSpec, TaskInfo};
 pub use common_capnp::TaskState;
 use errors::Result;
 
-#[derive(Debug, Clone)]
-pub struct TaskInput {
-    /// Input data object.
-    pub object: DataObjectRef,
-    /// Label may indicate the role the object plays for this task.
-    pub label: String,
-    /// Optional path within the object
-    pub path: String,
-    // TODO: add any input params or flags
-}
 
 #[derive(Debug)]
 pub struct Task {
-    /// Unique ID within a `Session`
-    pub(in super::super) id: TaskId,
-
     /// Current state. Do not modify directly but use "set_state"
     pub(in super::super) state: TaskState,
 
     /// Ordered inputs for the task. Note that one object can be present as multiple inputs!
-    pub(in super::super) inputs: Vec<TaskInput>,
+    pub(in super::super) inputs: Vec<DataObjectRef>,
 
     /// Ordered outputs for the task. Every object in the list must be distinct.
     pub(in super::super) outputs: Vec<DataObjectRef>,
@@ -49,18 +37,15 @@ pub struct Task {
     /// Owning session. Must match `SessionId`.
     pub(in super::super) session: SessionRef,
 
-    /// Task type
-    // TODO: specify task types or make a better type ID system
-    pub(in super::super) task_type: String,
-
     /// Hooks executed when the task is finished
     pub(in super::super) finish_hooks: Vec<FinishHook>,
 
-    /// Task attributes
-    pub(in super::super) attributes: Attributes,
+    /// Task specs
+    pub(in super::super) spec: TaskSpec,
 
-    /// Task resources
-    pub(in super::super) resources: Resources,
+    /// Task info
+    pub(in super::super) info: TaskInfo,
+
 }
 
 pub type TaskRef = WrappedRcRefCell<Task>;
@@ -99,13 +84,13 @@ impl Task {
     }
 
     #[inline]
-    pub fn inputs(&self) -> &Vec<TaskInput> {
+    pub fn inputs(&self) -> &Vec<DataObjectRef> {
         &self.inputs
     }
 
     #[inline]
-    pub fn attributes(&self) -> &Attributes {
-        &self.attributes
+    pub fn spec(&self) -> &TaskSpec {
+        &self.spec
     }
 
     #[inline]
@@ -159,14 +144,11 @@ impl TaskRef {
     /// Checks the input and output object states and sessions.
     pub fn new(
         session: &SessionRef,
-        id: TaskId,
-        inputs: Vec<TaskInput>,
+        spec: TaskSpec,
+        inputs: Vec<DataObjectRef>,
         outputs: Vec<DataObjectRef>,
-        task_type: String,
-        attributes: Attributes,
-        resources: Resources,
     ) -> Result<Self> {
-        assert_eq!(id.get_session_id(), session.get_id());
+        assert_eq!(spec.id.get_session_id(), session.get_id());
         let mut waiting = RcSet::new();
         for i in inputs.iter() {
             let inobj = i.object.get();
@@ -174,7 +156,7 @@ impl TaskRef {
                 DataObjectState::Removed => {
                     bail!(
                         "Can't create Task {} with Finished input object {}",
-                        id,
+                        spec.id,
                         inobj.id
                     );
                 }
@@ -183,11 +165,11 @@ impl TaskRef {
                     waiting.insert(i.object.clone());
                 }
             }
-            if inobj.id.get_session_id() != id.get_session_id() {
+            if inobj.id.get_session_id() != spec.id.get_session_id() {
                 bail!(
                     "Input object {} for task {} is from a different session",
                     inobj.id,
-                    id
+                    spec.id
                 );
             }
         }
@@ -198,19 +180,19 @@ impl TaskRef {
                     "Object {} already has producer (task {}) when creating task {}",
                     o.id,
                     prod.get().id,
-                    id
+                    spec.id
                 );
             }
-            if o.id.get_session_id() != id.get_session_id() {
+            if o.id.get_session_id() != spec.id.get_session_id() {
                 bail!(
                     "Output object {} for task {} is from a different session",
                     o.id,
-                    id
+                    spec.id
                 );
             }
         }
         let sref = TaskRef::wrap(Task {
-            id: id,
+            spec: spec,
             state: if waiting.is_empty() {
                 TaskState::Ready
             } else {
@@ -222,10 +204,7 @@ impl TaskRef {
             assigned: None,
             scheduled: None,
             session: session.clone(),
-            task_type: task_type,
             finish_hooks: Default::default(),
-            attributes: attributes,
-            resources: resources,
         });
         {
             // add to session

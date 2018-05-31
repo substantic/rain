@@ -1,5 +1,6 @@
 use super::id::{ClientId, DataObjectId, GovernorId, SessionId, TaskId};
 use common::id::SId;
+use common::{TaskSpec, ObjectSpec};
 use server::graph::{DataObject, Task};
 
 use std::collections::HashMap;
@@ -42,54 +43,8 @@ pub struct SessionCloseEvent {
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ClientSubmitEvent {
-    pub tasks: Vec<TaskDescriptor>,
-    pub dataobjs: Vec<ObjectDescriptor>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct InputDescriptor {
-    id: DataObjectId,
-    label: String,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct TaskDescriptor {
-    id: TaskId,
-    inputs: Vec<InputDescriptor>,
-    task_type: String,
-    attributes: HashMap<String, String>,
-}
-
-impl TaskDescriptor {
-    pub fn from(task: &Task) -> Self {
-        TaskDescriptor {
-            id: task.id(),
-            inputs: task.inputs()
-                .iter()
-                .map(|i| InputDescriptor {
-                    id: i.object.get().id(),
-                    label: i.label.clone(),
-                })
-                .collect(),
-            task_type: task.task_type().clone(),
-            attributes: task.attributes().as_hashmap().clone(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ObjectDescriptor {
-    id: DataObjectId,
-    producer: Option<TaskId>,
-}
-
-impl ObjectDescriptor {
-    pub fn from(obj: &DataObject) -> Self {
-        ObjectDescriptor {
-            id: obj.id(),
-            producer: obj.producer().as_ref().map(|t| t.get().id()),
-        }
-    }
+    pub tasks: Vec<TaskSpec>,
+    pub dataobjs: Vec<ObjectSpec>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]

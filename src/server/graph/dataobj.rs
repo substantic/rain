@@ -6,21 +6,20 @@ use common::DataType;
 use common::convert::ToCapnp;
 use common::id::{DataObjectId, SId};
 use common::wrapped::WrappedRcRefCell;
-use common::{Attributes, ConsistencyCheck, FinishHook, RcSet};
+use common::{ObjectSpec, ObjectInfo};
+use common::{ConsistencyCheck, FinishHook, RcSet};
 pub use common_capnp::DataObjectState;
 use errors::Result;
 
 #[derive(Debug)]
 pub struct DataObject {
-    /// Unique ID within a `Session`
-    pub(in super::super) id: DataObjectId,
+
+    pub(in super::super) spec: ObjectSpec,
+
+    pub(in super::super) info: ObjectInfo,
 
     /// Producer task, if any.
     pub(in super::super) producer: Option<TaskRef>,
-
-    /// Label may be the role that the output has in the `producer`, or it may be
-    /// the name of the initial uploaded object.
-    pub(in super::super) label: String,
 
     /// Current state.
     pub(in super::super) state: DataObjectState,
@@ -50,17 +49,9 @@ pub struct DataObject {
     /// Hooks executed when the task is finished
     pub(in super::super) finish_hooks: Vec<FinishHook>,
 
-    /// Final size if known. Must match `data` size when `data` present.
-    pub(in super::super) size: Option<usize>,
-
-    pub(in super::super) data_type: DataType,
-
     /// Optinal *final* data when submitted from client or downloaded
     /// by the server (for any reason thinkable).
     pub(in super::super) data: Option<Vec<u8>>,
-
-    /// Attributes
-    pub(in super::super) attributes: Attributes,
 }
 
 impl DataObject {
@@ -133,18 +124,14 @@ impl DataObjectRef {
     /// Create new data object and link it to the owning session.
     pub fn new(
         session: &SessionRef,
-        id: DataObjectId,
+        spec: ObjectSpec,
         client_keep: bool,
-        label: String,
-        data_type: DataType,
         data: Option<Vec<u8>>,
-        attributes: Attributes,
     ) -> Self {
-        assert_eq!(id.get_session_id(), session.get_id());
+        assert_eq!(spec.id.get_session_id(), session.get_id());
         let s = DataObjectRef::wrap(DataObject {
-            id: id,
+            spec: spec,
             producer: Default::default(),
-            label: label,
             state: if data.is_none() {
                 DataObjectState::Unfinished
             } else {
@@ -158,10 +145,7 @@ impl DataObjectRef {
             session: session.clone(),
             client_keep: client_keep,
             finish_hooks: Vec::new(),
-            size: data.as_ref().map(|d| d.len()),
-            data_type,
             data: data,
-            attributes: attributes,
         });
         // add to session
         session.get_mut().objects.insert(s.clone());

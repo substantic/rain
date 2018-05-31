@@ -1,8 +1,8 @@
 use capnp::capability::Promise;
 use chrono::TimeZone;
-use common::Attributes;
 use common::convert::FromCapnp;
 use common::id::{DataObjectId, TaskId};
+use common::{TaskSpec, ObjectSpec, TaskInfo, ObjectInfo};
 use governor_capnp::governor_upstream;
 use server::graph::{Governor, GovernorRef};
 use server::state::StateRef;
@@ -53,8 +53,8 @@ impl governor_upstream::Server for GovernorUpstreamImpl {
                 }
                 let object = pry!(state.object_by_id(id));
                 let size = obj_update.get_size() as usize;
-                let attributes = Attributes::from_capnp(&obj_update.get_attributes().unwrap());
-                obj_updates.push((object, pry!(obj_update.get_state()), size, attributes));
+                let spec: ObjectSpec = ::serde_json::from_str(obj_update.get_spec().unwrap()).unwrap();
+                obj_updates.push((object, pry!(obj_update.get_state()), spec));
             }
 
             for task_update in pry!(update.get_tasks()).iter() {
@@ -63,9 +63,8 @@ impl governor_upstream::Server for GovernorUpstreamImpl {
                     continue;
                 }
                 let task = pry!(state.task_by_id(id));
-
-                let attributes = Attributes::from_capnp(&task_update.get_attributes().unwrap());
-                task_updates.push((task, pry!(task_update.get_state()), attributes));
+                let spec: TaskSpec = ::serde_json::from_str(task_update.get_spec().unwrap()).unwrap();
+                task_updates.push((task, pry!(task_update.get_state()), spec));
             }
         }
 

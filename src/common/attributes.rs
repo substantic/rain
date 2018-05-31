@@ -1,7 +1,122 @@
+use common::id::{TaskId, DataObjectId};
+use common::DataType;
+use common::Resources;
 use errors::Result;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::error::Error;
+
+use serde_json;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
+pub struct TaskSpecInput {
+    pub id: DataObjectId,
+
+    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
+pub struct TaskSpec {
+    pub id: TaskId,
+
+    pub inputs: Vec<TaskSpecInput>,
+    pub outputs: Vec<DataObjectId>,
+
+    pub task_type: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub config: Option<serde_json::Value>,
+
+    pub resources: Resources,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub user: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
+pub struct TaskInfo {
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub error: Option<String>,
+
+    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
+    pub debug: String,
+
+    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
+    pub governor: String,
+
+    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
+    pub task_start: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub duration: Option<u32>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub user: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
+pub struct ObjectSpec {
+    pub id: DataObjectId,
+
+    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
+    pub label: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub content_type: Option<serde_json::Value>,
+
+    pub data_type: DataType,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub user: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
+pub struct ObjectInfo {
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub size: Option<usize>,
+
+    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
+    pub content_type: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub error: Option<String>,
+
+    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
+    pub debug: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub user: Option<serde_json::Value>,
+}
 
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Attributes {
@@ -29,7 +144,7 @@ impl<'de> Deserialize<'de> for Attributes {
     }
 }
 
-impl Attributes {
+/*impl Attributes {
     pub fn new() -> Self {
         Default::default()
     }
@@ -120,3 +235,4 @@ impl Attributes {
         self.items.clear();
     }
 }
+*/

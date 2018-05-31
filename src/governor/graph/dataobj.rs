@@ -1,22 +1,18 @@
 use super::{Graph, TaskRef};
 use common::id::{DataObjectId, GovernorId};
 use common::wrapped::WrappedRcRefCell;
-use common::{Attributes, DataType, RcSet};
+use common::{DataType, RcSet, ObjectSpec, ObjectInfo};
 use errors::{ErrorKind, Result};
 use governor::WorkDir;
 use governor::data::Data;
 use governor::graph::ExecutorRef;
-use governor::rpc::executor_serde::{DataLocation, DataObjectSpec};
+use governor::rpc::executor_serde::{DataLocation, LocalObjectSpec};
 
 use std::fmt;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
 
-#[derive(Deserialize)]
-pub struct DataObjectAttributeSpec {
-    pub content_type: Option<String>,
-}
 
 #[derive(Debug)]
 pub enum DataObjectState {
@@ -32,9 +28,11 @@ pub enum DataObjectState {
 
 #[derive(Debug)]
 pub struct DataObject {
-    pub(in super::super) id: DataObjectId,
+    pub(in super::super) spec: ObjectSpec,
 
     pub(in super::super) state: DataObjectState,
+
+    pub(in super::super) info: ObjectSpec,
 
     /// Task that produces data object; it is None if task not computed in this governor
     // producer: Option<Task>,
@@ -45,19 +43,6 @@ pub struct DataObject {
 
     /// Where are data object cached
     pub(in super::super) executor_cache: RcSet<ExecutorRef>,
-
-    /// ??? Is this necessary for governor?
-    pub(in super::super) size: Option<usize>,
-
-    /// Label may be the role that the output has in the `producer`, or it may be
-    /// the name of the initial uploaded object.
-    pub(in super::super) label: String,
-
-    pub(in super::super) data_type: DataType,
-
-    pub(in super::super) attributes: Attributes,
-
-    pub(in super::super) new_attributes: Attributes,
 }
 
 pub type DataObjectRef = WrappedRcRefCell<DataObject>;
@@ -88,20 +73,16 @@ impl DataObject {
         Ok(())
     }
 
-    pub fn set_attributes(&mut self, attributes: Attributes) {
-        self.attributes.update(attributes.clone());
-        self.new_attributes.update(attributes);
+    pub fn set_info(&mut self, info: ObjectInfo) {
+        self.info = info;
     }
 
     pub fn display_content_type(&self) -> String {
         self.content_type().unwrap_or_else(|| "<None>".to_string())
     }
 
-    pub fn content_type(&self) -> Option<String> {
-        self.attributes
-            .get("spec")
-            .map(|spec: DataObjectAttributeSpec| spec.content_type)
-            .unwrap_or(None)
+    pub fn content_type(&self) -> &Option<String> {
+        self.spec.content_type
     }
 
     #[inline]
@@ -153,8 +134,8 @@ impl DataObject {
         self.set_data(Arc::new(data))
     }
 
-    pub fn create_input_spec(&self, label: &str, executor_ref: &ExecutorRef) -> DataObjectSpec {
-        DataObjectSpec {
+    pub fn create_input_spec(&self, label: &str, executor_ref: &ExecutorRef) -> LocalObjectSpec {
+        LocalObjectSpec {
             id: self.id,
             label: if label.is_empty() {
                 None
@@ -171,8 +152,8 @@ impl DataObject {
         }
     }
 
-    pub fn create_output_spec(&self) -> DataObjectSpec {
-        DataObjectSpec {
+    pub fn create_output_spec(&self) -> LocalObjectSpec {
+        LocalObjectSpec {
             id: self.id,
             label: if self.label.is_empty() {
                 None
@@ -189,28 +170,19 @@ impl DataObject {
 impl DataObjectRef {
     pub fn new(
         graph: &mut Graph,
-        id: DataObjectId,
+        spec: ObjectSpec,
         state: DataObjectState,
         assigned: bool,
-        size: Option<usize>,
-        label: String,
-        data_type: DataType,
-        attributes: Attributes,
     ) -> Self {
-        debug!("New object id={}", id);
+        debug!("New object id={}", spec.id);
 
-        match graph.objects.entry(id) {
+        match graph.objects.entry(spec.id) {
             ::std::collections::hash_map::Entry::Vacant(e) => {
                 let dataobj = Self::wrap(DataObject {
-                    id,
+                    spec,
                     state,
-                    size,
                     assigned,
                     consumers: Default::default(),
-                    label,
-                    attributes,
-                    data_type,
-                    new_attributes: Attributes::new(),
                     executor_cache: Default::default(),
                 });
                 e.insert(dataobj.clone());
@@ -222,7 +194,7 @@ impl DataObjectRef {
                     let obj = dataobj.get();
                     // TODO: If object is remote and not finished and new remote obtained,
                     // then update remote
-                    assert!(obj.id == id);
+                    assert!(obj.spec.id == spec.id);
                 }
                 dataobj
             }

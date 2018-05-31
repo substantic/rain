@@ -10,4 +10,4 @@ pub use self::dataobj::{DataObject, DataObjectRef, DataObjectState};
 pub use self::governor::{Governor, GovernorRef};
 pub use self::graph::Graph;
 pub use self::session::{Session, SessionError, SessionRef};
-pub use self::task::{Task, TaskInput, TaskRef, TaskState};
+pub use self::task::{Task, TaskRef, TaskState};

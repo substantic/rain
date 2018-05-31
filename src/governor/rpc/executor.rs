@@ -8,7 +8,7 @@ use common::id::ExecutorId;
 use governor::State;
 use governor::data::{Data, Storage};
 use governor::rpc::executor_serde::ExecutorToGovernorMessage;
-use governor::rpc::executor_serde::{DataLocation, DataObjectSpec};
+use governor::rpc::executor_serde::{DataLocation, LocalObjectSpec};
 
 use errors::Result;
 
@@ -17,7 +17,7 @@ static PROTOCOL_VERSION: &'static str = "cbor-1";
 pub fn data_output_from_spec(
     state: &State,
     executor_dir: &Path,
-    spec: DataObjectSpec,
+    spec: LocalObjectSpec,
     data_type: DataType,
 ) -> Result<Arc<Data>> {
     match spec.location.unwrap() {
