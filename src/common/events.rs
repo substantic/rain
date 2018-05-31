@@ -1,114 +1,69 @@
 use super::id::{ClientId, DataObjectId, GovernorId, SessionId, TaskId};
 use common::id::SId;
+use common::{TaskSpec, ObjectSpec};
 use server::graph::{DataObject, Task};
 
 use std::collections::HashMap;
 
 pub type EventId = i64;
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GovernorNewEvent {
     pub governor: GovernorId, // TODO: Resources
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GovernorRemovedEvent {
     pub governor: GovernorId,
     pub error_msg: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ClientNewEvent {
     pub client: ClientId,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ClientRemovedEvent {
     pub client: ClientId,
     // If client is disconnected because of error, otherwise empty
     pub error_msg: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SessionNewEvent {
     pub session: SessionId,
     pub client: ClientId,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SessionCloseEvent {
     pub session: SessionId,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ClientSubmitEvent {
-    pub tasks: Vec<TaskDescriptor>,
-    pub dataobjs: Vec<ObjectDescriptor>,
+    pub tasks: Vec<TaskSpec>,
+    pub dataobjs: Vec<ObjectSpec>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct InputDescriptor {
-    id: DataObjectId,
-    label: String,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct TaskDescriptor {
-    id: TaskId,
-    inputs: Vec<InputDescriptor>,
-    task_type: String,
-    attributes: HashMap<String, String>,
-}
-
-impl TaskDescriptor {
-    pub fn from(task: &Task) -> Self {
-        TaskDescriptor {
-            id: task.id(),
-            inputs: task.inputs()
-                .iter()
-                .map(|i| InputDescriptor {
-                    id: i.object.get().id(),
-                    label: i.label.clone(),
-                })
-                .collect(),
-            task_type: task.task_type().clone(),
-            attributes: task.attributes().as_hashmap().clone(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ObjectDescriptor {
-    id: DataObjectId,
-    producer: Option<TaskId>,
-}
-
-impl ObjectDescriptor {
-    pub fn from(obj: &DataObject) -> Self {
-        ObjectDescriptor {
-            id: obj.id(),
-            producer: obj.producer().as_ref().map(|t| t.get().id()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ClientUnkeepEvent {
     pub dataobjs: Vec<DataObjectId>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TaskStartedEvent {
     pub task: TaskId,
     pub governor: GovernorId,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TaskFinishedEvent {
     pub task: TaskId,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DataObjectFinishedEvent {
     pub dataobject: DataObjectId,
     pub governor: GovernorId,
@@ -118,7 +73,7 @@ pub struct DataObjectFinishedEvent {
 pub type CpuUsage = u8;
 pub type MemUsage = u8;
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MonitoringEvent {
     pub governor: GovernorId,
     pub cpu_usage: Vec<CpuUsage>,            // Cpu usage in percent
@@ -126,20 +81,20 @@ pub struct MonitoringEvent {
     pub net_stat: HashMap<String, Vec<u64>>, // Network IO
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TaskFailedEvent {
     pub task: TaskId,
     pub governor: GovernorId,
     pub error_msg: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ClientInvalidRequestEvent {
     pub client: ClientId,
     pub error_msg: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Event {
     GovernorNew(GovernorNewEvent),

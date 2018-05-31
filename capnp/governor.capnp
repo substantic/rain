@@ -6,7 +6,6 @@ using import "common.capnp".GovernorId;
 using import "common.capnp".TaskId;
 using import "common.capnp".DataType;
 using import "common.capnp".DataObjectId;
-using import "common.capnp".Attributes;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
 using import "common.capnp".Resources;
@@ -19,7 +18,7 @@ interface GovernorBootstrap {
     # Interface for entities connecting directly to the governor.
     # Currently only governors would do this but in the future, other entities may do this.
 
-    fetch @0 (id :DataObjectId, includeMetadata :Bool, offset :UInt64, size :UInt64) -> FetchResult;
+    fetch @0 (id :DataObjectId, includeInfo :Bool, offset :UInt64, size :UInt64) -> FetchResult;
 }
 
 struct GovernorStateUpdate {
@@ -29,15 +28,13 @@ struct GovernorStateUpdate {
     struct TaskUpdate {
         id @0 :TaskId;
         state @1 :TaskState;
-        attributes @2 :Attributes;
+        info @2 :Text;
     }
 
     struct DataObjectUpdate {
         id @0 :DataObjectId;
         state @1 :DataObjectState;
-        size @2 :UInt64;
-        attributes @3 :Attributes;
-        # Only valid when the state is `finished` and `removed`, otherwise should be 0.
+        info @2 :Text;
     }
 }
 
@@ -83,45 +80,20 @@ interface GovernorControl {
 # Task instance
 
 struct Task {
-    id @0 :TaskId;
-
-    inputs @1 :List(InDataObject);
-    outputs @2 :List(DataObjectId);
-
-    taskType @3 :Text;
-
-    attributes @4: Attributes;
-
-    # Number of request CPUs; will be replaced by more sophisticated
-    # resource requests
-
-    struct InDataObject {
-        id @0 :DataObjectId;
-        label @1 :Text;
-        path @2 :Text;
-    }
+    spec @0: Text;
 }
 
 # Data object instance information (not the data)
 
 struct DataObject {
-    id @0 :DataObjectId;
+    spec @0: Text;
 
     placement @1 :GovernorId;
     # If equal to local governor id, then local, otherwise remote.
 
-    size @2 :Int64 = -1;
-    # In bytes, positive if known.
-
-    state @3 :DataObjectState;
+    state @2 :DataObjectState;
     # Current object state. All input objects (external or local) should be `finished` or
     # `running` (when streaming), output objects `assigned`.
 
-    assigned @4 :Bool;
-
-    label @5 :Text;
-
-    dataType @7 :DataType;
-
-    attributes @6 :Attributes;
+    assigned @3 :Bool;
 }

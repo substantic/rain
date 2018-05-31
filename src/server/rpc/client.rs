@@ -3,14 +3,13 @@ use futures::{future, Future};
 use std::net::SocketAddr;
 
 use client_capnp::client_service;
-use common::RcSet;
+use common::{RcSet, TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
 use common::convert::{FromCapnp, ToCapnp};
-use common::events::{ObjectDescriptor, TaskDescriptor};
 use common::id::{DataObjectId, SId, TaskId};
 use common::resources::Resources;
-use common::{Attributes, DataType};
+use common::{DataType};
 use errors::{Error, ErrorKind, Result};
-use server::graph::{ClientRef, SessionError, TaskInput, TaskRef};
+use server::graph::{ClientRef, SessionError, TaskRef};
 use server::graph::{DataObjectRef, DataObjectState};
 use server::state::StateRef;
 
@@ -125,6 +124,8 @@ impl client_service::Server for ClientServiceImpl {
         let res: Result<()> = (|| {
             // first create the objects
             for co in objects.iter() {
+                let spec: ObjectSpec = ::serde_json::from_str(co.get_spec().unwrap()).unwrap();
+
                 let id = DataObjectId::from_capnp(&co.reborrow().get_id()?);
                 let session = s.session_by_id(id.get_session_id())?;
                 let data_type = DataType::from_capnp(co.get_data_type().unwrap());
@@ -133,44 +134,31 @@ impl client_service::Server for ClientServiceImpl {
                 } else {
                     None
                 };
-                let attributes = Attributes::from_capnp(&co.get_attributes()?);
                 let o = s.add_object(
                     &session,
-                    id,
+                    spec,
                     co.get_keep(),
                     co.get_label()?.to_string(),
-                    data_type,
-                    data,
-                    attributes,
                 )?;
                 created_objects.push(o);
             }
             // second create the tasks
             for ct in tasks.iter() {
-                let id = TaskId::from_capnp(&ct.get_id()?);
-                let session = s.session_by_id(id.get_session_id())?;
-                let attributes = Attributes::from_capnp(&ct.get_attributes().unwrap());
-                let resources: Resources = attributes.get("resources")?;
-                let mut inputs = Vec::<TaskInput>::new();
-                for ci in ct.get_inputs()?.iter() {
-                    inputs.push(TaskInput {
-                        object: s.object_by_id(DataObjectId::from_capnp(&ci.get_id()?))?,
-                        label: ci.get_label()?.into(),
-                        path: ci.get_path()?.into(),
-                    });
+                let spec: TaskSpec = ::serde_json::from_str(ct.get_spec().unwrap()).unwrap();
+                let session = s.session_by_id(spec.id.get_session_id())?;
+                let mut inputs = Vec::<DataObjectRef>::with_capacity(spec.inputs.len());
+                for ci in spec.inputs.iter() {
+                    inputs.push(s.object_by_id(ci.id)?);
                 }
-                let mut outputs = Vec::<DataObjectRef>::new();
-                for co in ct.get_outputs()?.iter() {
-                    outputs.push(s.object_by_id(DataObjectId::from_capnp(&co))?);
+                let mut outputs = Vec::<DataObjectRef>::width_capacity(spec.outputs.len());
+                for co in spec.outputs.iter() {
+                    outputs.push(s.object_by_id(&co)?);
                 }
                 let t = s.add_task(
                     &session,
-                    id,
+                    spec,
                     inputs,
                     outputs,
-                    ct.get_task_type()?.to_string(),
-                    attributes,
-                    resources,
                 )?;
                 created_tasks.push(t);
             }
@@ -179,11 +167,11 @@ impl client_service::Server for ClientServiceImpl {
             s.logger.add_client_submit_event(
                 created_tasks
                     .iter()
-                    .map(|t| TaskDescriptor::from(&t.get()))
+                    .map(|t| t.get().spec.clone())
                     .collect(),
                 created_objects
                     .iter()
-                    .map(|o| ObjectDescriptor::from(&o.get()))
+                    .map(|o| o.get().spec.clone())
                     .collect(),
             );
             // verify submit integrity
@@ -502,7 +490,7 @@ impl client_service::Server for ClientServiceImpl {
                 let mut update = task_updates.reborrow().get(i as u32);
                 let t = task.get();
                 t.id.to_capnp(&mut update.reborrow().get_id().unwrap());
-                t.attributes.to_capnp(&mut update.get_attributes().unwrap());
+                // TODO: serialize spec
             }
         }
 
@@ -511,8 +499,7 @@ impl client_service::Server for ClientServiceImpl {
             for (i, obj) in objects.iter().enumerate() {
                 let mut update = obj_updates.reborrow().get(i as u32);
                 let o = obj.get();
-                o.attributes
-                    .to_capnp(&mut update.reborrow().get_attributes().unwrap());
+                // TODO: serialize spec
                 o.id.to_capnp(&mut update.get_id().unwrap());
             }
         }

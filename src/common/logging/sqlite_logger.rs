@@ -14,7 +14,7 @@ use serde_json;
 
 use chrono::{DateTime, Utc};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct EventWrapper {
     pub event: events::Event,
     pub timestamp: DateTime<Utc>,

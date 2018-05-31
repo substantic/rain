@@ -3,7 +3,6 @@
 using import "common.capnp".TaskId;
 using import "common.capnp".GovernorId;
 using import "common.capnp".DataObjectId;
-using import "common.capnp".Attributes;
 using import "common.capnp".SessionId;
 using import "common.capnp".TaskState;
 using import "common.capnp".DataObjectState;
@@ -67,7 +66,7 @@ interface ClientService {
     terminateServer @8 () -> ();
     # Quit server; the connection to the server will be closed after this call
 
-    fetch @9 (id :DataObjectId, includeMetadata :Bool, offset :UInt64, size :UInt64) -> FetchResult;
+    fetch @9 (id :DataObjectId, includeInfo :Bool, offset :UInt64, size :UInt64) -> FetchResult;
 }
 
 struct Update {
@@ -78,38 +77,23 @@ struct Update {
     struct TaskUpdate {
         id @0 :TaskId;
         state @1 :TaskState;
-        attributes @2 :Attributes;
+        info @2 :Text;
     }
 
     struct DataObjectUpdate {
         id @0 :DataObjectId;
         state @1 :DataObjectState;
-        size @2 :UInt64;
-        attributes @3 :Attributes;
-        # Only valid when the state is `finished` and `removed`, otherwise should be 0.
+        info @2 :Text;
     }
 }
 
 struct Task {
-    id @0 :TaskId;
-    inputs @1 :List(InDataObject);
-    outputs @2 :List(DataObjectId);
-    taskType @3 :Text;
-    attributes @4 :Attributes;
-
-    struct InDataObject {
-        id @0 :DataObjectId;
-        label @1 :Text;
-        path @2 :Text;
-    }
+    spec @0: Text;
 }
 
 struct DataObject {
-    id @0 :DataObjectId;
+    spec @0: Text;
     keep @1 :Bool;
-    dataType @2 :DataType;
-    hasData @3: Bool;
-    data @4 :Data;
-    label @5 :Text;
-    attributes @6: Attributes;
+    hasData @2: Bool;
+    data @3 :Data;
 }

@@ -1,4 +1,4 @@
-use common::Attributes;
+use common::{TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
 use common::id::{DataObjectId, ExecutorId, TaskId};
 use serde_bytes;
 use std::path::PathBuf;
@@ -44,13 +44,13 @@ pub struct CallMsg {
     /// Requested task type name (without `executor_type` prefix)
     pub method: String,
     /// Task attributes
-    pub attributes: Attributes,
-    /// Task input descriptions. In this context, all fields of `DataObjectSpec` are valid.
-    pub inputs: Vec<DataObjectSpec>,
+    pub spec: TaskSpec,
+    /// Task input descriptions. In this context, all fields of `LocalObjectSpec` are valid.
+    pub inputs: Vec<LocalObjectSpec>,
     /// Task outputt descriptions. In this context,
-    /// `DataObjectSpec::location` should not be present (and ignored if present), all other
+    /// `LocalObjectSpec::location` should not be present (and ignored if present), all other
     /// fields are valid.
-    pub outputs: Vec<DataObjectSpec>,
+    pub outputs: Vec<LocalObjectSpec>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -61,15 +61,15 @@ pub struct ResultMsg {
     pub task: TaskId,
     /// Task success. On `false`, attributes error must be set.
     pub success: bool,
-    /// Resulting Task attributes. The `spec` and `user_spec` part is ignored.
-    pub attributes: Attributes,
-    /// Task outputt descriptions. In this context, `DataObjectSpec::label` should not be present,
-    /// `DataObjectSpec::cache_hint` should be missing or false.
-    /// In `DataObjectSpec::attributes`, `spec` and `user_spec` are ignored if present.
+    /// Resulting Task attributes.
+    pub info: TaskInfo,
+    /// Task outputt descriptions. In this context, `LocalObjectSpec::label` should not be present,
+    /// `LocalObjectSpec::cache_hint` should be missing or false.
+    /// In `LocalObjectSpec::attributes`, `spec` and `user_spec` are ignored if present.
     /// The list must match `CallMsg::outputs` lengts and on `id`s.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
-    pub outputs: Vec<DataObjectSpec>,
+    pub outputs: Vec<LocalObjectSpec>,
     /// If any objects with `cache_hint` were sent, report which were newly cached
     /// (does not include objects previously cached and now reported with `DataLocation::Cached`).
     /// It is always allowed to cache no object and even omit this field (for simpler executors).
@@ -83,15 +83,8 @@ pub struct ResultMsg {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-pub struct DataObjectSpec {
-    /// Data object ID
-    pub id: DataObjectId,
-    /// Object label within the task inputs or outputs
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    pub label: Option<String>,
-    /// Object attributes
-    pub attributes: Attributes,
+pub struct LocalObjectSpec {
+    pub spec: ObjectSpec,
     /// Object data location
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
@@ -105,7 +98,7 @@ pub struct DataObjectSpec {
     pub cache_hint: bool,
 }
 
-/// Data location of inputs and outputs in `DataObjectSpec::location`.
+/// Data location of inputs and outputs in `LocalObjectSpec::location`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum DataLocation {

@@ -14,7 +14,7 @@ use futures::unsync::oneshot;
 use std::collections::HashSet;
 
 pub type RcSet<T> = HashSet<T>;
-pub use self::attributes::Attributes;
+pub use self::attributes::{TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
 pub use self::resources::Resources;
 
 pub mod fs;
