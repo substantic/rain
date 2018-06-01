@@ -118,6 +118,11 @@ class DataObject:
         return "<DObj {}{} id={} {}>".format(
             self.label, t, self.id, self.attributes)
 
+    #def _as_outputclone(self):
+    #    """
+    #    Create a clone sharing the data_type and content_type (for use as an output).
+    #    """
+
 
 def blob(value, label="const", content_type=None, encode=None):
     """

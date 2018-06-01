@@ -3,11 +3,11 @@ use std::sync::Arc;
 use capnp::capability::Promise;
 use common::convert::{FromCapnp, ToCapnp};
 use common::id::{DataObjectId, GovernorId, TaskId};
-use common::{Attributes, DataType, Resources};
+use common::{DataType, Resources, ObjectSpec, ObjectInfo, TaskSpec, TaskInfo};
 use errors::{Error, ErrorKind};
 use futures::future::Future;
 use governor::StateRef;
-use governor::graph::{DataObjectState, TaskInput};
+use governor::graph::{DataObjectState};
 use governor_capnp::governor_control;
 
 pub struct GovernorControlImpl {
@@ -96,9 +96,8 @@ impl governor_control::Server for GovernorControlImpl {
         let mut remote_objects = Vec::new();
 
         for co in new_objects.iter() {
-            let id = DataObjectId::from_capnp(&co.get_id().unwrap());
-
-            let obj_found = state.graph.objects.get(&id).cloned();
+            let spec: ObjectSpec = ::serde_json::from_str(co.get_spec().unwrap()).unwrap();
+            let obj_found = state.graph.objects.get(&spec.id).cloned();
             if let Some(obj) = obj_found {
                 state.mark_as_needed(&obj);
                 // TODO: Update remote if not downloaded yet
@@ -112,31 +111,11 @@ impl governor_control::Server for GovernorControlImpl {
                 (DataObjectState::Remote(placement), true)
             };
 
-            let size = if co.get_size() == -1 {
-                None
-            } else {
-                Some(co.get_size() as usize)
-            };
-
-            let label = pry!(co.get_label()).to_string();
-
             let assigned = co.get_assigned();
-            let data_type = DataType::from_capnp(co.get_data_type().unwrap());
-            let mut attributes = Attributes::from_capnp(&co.get_attributes().unwrap());
-
-            // TEMPORARY HACK
-            // we need to propagate data type executor
-            // this should be removed when new attributes are finished
-            attributes.set("type", data_type.to_attribute()).unwrap();
-
             let dataobject = state.add_dataobject(
-                id,
+                spec,
                 object_state,
                 assigned,
-                size,
-                label,
-                data_type,
-                attributes,
             );
 
             debug!(
@@ -151,30 +130,16 @@ impl governor_control::Server for GovernorControlImpl {
         }
 
         for ct in new_tasks.iter() {
-            let id = TaskId::from_capnp(&ct.get_id().unwrap());
-            let task_type = ct.get_task_type().unwrap();
-            let attributes = Attributes::from_capnp(&ct.get_attributes().unwrap());
-            let resources: Resources = attributes.get("resources").unwrap();
+            let spec: TaskSpec = ::serde_json::from_str(ct.get_spec().unwrap()).unwrap();
 
-            let inputs: Vec<_> = ct.get_inputs()
-                .unwrap()
-                .iter()
-                .map(|ci| TaskInput {
-                    object: state
-                        .object_by_id(DataObjectId::from_capnp(&ci.get_id().unwrap()))
-                        .unwrap(),
-                    label: ci.get_label().unwrap().into(),
-                    path: ci.get_path().unwrap().into(),
-                })
+            let inputs: Vec<_> = spec.inputs.iter()
+                .map(|ci| state.object_by_id(&ci.id).unwrap())
                 .collect();
 
-            let outputs: Vec<_> = ct.get_outputs()
-                .unwrap()
-                .iter()
-                .map(|co| state.object_by_id(DataObjectId::from_capnp(&co)).unwrap())
+            let outputs: Vec<_> = spec.outputs.iter()
+                .map(|co| state.object_by_id(&co).unwrap())
                 .collect();
-            let task = state.add_task(id, inputs, outputs, resources, task_type.into(), attributes);
-
+            let task = state.add_task(spec, inputs, outputs);
             debug!("Received Task {:?}", task.get());
         }
 

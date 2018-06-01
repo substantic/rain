@@ -1,6 +1,7 @@
 //use super::convert::{FromCapnp, ToCapnp, WriteCapnp};
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum DataType {
     Blob,
     Directory,

@@ -12,11 +12,11 @@ use common::id::{ClientId, DataObjectId, GovernorId, SId, SessionId, TaskId};
 use common::resources::Resources;
 use common::rpc::new_rpc_system;
 use common::wrapped::WrappedRcRefCell;
-use common::{Attributes, ConsistencyCheck};
-use common::{DataType, RcSet};
+use common::{ConsistencyCheck};
+use common::{DataType, RcSet, TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
 use errors::Result;
 use server::graph::{ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionError,
-                    SessionRef, TaskInput, TaskRef, TaskState};
+                    SessionRef, TaskRef, TaskState};
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{ReactiveScheduler, UpdatedIn};
 
@@ -254,17 +254,14 @@ impl State {
     pub fn add_object(
         &mut self,
         session: &SessionRef,
-        id: DataObjectId,
+        spec: ObjectSpec,
         client_keep: bool,
-        label: String,
-        data_type: DataType,
         data: Option<Vec<u8>>,
-        attributes: Attributes,
     ) -> Result<DataObjectRef> {
-        if self.graph.objects.contains_key(&id) {
-            bail!("State already contains object with id {}", id);
+        if self.graph.objects.contains_key(&spec.id) {
+            bail!("State already contains object with id {}", spec.id);
         }
-        let oref = DataObjectRef::new(session, id, client_keep, label, data_type, data, attributes);
+        let oref = DataObjectRef::new(session, spec, client_keep, data);
         // add to graph
         self.graph.objects.insert(oref.get_id(), oref.clone());
         // add to updated objects
@@ -294,24 +291,18 @@ impl State {
     pub fn add_task(
         &mut self,
         session: &SessionRef,
-        id: TaskId,
-        inputs: Vec<TaskInput>,
+        spec: TaskSpec,
+        inputs: Vec<DataObjectRef>,
         outputs: Vec<DataObjectRef>,
-        task_type: String,
-        attributes: Attributes,
-        resources: Resources,
     ) -> Result<TaskRef> {
-        if self.graph.tasks.contains_key(&id) {
-            bail!("Task {} already in the graph", id);
+        if self.graph.tasks.contains_key(&spec.id) {
+            bail!("Task {} already in the graph", spec.id);
         }
         let tref = TaskRef::new(
             session,
-            id,
+            spec,
             inputs,
             outputs,
-            task_type,
-            attributes,
-            resources,
         )?;
         // add to graph
         self.graph.tasks.insert(tref.get_id(), tref.clone());
@@ -816,8 +807,8 @@ impl State {
     pub fn updates_from_governor(
         &mut self,
         governor: &GovernorRef,
-        obj_updates: Vec<(DataObjectRef, DataObjectState, usize, Attributes)>,
-        task_updates: Vec<(TaskRef, TaskState, Attributes)>,
+        obj_updates: Vec<(DataObjectRef, DataObjectState, ObjectInfo)>,
+        task_updates: Vec<(TaskRef, TaskState, TaskInfo)>,
     ) {
         debug!(
             "Update states for {:?}, objs: {}, tasks: {}",

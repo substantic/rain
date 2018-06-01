@@ -5,8 +5,7 @@ use std::process::exit;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use common::Attributes;
-use common::DataType;
+use common::{TaskSpec, TaskInfo, ObjectSpec, ObjectInfo, DataType};
 use common::RcSet;
 use common::asyncinit::AsyncInitWrapper;
 use common::comm::Connection;
@@ -22,7 +21,7 @@ use governor::data::Data;
 use governor::data::transport::TransportView;
 use governor::fs::workdir::WorkDir;
 use governor::graph::{executor_command, DataObject, DataObjectRef, DataObjectState, ExecutorRef,
-                      Graph, TaskInput, TaskRef, TaskState};
+                      Graph, TaskRef, TaskState};
 use governor::rpc::GovernorControlImpl;
 use governor::rpc::executor::check_registration;
 use governor::graph::executor::get_log_tails;
@@ -160,21 +159,15 @@ impl State {
 
     pub fn add_task(
         &mut self,
-        id: TaskId,
-        inputs: Vec<TaskInput>,
+        spec: TaskSpec,
+        inputs: Vec<DataObjectRef>,
         outputs: Vec<DataObjectRef>,
-        resources: Resources,
-        task_type: String,
-        attributes: Attributes,
     ) -> TaskRef {
         let task = TaskRef::new(
             &mut self.graph,
-            id,
+            spec,
             inputs,
             outputs,
-            resources,
-            task_type,
-            attributes,
         );
         if task.get().is_ready() {
             self.graph.ready_tasks.push(task.clone());
@@ -461,23 +454,15 @@ impl State {
 
     pub fn add_dataobject(
         &mut self,
-        id: DataObjectId,
+        spec: ObjectSpec,
         state: DataObjectState,
         assigned: bool,
-        size: Option<usize>,
-        label: String,
-        data_type: DataType,
-        attributes: Attributes,
     ) -> DataObjectRef {
         DataObjectRef::new(
             &mut self.graph,
-            id,
+            spec,
             state,
             assigned,
-            size,
-            label,
-            data_type,
-            attributes,
         )
     }
 

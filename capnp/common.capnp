@@ -56,15 +56,6 @@ enum DataType {
     directory @1;
 }
 
-struct Attributes {
-    items @0 :List(Item);
-
-    struct Item {
-        key @0 :Text;
-        value @1: Text;
-    }
-}
-
 struct Resources {
     nCpus @0 :UInt32;
 }
@@ -92,11 +83,6 @@ struct Timestamp {
     subsecNanos @1 :UInt32;
 }
 
-struct FetchMetadata {
-    size @0 :Int64;
-    dataType @1 :DataType;
-    attributes @2 :Attributes;
-}
 
 struct FetchResult {
 
@@ -130,5 +116,7 @@ struct FetchResult {
     }
 
     data @6 :Data;
-    metadata @7: FetchMetadata;
+
+    # DataObject info
+    info @7: Text;
 }
