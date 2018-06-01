@@ -8,7 +8,7 @@ use std::error::Error;
 
 use serde_json;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct TaskSpecInput {
@@ -19,7 +19,7 @@ pub struct TaskSpecInput {
     pub label: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct TaskSpec {
@@ -41,7 +41,20 @@ pub struct TaskSpec {
     pub user: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl TaskSpec {
+
+    pub fn parse_config<'a, D>(&'a self) -> Result<D> where for<'de> D: ::serde::de::Deserialize<'de>
+    {
+            match self.config {
+                Some(ref c) => ::serde_json::from_value(c.clone()).map_err(|e| {
+                    format!("Cannot parse task config: {}", e.description()).into()
+                }),
+                None => Err("Task config is empty, but non-empty config is expected".into())
+            }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct TaskInfo {
@@ -60,7 +73,7 @@ pub struct TaskInfo {
 
     #[serde(skip_serializing_if = "String::is_empty")]
     #[serde(default)]
-    pub task_start: String,
+    pub start_time: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
@@ -71,7 +84,13 @@ pub struct TaskInfo {
     pub user: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TestingObjectSpec {
+    pub governors: Vec<String>,
+    pub size: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct ObjectSpec {
@@ -83,16 +102,22 @@ pub struct ObjectSpec {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub content_type: Option<serde_json::Value>,
+    pub content_type: Option<String>,
 
     pub data_type: DataType,
+
+    // TODO: Rework testing in a way that does not introduce
+    // overhead in normal run
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub testing: Option<TestingObjectSpec>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub user: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct ObjectInfo {
@@ -117,7 +142,7 @@ pub struct ObjectInfo {
     #[serde(default)]
     pub user: Option<serde_json::Value>,
 }
-
+/*
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Attributes {
     // TODO: Int & Float types
@@ -144,7 +169,7 @@ impl<'de> Deserialize<'de> for Attributes {
     }
 }
 
-/*impl Attributes {
+impl Attributes {
     pub fn new() -> Self {
         Default::default()
     }

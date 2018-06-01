@@ -156,12 +156,12 @@ impl fmt::Debug for SessionRef {
 #[derive(Debug, Clone)]
 pub struct SessionError {
     message: String,
-    debug: Option<String>,
+    debug: String,
     task_id: TaskId,
 }
 
 impl SessionError {
-    pub fn new(message: String, debug: Option<String>, task_id: TaskId) -> Self {
+    pub fn new(message: String, debug: String, task_id: TaskId) -> Self {
         SessionError {
             message,
             debug,
@@ -171,9 +171,7 @@ impl SessionError {
 
     pub fn to_capnp(&self, builder: &mut ::common_capnp::error::Builder) {
         builder.reborrow().set_message(&self.message);
-        if let Some(ref m) = self.debug {
-            builder.reborrow().set_debug(&m);
-        }
+        builder.reborrow().set_debug(&self.debug);
         self.task_id
             .to_capnp(&mut builder.reborrow().get_task().unwrap());
     }

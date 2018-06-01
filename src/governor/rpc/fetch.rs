@@ -4,9 +4,11 @@ use common::DataType;
 use common::convert::FromCapnp;
 use common::convert::ToCapnp;
 use common::id::{DataObjectId, GovernorId};
+use common::{ObjectInfo};
 use errors::{Error, ErrorKind};
 use futures::{future, Future};
-use governor::StateRef;
+use governor::{StateRef};
+use governor::graph::DataObjectRef;
 use governor::data::{Data, DataBuilder};
 
 use futures::IntoFuture;
@@ -14,7 +16,7 @@ use futures::future::Either;
 
 pub struct FetchContext {
     pub state_ref: StateRef,
-    pub dataobj_id: DataObjectId,
+    pub dataobj_ref: DataObjectRef,
     pub remote: Option<Rc<::governor_capnp::governor_bootstrap::Client>>,
     pub builder: Option<DataBuilder>,
     pub offset: usize,
@@ -25,6 +27,7 @@ pub struct FetchContext {
 pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
     Box::new(future::lazy(move || {
         future::loop_fn(context, |mut context| {
+            let id = context.dataobj_ref.get().spec.id;
             let fetch_size = 4 << 20; // 4 MB
             let state_ref = context.state_ref.clone();
             let state = state_ref.get();
@@ -36,8 +39,8 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                         let mut request = req.get();
                         request.set_offset(context.offset as u64);
                         request.set_size(fetch_size as u64);
-                        request.set_include_metadata(context.builder.is_none());
-                        context.dataobj_id.to_capnp(&mut request.get_id().unwrap());
+                        request.set_include_info(context.builder.is_none());
+                        id.to_capnp(&mut request.get_id().unwrap());
                     }
                     req.send()
                 }
@@ -52,8 +55,8 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                                 let mut request = req.get();
                                 request.set_offset(context.offset as u64);
                                 request.set_size(fetch_size as u64);
-                                request.set_include_metadata(context.builder.is_none());
-                                context.dataobj_id.to_capnp(&mut request.get_id().unwrap());
+                                request.set_include_info(context.builder.is_none());
+                                id.to_capnp(&mut request.get_id().unwrap());
                             }
                             req.send()
                         })
@@ -69,13 +72,10 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                     match response.get_status().which().unwrap() {
                         ::common_capnp::fetch_result::status::Ok(()) => {
                             if context.builder.is_none() {
-                                let metadata = response.get_metadata().unwrap();
-                                let size = metadata.get_size() as usize;
-                                let data_type =
-                                    DataType::from_capnp(metadata.get_data_type().unwrap());
+                                let mut dataobj = context.dataobj_ref.get_mut();
+                                dataobj.info = ::serde_json::from_str(response.get_info().unwrap()).unwrap();
                                 context.builder =
-                                    Some(DataBuilder::new(state.work_dir(), data_type, Some(size)));
-                                context.size = size;
+                                    Some(DataBuilder::new(state.work_dir(), dataobj.spec.data_type, dataobj.info.size))
                             };
                             let result = {
                                 let builder = context.builder.as_mut().unwrap();
@@ -118,7 +118,7 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                         }
                         ::common_capnp::fetch_result::status::Ignored(()) => {
                             assert!(context.remote.is_none()); // The response is from the server
-                            debug!("Datastore ignore occured; id={}", context.dataobj_id);
+                            debug!("Datastore ignore occured; id={}", id);
                             Either::A(
                                 Err(Error::from(ErrorKind::Ignored))
                                     .into_future()
@@ -128,7 +128,7 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                         _ => {
                             panic!(
                                 "Invalid status of fetch received, dataobject id={}",
-                                context.dataobj_id
+                                id
                             );
                         }
                     }

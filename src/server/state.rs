@@ -235,7 +235,7 @@ impl State {
         &mut self,
         session: &SessionRef,
         cause: String,
-        debug: Option<String>,
+        debug: String,
         task_id: TaskId,
     ) -> Result<()> {
         debug!(
@@ -263,7 +263,7 @@ impl State {
         }
         let oref = DataObjectRef::new(session, spec, client_keep, data);
         // add to graph
-        self.graph.objects.insert(oref.get_id(), oref.clone());
+        self.graph.objects.insert(oref.get().id(), oref.clone());
         // add to updated objects
         self.updates.new_objects.insert(oref.clone());
         oref.check_consistency_opt().unwrap(); // non-recoverable
@@ -282,7 +282,7 @@ impl State {
         // unlink from owner, consistency checks
         oref.unlink();
         // remove from graph
-        self.graph.objects.remove(&oref.get_id()).unwrap();
+        self.graph.objects.remove(&oref.get().id()).unwrap();
         Ok(())
     }
 
@@ -305,7 +305,7 @@ impl State {
             outputs,
         )?;
         // add to graph
-        self.graph.tasks.insert(tref.get_id(), tref.clone());
+        self.graph.tasks.insert(tref.get().id(), tref.clone());
         // add to scheduler updates
         self.updates.new_tasks.insert(tref.clone());
         tref.check_consistency_opt().unwrap(); // non-recoverable
@@ -325,7 +325,7 @@ impl State {
         // Unlink from parent and objects.
         tref.unlink();
         // Remove from graph
-        self.graph.tasks.remove(&tref.get_id()).unwrap();
+        self.graph.tasks.remove(&tref.get().id()).unwrap();
         Ok(())
     }
 
@@ -429,13 +429,13 @@ impl State {
             if o.producer.is_some() && o.data.is_some() {
                 bail!(
                     "Object {} submitted with both producer task {} and data of size {}",
-                    o.id,
-                    o.producer.as_ref().unwrap().get_id(),
+                    o.id(),
+                    o.producer.as_ref().unwrap().get().id(),
                     o.data.as_ref().unwrap().len()
                 );
             }
             if o.producer.is_none() && o.data.is_none() {
-                bail!("Object {} submitted with neither producer nor data.", o.id);
+                bail!("Object {} submitted with neither producer nor data.", o.id());
             }
         }
         // Verify every submitted object
@@ -519,7 +519,7 @@ impl State {
         {
             let mut objects = req.get().init_objects(1);
             let co = &mut objects.reborrow().get(0);
-            object.get_id().to_capnp(co);
+            object.get().id().to_capnp(co);
         }
 
         {
@@ -567,10 +567,10 @@ impl State {
             t.assigned = Some(wref.clone());
             let governor_id = wref.get_id();
             let empty_governor_id = ::common::id::empty_governor_id();
-            debug!("Assiging task id={} to governor={}", t.id, governor_id);
+            debug!("Assiging task id={} to governor={}", t.id(), governor_id);
 
             for input in t.inputs.iter() {
-                let o = input.object.get_mut();
+                let o = input.get_mut();
                 if !o.assigned.contains(&wref) {
                     // Just take first placement
                     let placement = o.located
@@ -582,7 +582,7 @@ impl State {
                             assert!(o.data.is_some());
                             empty_governor_id.clone()
                         });
-                    objects.push((input.object.clone(), placement));
+                    objects.push((input.clone(), placement));
                 }
             }
 
@@ -653,7 +653,7 @@ impl State {
         {
             let mut tasks = req.get().init_tasks(1);
             let ct = &mut tasks.reborrow().get(0);
-            task.get_id().to_capnp(ct);
+            task.get().id().to_capnp(ct);
         }
 
         self.handle.spawn(
@@ -709,7 +709,7 @@ impl State {
             self.updates.tasks.insert(tref.clone());
             if let Some(ref wref) = tref.get().scheduled {
                 let mut w = wref.get_mut();
-                w.active_resources += tref.get().resources.cpus();
+                w.active_resources += tref.get().spec.resources.cpus();
             }
         }
 
@@ -820,7 +820,7 @@ impl State {
 
         let mut ignore_check_again = false;
 
-        for (tref, state, attributes) in task_updates {
+        for (tref, state, info) in task_updates {
             if ignore_check_again && self.is_task_ignored(&tref.get().id()) {
                 continue;
             }
@@ -833,14 +833,14 @@ impl State {
                         let mut t = tref.get_mut();
                         t.session.get_mut().task_finished();
                         t.state = state;
-                        t.attributes.update(attributes);
+                        t.info = info;
                         t.scheduled = None;
                         t.assigned = None;
                         let mut w = governor.get_mut();
                         w.scheduled_tasks.remove(&tref);
                         w.assigned_tasks.remove(&tref);
-                        w.active_resources -= t.resources.cpus();
-                        self.logger.add_task_finished_event(t.id);
+                        w.active_resources -= t.spec.resources.cpus();
+                        self.logger.add_task_finished_event(t.id());
                     }
                     tref.get_mut().trigger_finish_hooks();
                     self.update_task_assignment(&tref);
@@ -849,11 +849,11 @@ impl State {
                         // We check that need_by was really decreased to protect against
                         // task that uses objects as more inputs
                         let not_needed = {
-                            let mut o = input.object.get_mut();
+                            let mut o = input.get_mut();
                             o.need_by.remove(&tref) && !o.is_needed()
                         };
                         if not_needed {
-                            self.purge_object(&input.object);
+                            self.purge_object(&input);
                         }
                     }
 
@@ -863,35 +863,28 @@ impl State {
                     let mut t = tref.get_mut();
                     assert_eq!(t.state, TaskState::Assigned);
                     t.state = state;
-                    t.attributes = attributes;
-                    self.logger.add_task_started_event(t.id, governor.get_id());
+                    t.info = info;
+                    self.logger.add_task_started_event(t.id(), governor.get_id());
                 }
                 TaskState::Failed => {
                     debug!(
-                        "Task {:?} failed on {:?} with attributes {:?}",
+                        "Task {:?} failed on {:?} with info {:?}",
                         *tref.get(),
                         governor,
-                        attributes
+                        info
                     );
-                    let error_message: String = attributes.get("error").unwrap_or_else(|_| {
-                        warn!("Cannot decode error message");
-                        "Cannot decode error message".to_string()
-                    });
-
-                    let debug_message: Option<String> = attributes
-                        .find("debug")
-                        .unwrap_or_else(|_| Some("Invalid value in 'debug' attribute".to_string()));
-
+                    let error_message = info.error.clone().unwrap_or_else(|| "Task failed, but no error attribute was set".to_string());
+                    let debug_message = info.debug.clone();
                     ignore_check_again = true;
                     self.underload_governors.insert(governor.clone());
                     tref.get_mut().state = state;
-                    tref.get_mut().attributes = attributes;
+                    tref.get_mut().info = info;
                     let session = tref.get().session.clone();
-                    let task_id = tref.get().id;
+                    let task_id = tref.get().spec.id;
                     self.fail_session(&session, error_message.clone(), debug_message, task_id)
                         .unwrap();
                     self.logger.add_task_failed_event(
-                        tref.get().id,
+                        tref.get().id(),
                         governor.get_id(),
                         error_message,
                     );
@@ -905,7 +898,7 @@ impl State {
             }
         }
 
-        for (oref, state, size, attributes) in obj_updates {
+        for (oref, state, info) in obj_updates {
             // Inform the scheduler
             self.updates
                 .objects
@@ -930,8 +923,7 @@ impl State {
                                 let mut o = oref.get_mut();
                                 // first completion
                                 o.state = state;
-                                o.size = Some(size);
-                                o.attributes.update(attributes);
+                                o.info = info;
                                 o.trigger_finish_hooks();
                             }
                             for cref in oref.get().consumers.clone() {

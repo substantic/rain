@@ -44,7 +44,7 @@ pub fn task_sleep(_state: &mut State, task_ref: TaskRef) -> TaskResult {
     let sleep_ms: u64 = {
         let task = task_ref.get();
         task.check_number_of_args(1)?;
-        task.attributes.get("config")?
+        task.spec.parse_config()?
     };
     let now = ::std::time::Instant::now();
     debug!("Starting sleep task for {} ms", sleep_ms);
@@ -78,7 +78,7 @@ pub fn task_open(state: &mut State, task_ref: TaskRef) -> TaskResult {
     Ok(Box::new(future::lazy(move || {
         {
             let task = task_ref.get();
-            let config: OpenConfig = task.attributes.get("config")?;
+            let config: OpenConfig = task.spec.parse_config()?;
             let path = Path::new(&config.path);
             if !path.is_absolute() {
                 bail!("Path {:?} is not absolute", path);
@@ -112,7 +112,7 @@ pub fn task_export(_: &mut State, task_ref: TaskRef) -> TaskResult {
     }
     Ok(Box::new(future::lazy(move || {
         let task = task_ref.get();
-        let config: ExportConfig = task.attributes.get("config")?;
+        let config: ExportConfig = task.spec.parse_config()?;
         let path = Path::new(&config.path);
         if !path.is_absolute() {
             bail!("Path {:?} is not absolute", path);
@@ -133,11 +133,11 @@ pub fn task_make_directory(state: &mut State, task_ref: TaskRef) -> TaskResult {
     Ok(Box::new(future::lazy(move || {
         let state = state_ref.get();
         let task = task_ref.get();
-        let dir = state.work_dir().make_task_temp_dir(task.id)?;
+        let dir = state.work_dir().make_task_temp_dir(task.spec.id)?;
         let main_dir = dir.path().join("newdir");
         ::std::fs::create_dir(&main_dir)?;
 
-        let config: MakeDirectoryConfig = task.attributes.get("config")?;
+        let config: MakeDirectoryConfig = task.spec.parse_config()?;
         task.check_number_of_args(config.paths.len())?;
         for (ref path, ref data) in config.paths.iter().zip(task.inputs_data().iter()) {
             let p = Path::new(path);
@@ -166,9 +166,9 @@ pub fn task_slice_directory(state: &mut State, task_ref: TaskRef) -> TaskResult 
         let state = state_ref.get();
         let task = task_ref.get();
         task.check_number_of_args(1)?;
-        let config: SliceDirectoryConfig = task.attributes.get("config")?;
+        let config: SliceDirectoryConfig = task.spec.parse_config()?;
         let data = task.input_data(0);
-        let dir = state.work_dir().make_task_temp_dir(task.id)?;
+        let dir = state.work_dir().make_task_temp_dir(task.spec.id)?;
         let main_dir = dir.path().join("newdir");
         data.link_to_path(&main_dir).unwrap();
         let path = main_dir.join(&config.path);

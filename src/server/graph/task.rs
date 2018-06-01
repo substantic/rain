@@ -53,34 +53,12 @@ pub type TaskRef = WrappedRcRefCell<Task>;
 impl Task {
     // To capnp for governor message
     pub fn to_governor_capnp(&self, builder: &mut ::governor_capnp::task::Builder) {
-        self.id.to_capnp(&mut builder.reborrow().get_id().unwrap());
-        {
-            let mut cinputs = builder.reborrow().init_inputs(self.inputs.len() as u32);
-            for (i, input) in self.inputs.iter().enumerate() {
-                let mut ci = cinputs.reborrow().get(i as u32);
-                ci.set_label(&input.label);
-                ci.set_path(&input.path);
-                input.object.get().id.to_capnp(&mut ci.get_id().unwrap());
-            }
-        }
-
-        {
-            let mut coutputs = builder.reborrow().init_outputs(self.outputs.len() as u32);
-            for (i, output) in self.outputs.iter().enumerate() {
-                let mut co = coutputs.reborrow().get(i as u32);
-                output.get().id.to_capnp(&mut co);
-            }
-        }
-
-        self.attributes
-            .to_capnp(&mut builder.reborrow().get_attributes().unwrap());
-
-        builder.set_task_type(&self.task_type);
+        builder.set_spec(&::serde_json::to_string(&self.spec).unwrap());
     }
 
     #[inline]
     pub fn id(&self) -> TaskId {
-        self.id
+        self.spec.id
     }
 
     #[inline]
@@ -99,11 +77,6 @@ impl Task {
             TaskState::Finished => true,
             _ => false,
         }
-    }
-
-    #[inline]
-    pub fn task_type(&self) -> &String {
-        &self.task_type
     }
 
     /// Inform observers that task is finished
@@ -151,24 +124,24 @@ impl TaskRef {
         assert_eq!(spec.id.get_session_id(), session.get_id());
         let mut waiting = RcSet::new();
         for i in inputs.iter() {
-            let inobj = i.object.get();
+            let inobj = i.get();
             match inobj.state {
                 DataObjectState::Removed => {
                     bail!(
                         "Can't create Task {} with Finished input object {}",
                         spec.id,
-                        inobj.id
+                        inobj.spec.id
                     );
                 }
                 DataObjectState::Finished => {}
                 DataObjectState::Unfinished => {
-                    waiting.insert(i.object.clone());
+                    waiting.insert(i.clone());
                 }
             }
-            if inobj.id.get_session_id() != spec.id.get_session_id() {
+            if inobj.spec.id.get_session_id() != spec.id.get_session_id() {
                 bail!(
                     "Input object {} for task {} is from a different session",
-                    inobj.id,
+                    inobj.spec.id,
                     spec.id
                 );
             }
@@ -178,21 +151,22 @@ impl TaskRef {
             if let Some(ref prod) = o.producer {
                 bail!(
                     "Object {} already has producer (task {}) when creating task {}",
-                    o.id,
-                    prod.get().id,
+                    o.spec.id,
+                    prod.get().spec.id,
                     spec.id
                 );
             }
-            if o.id.get_session_id() != spec.id.get_session_id() {
+            if o.spec.id.get_session_id() != spec.id.get_session_id() {
                 bail!(
                     "Output object {} for task {} is from a different session",
-                    o.id,
+                    o.spec.id,
                     spec.id
                 );
             }
         }
         let sref = TaskRef::wrap(Task {
             spec: spec,
+            info: Default::default(),
             state: if waiting.is_empty() {
                 TaskState::Ready
             } else {
@@ -216,7 +190,7 @@ impl TaskRef {
             let s = sref.get_mut();
             // add to the DataObjects
             for i in s.inputs.iter() {
-                let mut o = i.object.get_mut();
+                let mut o = i.get_mut();
                 o.consumers.insert(sref.clone());
                 o.need_by.insert(sref.clone());
             }
@@ -237,7 +211,7 @@ impl TaskRef {
             }
 
             if inner.state != TaskState::NotAssigned {
-                w.get_mut().active_resources -= inner.resources.cpus();
+                w.get_mut().active_resources -= inner.spec().resources.cpus();
             }
         }
         inner.scheduled = None;
@@ -260,18 +234,13 @@ impl TaskRef {
         // remove from inputs
         for i in inner.inputs.iter() {
             // Note that self may have been removed by another input
-            i.object.get_mut().consumers.remove(&self);
+            i.get_mut().consumers.remove(&self);
         }
 
         // remove from owner
         assert!(inner.session.get_mut().tasks.remove(&self));
         // clear and fail finish_hooks
         inner.finish_hooks.clear();
-    }
-
-    /// Return the object ID in graph.
-    pub fn get_id(&self) -> TaskId {
-        self.get().id
     }
 }
 
@@ -282,7 +251,7 @@ impl ConsistencyCheck for TaskRef {
         debug!("Checking Task {:?} consistency", self);
         let s = self.get();
         // ID consistency
-        if s.id.get_session_id() != s.session.get_id() {
+        if s.spec.id.get_session_id() != s.session.get_id() {
             bail!("ID and Session ID mismatch in {:?}", s);
         }
         // reference symmetries
@@ -305,12 +274,12 @@ impl ConsistencyCheck for TaskRef {
         }
         // waiting_for and inputs consistency
         for i in s.inputs.iter() {
-            let o = i.object.get();
+            let o = i.get();
             if o.state == DataObjectState::Removed && s.state != TaskState::Finished {
                 bail!("waiting for removed object {:?} in {:?}", o, s);
             }
             if (o.state == DataObjectState::Finished || o.state == DataObjectState::Removed)
-                == (s.waiting_for.contains(&i.object))
+                == (s.waiting_for.contains(&i))
             {
                 bail!(
                     "waiting_for all unfinished inputs invalid woth {:?} in {:?}",
@@ -365,7 +334,7 @@ impl ConsistencyCheck for TaskRef {
 
 impl fmt::Debug for TaskRef {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TaskRef {}", self.get_id())
+        write!(f, "TaskRef {}", self.get().id())
     }
 }
 

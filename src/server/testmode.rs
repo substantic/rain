@@ -2,22 +2,15 @@
 
 use server::state::State;
 
-#[derive(Debug, Deserialize)]
-struct TestConfig {
-    governors: Vec<String>,
-    size: usize,
-}
-
 pub fn test_scheduler(state: &mut State) {
     for oref in state.updates.new_objects.clone() {
-        let config: Option<TestConfig> = oref.get().attributes.find("__test").unwrap();
-        if let Some(c) = config {
-            oref.get_mut().size = Some(c.size);
-
+        let testing = oref.get().spec.testing.clone();
+        if let Some(c) = testing {
+            oref.get_mut().info.size = Some(c.size);
             for governor_id in c.governors {
                 debug!(
                     "Forcing object id={} to governor={} with fake size={}",
-                    oref.get_mut().id,
+                    oref.get().id(),
                     governor_id,
                     c.size
                 );

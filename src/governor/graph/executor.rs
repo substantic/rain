@@ -81,17 +81,14 @@ impl Executor {
     pub fn send_task(
         &mut self,
         task: &Task,
-        method: String,
         executor_ref: &ExecutorRef,
     ) -> ::futures::unsync::oneshot::Receiver<ResultMsg> {
         let control = self.control.as_ref().clone().unwrap();
         let message = GovernorToExecutorMessage::Call(CallMsg {
-            task: task.id,
-            method,
-            attributes: task.attributes.clone(),
+            spec: task.spec.clone(),
             inputs: task.inputs
                 .iter()
-                .map(|i| i.object.get().create_input_spec(&i.label, executor_ref))
+                .map(|i| i.get().create_input_spec(executor_ref))
                 .collect(),
             outputs: task.outputs
                 .iter()

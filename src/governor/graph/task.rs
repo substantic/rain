@@ -51,14 +51,14 @@ impl Task {
         assert!(found);
         let is_ready = self.waiting_for.is_empty();
         if is_ready {
-            debug!("Task id={} is ready", self.id);
+            debug!("Task id={} is ready", self.spec.id);
         }
         is_ready
     }
 
     /// Get input data of the task at given index
     pub fn input_data(&self, index: usize) -> Arc<Data> {
-        let object = self.inputs.get(index).unwrap().object.get();
+        let object = self.inputs.get(index).unwrap().get();
         object.data().clone()
     }
 
@@ -66,7 +66,7 @@ impl Task {
     pub fn inputs_data(&self) -> Vec<Arc<Data>> {
         self.inputs
             .iter()
-            .map(|input| input.object.get().data().clone())
+            .map(|input| input.get().data().clone())
             .collect()
     }
 
@@ -83,11 +83,11 @@ impl Task {
     }
 
     pub fn set_failed(&mut self, error_message: String) {
-        warn!("Task {} failed: {}", self.id, error_message);
+        warn!("Task {} failed: {}", self.spec.id, error_message);
         assert_ne!(self.state, TaskState::Failed);
         self.state = TaskState::Failed;
-        if !self.new_attributes.contains("error") {
-            self.new_attributes.set("error", error_message).unwrap();
+        if self.info.error.is_none() {
+            self.info.error = Some(error_message);
         }
     }
 }
@@ -106,7 +106,7 @@ impl TaskRef {
 
         let waiting_for: RcSet<_> = (&inputs)
             .iter()
-            .map(|input| input.object.clone())
+            .map(|obj| obj.clone())
             .filter(|obj| !obj.get().is_finished())
             .collect();
 
@@ -120,7 +120,7 @@ impl TaskRef {
         });
 
         for input in &task.get().inputs {
-            input.object.get_mut().consumers.insert(task.clone());
+            input.get_mut().consumers.insert(task.clone());
         }
 
         graph.tasks.insert(id, task.clone());
@@ -130,6 +130,6 @@ impl TaskRef {
 
 impl fmt::Debug for TaskRef {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TaskRef {}", self.get().id)
+        write!(f, "TaskRef {}", self.get().spec.id)
     }
 }

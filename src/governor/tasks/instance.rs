@@ -27,15 +27,8 @@ pub struct TaskInstance {
 pub type TaskFuture = Future<Item = (), Error = Error>;
 pub type TaskResult = Result<Box<TaskFuture>>;
 
-#[derive(Serialize)]
-struct AttributeInfo {
-    governor: String,
-    start: String,
-    duration: i64,
-}
-
 fn fail_unknown_type(_state: &mut State, task_ref: TaskRef) -> TaskResult {
-    bail!("Unknown task type {}", task_ref.get().task_type)
+    bail!("Unknown task type {}", task_ref.get().spec.task_type)
 }
 
 /// Reference to executor. When dropped it calls "kill()" method
@@ -67,14 +60,14 @@ impl TaskInstance {
     pub fn start(state: &mut State, task_ref: TaskRef) {
         {
             let mut task = task_ref.get_mut();
-            state.alloc_resources(&task.resources);
+            state.alloc_resources(&task.spec.resources);
             task.state = TaskState::Running;
             state.task_updated(&task_ref);
         }
 
         let task_fn = {
             let task = task_ref.get();
-            let task_type: &str = task.task_type.as_ref();
+            let task_type: &str = task.spec.task_type.as_ref();
             // Built-in task
             match task_type {
                 task_type if !task_type.starts_with("!") => Self::start_task_in_executor,
@@ -94,7 +87,7 @@ impl TaskInstance {
             Err(e) => {
                 state.unregister_task(&task_ref);
                 let mut task = task_ref.get_mut();
-                state.free_resources(&task.resources);
+                state.free_resources(&task.spec.resources);
                 task.set_failed(e.description().to_string());
                 state.task_updated(&task_ref);
                 return;
@@ -103,7 +96,7 @@ impl TaskInstance {
 
         let (sender, receiver) = ::futures::unsync::oneshot::channel::<()>();
 
-        let task_id = task_ref.get().id;
+        let task_id = task_ref.get().spec.id;
         let instance = TaskInstance {
             task_ref: task_ref,
             cancel_sender: Some(sender),
@@ -122,15 +115,12 @@ impl TaskInstance {
                     state.task_updated(&instance.task_ref);
                     state.unregister_task(&instance.task_ref);
                     let mut task = instance.task_ref.get_mut();
-                    state.free_resources(&task.resources);
+                    state.free_resources(&task.spec.resources);
 
-                    let info = AttributeInfo {
-                        governor: format!("{}", state.governor_id()),
-                        start: instance.start_timestamp.to_rfc3339(),
-                        duration: (Utc::now().signed_duration_since(instance.start_timestamp))
-                            .num_milliseconds(),
-                    };
-                    task.new_attributes.set("info", info).unwrap();
+                    task.info.governor = format!("{}", state.governor_id());
+                    task.info.start_time = instance.start_timestamp.to_rfc3339();
+                    task.info.duration = Some(Utc::now().signed_duration_since(instance.start_timestamp)
+                            .num_milliseconds() as u32);
 
                     match r {
                         Ok((true, _)) => {
@@ -146,7 +136,7 @@ impl TaskInstance {
                             }
                         }
                         Ok((false, _)) => {
-                            debug!("Task {} was terminated", task.id);
+                            debug!("Task {} was terminated", task.spec.id);
                             task.set_failed("Task terminated by server".into());
                         }
                         Err((e, _)) => {
@@ -168,16 +158,10 @@ impl TaskInstance {
     }
 
     fn start_task_in_executor(state: &mut State, task_ref: TaskRef) -> TaskResult {
-        let (future, method_name) = {
+        let future = {
             let task = task_ref.get();
-            let tokens: Vec<_> = task.task_type.split('/').collect();
-            if tokens.len() != 2 {
-                bail!("Invalid task_type, does not contain '/'");
-            }
-            (
-                state.get_executor(tokens.get(0).unwrap())?,
-                tokens.get(1).unwrap().to_string(),
-            )
+            let first: &str = task.spec.task_type.split('/').next().unwrap();
+            state.get_executor(first)?
         };
         let state_ref = state.self_ref();
         Ok(Box::new(future.and_then(move |executor_ref| {
@@ -191,13 +175,13 @@ impl TaskInstance {
             let executor_ref2 = executor_ref.clone();
             let mut executor = executor_ref2.get_mut();
             executor
-                .send_task(&task, method_name, &executor_ref)
+                .send_task(&task, &executor_ref)
                 .then(move |r| {
                     sw_wrapper.deactive();
                     match r {
                         Ok(ResultMsg {
                             task: task_id,
-                            attributes,
+                            info,
                             success,
                             outputs,
                             cached_objects,
@@ -206,38 +190,24 @@ impl TaskInstance {
                                 let mut task = task_ref.get_mut();
                                 let executor = executor_ref.get();
                                 let work_dir = executor.work_dir();
-                                assert!(task.id == task_id);
-                                task.new_attributes.update(attributes);
+                                assert!(task.spec.id == task_id);
+                                task.info = info;
 
                                 if success {
-                                    debug!("Task id={} finished in executor", task.id);
+                                    debug!("Task id={} finished in executor", task.spec.id);
                                     for (co, output) in outputs.into_iter().zip(&task.outputs) {
-                                        let attributes = co.attributes.clone();
-
-                                        // TEMPORRARY HACK, when new attributes are introduced, this should be removed, new attributes
-                                        let data_type_name : Option<String> = attributes.find("type")?;
-                                        let data_type = data_type_name
-                                            .map(|n| {
-                                                if "directory" == n {
-                                                    DataType::Directory
-                                                } else {
-                                                    DataType::Blob
-                                                }
-                                            })
-                                            .unwrap_or(DataType::Blob);
+                                        let mut o = output.get_mut();
                                         let data = data_output_from_spec(
                                             &state_ref.get(),
                                             work_dir,
                                             co,
-                                            data_type,
+                                            o.spec.data_type,
                                         )?;
-                                        let mut o = output.get_mut();
-                                        o.set_attributes(attributes);
                                         o.set_data(data)?;
                                     }
                                     Ok(())
                                 } else {
-                                    debug!("Task id={} failed in executor", task.id);
+                                    debug!("Task id={} failed in executor", task.spec.id);
                                     Err("Task failed in executor".into())
                                 }
                             };

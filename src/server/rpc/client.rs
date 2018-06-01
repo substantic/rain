@@ -125,10 +125,7 @@ impl client_service::Server for ClientServiceImpl {
             // first create the objects
             for co in objects.iter() {
                 let spec: ObjectSpec = ::serde_json::from_str(co.get_spec().unwrap()).unwrap();
-
-                let id = DataObjectId::from_capnp(&co.reborrow().get_id()?);
-                let session = s.session_by_id(id.get_session_id())?;
-                let data_type = DataType::from_capnp(co.get_data_type().unwrap());
+                let session = s.session_by_id(spec.id.get_session_id())?;
                 let data = if co.get_has_data() {
                     Some(co.get_data()?.into())
                 } else {
@@ -138,7 +135,7 @@ impl client_service::Server for ClientServiceImpl {
                     &session,
                     spec,
                     co.get_keep(),
-                    co.get_label()?.to_string(),
+                    data,
                 )?;
                 created_objects.push(o);
             }
@@ -150,9 +147,9 @@ impl client_service::Server for ClientServiceImpl {
                 for ci in spec.inputs.iter() {
                     inputs.push(s.object_by_id(ci.id)?);
                 }
-                let mut outputs = Vec::<DataObjectRef>::width_capacity(spec.outputs.len());
+                let mut outputs = Vec::<DataObjectRef>::with_capacity(spec.outputs.len());
                 for co in spec.outputs.iter() {
-                    outputs.push(s.object_by_id(&co)?);
+                    outputs.push(s.object_by_id(*co)?);
                 }
                 let t = s.add_task(
                     &session,
@@ -335,7 +332,7 @@ impl client_service::Server for ClientServiceImpl {
             s.unkeep_object(&o);
         }
         s.logger
-            .add_client_unkeep_event(objects.iter().map(|o| o.get().id).collect());
+            .add_client_unkeep_event(objects.iter().map(|o| o.get().spec.id).collect());
         Promise::ok(())
     }
 
@@ -377,7 +374,7 @@ impl client_service::Server for ClientServiceImpl {
         }
 
         let offset = params.get_offset();
-        let include_metadata = params.get_include_metadata();
+        let include_info = params.get_include_info();
         let session = obj.session.clone();
         let state_ref = self.state.clone();
 
@@ -425,7 +422,7 @@ impl client_service::Server for ClientServiceImpl {
                                     let mut request = req.get();
                                     request.set_offset(offset);
                                     request.set_size(size);
-                                    request.set_include_metadata(include_metadata);
+                                    request.set_include_info(include_info);
                                     id.to_capnp(&mut request.get_id().unwrap());
                                 }
                                 req.send()
@@ -489,8 +486,8 @@ impl client_service::Server for ClientServiceImpl {
             for (i, task) in tasks.iter().enumerate() {
                 let mut update = task_updates.reborrow().get(i as u32);
                 let t = task.get();
-                t.id.to_capnp(&mut update.reborrow().get_id().unwrap());
-                // TODO: serialize spec
+                update.set_info(&::serde_json::to_string(&t.info).unwrap());
+                t.spec.id.to_capnp(&mut update.get_id().unwrap());
             }
         }
 
@@ -499,8 +496,8 @@ impl client_service::Server for ClientServiceImpl {
             for (i, obj) in objects.iter().enumerate() {
                 let mut update = obj_updates.reborrow().get(i as u32);
                 let o = obj.get();
-                // TODO: serialize spec
-                o.id.to_capnp(&mut update.get_id().unwrap());
+                update.set_info(&::serde_json::to_string(&o.info).unwrap());
+                o.spec.id.to_capnp(&mut update.get_id().unwrap());
             }
         }
 

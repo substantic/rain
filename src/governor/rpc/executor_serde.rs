@@ -39,10 +39,6 @@ pub struct RegisterMsg {
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct CallMsg {
-    /// Task ID
-    pub task: TaskId,
-    /// Requested task type name (without `executor_type` prefix)
-    pub method: String,
     /// Task attributes
     pub spec: TaskSpec,
     /// Task input descriptions. In this context, all fields of `LocalObjectSpec` are valid.

@@ -83,23 +83,23 @@ impl ReactiveScheduler {
             let t = tref.get();
             let mut total_size = 0;
             for input in &t.inputs {
-                let o = input.object.get();
-                total_size += o.size.unwrap() * o.scheduled.len();
+                let o = input.get();
+                total_size += o.info.size.unwrap() * o.scheduled.len();
             }
             let neg_avg_size = -(total_size as i64) / n_governors;
             //debug!("!!! {} AVG SIZE {}", t.id, -neg_avg_size);
 
             for (_, wref) in &graph.governors {
                 let w = wref.get();
-                let cpus = t.resources.cpus();
+                let cpus = t.spec.resources.cpus();
                 if cpus + w.active_resources <= w.resources.cpus()
-                    && t.resources.is_subset_of(&w.resources)
+                    && t.spec.resources.is_subset_of(&w.resources)
                 {
                     let mut score = neg_avg_size + cpus as i64 * 5000i64;
                     for input in &t.inputs {
-                        let o = input.object.get();
+                        let o = input.get();
                         if o.scheduled.contains(wref) {
-                            score += o.size.unwrap() as i64;
+                            score += o.info.size.unwrap() as i64;
                         }
                     }
                     if best_score < score || best_governor.is_none() {
@@ -134,7 +134,7 @@ impl ReactiveScheduler {
         for tref in &updated.new_tasks {
             let mut t = tref.get_mut();
             if t.state == TaskState::Ready {
-                debug!("Scheduler: New ready task {}", t.id);
+                debug!("Scheduler: New ready task {}", t.id());
                 let r = self.ready_tasks.insert(tref.clone());
                 assert!(r);
             }
@@ -143,7 +143,7 @@ impl ReactiveScheduler {
         for tref in &updated.tasks {
             let mut t = tref.get_mut();
             if t.state == TaskState::Ready {
-                debug!("Scheduler: New ready task {}", t.id);
+                debug!("Scheduler: New ready task {}", t.id());
                 let r = self.ready_tasks.insert(tref.clone());
                 assert!(r);
             }
@@ -157,7 +157,7 @@ impl ReactiveScheduler {
                 let mut t = tref.get_mut();
 
                 assert!(t.state == TaskState::Ready);
-                w.active_resources += t.resources.cpus();
+                w.active_resources += t.spec().resources.cpus();
                 w.scheduled_tasks.insert(tref.clone());
 
                 // Scheduler "picks" only ready tasks, so we do need to test readiness of task
@@ -165,7 +165,7 @@ impl ReactiveScheduler {
 
                 t.scheduled = Some(wref.clone());
 
-                debug!("Scheduler: {} -> {}", t.id, w.id());
+                debug!("Scheduler: {} -> {}", t.id(), w.id());
                 for oref in &t.outputs {
                     w.scheduled_objects.insert(oref.clone());
                     oref.get_mut().scheduled.insert(wref.clone());

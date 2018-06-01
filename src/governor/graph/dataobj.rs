@@ -78,11 +78,11 @@ impl DataObject {
     }
 
     pub fn display_content_type(&self) -> String {
-        self.content_type().unwrap_or_else(|| "<None>".to_string())
+        self.content_type().clone().unwrap_or_else(|| "<None>".to_string())
     }
 
     pub fn content_type(&self) -> &Option<String> {
-        self.spec.content_type
+        &self.spec.content_type
     }
 
     #[inline]
@@ -134,15 +134,9 @@ impl DataObject {
         self.set_data(Arc::new(data))
     }
 
-    pub fn create_input_spec(&self, label: &str, executor_ref: &ExecutorRef) -> LocalObjectSpec {
+    pub fn create_input_spec(&self, executor_ref: &ExecutorRef) -> LocalObjectSpec {
         LocalObjectSpec {
-            id: self.id,
-            label: if label.is_empty() {
-                None
-            } else {
-                Some(label.to_string())
-            },
-            attributes: self.attributes.clone(),
+            spec: self.spec.clone(),
             location: if self.executor_cache.contains(executor_ref) {
                 Some(DataLocation::Cached)
             } else {
@@ -154,13 +148,7 @@ impl DataObject {
 
     pub fn create_output_spec(&self) -> LocalObjectSpec {
         LocalObjectSpec {
-            id: self.id,
-            label: if self.label.is_empty() {
-                None
-            } else {
-                Some(self.label.clone())
-            },
-            attributes: self.attributes.clone(),
+            spec: self.spec.clone(),
             location: None,
             cache_hint: true,
         }
@@ -180,6 +168,7 @@ impl DataObjectRef {
             ::std::collections::hash_map::Entry::Vacant(e) => {
                 let dataobj = Self::wrap(DataObject {
                     spec,
+                    info: Default::default(),
                     state,
                     assigned,
                     consumers: Default::default(),
@@ -204,6 +193,6 @@ impl DataObjectRef {
 
 impl fmt::Debug for DataObjectRef {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "DataObjectRef {}", self.get().id)
+        write!(f, "DataObjectRef {}", self.get().spec.id)
     }
 }

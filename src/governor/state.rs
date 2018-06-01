@@ -192,10 +192,10 @@ impl State {
     pub fn object_is_finished(&mut self, dataobj: &DataObjectRef) {
         let mut dataobject = dataobj.get_mut();
         if dataobject.is_removed() {
-            debug!("Removed object finished id={}", dataobject.id);
+            debug!("Removed object finished id={}", dataobject.spec.id);
             return;
         }
-        debug!("Object id={} is finished", dataobject.id);
+        debug!("Object id={} is finished", dataobject.spec.id);
         self.updated_objects.insert(dataobj.clone());
 
         let mut new_ready = false;
@@ -234,19 +234,22 @@ impl State {
 
                 if object.is_finished() {
                     co.set_state(::common_capnp::DataObjectState::Finished);
-                    co.set_size(object.data().size() as u64);
+                    co.set_info(&::serde_json::to_string(&object.info).unwrap());
                 } else {
                     // TODO: Handle failure state
                     panic!("Updating non finished object");
                 }
 
-                if !object.new_attributes.is_empty() {
+                /*if !object.new_attributes.is_empty() {
                     object
                         .new_attributes
                         .to_capnp(&mut co.reborrow().get_attributes().unwrap());
                     object.new_attributes.clear();
+                }*/
+                if (object.info.size.is_some()) {
+                    co.set_info(&::serde_json::to_string(&object.info).unwrap());
                 }
-                object.id.to_capnp(&mut co.get_id().unwrap());
+                object.spec.id.to_capnp(&mut co.get_id().unwrap());
             }
 
             self.updated_objects.clear();
@@ -268,12 +271,10 @@ impl State {
                     _ => panic!("Invalid state"),
                 });
 
-                if !task.new_attributes.is_empty() {
-                    task.new_attributes
-                        .to_capnp(&mut ct.reborrow().get_attributes().unwrap());
-                    task.new_attributes.clear();
+                if task.state != TaskState::Running {
+                    ct.set_info(&::serde_json::to_string(&task.info).unwrap());
                 }
-                task.id.to_capnp(&mut ct.get_id().unwrap());
+                task.spec.id.to_capnp(&mut ct.get_id().unwrap());
             }
 
             self.updated_tasks.clear();
@@ -470,12 +471,12 @@ impl State {
     pub fn fetch_object(
         &mut self,
         governor_id: &GovernorId,
-        dataobj_id: DataObjectId,
+        dataobj_ref: DataObjectRef,
     ) -> Box<Future<Item = Data, Error = Error>> {
         let is_server = governor_id.ip().is_unspecified();
         let mut context = ::governor::rpc::fetch::FetchContext {
             state_ref: self.self_ref(),
-            dataobj_id: dataobj_id,
+            dataobj_ref,
             remote: None,
             builder: None,
             size: 0,
@@ -496,19 +497,19 @@ impl State {
     }
 
     pub fn remove_object(&mut self, object: &mut DataObject) {
-        debug!("Removing object {}", object.id);
-        let id_list = [object.id];
+        debug!("Removing object {}", object.spec.id);
+        let id_list = [object.spec.id];
         for sw in ::std::mem::replace(&mut object.executor_cache, Default::default()) {
             sw.get().send_remove_cached_objects(&id_list);
         }
         object.set_as_removed();
-        self.graph.objects.remove(&object.id);
+        self.graph.objects.remove(&object.spec.id);
     }
 
     // Call when object may be waiting for delete, but now is needed again
     pub fn mark_as_needed(&mut self, object_ref: &DataObjectRef) {
         if self.graph.delete_wait_list.remove(&object_ref).is_some() {
-            debug!("Object id={} is retaken from cache", object_ref.get().id);
+            debug!("Object id={} is retaken from cache", object_ref.get().spec.id);
         }
     }
 
@@ -526,7 +527,7 @@ impl State {
                 let now = ::std::time::Instant::now();
                 let timeout =
                     now + ::std::time::Duration::from_secs(self.delete_list_max_timeout as u64);
-                let object_ref = self.graph.objects.get(&object.id).unwrap().clone();
+                let object_ref = self.graph.objects.get(&object.spec.id).unwrap().clone();
                 let r = self.graph.delete_wait_list.insert(object_ref, timeout);
                 assert!(r.is_none()); // it should not be in delete list
             }
@@ -544,13 +545,13 @@ impl State {
     /// Remove task from graph
     pub fn unregister_task(&mut self, task_ref: &TaskRef) {
         let task = task_ref.get_mut();
-        debug!("Unregistering task id = {}", task.id);
+        debug!("Unregistering task id = {}", task.spec.id);
 
-        let removed = self.graph.tasks.remove(&task.id);
+        let removed = self.graph.tasks.remove(&task.spec.id);
         assert!(removed.is_some());
 
         for input in &task.inputs {
-            let mut obj = input.object.get_mut();
+            let mut obj = input.get_mut();
             self.remove_consumer(&mut obj, &task_ref);
         }
 
@@ -619,7 +620,7 @@ impl State {
             let n_cpus = self.free_resources.cpus;
             let j = self.graph.ready_tasks[i..]
                 .iter()
-                .position(|task| n_cpus >= task.get().resources.cpus);
+                .position(|task| n_cpus >= task.get().spec.resources.cpus);
             if j.is_none() {
                 break;
             }
@@ -871,7 +872,7 @@ impl StateRef {
                     {
                         let mut o = obj.get_mut();
                         s.remove_object(&mut o);
-                        s.transport_views.remove(&o.id);
+                        s.transport_views.remove(&o.spec.id);
                     }
                     s.graph.delete_wait_list.remove(&obj);
                 }

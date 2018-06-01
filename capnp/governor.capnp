@@ -48,7 +48,7 @@ interface GovernorUpstream {
     # Every governor has one connection to the server. This is the interface that server
     # provides for messages from the governor.
 
-    fetch @0 (id :DataObjectId, includeMetadata :Bool, offset :UInt64, size :UInt64) -> FetchResult;
+    fetch @0 (id :DataObjectId, includeInfo :Bool, offset :UInt64, size :UInt64) -> FetchResult;
 
     updateStates @1 (update: GovernorStateUpdate) -> ();
     # Notify server about object state changes. The sizes are reported for

@@ -52,9 +52,8 @@ impl governor_upstream::Server for GovernorUpstreamImpl {
                     continue;
                 }
                 let object = pry!(state.object_by_id(id));
-                let size = obj_update.get_size() as usize;
-                let spec: ObjectSpec = ::serde_json::from_str(obj_update.get_spec().unwrap()).unwrap();
-                obj_updates.push((object, pry!(obj_update.get_state()), spec));
+                let info: ObjectInfo = ::serde_json::from_str(obj_update.get_info().unwrap()).unwrap();
+                obj_updates.push((object, pry!(obj_update.get_state()), info));
             }
 
             for task_update in pry!(update.get_tasks()).iter() {
@@ -63,8 +62,8 @@ impl governor_upstream::Server for GovernorUpstreamImpl {
                     continue;
                 }
                 let task = pry!(state.task_by_id(id));
-                let spec: TaskSpec = ::serde_json::from_str(task_update.get_spec().unwrap()).unwrap();
-                task_updates.push((task, pry!(task_update.get_state()), spec));
+                let info: TaskInfo = ::serde_json::from_str(task_update.get_info().unwrap()).unwrap();
+                task_updates.push((task, pry!(task_update.get_state()), info));
             }
         }
 
@@ -139,12 +138,8 @@ impl governor_upstream::Server for GovernorUpstreamImpl {
             results.set_data(&data[offset..end]);
         }
 
-        if params.get_include_metadata() {
-            let mut metadata = results.get_metadata().unwrap();
-            metadata.set_size(data.len() as i64);
-            metadata.set_data_type(obj.data_type.to_capnp());
-            obj.attributes
-                .to_capnp(&mut metadata.get_attributes().unwrap());
+        if params.get_include_info() {
+            results.set_info(&::serde_json::to_string(&obj.info).unwrap());
         }
 
         Promise::ok(())

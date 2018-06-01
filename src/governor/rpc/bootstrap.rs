@@ -53,14 +53,10 @@ impl governor_bootstrap::Server for GovernorBootstrapImpl {
             debug!("Fetch out of range");
         }
 
-        if params.get_include_metadata() {
-            let mut metadata = results.get_metadata().unwrap();
-            metadata.set_size(slice.len() as i64);
+        if params.get_include_info() {
             let obj_ref = state.graph.objects.get(&id).unwrap();
             let obj = obj_ref.get();
-            metadata.set_data_type(obj.data_type.to_capnp());
-            obj.attributes
-                .to_capnp(&mut metadata.get_attributes().unwrap());
+            results.set_info(&::serde_json::to_string(&obj.info).unwrap());
         }
         Promise::ok(())
     }

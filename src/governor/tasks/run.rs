@@ -34,20 +34,20 @@ struct RunConfig {
 
 pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
     let state_ref = state.self_ref();
-    let config: RunConfig = task_ref.get().attributes.get("config")?;
+    let config: RunConfig = task_ref.get().spec.parse_config()?;
 
     let (dir, future, stderr_path) = {
         // Parse arguments
         let name = config.args.get(0).ok_or_else(|| "Arguments are empty")?;
         let task = task_ref.get();
 
-        let dir = state.work_dir().make_task_temp_dir(task.id)?;
+        let dir = state.work_dir().make_task_temp_dir(task.spec.id)?;
 
         // Map inputs
         let mut in_io = Stdio::null();
 
         for (iconfig, input) in config.in_paths.iter().zip(&task.inputs) {
-            let obj = input.object.get();
+            let obj = input.get();
             if iconfig.write {
                 obj.data().write_to_path(&dir.path().join(&iconfig.path))?;
             } else {

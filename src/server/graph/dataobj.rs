@@ -58,13 +58,8 @@ impl DataObject {
     /// To capnp for governor message
     /// It does not fill `placement` and `assigned`, that must be done by caller
     pub fn to_governor_capnp(&self, builder: &mut ::governor_capnp::data_object::Builder) {
-        self.id.to_capnp(&mut builder.reborrow().get_id().unwrap());
-        self.attributes
-            .to_capnp(&mut builder.reborrow().get_attributes().unwrap());
-        self.size.map(|s| builder.set_size(s as i64));
-        builder.set_label(&self.label);
         builder.set_state(self.state);
-        builder.set_data_type(self.data_type.to_capnp());
+        builder.set_spec(&::serde_json::to_string(&self.spec).unwrap());
     }
 
     /// Inform observers that task is finished
@@ -109,7 +104,7 @@ impl DataObject {
 
     #[inline]
     pub fn id(&self) -> DataObjectId {
-        self.id
+        self.spec.id
     }
 
     #[inline]
@@ -131,6 +126,7 @@ impl DataObjectRef {
         assert_eq!(spec.id.get_session_id(), session.get_id());
         let s = DataObjectRef::wrap(DataObject {
             spec: spec,
+            info: Default::default(),
             producer: Default::default(),
             state: if data.is_none() {
                 DataObjectState::Unfinished
@@ -150,11 +146,6 @@ impl DataObjectRef {
         // add to session
         session.get_mut().objects.insert(s.clone());
         s
-    }
-
-    /// Return the object ID in graph.
-    pub fn get_id(&self) -> DataObjectId {
-        self.get().id
     }
 
     pub fn unschedule(&self) {
@@ -199,7 +190,7 @@ impl ConsistencyCheck for DataObjectRef {
     fn check_consistency(&self) -> Result<()> {
         let s = self.get();
         // ID consistency
-        if s.id.get_session_id() != s.session.get_id() {
+        if s.spec.id.get_session_id() != s.session.get_id() {
             bail!("ID and Session ID mismatch in {:?}", s);
         }
         // reference symmetries
@@ -274,7 +265,7 @@ impl ConsistencyCheck for DataObjectRef {
         }
         // data consistency
         if let Some(_) = s.data {
-            if s.size.is_none()
+            if s.info.size.is_none()
             /*|| dr.len() != s.size.unwrap()*/
             {
                 bail!("size and uploaded data mismatch in {:?}", s);
@@ -310,7 +301,7 @@ impl ConsistencyCheck for DataObjectRef {
 
 impl ::std::fmt::Debug for DataObjectRef {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "DataObjectRef {}", self.get().id)
+        write!(f, "DataObjectRef {}", self.get().spec.id)
     }
 }
 
