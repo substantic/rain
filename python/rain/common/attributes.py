@@ -1,6 +1,76 @@
 import json
 
 
+def filter_empty(d):
+    """Filter out pairs with non-truthy values."""
+    return {k: v for k, v in d.items() if v}
+
+
+class BaseSpec:
+    def __init__(self, data):
+        self.user = data.pop('user', {})
+        self.id = data.pop('id', None)
+
+    def _to_json(self):
+        return filter_empty({
+            'user': self.user,
+            'id': self.id._to_json()
+        })
+
+
+class BaseInfo:
+    def __init__(self, data):
+        self.error = data.pop('error', "")
+        self.debug = data.pop('debug', "")
+        self.user = data.pop('user', {})
+
+    def _to_json(self):
+        return filter_empty({
+            'error': self.error,
+            'debug': self.debug,
+            'user': self.user,
+        })
+
+
+class TaskSpec(BaseSpec):
+    pass
+
+
+class TaskInfo(BaseInfo):
+    def __init__(self, data):
+        # Make a copy to be modified
+        data = dict(data)
+        super.__init__(data)
+        self.start_time = data.pop('start_time', None)
+        self.duration = data.pop('duration', None)
+        self.governor = data.pop('governor', None)
+        if data:
+            raise ValueError("Unknown {} attributes: {}".format(
+                self.__class__.__name__, list(data.keys())
+            ))
+
+    def _to_json(self):
+        r = super()._to_json()
+        r.update(filter_empty({
+            'start_time': self.start_time,
+            'duration': self.duration,
+            'governor': self.governor,
+        }))
+        return r
+
+
+class DataObjectSpec(BaseSpec):
+    pass
+
+
+class DataObjectInfo(BaseInfo):
+    pass
+
+    def _to_json(self):
+        pass
+
+
+
 class AttributesBase:
 
     def __init__(self, data=None):
