@@ -1,6 +1,9 @@
 from .errors import RainException
 from .ids import ID
 from .utils import short_str
+from .datatype import DataType
+
+import re
 
 
 class AttributeBase:
@@ -17,12 +20,29 @@ class AttributeBase:
             self.__setattr__(n, ftj[2]())
 
     @classmethod
+    def _camelize(_cls, snake_name):
+        """
+        Convert `snake_case` to `camelCase`. A bit naive (internal only).
+        """
+        first, *rest = snake_name.split('_')
+        return first + ''.join(word.capitalize() for word in rest)
+
+    @classmethod
+    def _snakeit(_cls, camel_name):
+        """
+        Convert `camelCase` to `snake_case`. A bit naive (internal only).
+        """
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', camel_name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+    @classmethod
     def _from_json(cls, data):
         s = cls()
         for n, v in data.items():
-            if n not in cls._ATTRS:
+            nc = cls._camelize(n)
+            if nc not in cls._ATTRS:
                 raise AttributeError("Unknown attribute {} for {}".format(n, cls))
-            fj = cls._ATTRS[n][0]
+            fj = cls._ATTRS[nc][0] or (lambda x: x)
             try:
                 val = fj(v)
             except (TypeError, ValueError) as e:
@@ -32,13 +52,14 @@ class AttributeBase:
             s.__setattr__(n, val)
         return s
 
-    def _to_json(self):
+    def _to_json(self, camelize=True):
         r = {}
         for n, ftj in self._ATTRS.items():
             val = self.__getattribute__(n)
             if val:
+                nc = self._camelize(n) if camelize else n
                 try:
-                    r[n] = ftj[1](val)
+                    r[nc] = (ftj[1] or (lambda x: x))(val)
                 except (TypeError, ValueError) as e:
                     raise RainException(
                         "Can't convert {} attribute {} from value {:r} of type {}".format(
@@ -46,7 +67,20 @@ class AttributeBase:
         return r
 
     def __repr__(self):
-        return "<{} {}>".format(self.__class__.__name__, short_str(self._to_json(), max_len=42))
+        return "<{} {}>".format(self.__class__.__name__, short_str(self._to_json(camelize=False), max_len=42))
+
+
+class TaskSpecInput(AttributeBase):
+    """Task input specification.
+
+    Attributes:
+        id (`ID`): Input object ID.
+        label (`str`): Optional label.
+    """
+    _ATTRS = {
+        "id": (ID._from_json, lambda x: x._to_json(), lambda: ID(0, 0)),
+        "label": (str, str, str),
+    }
 
 
 class TaskSpec(AttributeBase):
@@ -55,20 +89,28 @@ class TaskSpec(AttributeBase):
     Attributes:
         id (`ID`): Task ID tuple.
         task_type (`str`): The task-type identificator (`"executor/method"`).
-        user (`dict` with `str` keys): Arbitrary user json-serializable attributes.
         config (json-serializable): Task-type specific configuration data.
+        inputs (`list` of `TaskSpecInput`): Input object IDs with their labels.
+        outputs (`list` of `ID`): Output object IDs.
+        resources (`dict` with `str` keys): Resource specification.
+        user (`dict` with `str` keys): Arbitrary user json-serializable attributes.
     """
     _ATTRS = {
         "id": (ID._from_json, lambda x: x._to_json(), lambda: ID(0, 0)),
         "task_type": (str, str, str),
+        "config": (None, None, lambda: None),
+        "inputs": (
+            lambda il: [TaskSpecInput._from_json(i) for i in il],
+            lambda il: [i._to_json() for i in il],
+            list),
+        "outputs": (list, list, lambda: {}),
+        "resources": (dict, dict, lambda: {}),
         "user": (dict, dict, dict),
-        "config": (lambda x: x, lambda x: x, lambda: None)
-        # TODO: more
     }
 
 
 class TaskInfo(AttributeBase):
-    """Task runtime info.ID
+    """Task runtime info.
 
     Attributes:
         error (`str`): Error message. Non-empty error indicates failure. 
@@ -85,6 +127,48 @@ class TaskInfo(AttributeBase):
         "start_time": (str, str, str),  # TODO: time object
         "duration": (lambda ms: 0.001 * ms, lambda s: int(s * 1000), lambda: None),
         "governor": (str, str, str),
+        "user": (dict, dict, dict),
+        "debug": (str, str, str),
+    }
+
+
+class ObjectSpec(AttributeBase):
+    """Data object specification data.
+
+    Attributes:
+        id (`ID`): Task ID tuple.
+        label (`str`): Label (role) of this output at the generating task.
+        content_type (`str`): Content type name.
+        data_type (`str`): Object type, "blob" or "directory".
+        testing (`dict`): Internal testing flags.
+        user (`dict` with `str` keys): Arbitrary user json-serializable attributes.
+    """
+    _ATTRS = {
+        "id": (ID._from_json, lambda x: x._to_json(), lambda: ID(0, 0)),
+        "label": (str, str, str),
+        "content_type": (str, str, str),
+        "data_type": (DataType, lambda x: DataType(x).value, lambda: DataType.BLOB),
+        "testing": (dict, dict, dict), # TODO: remove when not needed
+        "user": (dict, dict, dict),
+    }
+
+
+class ObjectInfo(AttributeBase):
+    """Data object runtime info.
+
+    Attributes:
+        error (`str`): Error message. Non-empty error indicates failure. 
+            NB: Empty string is NOT a failure.
+        size (`int`): Final size in bytes (approximate for directories).
+        content_type (`str`): Content type name. 
+        user (`dict` with `str` keys): Arbitrary json-serializable objects.
+        debug (`str`): Free-form debugging log. This is the only mutable attribute,
+            should be append-only.
+    """
+    _ATTRS = {
+        "error": (str, str, str),
+        "size": (int, int, int),
+        "content_type": (str, str, str),
         "user": (dict, dict, dict),
         "debug": (str, str, str),
     }
