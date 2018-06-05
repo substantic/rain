@@ -6,7 +6,6 @@ use std::path::PathBuf;
 /// Message from executor to governor.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum ExecutorToGovernorMessage {
     Register(RegisterMsg),
     Result(ResultMsg),
@@ -15,7 +14,6 @@ pub enum ExecutorToGovernorMessage {
 /// Message from governor to executor.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum GovernorToExecutorMessage {
     Call(CallMsg),
     DropCached(DropCachedMsg),
@@ -24,7 +22,6 @@ pub enum GovernorToExecutorMessage {
 /// First message sent from executor to verify the protocol version,
 /// executor ID and executor type.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct RegisterMsg {
     /// Executor protocol version
@@ -36,7 +33,6 @@ pub struct RegisterMsg {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct CallMsg {
     /// Task attributes
@@ -50,7 +46,6 @@ pub struct CallMsg {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct ResultMsg {
     /// Task ID (must match `CallMsg::task`)
@@ -77,7 +72,6 @@ pub struct ResultMsg {
 /// Data object information in `CallMsg` and `ResultMsg`. See the corresponding
 /// fields there for precise semantics.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct LocalObjectSpec {
     pub spec: ObjectSpec,
@@ -96,7 +90,6 @@ pub struct LocalObjectSpec {
 
 /// Data location of inputs and outputs in `LocalObjectSpec::location`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum DataLocation {
     /// The data is present in the given path that is relative to the executor working directory.
     Path(PathBuf),
@@ -115,7 +108,6 @@ pub enum DataLocation {
 /// Instruct the executor to drop the given cached objects.
 /// It is an error to request dropping an object that is not cached.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct DropCachedMsg {
     /// List of object ids to drop

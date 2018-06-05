@@ -2,10 +2,16 @@
 
 use server::state::State;
 
+#[derive(Deserialize)]
+struct TestingObjectSpec {
+    pub governors: Vec<String>,
+    pub size: usize,
+}
+
 pub fn test_scheduler(state: &mut State) {
     for oref in state.updates.new_objects.clone() {
-        let testing = oref.get().spec.testing.clone();
-        if let Some(c) = testing {
+        if let Some(testing) = oref.get().info.user.get("_testing") {
+            let c: TestingObjectSpec = ::serde_json::from_value(testing.clone()).unwrap();
             oref.get_mut().info.size = Some(c.size);
             for governor_id in c.governors {
                 debug!(

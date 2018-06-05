@@ -1,9 +1,10 @@
 //use super::convert::{FromCapnp, ToCapnp, WriteCapnp};
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum DataType {
+    #[serde(rename = "blob")]
     Blob,
+    #[serde(rename = "dir")]
     Directory,
 }
 
@@ -25,14 +26,14 @@ impl DataType {
     pub fn to_attribute(&self) -> &'static str {
         match self {
             &DataType::Blob => "blob",
-            &DataType::Directory => "directory",
+            &DataType::Directory => "dir",
         }
     }
 
     pub fn from_attribute(name: &str) -> Self {
         match name {
             "blob" => DataType::Blob,
-            "directory" => DataType::Directory,
+            "dir" => DataType::Directory,
             _ => panic!("Invalid data_type name: {:?}", name),
         }
     }
@@ -42,7 +43,7 @@ impl ::std::fmt::Display for DataType {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         match self {
             &DataType::Blob => write!(f, "blob"),
-            &DataType::Directory => write!(f, "directory"),
+            &DataType::Directory => write!(f, "dir"),
         }
     }
 }
