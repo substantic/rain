@@ -6,6 +6,7 @@ use std::path::PathBuf;
 /// Message from executor to governor.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ExecutorToGovernorMessage {
     Register(RegisterMsg),
     Result(ResultMsg),
@@ -14,6 +15,7 @@ pub enum ExecutorToGovernorMessage {
 /// Message from governor to executor.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum GovernorToExecutorMessage {
     Call(CallMsg),
     DropCached(DropCachedMsg),
@@ -134,24 +136,26 @@ mod tests {
 
     #[test]
     fn test_register() {
-        let s = r#"{"register": {"protocol": "swp1", "executorId": 42, "executorType": "dummy"}}"#;
+        let s = r#"{"register": {"protocol": "swp1", "executor_id": 42, "executor_type": "dummy"}}"#;
         let m: ExecutorToGovernorMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }
 
     #[test]
     fn test_call() {
-        let s = r#"{"call": {"method": "foo", "task": [42, 48],
-            "attributes": {},
+        let s = r#"{"call": {
+             "spec":{
+                    "id": [42, 48]
+            },
             "inputs": [
                 {"id": [3,6], "label": "in1", "attributes": {},
                  "location": {"memory": [0,0,0,0,0]}},
                 {"id": [3,7], "label": "in2", "attributes": {},
-                 "location": {"path": "in1.txt"}, "cacheHint": true},
+                 "location": {"path": "in1.txt"}, "cache_hint": true},
                 {"id": [3,8], "attributes": {}, "location": "cached"}
             ],
             "outputs": [
-                {"id": [3,11], "label": "out1", "attributes": {}, "cacheHint": true},
+                {"id": [3,11], "label": "out1", "attributes": {}, "cache_hint": true},
                 {"id": [3,12], "attributes": {}}
             ]
             }}"#;
@@ -173,7 +177,7 @@ mod tests {
             "attributes": {},
             "outputs": [
                 {"id": [3,11], "attributes": {}, "location": {"path": "in1.txt"}},
-                {"id": [3,12], "attributes": {}, "location": {"otherObject": [3, 6]}}
+                {"id": [3,12], "attributes": {}, "location": {"other_object": [3, 6]}}
             ]
             }}"#;
         let m: ExecutorToGovernorMessage = serde_json::from_str(s).unwrap();
@@ -182,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_drop_cached() {
-        let s = r#"{"dropCached": {"objects": [[1,2], [4,5]]}}"#;
+        let s = r#"{"drop_cached": {"objects": [[1,2], [4,5]]}}"#;
         let m: GovernorToExecutorMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }

@@ -29,9 +29,8 @@ impl Graph {
 #[cfg(test)]
 
 mod tests {
-    use super::super::{ClientRef, DataObjectRef, GovernorRef, Graph, SessionRef, TaskInput,
-                       TaskRef};
-    use common::attributes::Attributes;
+    use super::super::{ClientRef, DataObjectRef, GovernorRef, Graph, SessionRef, TaskRef};
+    use common::attributes::{TaskSpec, TaskSpecInput, ObjectSpec};
     use common::id::{DataObjectId, SId, TaskId};
     use common::resources::Resources;
 
@@ -57,38 +56,57 @@ mod tests {
             for si in 0..sessions {
                 let s = SessionRef::new(si as i32, &c);
                 let mut objs = Vec::new();
+
                 for oi in 0..objects {
+
+                    let spec = ObjectSpec {
+                        id: DataObjectId::new(s.get().id, oi as i32),
+                        label: Default::default(),
+                        user: Default::default(),
+                        data_type: DataType::Blob,
+                        content_type: None,
+                    };
+
                     let o = DataObjectRef::new(
                         &s,
-                        DataObjectId::new(s.get_id(), oi as i32),
-                        Default::default(),
-                        "label".to_string(),
-                        DataType::Blob,
+                        spec,
+                        false,
                         None,
-                        Default::default(),
                     );
                     objs.push(o);
                 }
                 for ti in 0..tasks {
                     let mut inputs = Vec::new();
+                    let mut input_objs = Vec::new();
+
                     if ti >= 2 {
                         for i in 1..3 {
-                            inputs.push(TaskInput {
-                                object: objs[ti - i].clone(),
+                            let obj = &objs[ti - i];
+                            input_objs.push(obj.clone());
+                            inputs.push(TaskSpecInput {
+                                id: obj.get().id(),
                                 label: Default::default(),
-                                path: Default::default(),
                             });
                         }
                     }
-                    let outputs = vec![objs[ti].clone()];
+                    let output_objs = vec![objs[ti].clone()];
+                    let outputs : Vec<_> = output_objs.iter().map(|o| o.get().id()).collect();
+
+                    let spec = TaskSpec {
+                        id: TaskId::new(s.get_id(), (ti + objects) as i32),
+                        inputs: inputs,
+                        outputs: outputs,
+                        task_type: "TType".to_string(),
+                        resources: Resources { cpus: 1 },
+                        config: None,
+                        user: Default::default(),
+                    };
+
                     TaskRef::new(
                         &s,
-                        TaskId::new(s.get_id(), (ti + objects) as i32),
-                        inputs,
-                        outputs,
-                        "TType".to_string(),
-                        Attributes::new(),
-                        Resources { cpus: 1 },
+                        spec,
+                        input_objs,
+                        output_objs,
                     ).unwrap();
                 }
             }

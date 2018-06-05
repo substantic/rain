@@ -216,13 +216,4 @@ mod tests {
         logger.flush_events();
         assert_eq!(logger.events.len(), 0);
     }
-
-    #[test]
-    fn test_add_new_governor_event() {
-        let mut logger = create_logger();
-        let w = create_test_governor_id();
-        logger.add_new_governor_event(w);
-        let et = events::Event::GovernorNew(events::GovernorNewEvent { governor: w });
-        assert!(logger.events[0].event == et);
-    }
 }
