@@ -18,12 +18,12 @@ def format_size(size_bytes):
         return "{:.1} TB".format(size_bytes / 1e12)
 
 
-def short_str(s, maxlen=32):
+def short_str(s, max_len=32):
     """
     Convert `s` to string and cut it off to at most `maxlen` chars (with an ellipsis).
     """
     if not isinstance(s, str):
         s = str(s)
-    if len(s) > maxlen:
+    if len(s) > max_len:
         s = s[:27] + "[...]"
     return s

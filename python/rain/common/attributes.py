@@ -1,7 +1,9 @@
 import re
 
+from .data_type import DataType
+from .errors import RainException
+from .ids import ID
 from .utils import short_str
-from .. import DataType, RainException, ID
 
 
 class AttributeBase:
@@ -13,9 +15,18 @@ class AttributeBase:
     """
     _ATTRS = {}
 
-    def __init__(self):
+    def __init__(self, **kwargs):
+        """
+        Initialize the attributes with their default values or the
+        values provided in `**kwargs`.
+        """
         for n, ftj in self._ATTRS.items():
             self.__setattr__(n, ftj[2]())
+        for n, v in kwargs.items():
+            if n in self._ATTRS:
+                self.__setattr__(n, v)
+            else:
+                raise TypeError("Unknown attribute name {!r}".format(n))
 
     @classmethod
     def _camelize(_cls, snake_name):
@@ -94,7 +105,7 @@ class TaskSpec(AttributeBase):
         user (`dict` with `str` keys): Arbitrary user json-serializable attributes.
     """
     _ATTRS = {
-        "id": (ID._from_json, lambda x: x._to_json(), lambda: ID(0, 0)),
+        "id": (ID._from_json, lambda x: x._to_json(), lambda: None),
         "task_type": (str, str, str),
         "config": (None, None, lambda: None),
         "inputs": (
@@ -141,7 +152,7 @@ class ObjectSpec(AttributeBase):
         user (`dict` with `str` keys): Arbitrary user json-serializable attributes.
     """
     _ATTRS = {
-        "id": (ID._from_json, lambda x: x._to_json(), lambda: ID(0, 0)),
+        "id": (ID._from_json, lambda x: x._to_json(), lambda: None),
         "label": (str, str, str),
         "content_type": (str, str, str),
         "data_type": (DataType, lambda x: DataType(x).value, lambda: DataType.BLOB),

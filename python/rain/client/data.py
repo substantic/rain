@@ -1,12 +1,14 @@
-import capnp
-import tarfile
 import io
+import json
+import tarfile
 
+import capnp
+
+from ..common import ID, DataType, RainException, ids
+from ..common.attributes import ObjectInfo, ObjectSpec
+from ..common.content_type import (check_content_type, encode_value,
+                                   merge_content_types)
 from .session import get_active_session
-from ..common import RainException, ids, ID
-from ..common.attributes import attributes_to_capnp
-from ..common.content_type import check_content_type, encode_value
-from ..common import DataType
 
 
 class DataObject:
@@ -28,18 +30,36 @@ class DataObject:
         assert isinstance(data_type, DataType)
         if session is None:
             session = get_active_session()
-        self.session = session
-        self.label = label
-        self.id = session._register_dataobj(self)
+        self._session = session
+        self._spec = ObjectSpec()
+        self._info = None
+        self._spec.label = label
+        self._spec.id = session._register_dataobj(self)
         assert isinstance(self.id, ID)
-        self.attributes = {
-            "spec": {"content_type": content_type}
-        }
-        self.data_type = data_type
+        self._spec.content_type = content_type
+        self._spec.data_type = data_type
+
+    @property
+    def id(self):
+        """Getter for object ID."""
+        return self._spec.id
 
     @property
     def content_type(self):
-        return self.attributes["spec"]["content_type"]
+        """Final content type (if known and present) or just the spec content_type."""
+        if self._info:
+            return merge_content_types(self._spec.content_type, self._info.content_type)
+        return self._spec.content_type
+
+    @property
+    def spec(self):
+        """Getter for object specification. Read only!"""
+        return self._spec
+
+    @property
+    def info(self):
+        """Getter for object information. Read only in client! In remote tasks only `user` is writable."""
+        return self._info
 
     def _free(self):
         """Set flag that object is not available on the server """
@@ -52,7 +72,7 @@ class DataObject:
     def keep(self):
         """Set flag that is object should be kept on the server"""
         if self.state is not None:
-            raise RainException("Cannot keep submitted task")
+            raise RainException("cannot keep submitted data object {!r}".format(self))
         self._keep = True
 
     def is_kept(self):
@@ -60,18 +80,14 @@ class DataObject:
         return self._keep
 
     def to_capnp(self, out):
-        ids.id_to_capnp(self.id, out.id)
+        out.spec = json.dumps(self._spec._to_json())
         out.keep = self._keep
-        if self.label:
-            out.label = self.label
 
-        out.dataType = self.data_type.to_capnp()
         if self.data is not None:
             out.data = self.data
             out.hasData = True
         else:
             out.hasData = False
-        attributes_to_capnp(self.attributes, out.attributes)
 
     def wait(self):
         self.session.wait((self,))
@@ -114,9 +130,9 @@ class DataObject:
                  input_proto.load, input_proto.content_type))
 
     def __repr__(self):
-        t = " [D]" if self.data_type == DataType.DIRECTORY else ""
+        t = " [D]" if self.spec.data_type == DataType.DIRECTORY else ""
         return "<DObj {}{} id={} {}>".format(
-            self.label, t, self.id, self.attributes)
+            self.spec.label, t, self.id, self.spec)
 
     #def _as_outputclone(self):
     #    """
@@ -199,6 +215,6 @@ def to_data(obj):
             .format(type(obj)))
 
     raise RainException(
-            "Instance of {!r} cannot be used as a data object.\n"
-            "Hint: Wrap it with `pickled` or `blob(encode=...)` to use it as a data object."
-            .format(type(obj)))
+        "Instance of {!r} cannot be used as a data object.\n"
+        "Hint: Wrap it with `pickled` or `blob(encode=...)` to use it as a data object."
+        .format(type(obj)))

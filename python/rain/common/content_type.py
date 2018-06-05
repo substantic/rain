@@ -1,16 +1,18 @@
-from .errors import RainException
-import cloudpickle
 import pickle
+
+import cloudpickle
+
+from .errors import RainException
 
 
 def check_content_type(name):
     if name in [None, "pickle", "json", "dir", "text", "cbor", "arrow",
                 "protobuf", "cloudpickle"]:
         return True
-    if (name.startswith("text:") or
-       name.startswith("user:") or
-       name.startswith("mime:") or
-       name.startswith("protobuf:")):
+    if (name.startswith("text/") or
+       name.startswith("user/") or
+       name.startswith("mime/") or
+       name.startswith("protobuf/")):
         return True
     raise ValueError("Content type {!r} is not recognized".format(name))
 

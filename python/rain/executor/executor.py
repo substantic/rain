@@ -139,7 +139,7 @@ class Executor:
         task_context = Context(self, tuple(data["task"]))
 
         try:
-            task_context.attributes = load_attributes(data["attributes"])
+            task_context.spec = data["spec"]
             cfg = task_context.attributes["config"]
 
             inputs = []

@@ -11,7 +11,7 @@ import json
 _task_type_register = {}
 
 
-class TaskMeta:
+class TaskMeta(type):
     """A metaclass to register all subclasses of Task in `_task_type_register`."""
     def __new__(meta, name, bases, clsdict):
         global _task_type_register
@@ -73,14 +73,14 @@ class Task(metaclass=TaskMeta):
                  task_type=None,
                  cpus=1,
                  user_spec=None):
+        self._spec = TaskSpec()
+        self._info = None
+
         if session is None:
             session = get_active_session()
         self._session = session
-        self._id = session._register_task(self)
-        assert isinstance(self._id, ID)
-
-        self._spec = TaskSpec
-        self._info = None
+        self._spec.id = session._register_task(self)
+        assert isinstance(self.id, ID)
 
         if task_type is not None:
             self._spec.task_type = task_type
@@ -111,7 +111,7 @@ class Task(metaclass=TaskMeta):
         else:
             outputs = tuple(to_data_object(obj) for obj in outputs)
 
-        self._outputs = LabeledList(pairs=((output.label, output)
+        self._outputs = LabeledList(pairs=((output._spec.label, output)
                                            for output in outputs))
         self._spec.outputs = [o.id for o in self._outputs]
 
@@ -123,7 +123,7 @@ class Task(metaclass=TaskMeta):
             else:
                 input_pairs.append((None, to_data(input)))
         self._inputs = LabeledList(pairs=input_pairs)
-        self._spec.inputs = [TaskSpecInput(i.id, lab or "") for i, lab in self._inputs.items()]
+        self._spec.inputs = [TaskSpecInput(id=i.id, label=lab) for lab, i in self._inputs.items()]
 
         stack = traceback.extract_stack(None, 6)
         stack.pop()  # Last entry is not usefull, it is actually line above
@@ -132,7 +132,7 @@ class Task(metaclass=TaskMeta):
     @property
     def id(self):
         """Getter for Task ID."""
-        return self._id
+        return self._spec.id
 
     @property
     def state(self):
@@ -192,18 +192,18 @@ class Task(metaclass=TaskMeta):
 
     def wait(self):
         """Wait for the task to complete. See `Session.wait()`."""
-        self.session.wait((self,))
+        self._session.wait((self,))
 
     def update(self):
         """Update task state and attributes. See `Session.update()`."""
-        self.session.update((self,))
+        self._session.update((self,))
 
-    def _to_capnp(self, out):
-        out.spec = json.dumps(self.spec._to_json())
+    #def _to_capnp(self, out):
+    #    out.spec = json.dumps(self.spec._to_json())
 
     def __repr__(self):
         return "<{} {}, inputs {}, outputs {}>".format(
-            self.__class__, self.id, self.task_type, self.inputs, self.outputs)
+            self.__class__.__name__, self.id, self.spec.task_type, self.inputs, self.outputs)
 
     def __reduce__(self):
         """Speciaization to replace with executor.unpickle_input_object

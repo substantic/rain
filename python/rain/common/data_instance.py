@@ -1,15 +1,14 @@
-import os
-import tarfile
 import io
+import os
 import shutil
+import tarfile
 
-from .attributes import attributes_from_capnp
-from .attributes import attributes_to_capnp
 from .content_type import decode_value, merge_content_types
-from .utils import format_size
-from .ids import id_to_capnp
+from .data_type import DataType
+from .errors import RainException
 from .fs import fresh_copy_dir
-from . import RainException, DataType, ID
+from .ids import ID, id_to_capnp
+from .utils import format_size
 
 
 class DataInstance:
@@ -150,34 +149,34 @@ class DataInstance:
                 f = tarfile.open(fileobj=io.BytesIO(self._data))
                 f.extractall(path)
 
-    def _to_capnp(self, builder):
-        "Internal serializer."
-        if self._object_id:
-            builder.storage.init("inGovernor")
-            id_to_capnp(self._object_id, builder.storage.inGovernor)
-        elif self._path:
-            builder.storage.path = self._path
-        else:
-            builder.storage.memory = self._data
-        attributes_to_capnp(self.attributes, builder.attributes)
+    # def _to_capnp(self, builder):
+    #     "Internal serializer."
+    #     if self._object_id:
+    #         builder.storage.init("inGovernor")
+    #         id_to_capnp(self._object_id, builder.storage.inGovernor)
+    #     elif self._path:
+    #         builder.storage.path = self._path
+    #     else:
+    #         builder.storage.memory = self._data
+    #     attributes_to_capnp(self.attributes, builder.attributes)
 
-    @classmethod
-    def _from_capnp(cls, reader):
-        "Internal deserializer."
-        which = reader.storage.which()
-        data = None
-        path = None
-        if which == "memory":
-            data = reader.storage.memory
-        elif which == "path":
-            path = reader.storage.path
-        else:
-            raise Exception("Invalid storage type")
-        attributes = attributes_from_capnp(reader.attributes)
-        return cls(data=data,
-                   path=path,
-                   attributes=attributes,
-                   data_type=DataType.from_capnp(reader.dataType))
+    # @classmethod
+    # def _from_capnp(cls, reader):
+    #     "Internal deserializer user ."
+    #     which = reader.storage.which()
+    #     data = None
+    #     path = None
+    #     if which == "memory":
+    #         data = reader.storage.memory
+    #     elif which == "path":
+    #         path = reader.storage.path
+    #     else:
+    #         raise Exception("Invalid storage type")
+    #     attributes = attributes_from_capnp(reader.attributes)
+    #     return cls(data=data,
+    #                path=path,
+    #                attributes=attributes,
+    #                data_type=DataType.from_capnp(reader.dataType))
 
     def __repr__(self):
         if self._data:

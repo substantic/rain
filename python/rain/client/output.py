@@ -1,9 +1,10 @@
 
-from .data import DataObject, DataType
-from ..common.content_type import check_content_type, merge_content_types
-from ..common import LabeledList
-from copy import copy
 import collections
+from copy import copy
+
+from ..common.content_type import check_content_type, merge_content_types
+from ..common.labeled_list import LabeledList
+from .data import DataObject, DataType
 
 
 class OutputBase:
@@ -165,6 +166,8 @@ class OutputSpec:
                 self.outputs.set(i, Output(label=output), label=output)
             elif not isinstance(output, OutputBase):
                 raise TypeError("Only string labels and `Output` accepted in output list.")
+        # Config for auto-encoding
+        self.encode = [None] * len(self.outputs)
 
     def instantiate(self, outputs=None, output=None, session=None):
         """
@@ -191,6 +194,7 @@ class OutputSpec:
                              .format(len(outputs), len(self.outputs)))
 
         objs = LabeledList()
+        self.encode = [None] * len(outputs)
         for i, (label, out) in enumerate(outputs.items()):
             if i < len(self.outputs):
                 proto = self.outputs[i]
@@ -207,10 +211,10 @@ class OutputSpec:
                 out_merged.label = "out{}".format(i)
             do = out_merged.create_data_object(session=session)
             if out_merged.encode is not None:
-                do.attributes['spec']['encode'] = out_merged.encode
-                do.attributes['spec']['content_type'] = out_merged.encode
+                self.encode[i] = out_merged.encode
+                do._spec.content_type = out_merged.encode
             if out_merged.size_hint is not None:
-                do.attributes['spec']['size_hint'] = out_merged.size_hint
-            objs.append(do, label=do.label)
+                do._spec.size_hint = out_merged.size_hint
+            objs.append(do, label=do._spec.label)
 
         return objs

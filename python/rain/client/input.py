@@ -1,4 +1,4 @@
-from .data import to_data, DataObject, DataType
+from .data import DataObject, DataType, to_data
 from .task import Task
 
 

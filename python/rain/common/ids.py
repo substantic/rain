@@ -1,6 +1,5 @@
 from collections import namedtuple
 
-
 _ID = namedtuple("_ID", ["session_id", "id"])
 
 

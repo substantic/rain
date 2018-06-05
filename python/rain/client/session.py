@@ -137,7 +137,7 @@ class Session:
 
         Returns:
             ID: the assigned id."""
-        assert task.session == self and task.id is None
+        assert task._session == self and task.id is None
         self._tasks.append(task)
         self._id_counter += 1
         return ID(session_id=self.session_id, id=self._id_counter)
@@ -147,7 +147,7 @@ class Session:
 
         Returns:
             ID: the assigned id."""
-        assert dataobj.session == self and dataobj.id is None
+        assert dataobj._session == self and dataobj.id is None
         self._dataobjs.append(dataobj)
         self._id_counter += 1
         return ID(session_id=self.session_id, id=self._id_counter)
@@ -161,10 +161,10 @@ class Session:
         """"Submit all unsubmitted objects."""
         self.client._submit(self._tasks, self._dataobjs)
         for task in self._tasks:
-            task.state = rpc.common.TaskState.notAssigned
+            task._state = rpc.common.TaskState.notAssigned
             self._submitted_tasks.append(task)
         for dataobj in self._dataobjs:
-            dataobj.state = rpc.common.DataObjectState.unfinished
+            dataobj._state = rpc.common.DataObjectState.unfinished
             self._submitted_dataobjs.append(dataobj)
         self._tasks = []
         self._dataobjs = []

@@ -1,6 +1,7 @@
-import capnp
 import os
 import shutil
+
+import capnp
 
 
 def remove_dir_content(path):

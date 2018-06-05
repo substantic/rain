@@ -1,10 +1,9 @@
 import shlex
+from copy import copy
 
-from .tasks import execute
 from .input import Input
 from .output import Output
-
-from copy import copy
+from .tasks import Execute
 
 
 class Program:
@@ -69,7 +68,7 @@ class Program:
             else:
                 return obj
 
-        return execute([apply_data(obj) for obj in self.args],
+        return Execute([apply_data(obj) for obj in self.args],
                        stdout=self.stdout,
                        stdin=apply_data(self.stdin),
                        input_paths=[apply_data(obj) for obj in self.input_paths],
