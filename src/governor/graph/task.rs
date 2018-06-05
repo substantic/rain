@@ -1,9 +1,7 @@
 use super::{DataObjectRef, Graph};
-use common::id::TaskId;
 use common::{TaskInfo, TaskSpec, RcSet};
 use std::sync::Arc;
 
-use common::resources::Resources;
 use common::wrapped::WrappedRcRefCell;
 use governor::data::Data;
 use std::fmt;

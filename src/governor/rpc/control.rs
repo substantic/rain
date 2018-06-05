@@ -3,7 +3,7 @@ use std::sync::Arc;
 use capnp::capability::Promise;
 use common::convert::{FromCapnp, ToCapnp};
 use common::id::{DataObjectId, GovernorId, TaskId};
-use common::{DataType, Resources, ObjectSpec, ObjectInfo, TaskSpec, TaskInfo};
+use common::{ObjectSpec, TaskSpec};
 use errors::{Error, ErrorKind};
 use futures::future::Future;
 use governor::StateRef;

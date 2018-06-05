@@ -3,11 +3,9 @@ use futures::{future, Future};
 use std::net::SocketAddr;
 
 use client_capnp::client_service;
-use common::{RcSet, TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
+use common::{RcSet, TaskSpec, ObjectSpec};
 use common::convert::{FromCapnp, ToCapnp};
 use common::id::{DataObjectId, SId, TaskId};
-use common::resources::Resources;
-use common::{DataType};
 use errors::{Error, ErrorKind, Result};
 use server::graph::{ClientRef, SessionError, TaskRef};
 use server::graph::{DataObjectRef, DataObjectState};

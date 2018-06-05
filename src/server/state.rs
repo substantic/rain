@@ -13,7 +13,7 @@ use common::resources::Resources;
 use common::rpc::new_rpc_system;
 use common::wrapped::WrappedRcRefCell;
 use common::{ConsistencyCheck};
-use common::{DataType, RcSet, TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
+use common::{RcSet, TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
 use errors::Result;
 use server::graph::{ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionError,
                     SessionRef, TaskRef, TaskState};

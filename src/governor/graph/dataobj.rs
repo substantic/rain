@@ -1,7 +1,7 @@
 use super::{Graph, TaskRef};
-use common::id::{DataObjectId, GovernorId};
+use common::id::{GovernorId};
 use common::wrapped::WrappedRcRefCell;
-use common::{DataType, RcSet, ObjectSpec, ObjectInfo};
+use common::{RcSet, ObjectSpec, ObjectInfo};
 use errors::{ErrorKind, Result};
 use governor::WorkDir;
 use governor::data::Data;

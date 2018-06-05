@@ -5,7 +5,7 @@ use std::process::exit;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use common::{TaskSpec, TaskInfo, ObjectSpec, ObjectInfo, DataType};
+use common::{TaskSpec, ObjectSpec};
 use common::RcSet;
 use common::asyncinit::AsyncInitWrapper;
 use common::comm::Connection;
@@ -246,7 +246,7 @@ impl State {
                         .to_capnp(&mut co.reborrow().get_attributes().unwrap());
                     object.new_attributes.clear();
                 }*/
-                if (object.info.size.is_some()) {
+                if object.info.size.is_some() {
                     co.set_info(&::serde_json::to_string(&object.info).unwrap());
                 }
                 object.spec.id.to_capnp(&mut co.get_id().unwrap());

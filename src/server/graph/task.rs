@@ -2,9 +2,7 @@ use futures::unsync::oneshot;
 use std::fmt;
 
 use super::{DataObjectRef, DataObjectState, GovernorRef, SessionRef};
-use common::convert::ToCapnp;
 use common::id::{SId, TaskId};
-use common::resources::Resources;
 use common::wrapped::WrappedRcRefCell;
 use common::{ConsistencyCheck, FinishHook, RcSet};
 use common::attributes::{TaskSpec, TaskInfo};

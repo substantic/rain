@@ -4,6 +4,7 @@ pub struct Resources {
 }
 
 impl Resources {
+
     #[inline]
     pub fn cpus(&self) -> u32 {
         self.cpus

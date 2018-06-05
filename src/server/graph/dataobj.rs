@@ -2,8 +2,6 @@ use futures::unsync::oneshot;
 use std::fmt;
 
 use super::{GovernorRef, SessionRef, TaskRef, TaskState};
-use common::DataType;
-use common::convert::ToCapnp;
 use common::id::{DataObjectId, SId};
 use common::wrapped::WrappedRcRefCell;
 use common::{ObjectSpec, ObjectInfo};

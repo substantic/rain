@@ -2,7 +2,7 @@ use capnp::capability::Promise;
 use chrono::TimeZone;
 use common::convert::FromCapnp;
 use common::id::{DataObjectId, TaskId};
-use common::{TaskSpec, ObjectSpec, TaskInfo, ObjectInfo};
+use common::{TaskInfo, ObjectInfo};
 use governor_capnp::governor_upstream;
 use server::graph::{Governor, GovernorRef};
 use server::state::StateRef;

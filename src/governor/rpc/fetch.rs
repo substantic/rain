@@ -1,10 +1,8 @@
 use std::rc::Rc;
 
-use common::DataType;
 use common::convert::FromCapnp;
 use common::convert::ToCapnp;
-use common::id::{DataObjectId, GovernorId};
-use common::{ObjectInfo};
+use common::id::{GovernorId};
 use errors::{Error, ErrorKind};
 use futures::{future, Future};
 use governor::{StateRef};

@@ -1,4 +1,4 @@
-use common::{TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
+use common::{TaskSpec, TaskInfo, ObjectSpec};
 use common::id::{DataObjectId, ExecutorId, TaskId};
 use serde_bytes;
 use std::path::PathBuf;

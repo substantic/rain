@@ -2,7 +2,6 @@ use common::id::{TaskId, DataObjectId};
 use common::DataType;
 use common::Resources;
 use errors::Result;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::error::Error;
 
