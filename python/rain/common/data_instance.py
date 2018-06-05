@@ -1,4 +1,3 @@
-
 import os
 import tarfile
 import io
@@ -7,11 +6,10 @@ import shutil
 from .attributes import attributes_from_capnp
 from .attributes import attributes_to_capnp
 from .content_type import decode_value, merge_content_types
-from .errors import RainException
 from .utils import format_size
-from .ids import id_to_capnp, ID
+from .ids import id_to_capnp
 from .fs import fresh_copy_dir
-from .datatype import DataType
+from . import RainException, DataType, ID
 
 
 class DataInstance:

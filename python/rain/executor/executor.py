@@ -9,11 +9,10 @@ import collections
 import traceback
 
 from ..common.fs import remove_dir_content
-from ..common import DataInstance, RainException
+from ..common import DataInstance, RainException, DataType
 from ..common.content_type import merge_content_types
 from ..common.comm import SocketWrapper
 from .context import Context
-from ..common.datatype import DataType
 
 
 EXECUTOR_PROTOCOL = "cbor-1"

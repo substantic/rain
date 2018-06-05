@@ -1,9 +1,7 @@
-from .errors import RainException
-from .ids import ID
-from .utils import short_str
-from .datatype import DataType
-
 import re
+
+from .utils import short_str
+from .. import DataType, RainException, ID
 
 
 class AttributeBase:
@@ -39,10 +37,10 @@ class AttributeBase:
     def _from_json(cls, data):
         s = cls()
         for n, v in data.items():
-            nc = cls._camelize(n)
-            if nc not in cls._ATTRS:
+            #nc = cls._camelize(n)
+            if n not in cls._ATTRS:
                 raise AttributeError("Unknown attribute {} for {}".format(n, cls))
-            fj = cls._ATTRS[nc][0] or (lambda x: x)
+            fj = cls._ATTRS[n][0] or (lambda x: x)
             try:
                 val = fj(v)
             except (TypeError, ValueError) as e:
@@ -57,9 +55,9 @@ class AttributeBase:
         for n, ftj in self._ATTRS.items():
             val = self.__getattribute__(n)
             if val:
-                nc = self._camelize(n) if camelize else n
+                #nc = self._camelize(n) if camelize else n
                 try:
-                    r[nc] = (ftj[1] or (lambda x: x))(val)
+                    r[n] = (ftj[1] or (lambda x: x))(val)
                 except (TypeError, ValueError) as e:
                     raise RainException(
                         "Can't convert {} attribute {} from value {:r} of type {}".format(
@@ -124,7 +122,7 @@ class TaskInfo(AttributeBase):
     """
     _ATTRS = {
         "error": (str, str, str),
-        "start_time": (str, str, str),  # TODO: time object
+        "start_time": (str, str, str),  # TODO: to/from time object
         "duration": (lambda ms: 0.001 * ms, lambda s: int(s * 1000), lambda: None),
         "governor": (str, str, str),
         "user": (dict, dict, dict),
@@ -140,7 +138,6 @@ class ObjectSpec(AttributeBase):
         label (`str`): Label (role) of this output at the generating task.
         content_type (`str`): Content type name.
         data_type (`str`): Object type, "blob" or "directory".
-        testing (`dict`): Internal testing flags.
         user (`dict` with `str` keys): Arbitrary user json-serializable attributes.
     """
     _ATTRS = {
@@ -148,7 +145,6 @@ class ObjectSpec(AttributeBase):
         "label": (str, str, str),
         "content_type": (str, str, str),
         "data_type": (DataType, lambda x: DataType(x).value, lambda: DataType.BLOB),
-        "testing": (dict, dict, dict), # TODO: remove when not needed
         "user": (dict, dict, dict),
     }
 
