@@ -13,18 +13,16 @@ from .session import get_active_session
 
 class DataObject:
 
-    id = None
-
     # Flag if data object should be kept on server
     _keep = False
 
     # State of object
     # None = Not submitted
-    state = None
+    _state = None
 
     # Value of data object (value can be filled by client if it is constant,
     # or by fetching from server)
-    data = None
+    _data = None
 
     def __init__(self, label=None, session=None, data_type=DataType.BLOB, content_type=None):
         assert isinstance(data_type, DataType)
@@ -43,6 +41,11 @@ class DataObject:
     def id(self):
         """Getter for object ID."""
         return self._spec.id
+
+    @property
+    def state(self):
+        """Getter for object state."""
+        return self._state
 
     @property
     def content_type(self):
@@ -67,7 +70,7 @@ class DataObject:
 
     def unkeep(self):
         """Remove data object from the server"""
-        self.session.unkeep((self,))
+        self._session.unkeep((self,))
 
     def keep(self):
         """Set flag that is object should be kept on the server"""
@@ -79,18 +82,18 @@ class DataObject:
         """Returns the value of self._keep"""
         return self._keep
 
-    def to_capnp(self, out):
+    def _to_capnp(self, out):
         out.spec = json.dumps(self._spec._to_json())
         out.keep = self._keep
 
-        if self.data is not None:
-            out.data = self.data
+        if self._data is not None:
+            out.data = self._data
             out.hasData = True
         else:
             out.hasData = False
 
     def wait(self):
-        self.session.wait((self,))
+        self._session.wait((self,))
 
     def fetch(self):
         """
@@ -99,15 +102,15 @@ class DataObject:
         Returns:
             DataInstance
         """
-        return self.session.fetch(self)
+        return self._session.fetch(self)
 
     def update(self):
-        self.session.update((self,))
+        self._session.update((self,))
 
     def __del__(self):
         if self.state is not None and self._keep:
             try:
-                self.session.client._unkeep((self,))
+                self._session.client._unkeep((self,))
             except capnp.lib.capnp.KjException:
                 # Ignore capnp exception, since this constructor may be
                 # called when connection is closed
@@ -156,7 +159,7 @@ def blob(value, label="const", content_type=None, encode=None):
             raise RainException("content_type only allowed for `bytes`")
 
     if encode is None and isinstance(value, str):
-        encode = "text:utf-8"
+        encode = "text"
         if content_type is not None:
             raise RainException("content_type not allowed for `str`, use `encode=...`")
 
@@ -170,7 +173,7 @@ def blob(value, label="const", content_type=None, encode=None):
             "Invalid blob type (only str or bytes are allowed without `encode`)")
 
     dataobj = DataObject(label, content_type=content_type)
-    dataobj.data = value
+    dataobj._data = value
     return dataobj
 
 
@@ -191,7 +194,7 @@ def directory(path=None, label="const_dir"):
     tf.close()
     data = f.getvalue()
     dataobj = DataObject(label, data_type=DataType.DIRECTORY)
-    dataobj.data = data
+    dataobj._data = data
     return dataobj
 
 

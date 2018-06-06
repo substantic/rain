@@ -8,7 +8,8 @@ def test_sleep1(test_env):
     """Sleep followed by wait"""
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.sleep(0.3, blob("abc123456"))
+        b = blob("abc123456")
+        t1 = tasks.Sleep(b, 0.3)
         t1.output.keep()
         s.submit()
         test_env.assert_duration(0.2, 0.4, lambda: t1.wait())
@@ -21,7 +22,7 @@ def test_sleep2(test_env):
     """Sleep followed by fetch (without explicit wait)"""
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.sleep(0.3, blob("abc123456"))
+        t1 = tasks.Sleep(blob("abc123456"), 0.3)
         t1.output.keep()
         s.submit()
         result = test_env.assert_duration(0.028, 0.45,
@@ -33,7 +34,7 @@ def test_concat1(test_env):
     """Merge several short blobs"""
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.concat([blob(x)
+        t1 = tasks.Concat([blob(x)
                            for x in ("Hello ", "", "", "world", "!", "")])
         t1.output.keep()
         s.submit()
@@ -44,7 +45,7 @@ def test_concat2(test_env):
     """Merge empty list of blobs"""
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.concat(())
+        t1 = tasks.Concat(())
         t1.output.keep()
         s.submit()
         assert t1.output.fetch().get_bytes() == b""
@@ -56,9 +57,9 @@ def test_concat3(test_env):
     a = b"a123456789" * 1024 * 1024
     b = b"b43" * 2500000
     c = b"c" * 1000
-    d = b"x"
+    d = b"d"
     with test_env.client.new_session() as s:
-        t1 = tasks.concat((blob(a), blob(c), blob(d), blob(b), blob(c), blob(a)))
+        t1 = tasks.Concat((blob(a), blob(c), blob(d), blob(b), blob(c), blob(a)))
         t1.output.keep()
         s.submit()
         assert t1.output.fetch().get_bytes() == a + c + d + b + c + a
@@ -67,11 +68,11 @@ def test_concat3(test_env):
 def test_chain_concat(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.concat((blob("a"), blob("b")))
-        t2 = tasks.concat((t1, blob("c")))
-        t3 = tasks.concat((t2, blob("d")))
-        t4 = tasks.concat((t3, blob("e")))
-        t5 = tasks.concat((t4, blob("f")))
+        t1 = tasks.Concat((blob("a"), blob("b")))
+        t2 = tasks.Concat((t1, blob("c")))
+        t3 = tasks.Concat((t2, blob("d")))
+        t4 = tasks.Concat((t3, blob("e")))
+        t5 = tasks.Concat((t4, blob("f")))
         t5.output.keep()
         s.submit()
         assert t5.output.fetch().get_bytes() == b"abcdef"
@@ -80,9 +81,9 @@ def test_chain_concat(test_env):
 def test_sleep3_last(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.sleep(0.2, blob("b"))
-        t2 = tasks.sleep(0.2, t1)
-        t3 = tasks.sleep(0.2, t2)
+        t1 = tasks.Sleep(0.2, blob("b"))
+        t2 = tasks.Sleep(0.2, t1)
+        t3 = tasks.Sleep(0.2, t2)
         s.submit()
         test_env.assert_duration(0.4, 0.8, lambda: t3.wait())
 
@@ -90,7 +91,7 @@ def test_sleep3_last(test_env):
 def test_task_open_not_absolute(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.open("not/absolute/path")
+        t1 = tasks.Open("not/absolute/path")
         s.submit()
         pytest.raises(TaskException, lambda: t1.wait())
 
@@ -98,7 +99,7 @@ def test_task_open_not_absolute(test_env):
 def test_task_open_not_exists(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.open("/not/exists")
+        t1 = tasks.Open("/not/exists")
         s.submit()
         pytest.raises(TaskException, lambda: t1.wait())
 
@@ -110,7 +111,7 @@ def test_task_open_ok(test_env):
         content = f.read()
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.open(path)
+        t1 = tasks.Open(path)
         t1.output.keep()
         s.submit()
         assert t1.output.fetch().get_bytes() == content
@@ -124,8 +125,8 @@ def test_task_export(test_env):
     with test_env.client.new_session() as s:
         a = blob("Hello ")
         b = blob("World!")
-        tasks.export(tasks.concat((a, b)), test1)
-        tasks.export(tasks.execute("ls /", stdout="output"), test2)
+        tasks.Export(tasks.Concat((a, b)), test1)
+        tasks.Export(tasks.Execute("ls /", stdout="output"), test2)
         s.submit()
         s.wait_all()
         with open(test1) as f:
@@ -146,13 +147,13 @@ def test_slice_directory1(test_env):
     test_env.start(1, delete_list_timeout=0)
     with test_env.client.new_session() as s:
         d = directory("toplevel")
-        a1 = tasks.slice_directory(d, "file1.txt")
+        a1 = tasks.SliceDirectory(d, "file1.txt")
         a1.output.keep()
-        a2 = tasks.slice_directory(d, "dir1/")
+        a2 = tasks.SliceDirectory(d, "dir1/")
         a2.output.keep()
-        a3 = tasks.slice_directory(d, "dir1/")
+        a3 = tasks.SliceDirectory(d, "dir1/")
         a3.output.keep()
-        a4 = tasks.slice_directory(d, "dir1/dir2/file2.txt")
+        a4 = tasks.SliceDirectory(d, "dir1/dir2/file2.txt")
         a4.output.keep()
         s.submit()
         assert b"My data 1" == a1.output.fetch().get_bytes()
@@ -181,13 +182,13 @@ def test_slice_directory2(test_env):
         d = tasks.execute("ls",
                           input_paths=[InputDir("d", dataobj=d)],
                           output_paths=[OutputDir("d")])
-        a1 = tasks.slice_directory(d, "file1.txt")
+        a1 = tasks.SliceDirectory(d, "file1.txt")
         a1.output.keep()
-        a2 = tasks.slice_directory(d, "dir1/")
+        a2 = tasks.SliceDirectory(d, "dir1/")
         a2.output.keep()
-        a3 = tasks.slice_directory(d, "dir1/")
+        a3 = tasks.SliceDirectory(d, "dir1/")
         a3.output.keep()
-        a4 = tasks.slice_directory(d, "dir1/dir2/file2.txt")
+        a4 = tasks.SliceDirectory(d, "dir1/dir2/file2.txt")
         a4.output.keep()
         s.submit()
         assert b"My data 1" == a1.output.fetch().get_bytes()
@@ -215,12 +216,12 @@ def test_make_directory(test_env):
         d1 = directory("mydir3")
         #  TODO: EMPTY DIR d2 = directory("empty")
 
-        t0 = tasks.execute(
+        t0 = tasks.Execute(
             ["/bin/cat", b1],
             stdout=True,
             input_paths=[InputDir("d1", dataobj=d1)],
             output_paths=[OutputDir("d1")])
-        r = tasks.make_directory([
+        r = tasks.MakeDirectory([
             ("myfile1", t0.outputs["stdout"]),
             ("mydir/mydir2/myfile2", b2),
             ("mydir/myfile3", b3),

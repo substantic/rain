@@ -191,10 +191,10 @@ class Session:
         self.client._wait(tasks, dataobjs)
 
         for task in tasks:
-            task.state = rpc.common.TaskState.finished
+            task._state = rpc.common.TaskState.finished
 
         for dataobj in dataobjs:
-            dataobj.state = rpc.common.DataObjectState.finished
+            dataobj._state = rpc.common.DataObjectState.finished
 
     def wait_some(self, items):
         """Wait until *some* of specified tasks/dataobjects are finished.
@@ -206,10 +206,10 @@ class Session:
             tasks, dataobjs)
 
         for task in finished_tasks:
-            task.state = rpc.common.TaskState.finished
+            task._state = rpc.common.TaskState.finished
 
         for dataobj in finished_dataobjs:
-            dataobj.state = rpc.common.DataObjectState.finished
+            dataobj._state = rpc.common.DataObjectState.finished
 
         return finished_tasks, finished_dataobjs
 
@@ -218,10 +218,10 @@ class Session:
         self.client._wait_all(self)
 
         for task in self._submitted_tasks:
-            task.state = rpc.common.TaskState.finished
+            task._state = rpc.common.TaskState.finished
 
         for dataobj in self._submitted_dataobjs:
-            dataobj.state = rpc.common.DataObjectState.finished
+            dataobj._state = rpc.common.DataObjectState.finished
 
     def fetch(self, dataobject):
         """Wait for the object to finish, update its state and

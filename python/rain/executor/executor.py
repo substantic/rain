@@ -126,8 +126,8 @@ class Executor:
         self.socket.send_message(["register",
                                   {
                                     "protocol": EXECUTOR_PROTOCOL,
-                                    "executorId": executor_id,
-                                    "executorType": "py"
+                                    "executor_id": executor_id,
+                                    "executor_type": "py"
                                   }])
 
     def run(self):
@@ -171,7 +171,7 @@ class Executor:
                 "attributes": store_attributes(task_context.attributes),
                 "outputs": [store_result(data, output.id)
                             for data, output in zip(task_results, outputs)],
-                "cachedObjects": [inputs[0]._object_id],
+                "cached_objects": [inputs[0]._object_id],
             }])
 
         except Exception:

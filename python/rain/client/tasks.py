@@ -14,7 +14,7 @@ class Concat(Task):
     """
     TASK_TYPE = "!concat"
 
-    def __init__(self, *inputs, session=None):
+    def __init__(self, inputs, session=None):
         super().__init__(inputs, 1, session=session)
 
 

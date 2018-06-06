@@ -101,7 +101,8 @@ class Client:
     def _submit(self, tasks, dataobjs):
         req = self._service.submit_request()
 
-        # Serialize tasks
+        # Serialize tasks        print(tasks, dataobjs)
+
         req.init("tasks", len(tasks))
         for i in range(len(tasks)):
             req.tasks[i].spec = json.dumps(tasks[i].spec._to_json())
@@ -109,7 +110,7 @@ class Client:
         # Serialize objects
         req.init("objects", len(dataobjs))
         for i in range(len(dataobjs)):
-            dataobjs[i].to_capnp(req.objects[i])
+            dataobjs[i]._to_capnp(req.objects[i])
 
         req.send().wait()
 
@@ -127,11 +128,13 @@ class Client:
         id_to_capnp(dataobj.id, req.id)
         req.offset = 0
         req.size = FETCH_SIZE
-        req.includeMetadata = True
+        req.includeInfo = True
         result = req.send().wait()
-        check_result((dataobj.session,), result.status)
+        check_result((dataobj._session,), result.status)
 
-        size = result.metadata.size
+        dataobj._info = ObjectInfo._from_json(json.loads(result.info))
+
+        size = dataobj._info.size
         offset = len(result.data)
         data = [result.data]
 
@@ -140,19 +143,16 @@ class Client:
             id_to_capnp(dataobj.id, req.id)
             req.offset = offset
             req.size = FETCH_SIZE
-            req.includeMetadata = False
+            req.includeInfo = False
             r = req.send().wait()
-            check_result((dataobj.session,), r.status)
+            check_result((dataobj._session,), r.status)
             data.append(r.data)
             offset += len(r.data)
-
         rawdata = b"".join(data)
-
-        dataobj._info = ObjectInfo._from_json(result.info)
 
         return DataInstance(data=rawdata,
                             data_object=dataobj,
-                            data_type=DataType.from_capnp(result.metadata.dataType))
+                            data_type=dataobj.spec.data_type)
 
     def _wait(self, tasks, dataobjs):
         req = self._service.wait_request()
@@ -216,7 +216,7 @@ class Client:
             id_to_capnp(dataobjs[i].id, req.objectIds[i])
 
         result = req.send().wait()
-        check_result([o.session for o in dataobjs], result)
+        check_result([o._session for o in dataobjs], result)
 
     def update(self, items):
         tasks, dataobjects = split_items(items)
@@ -228,14 +228,14 @@ class Client:
         req.init("taskIds", len(tasks))
         for i in range(len(tasks)):
             id_to_capnp(tasks[i].id, req.taskIds[i])
-            sessions.append(tasks[i].session)
+            sessions.append(tasks[i]._session)
 
         dataobjs_dict = {}
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
             dataobjs_dict[dataobjs[i].id.id] = dataobjs[i]
             id_to_capnp(dataobjs[i].id, req.objectIds[i])
-            sessions.append(dataobjs[i].session)
+            sessions.append(dataobjs[i]._session)
 
         results = req.send().wait()
         check_result(sessions, results.state)
