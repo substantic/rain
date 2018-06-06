@@ -3,6 +3,7 @@ from .data import to_data
 from .input import Input, InputBase
 from .output import Output, OutputBase, OutputDir
 from .data import DataObject
+from ..common.data_type import DataType
 from ..common.utils import short_str
 
 import shlex
@@ -33,7 +34,10 @@ class Sleep(Task):
 
     def __init__(self, input, timeout, *, session=None, cpus=1):
         time_ms = int(timeout * 1000)
-        output = input.__class__("output") # Todo: pass through types
+        otype = Output if input.spec.data_type == DataType.BLOB else OutputDir
+        if isinstance(input, Task):
+            input = input.output
+        output = otype(content_type=input.content_type) # , size_hint=input.spec.size_hint) TODO: Add size_hint
         super().__init__((input,), (output,), config=time_ms, cpus=cpus, session=session)
 
 
@@ -48,7 +52,7 @@ class Load(Task):
             output = Output()
         output.expect_blob()
 
-        super().__init__(0, (output,), config={"path": path}, session=session)
+        super().__init__([], (output,), config={"path": path}, session=session)
 
 
 class LoadDir(Task):
@@ -64,7 +68,7 @@ class LoadDir(Task):
             output = OutputDir()
         output.expect_dir()
 
-        super().__init__(0, OutputDir(), config={"path": path}, session=session)
+        super().__init__([], OutputDir(), config={"path": path}, session=session)
 
 
 class Store(Task):

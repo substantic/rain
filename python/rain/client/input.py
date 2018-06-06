@@ -31,10 +31,10 @@ class InputBase:
         self.path = path
         if dataobj is not None:
             dataobj = to_data(dataobj)
-            if dataobj.data_type != self.data_type:
+            if dataobj.spec.data_type != self.data_type:
                 raise Exception(
                     "Input exects data type {}, but provided data object has type {}"
-                    .format(self.data_type, dataobj.data_type))
+                    .format(self.data_type, dataobj.spec.data_type))
             self.dataobj = dataobj
         self.load = load
         self.content_type = content_type
@@ -51,12 +51,12 @@ class InputBase:
     @classmethod
     def _for_data_object(cls, do):
         assert isinstance(do, DataObject)
-        if do.data_type == DataType.BLOB:
+        if do.spec.data_type == DataType.BLOB:
             c = Input
         else:
-            assert do.data_type == DataType.DIRECTORY
+            assert do.spec.data_type == DataType.DIRECTORY
             c = InputDir
-        return c(label=do.label, dataobj=do, content_type=do.content_type)
+        return c(label=do.spec.label, dataobj=do, content_type=do.content_type)
 
     @classmethod
     def _for_program(cls, inp, label=None, execute=False, label_as_path=False):

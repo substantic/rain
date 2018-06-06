@@ -45,7 +45,7 @@ def check_result(sessions, result):
         message.append("Message: " + result.error.message)
 
         if task:
-            message.append("Task created at:\n" + task.stack)
+            message.append("Task created at:\n" + task._stack)
 
         if result.error.debug:
             message.append("Debug:\n" + result.error.debug)
