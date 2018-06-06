@@ -103,7 +103,7 @@ class MakeDirectory(Task):
         except (TypeError, ValueError) as e:
             raise TypeError("MakeDirectory needs an iterable of pairs `(path, obj)` or a dictionary `{path: obj}`") from e
 
-        super().__init__(inputs, 1, config={"paths": paths}, session=session)
+        super().__init__(inputs, outputs=(OutputDir(),), config={"paths": paths}, session=session)
 
 
 class SliceDirectory(Task):
@@ -113,7 +113,7 @@ class SliceDirectory(Task):
         input (`DataObject`): A directory object to slice.
         path (`[str]`): An iterable of paths. If the path ends with a slash `'/'`, the output
             is a directory object, otherwise a file object is creates.
-        output (`Output` or `OutputDir`): An optional output specification.        
+        output (`Output` or `OutputDir`): An optional output specification.
     """
     TASK_TYPE = "!slice_directory"
 
