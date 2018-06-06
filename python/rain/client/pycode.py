@@ -1,17 +1,17 @@
-import inspect
-import contextlib
-import time
 import base64
-import cloudpickle
+import contextlib
+import inspect
+import time
 from collections import OrderedDict
 
-from .task import Task
-from .data import blob
-from .session import get_active_session
+import cloudpickle
+
 from ..common import RainException, RainWarning
+from .data import blob
 from .input import Input
 from .output import OutputSpec
-
+from .session import get_active_session
+from .task import Task
 
 PICKLE_ARG_SIZE_LIMIT = 256 * 1024
 PICKLE_ARG_TIME_LIMIT = 1.0
@@ -178,7 +178,7 @@ class Remote:
         task_config = {
             'args': pickled_args,
             'kwargs': pickled_kwargs,
-            'encode_outputs': [o.attributes['spec'].get('encode') for o in output_objs]
+            'encode_outputs': self.outputs.encode,
         }
 
-        return Task("py/", task_config, input_objs, output_objs, cpus=self.cpus)
+        return Task(input_objs, output_objs, task_type="py/", config=task_config, cpus=self.cpus)

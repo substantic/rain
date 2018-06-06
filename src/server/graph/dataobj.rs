@@ -267,11 +267,10 @@ impl ConsistencyCheck for DataObjectRef {
             bail!("state inconsistency in {:?}", s);
         }
         // data consistency
-        if let Some(_) = s.data {
-            if s.info.size.is_none()
-            /*|| dr.len() != s.size.unwrap()*/
-            {
-                bail!("size and uploaded data mismatch in {:?}", s);
+        if let Some(ref d) = s.data {
+            let size = s.info.size;
+            if size != Some(d.len()) {
+                bail!("Info size and data len mismatch in {:?} ({:?} vs {:?})", s, size, Some(d.len()));
             }
         }
         // finish hooks

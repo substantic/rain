@@ -9,11 +9,10 @@ import collections
 import traceback
 
 from ..common.fs import remove_dir_content
-from ..common import DataInstance, RainException
+from ..common import DataInstance, RainException, DataType
 from ..common.content_type import merge_content_types
 from ..common.comm import SocketWrapper
 from .context import Context
-from ..common.datatype import DataType
 
 
 EXECUTOR_PROTOCOL = "cbor-1"
@@ -127,8 +126,8 @@ class Executor:
         self.socket.send_message(["register",
                                   {
                                     "protocol": EXECUTOR_PROTOCOL,
-                                    "executorId": executor_id,
-                                    "executorType": "py"
+                                    "executor_id": executor_id,
+                                    "executor_type": "py"
                                   }])
 
     def run(self):
@@ -140,7 +139,7 @@ class Executor:
         task_context = Context(self, tuple(data["task"]))
 
         try:
-            task_context.attributes = load_attributes(data["attributes"])
+            task_context.spec = data["spec"]
             cfg = task_context.attributes["config"]
 
             inputs = []
@@ -172,7 +171,7 @@ class Executor:
                 "attributes": store_attributes(task_context.attributes),
                 "outputs": [store_result(data, output.id)
                             for data, output in zip(task_results, outputs)],
-                "cachedObjects": [inputs[0]._object_id],
+                "cached_objects": [inputs[0]._object_id],
             }])
 
         except Exception:

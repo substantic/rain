@@ -137,7 +137,7 @@ class Session:
 
         Returns:
             ID: the assigned id."""
-        assert task.session == self and task.id is None
+        assert task._session == self and task.id is None
         self._tasks.append(task)
         self._id_counter += 1
         return ID(session_id=self.session_id, id=self._id_counter)
@@ -147,7 +147,7 @@ class Session:
 
         Returns:
             ID: the assigned id."""
-        assert dataobj.session == self and dataobj.id is None
+        assert dataobj._session == self and dataobj.id is None
         self._dataobjs.append(dataobj)
         self._id_counter += 1
         return ID(session_id=self.session_id, id=self._id_counter)
@@ -161,10 +161,10 @@ class Session:
         """"Submit all unsubmitted objects."""
         self.client._submit(self._tasks, self._dataobjs)
         for task in self._tasks:
-            task.state = rpc.common.TaskState.notAssigned
+            task._state = rpc.common.TaskState.notAssigned
             self._submitted_tasks.append(task)
         for dataobj in self._dataobjs:
-            dataobj.state = rpc.common.DataObjectState.unfinished
+            dataobj._state = rpc.common.DataObjectState.unfinished
             self._submitted_dataobjs.append(dataobj)
         self._tasks = []
         self._dataobjs = []
@@ -191,10 +191,10 @@ class Session:
         self.client._wait(tasks, dataobjs)
 
         for task in tasks:
-            task.state = rpc.common.TaskState.finished
+            task._state = rpc.common.TaskState.finished
 
         for dataobj in dataobjs:
-            dataobj.state = rpc.common.DataObjectState.finished
+            dataobj._state = rpc.common.DataObjectState.finished
 
     def wait_some(self, items):
         """Wait until *some* of specified tasks/dataobjects are finished.
@@ -206,10 +206,10 @@ class Session:
             tasks, dataobjs)
 
         for task in finished_tasks:
-            task.state = rpc.common.TaskState.finished
+            task._state = rpc.common.TaskState.finished
 
         for dataobj in finished_dataobjs:
-            dataobj.state = rpc.common.DataObjectState.finished
+            dataobj._state = rpc.common.DataObjectState.finished
 
         return finished_tasks, finished_dataobjs
 
@@ -218,10 +218,10 @@ class Session:
         self.client._wait_all(self)
 
         for task in self._submitted_tasks:
-            task.state = rpc.common.TaskState.finished
+            task._state = rpc.common.TaskState.finished
 
         for dataobj in self._submitted_dataobjs:
-            dataobj.state = rpc.common.DataObjectState.finished
+            dataobj._state = rpc.common.DataObjectState.finished
 
     def fetch(self, dataobject):
         """Wait for the object to finish, update its state and

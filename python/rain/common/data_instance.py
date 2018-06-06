@@ -1,17 +1,15 @@
-
-import os
-import tarfile
 import io
+import os
 import shutil
+import tarfile
 
-from .attributes import attributes_from_capnp
-from .attributes import attributes_to_capnp
 from .content_type import decode_value, merge_content_types
+from .data_type import DataType
 from .errors import RainException
-from .utils import format_size
-from .ids import id_to_capnp, ID
 from .fs import fresh_copy_dir
-from .datatype import DataType
+from .ids import ID, id_to_capnp
+from .utils import format_size
+from .attributes import ObjectInfo, ObjectSpec
 
 
 class DataInstance:
@@ -43,8 +41,8 @@ class DataInstance:
 
     # The same semantics as parent DO attributes
     # (whether parent is present or not)
-    # Will always at least contain "config" and "content_type" under "config".
-    attributes = {}
+    _info = None
+    _spec = None
 
     def __init__(self,
                  data_type,
@@ -53,7 +51,8 @@ class DataInstance:
                  path=None,
                  data_object=None,
                  content_type=None,
-                 attributes=None,
+                 info=None,
+                 spec=None,
                  object_id=None):
         if (path is None) == (data is None):
             raise RainException("provide either `data` or `path`")
@@ -68,20 +67,18 @@ class DataInstance:
 
         if data_object is not None:
             # At client
-            assert attributes is None
+            assert info is None
+            assert spec is None
             assert object_id is None
             assert content_type is None
             self._data_object = data_object
-            self.attributes = data_object.attributes
             self._object_id = data_object.id
-            assert "spec" in self.attributes
-            self.attributes.setdefault("info", {})
         else:
             # At executor
+            assert spec is not None
             self._object_id = object_id
-            self.attributes = attributes if attributes is not None else {}
-            self.attributes.setdefault("spec", {})
-            self.attributes.setdefault("info", {})
+            self._info = info
+            self._spec = spec
             if content_type is not None:
                 self.attributes["info"]["content_type"] = \
                     merge_content_types(content_type,
@@ -89,9 +86,22 @@ class DataInstance:
         assert isinstance(self._object_id, ID) or self._object_id is None
 
     @property
+    def info(self):
+        if self._data_object:
+            return self._data_object._info
+        return self._info
+
+    @property
+    def spec(self):
+        if self._data_object:
+            return self._data_object._spec
+        return self._spec
+
+    @property
     def content_type(self):
-        return self.attributes["info"].get("content_type",
-                                           self.attributes["spec"].get("content_type"))
+        if self.info:
+            return self.info.content_type
+        return self.spec.content_type
 
     def load(self, cache=False):
         """
@@ -152,34 +162,34 @@ class DataInstance:
                 f = tarfile.open(fileobj=io.BytesIO(self._data))
                 f.extractall(path)
 
-    def _to_capnp(self, builder):
-        "Internal serializer."
-        if self._object_id:
-            builder.storage.init("inGovernor")
-            id_to_capnp(self._object_id, builder.storage.inGovernor)
-        elif self._path:
-            builder.storage.path = self._path
-        else:
-            builder.storage.memory = self._data
-        attributes_to_capnp(self.attributes, builder.attributes)
+    # def _to_capnp(self, builder):
+    #     "Internal serializer."
+    #     if self._object_id:
+    #         builder.storage.init("inGovernor")
+    #         id_to_capnp(self._object_id, builder.storage.inGovernor)
+    #     elif self._path:
+    #         builder.storage.path = self._path
+    #     else:
+    #         builder.storage.memory = self._data
+    #     attributes_to_capnp(self.attributes, builder.attributes)
 
-    @classmethod
-    def _from_capnp(cls, reader):
-        "Internal deserializer."
-        which = reader.storage.which()
-        data = None
-        path = None
-        if which == "memory":
-            data = reader.storage.memory
-        elif which == "path":
-            path = reader.storage.path
-        else:
-            raise Exception("Invalid storage type")
-        attributes = attributes_from_capnp(reader.attributes)
-        return cls(data=data,
-                   path=path,
-                   attributes=attributes,
-                   data_type=DataType.from_capnp(reader.dataType))
+    # @classmethod
+    # def _from_capnp(cls, reader):
+    #     "Internal deserializer user ."
+    #     which = reader.storage.which()
+    #     data = None
+    #     path = None
+    #     if which == "memory":
+    #         data = reader.storage.memory
+    #     elif which == "path":
+    #         path = reader.storage.path
+    #     else:
+    #         raise Exception("Invalid storage type")
+    #     attributes = attributes_from_capnp(reader.attributes)
+    #     return cls(data=data,
+    #                path=path,
+    #                attributes=attributes,
+    #                data_type=DataType.from_capnp(reader.dataType))
 
     def __repr__(self):
         if self._data:

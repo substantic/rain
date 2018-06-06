@@ -1,45 +1,68 @@
-import capnp
-import tarfile
 import io
+import json
+import tarfile
 
+import capnp
+
+from ..common import ID, DataType, RainException, ids
+from ..common.attributes import ObjectInfo, ObjectSpec
+from ..common.content_type import (check_content_type, encode_value,
+                                   merge_content_types)
 from .session import get_active_session
-from ..common import RainException, ids, ID
-from ..common.attributes import attributes_to_capnp
-from ..common.content_type import check_content_type, encode_value
-from ..common import DataType
 
 
 class DataObject:
-
-    id = None
 
     # Flag if data object should be kept on server
     _keep = False
 
     # State of object
     # None = Not submitted
-    state = None
+    _state = None
 
     # Value of data object (value can be filled by client if it is constant,
     # or by fetching from server)
-    data = None
+    _data = None
 
     def __init__(self, label=None, session=None, data_type=DataType.BLOB, content_type=None):
         assert isinstance(data_type, DataType)
         if session is None:
             session = get_active_session()
-        self.session = session
-        self.label = label
-        self.id = session._register_dataobj(self)
+        self._session = session
+        self._spec = ObjectSpec()
+        self._info = None
+        self._spec.label = label
+        self._spec.id = session._register_dataobj(self)
         assert isinstance(self.id, ID)
-        self.attributes = {
-            "spec": {"content_type": content_type}
-        }
-        self.data_type = data_type
+        self._spec.content_type = content_type
+        self._spec.data_type = data_type
+
+    @property
+    def id(self):
+        """Getter for object ID."""
+        return self._spec.id
+
+    @property
+    def state(self):
+        """Getter for object state."""
+        return self._state
 
     @property
     def content_type(self):
-        return self.attributes["spec"]["content_type"]
+        """Final content type (if known and present) or just the spec content_type."""
+        if self._info:
+            return merge_content_types(self._spec.content_type, self._info.content_type)
+        return self._spec.content_type
+
+    @property
+    def spec(self):
+        """Getter for object specification. Read only!"""
+        return self._spec
+
+    @property
+    def info(self):
+        """Getter for object information. Read only in client! In remote tasks only `user` is writable."""
+        return self._info
 
     def _free(self):
         """Set flag that object is not available on the server """
@@ -47,34 +70,30 @@ class DataObject:
 
     def unkeep(self):
         """Remove data object from the server"""
-        self.session.unkeep((self,))
+        self._session.unkeep((self,))
 
     def keep(self):
         """Set flag that is object should be kept on the server"""
         if self.state is not None:
-            raise RainException("Cannot keep submitted task")
+            raise RainException("cannot keep submitted data object {!r}".format(self))
         self._keep = True
 
     def is_kept(self):
         """Returns the value of self._keep"""
         return self._keep
 
-    def to_capnp(self, out):
-        ids.id_to_capnp(self.id, out.id)
+    def _to_capnp(self, out):
+        out.spec = json.dumps(self._spec._to_json())
         out.keep = self._keep
-        if self.label:
-            out.label = self.label
 
-        out.dataType = self.data_type.to_capnp()
-        if self.data is not None:
-            out.data = self.data
+        if self._data is not None:
+            out.data = self._data
             out.hasData = True
         else:
             out.hasData = False
-        attributes_to_capnp(self.attributes, out.attributes)
 
     def wait(self):
-        self.session.wait((self,))
+        self._session.wait((self,))
 
     def fetch(self):
         """
@@ -83,15 +102,15 @@ class DataObject:
         Returns:
             DataInstance
         """
-        return self.session.fetch(self)
+        return self._session.fetch(self)
 
     def update(self):
-        self.session.update((self,))
+        self._session.update((self,))
 
     def __del__(self):
         if self.state is not None and self._keep:
             try:
-                self.session.client._unkeep((self,))
+                self._session.client._unkeep((self,))
             except capnp.lib.capnp.KjException:
                 # Ignore capnp exception, since this constructor may be
                 # called when connection is closed
@@ -114,9 +133,14 @@ class DataObject:
                  input_proto.load, input_proto.content_type))
 
     def __repr__(self):
-        t = " [D]" if self.data_type == DataType.DIRECTORY else ""
+        t = " [D]" if self.spec.data_type == DataType.DIRECTORY else ""
         return "<DObj {}{} id={} {}>".format(
-            self.label, t, self.id, self.attributes)
+            self.spec.label, t, self.id, self.spec)
+
+    #def _as_outputclone(self):
+    #    """
+    #    Create a clone sharing the data_type and content_type (for use as an output).
+    #    """
 
 
 def blob(value, label="const", content_type=None, encode=None):
@@ -135,7 +159,7 @@ def blob(value, label="const", content_type=None, encode=None):
             raise RainException("content_type only allowed for `bytes`")
 
     if encode is None and isinstance(value, str):
-        encode = "text:utf-8"
+        encode = "text"
         if content_type is not None:
             raise RainException("content_type not allowed for `str`, use `encode=...`")
 
@@ -149,7 +173,7 @@ def blob(value, label="const", content_type=None, encode=None):
             "Invalid blob type (only str or bytes are allowed without `encode`)")
 
     dataobj = DataObject(label, content_type=content_type)
-    dataobj.data = value
+    dataobj._data = value
     return dataobj
 
 
@@ -170,7 +194,7 @@ def directory(path=None, label="const_dir"):
     tf.close()
     data = f.getvalue()
     dataobj = DataObject(label, data_type=DataType.DIRECTORY)
-    dataobj.data = data
+    dataobj._data = data
     return dataobj
 
 
@@ -194,6 +218,6 @@ def to_data(obj):
             .format(type(obj)))
 
     raise RainException(
-            "Instance of {!r} cannot be used as a data object.\n"
-            "Hint: Wrap it with `pickled` or `blob(encode=...)` to use it as a data object."
-            .format(type(obj)))
+        "Instance of {!r} cannot be used as a data object.\n"
+        "Hint: Wrap it with `pickled` or `blob(encode=...)` to use it as a data object."
+        .format(type(obj)))

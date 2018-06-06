@@ -1,16 +1,18 @@
-from .errors import RainException
-import cloudpickle
 import pickle
+
+import cloudpickle
+
+from .errors import RainException
 
 
 def check_content_type(name):
     if name in [None, "pickle", "json", "dir", "text", "cbor", "arrow",
                 "protobuf", "cloudpickle"]:
         return True
-    if (name.startswith("text:") or
-       name.startswith("user:") or
-       name.startswith("mime:") or
-       name.startswith("protobuf:")):
+    if (name.startswith("text-") or
+       name.startswith("user/") or
+       name.startswith("mime/") or
+       name.startswith("protobuf/")):
         return True
     raise ValueError("Content type {!r} is not recognized".format(name))
 
@@ -74,7 +76,7 @@ def encode_value(val, content_type):
         if content_type == "text":
             enc = "utf-8"
         else:
-            enc = content_type.split(":", maxsplit=1)[1]
+            enc = content_type.split("-", maxsplit=1)[1]
         d = val.encode(enc)
     else:
         raise RainException("Encoding into {!r} unsupported"
@@ -112,7 +114,7 @@ def decode_value(data, content_type):
         if content_type == "text":
             enc = "utf-8"
         else:
-            enc = content_type.split(":", maxsplit=1)[1]
+            enc = content_type.split("-", maxsplit=1)[1]
         return data.decode(enc)
     else:
         raise RainException("Decoding from {!r} unsupported"

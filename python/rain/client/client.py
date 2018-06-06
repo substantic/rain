@@ -1,11 +1,15 @@
 import capnp
-from rain.client import rpc
-from rain.common import RainException, SessionException, TaskException
-from rain.client.task import Task
-from rain.client.data import DataObject
-from ..common import attributes, DataInstance, DataType
-from ..common.ids import id_from_capnp, id_to_capnp, governor_id_from_capnp
+import json
+
+from . import rpc
+from ..common import RainException, SessionException, TaskException
+from ..common.attributes import ObjectInfo, TaskInfo
+from ..common.data_instance import DataInstance
+from ..common.data_type import DataType
+from ..common.ids import governor_id_from_capnp, id_from_capnp, id_to_capnp
+from .data import DataObject
 from .session import Session
+from .task import Task
 
 CLIENT_PROTOCOL_VERSION = 0
 FETCH_SIZE = 8 << 20  # 8MB
@@ -41,7 +45,7 @@ def check_result(sessions, result):
         message.append("Message: " + result.error.message)
 
         if task:
-            message.append("Task created at:\n" + task.stack)
+            message.append("Task created at:\n" + task._stack)
 
         if result.error.debug:
             message.append("Debug:\n" + result.error.debug)
@@ -97,15 +101,16 @@ class Client:
     def _submit(self, tasks, dataobjs):
         req = self._service.submit_request()
 
-        # Serialize tasks
+        # Serialize tasks        print(tasks, dataobjs)
+
         req.init("tasks", len(tasks))
         for i in range(len(tasks)):
-            tasks[i].to_capnp(req.tasks[i])
+            req.tasks[i].spec = json.dumps(tasks[i].spec._to_json())
 
         # Serialize objects
         req.init("objects", len(dataobjs))
         for i in range(len(dataobjs)):
-            dataobjs[i].to_capnp(req.objects[i])
+            dataobjs[i]._to_capnp(req.objects[i])
 
         req.send().wait()
 
@@ -123,11 +128,13 @@ class Client:
         id_to_capnp(dataobj.id, req.id)
         req.offset = 0
         req.size = FETCH_SIZE
-        req.includeMetadata = True
+        req.includeInfo = True
         result = req.send().wait()
-        check_result((dataobj.session,), result.status)
+        check_result((dataobj._session,), result.status)
 
-        size = result.metadata.size
+        dataobj._info = ObjectInfo._from_json(json.loads(result.info))
+
+        size = dataobj._info.size
         offset = len(result.data)
         data = [result.data]
 
@@ -136,20 +143,16 @@ class Client:
             id_to_capnp(dataobj.id, req.id)
             req.offset = offset
             req.size = FETCH_SIZE
-            req.includeMetadata = False
+            req.includeInfo = False
             r = req.send().wait()
-            check_result((dataobj.session,), r.status)
+            check_result((dataobj._session,), r.status)
             data.append(r.data)
             offset += len(r.data)
-
         rawdata = b"".join(data)
-
-        dataobj.attributes.update(attributes.attributes_from_capnp(
-            result.metadata.attributes))
 
         return DataInstance(data=rawdata,
                             data_object=dataobj,
-                            data_type=DataType.from_capnp(result.metadata.dataType))
+                            data_type=dataobj.spec.data_type)
 
     def _wait(self, tasks, dataobjs):
         req = self._service.wait_request()
@@ -161,12 +164,12 @@ class Client:
             if task.state is None:
                 raise RainException("Task {} is not submitted".format(task))
             id_to_capnp(task.id, req.taskIds[i])
-            sessions.append(task.session)
+            sessions.append(task._session)
 
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
             id_to_capnp(dataobjs[i].id, req.objectIds[i])
-            sessions.append(dataobjs[i].session)
+            sessions.append(dataobjs[i]._session)
 
         result = req.send().wait()
         check_result(sessions, result)
@@ -213,7 +216,7 @@ class Client:
             id_to_capnp(dataobjs[i].id, req.objectIds[i])
 
         result = req.send().wait()
-        check_result([o.session for o in dataobjs], result)
+        check_result([o._session for o in dataobjs], result)
 
     def update(self, items):
         tasks, dataobjects = split_items(items)
@@ -225,30 +228,26 @@ class Client:
         req.init("taskIds", len(tasks))
         for i in range(len(tasks)):
             id_to_capnp(tasks[i].id, req.taskIds[i])
-            sessions.append(tasks[i].session)
+            sessions.append(tasks[i]._session)
 
         dataobjs_dict = {}
         req.init("objectIds", len(dataobjs))
         for i in range(len(dataobjs)):
             dataobjs_dict[dataobjs[i].id.id] = dataobjs[i]
             id_to_capnp(dataobjs[i].id, req.objectIds[i])
-            sessions.append(dataobjs[i].session)
+            sessions.append(dataobjs[i]._session)
 
         results = req.send().wait()
         check_result(sessions, results.state)
 
         for task_update, task in zip(results.tasks, tasks):
-            task.state = task_update.state
-            new_attributes = attributes.attributes_from_capnp(
-                task_update.attributes)
-            task.attributes.update(new_attributes)
+            task._state = task_update.state
+            task._info = TaskInfo._from_json(task_update.info)
 
         for object_update in results.objects:
             dataobj = dataobjs_dict[object_update.id.id]
-            dataobj.state = object_update.state
-            dataobj.size = object_update.size
-            dataobj.attributes = attributes.attributes_from_capnp(
-                object_update.attributes)
+            dataobj._state = object_update.state
+            dataobj._info = ObjectInfo._from_json(object_update.info)
 
 
 def split_items(items):

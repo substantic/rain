@@ -13,9 +13,10 @@ class Context:
         self._id_counter = 0
         self._staged_paths = set()
         self._debug_messages = []
-        self.attributes = {}
+        self.task_spec = {}
+        self.user_info = {}
+        #self.
         self.function = None
-        self.task_id = task_id
 
     def stage_file(self, path, content_type=None):
         """Creates DataInstance from file.
