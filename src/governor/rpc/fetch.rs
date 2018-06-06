@@ -72,6 +72,7 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                             if context.builder.is_none() {
                                 let mut dataobj = context.dataobj_ref.get_mut();
                                 dataobj.info = ::serde_json::from_str(response.get_info().unwrap()).unwrap();
+                                context.size = dataobj.info.size.unwrap();
                                 context.builder =
                                     Some(DataBuilder::new(state.work_dir(), dataobj.spec.data_type, dataobj.info.size))
                             };
