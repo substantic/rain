@@ -122,7 +122,8 @@ impl DataObjectRef {
         data: Option<Vec<u8>>,
     ) -> Self {
         assert_eq!(spec.id.get_session_id(), session.get_id());
-        let s = DataObjectRef::wrap(DataObject {
+        let size = data.as_ref().map(|d| d.len());
+        let obj = DataObjectRef::wrap(DataObject {
             spec: spec,
             info: Default::default(),
             producer: Default::default(),
@@ -141,9 +142,13 @@ impl DataObjectRef {
             finish_hooks: Vec::new(),
             data: data,
         });
+
+        if size.is_some() {
+            obj.get_mut().info.size = size;
+        }
         // add to session
-        session.get_mut().objects.insert(s.clone());
-        s
+        session.get_mut().objects.insert(obj.clone());
+        obj
     }
 
     pub fn unschedule(&self) {
