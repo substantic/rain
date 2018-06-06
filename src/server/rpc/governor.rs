@@ -62,7 +62,12 @@ impl governor_upstream::Server for GovernorUpstreamImpl {
                     continue;
                 }
                 let task = pry!(state.task_by_id(id));
-                let info: TaskInfo = ::serde_json::from_str(task_update.get_info().unwrap()).unwrap();
+                let info_str = task_update.get_info().unwrap();
+                let info: TaskInfo = if info_str == "" {
+                    Default::default()
+                } else {
+                    ::serde_json::from_str(info_str).unwrap()
+                };
                 task_updates.push((task, pry!(task_update.get_state()), info));
             }
         }
