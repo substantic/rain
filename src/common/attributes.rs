@@ -22,7 +22,12 @@ pub struct TaskSpecInput {
 pub struct TaskSpec {
     pub id: TaskId,
 
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub inputs: Vec<TaskSpecInput>,
+
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub outputs: Vec<DataObjectId>,
 
     pub task_type: String,
