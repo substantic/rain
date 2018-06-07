@@ -1,11 +1,10 @@
 from .session import get_active_session
 from .data import DataObject, to_dataobj
 from .output import OutputBase
-from ..common import RainException, ID, LabeledList, ids
-from ..common.attributes import TaskSpec, TaskSpecInput, TaskInfo
+from ..common import RainException, ID, LabeledList
+from ..common.attributes import TaskSpec, TaskSpecInput
 
 import traceback
-import json
 
 
 _task_type_register = {}
@@ -86,7 +85,9 @@ class Task(metaclass=TaskMeta):
             self._spec.task_type = task_type
         else:
             if self.TASK_TYPE is None:
-                raise ValueError("Provide {}.TASK_TYPE or task_type=... information.".format(self.__class__))
+                raise ValueError(
+                    "Provide {}.TASK_TYPE or task_type=... information."
+                    .format(self.__class__))
             self._spec.task_type = self.TASK_TYPE
 
         if config is not None:
@@ -197,9 +198,6 @@ class Task(metaclass=TaskMeta):
     def update(self):
         """Update task state and attributes. See `Session.update()`."""
         self._session.update((self,))
-
-    #def _to_capnp(self, out):
-    #    out.spec = json.dumps(self.spec._to_json())
 
     def __repr__(self):
         return "<{} {}, inputs {}, outputs {}>".format(

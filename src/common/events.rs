@@ -1,6 +1,6 @@
 use super::id::{ClientId, DataObjectId, GovernorId, SessionId, TaskId};
 use common::id::SId;
-use common::{TaskSpec, ObjectSpec};
+use common::{ObjectSpec, TaskSpec};
 use std::collections::HashMap;
 
 pub type EventId = i64;

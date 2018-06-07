@@ -10,7 +10,6 @@ fn default_cpus() -> u32 {
 }
 
 impl Resources {
-
     #[inline]
     pub fn cpus(&self) -> u32 {
         self.cpus

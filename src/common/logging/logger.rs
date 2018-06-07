@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use common::events;
-use common::events::{Event};
-use common::{TaskSpec, ObjectSpec};
+use common::events::Event;
 use common::id::{ClientId, DataObjectId, GovernorId, SessionId, TaskId};
+use common::{ObjectSpec, TaskSpec};
 use errors::Error;
 use futures::Future;
 
@@ -108,11 +108,7 @@ pub trait Logger {
         self.add_event(Event::Dummy(1));
     }
 
-    fn add_client_submit_event(
-        &mut self,
-        tasks: Vec<TaskSpec>,
-        dataobjs: Vec<ObjectSpec>,
-    ) {
+    fn add_client_submit_event(&mut self, tasks: Vec<TaskSpec>, dataobjs: Vec<ObjectSpec>) {
         self.add_event(Event::ClientSubmit(events::ClientSubmitEvent {
             tasks,
             dataobjs,

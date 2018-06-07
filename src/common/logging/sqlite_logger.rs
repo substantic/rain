@@ -5,9 +5,9 @@ use super::logger::{Logger, SearchCriteria};
 use common::events;
 use common::logging::logger::QueryEvents;
 use errors::{Error, Result};
+use futures::sync::{mpsc, oneshot};
 use futures::Future;
 use futures::Stream;
-use futures::sync::{mpsc, oneshot};
 
 use rusqlite::Connection;
 use serde_json;

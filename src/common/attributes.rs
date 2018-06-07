@@ -1,4 +1,4 @@
-use common::id::{TaskId, DataObjectId};
+use common::id::{DataObjectId, TaskId};
 use common::DataType;
 use common::Resources;
 use errors::Result;
@@ -44,22 +44,21 @@ pub struct TaskSpec {
 }
 
 impl TaskSpec {
-
-    pub fn parse_config<'a, D>(&'a self) -> Result<D> where for<'de> D: ::serde::de::Deserialize<'de>
+    pub fn parse_config<'a, D>(&'a self) -> Result<D>
+    where
+        for<'de> D: ::serde::de::Deserialize<'de>,
     {
-            match self.config {
-                Some(ref c) => ::serde_json::from_value(c.clone()).map_err(|e| {
-                    format!("Cannot parse task config: {}", e.description()).into()
-                }),
-                None => Err("Task config is empty, but non-empty config is expected".into())
-            }
+        match self.config {
+            Some(ref c) => ::serde_json::from_value(c.clone())
+                .map_err(|e| format!("Cannot parse task config: {}", e.description()).into()),
+            None => Err("Task config is empty, but non-empty config is expected".into()),
+        }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskInfo {
-
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub error: Option<String>,
@@ -108,7 +107,6 @@ pub struct ObjectSpec {
 #[derive(Debug, Clone, Serialize, PartialEq, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ObjectInfo {
-
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
     pub size: Option<usize>,

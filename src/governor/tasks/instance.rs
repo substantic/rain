@@ -118,8 +118,11 @@ impl TaskInstance {
 
                     task.info.governor = format!("{}", state.governor_id());
                     task.info.start_time = instance.start_timestamp.to_rfc3339();
-                    task.info.duration = Some(Utc::now().signed_duration_since(instance.start_timestamp)
-                            .num_milliseconds() as f32 * 0.001f32);
+                    task.info.duration = Some(
+                        Utc::now()
+                            .signed_duration_since(instance.start_timestamp)
+                            .num_milliseconds() as f32 * 0.001f32,
+                    );
 
                     match r {
                         Ok((true, _)) => {
@@ -173,67 +176,65 @@ impl TaskInstance {
             let task = task_ref2.get();
             let executor_ref2 = executor_ref.clone();
             let mut executor = executor_ref2.get_mut();
-            executor
-                .send_task(&task, &executor_ref)
-                .then(move |r| {
-                    sw_wrapper.deactive();
-                    match r {
-                        Ok(ResultMsg {
-                            task: task_id,
-                            info,
-                            success,
-                            outputs,
-                            cached_objects,
-                        }) => {
-                            let result: Result<()> = {
-                                let mut task = task_ref.get_mut();
-                                let executor = executor_ref.get();
-                                let work_dir = executor.work_dir();
-                                assert!(task.spec.id == task_id);
-                                task.info = info;
-                                if success {
-                                    debug!("Task id={} finished in executor", task.spec.id);
-                                    for (co, output) in outputs.into_iter().zip(&task.outputs) {
-                                        let mut o = output.get_mut();
-                                        o.info = co.info.clone();
-                                        let data = data_output_from_spec(
-                                            &state_ref.get(),
-                                            work_dir,
-                                            co,
-                                            o.spec.data_type,
-                                        )?;
-                                        o.set_data(data)?;
-                                    }
-                                    Ok(())
-                                } else {
-                                    debug!("Task id={} failed in executor", task.spec.id);
-                                    Err("Task failed in executor".into())
+            executor.send_task(&task, &executor_ref).then(move |r| {
+                sw_wrapper.deactive();
+                match r {
+                    Ok(ResultMsg {
+                        task: task_id,
+                        info,
+                        success,
+                        outputs,
+                        cached_objects,
+                    }) => {
+                        let result: Result<()> = {
+                            let mut task = task_ref.get_mut();
+                            let executor = executor_ref.get();
+                            let work_dir = executor.work_dir();
+                            assert!(task.spec.id == task_id);
+                            task.info = info;
+                            if success {
+                                debug!("Task id={} finished in executor", task.spec.id);
+                                for (co, output) in outputs.into_iter().zip(&task.outputs) {
+                                    let mut o = output.get_mut();
+                                    o.info = co.info.clone();
+                                    let data = data_output_from_spec(
+                                        &state_ref.get(),
+                                        work_dir,
+                                        co,
+                                        o.spec.data_type,
+                                    )?;
+                                    o.set_data(data)?;
                                 }
-                            };
-
-                            let mut state = state_ref.get_mut();
-
-                            for object_id in cached_objects {
-                                // TODO: Validate that object_id is input/output of the task
-                                let obj_ref = state.graph.objects.get(&object_id).unwrap();
-                                obj_ref
-                                    .get_mut()
-                                    .executor_cache
-                                    .insert(executor_ref.clone());
+                                Ok(())
+                            } else {
+                                debug!("Task id={} failed in executor", task.spec.id);
+                                Err("Task failed in executor".into())
                             }
+                        };
 
-                            state.graph.idle_executors.insert(executor_ref);
+                        let mut state = state_ref.get_mut();
 
-                            result
+                        for object_id in cached_objects {
+                            // TODO: Validate that object_id is input/output of the task
+                            let obj_ref = state.graph.objects.get(&object_id).unwrap();
+                            obj_ref
+                                .get_mut()
+                                .executor_cache
+                                .insert(executor_ref.clone());
                         }
-                        Err(_) => Err(format!(
-                            "Lost connection to executor\n{}",
-                            executor_ref
-                                .get()
-                                .get_log_tails(state_ref.get().log_dir(), 400)
-                        ).into()),
+
+                        state.graph.idle_executors.insert(executor_ref);
+
+                        result
                     }
-                })
+                    Err(_) => Err(format!(
+                        "Lost connection to executor\n{}",
+                        executor_ref
+                            .get()
+                            .get_log_tails(state_ref.get().log_dir(), 400)
+                    ).into()),
+                }
+            })
         })))
     }
 }

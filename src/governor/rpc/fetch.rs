@@ -2,15 +2,15 @@ use std::rc::Rc;
 
 use common::convert::FromCapnp;
 use common::convert::ToCapnp;
-use common::id::{GovernorId};
+use common::id::GovernorId;
 use errors::{Error, ErrorKind};
 use futures::{future, Future};
-use governor::{StateRef};
-use governor::graph::DataObjectRef;
 use governor::data::{Data, DataBuilder};
+use governor::graph::DataObjectRef;
+use governor::StateRef;
 
-use futures::IntoFuture;
 use futures::future::Either;
+use futures::IntoFuture;
 
 pub struct FetchContext {
     pub state_ref: StateRef,
@@ -71,10 +71,14 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                         ::common_capnp::fetch_result::status::Ok(()) => {
                             if context.builder.is_none() {
                                 let mut dataobj = context.dataobj_ref.get_mut();
-                                dataobj.info = ::serde_json::from_str(response.get_info().unwrap()).unwrap();
+                                dataobj.info =
+                                    ::serde_json::from_str(response.get_info().unwrap()).unwrap();
                                 context.size = response.get_transport_size() as usize;
-                                context.builder =
-                                    Some(DataBuilder::new(state.work_dir(), dataobj.spec.data_type, Some(context.size)))
+                                context.builder = Some(DataBuilder::new(
+                                    state.work_dir(),
+                                    dataobj.spec.data_type,
+                                    Some(context.size),
+                                ))
                             };
                             let result = {
                                 let builder = context.builder.as_mut().unwrap();
@@ -125,10 +129,7 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                             )
                         }
                         _ => {
-                            panic!(
-                                "Invalid status of fetch received, dataobject id={}",
-                                id
-                            );
+                            panic!("Invalid status of fetch received, dataobject id={}", id);
                         }
                     }
                 })

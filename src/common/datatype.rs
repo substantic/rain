@@ -1,4 +1,3 @@
-
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum DataType {
     #[serde(rename = "blob")]

@@ -1,18 +1,17 @@
 use super::{Graph, TaskRef};
-use common::id::{GovernorId};
+use common::id::GovernorId;
 use common::wrapped::WrappedRcRefCell;
-use common::{RcSet, ObjectSpec, ObjectInfo};
+use common::{ObjectInfo, ObjectSpec, RcSet};
 use errors::{ErrorKind, Result};
-use governor::WorkDir;
 use governor::data::Data;
 use governor::graph::ExecutorRef;
 use governor::rpc::executor_serde::{DataLocation, LocalObjectIn};
+use governor::WorkDir;
 
 use std::fmt;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
-
 
 #[derive(Debug)]
 pub enum DataObjectState {

@@ -2,13 +2,12 @@ use futures::unsync::oneshot;
 use std::fmt;
 
 use super::{DataObjectRef, DataObjectState, GovernorRef, SessionRef};
+use common::attributes::{TaskInfo, TaskSpec};
 use common::id::{SId, TaskId};
 use common::wrapped::WrappedRcRefCell;
 use common::{ConsistencyCheck, FinishHook, RcSet};
-use common::attributes::{TaskSpec, TaskInfo};
 pub use common_capnp::TaskState;
 use errors::Result;
-
 
 #[derive(Debug)]
 pub struct Task {
@@ -43,7 +42,6 @@ pub struct Task {
 
     /// Task info
     pub(in super::super) info: TaskInfo,
-
 }
 
 pub type TaskRef = WrappedRcRefCell<Task>;

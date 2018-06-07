@@ -1,5 +1,5 @@
 use super::{DataObjectRef, Graph};
-use common::{TaskInfo, TaskSpec, RcSet};
+use common::{RcSet, TaskInfo, TaskSpec};
 use std::sync::Arc;
 
 use common::wrapped::WrappedRcRefCell;
@@ -15,7 +15,6 @@ pub enum TaskState {
     Finished,
     Failed,
 }
-
 
 #[derive(Debug)]
 pub struct Task {

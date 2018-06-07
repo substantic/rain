@@ -24,9 +24,9 @@ def test_task_construction(fake_session):
 def test_task_outputs(fake_session):
     with fake_session:
         t1 = Dummy(inputs=(), outputs=(Output("a", size_hint=1.0, content_type="text"),
-                           Output("long_name"),
-                           Output("space inside"),
-                           Output("")))
+                   Output("long_name"),
+                   Output("space inside"),
+                   Output("")))
 
         assert "a" in t1.outputs
         assert "space inside" in t1.outputs

@@ -3,13 +3,13 @@ import os
 import shutil
 import tarfile
 
-from .content_type import decode_value, merge_content_types
+from .content_type import decode_value
 from .data_type import DataType
 from .errors import RainException
 from .fs import fresh_copy_dir
-from .ids import ID, id_to_capnp
+from .ids import ID
 from .utils import format_size
-from .attributes import ObjectInfo, ObjectSpec
+from .attributes import ObjectInfo
 
 
 class DataInstance:

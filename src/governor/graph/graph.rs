@@ -1,6 +1,6 @@
 use super::{DataObjectRef, ExecutorRef, TaskRef};
-use common::RcSet;
 use common::id::{DataObjectId, ExecutorId, Id, TaskId};
+use common::RcSet;
 use governor::tasks::TaskInstance;
 use std::collections::HashMap;
 

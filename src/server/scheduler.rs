@@ -84,7 +84,8 @@ impl ReactiveScheduler {
             let mut total_size = 0;
             for input in &t.inputs {
                 let o = input.get();
-                total_size += o.info.size.expect("missing info.size in finished object") * o.scheduled.len();
+                total_size +=
+                    o.info.size.expect("missing info.size in finished object") * o.scheduled.len();
             }
             let neg_avg_size = -(total_size as i64) / n_governors;
             //debug!("!!! {} AVG SIZE {}", t.id, -neg_avg_size);

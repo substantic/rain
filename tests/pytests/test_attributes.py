@@ -1,5 +1,4 @@
 from rain.client import remote
-import time
 
 
 def test_update_attributes(test_env):

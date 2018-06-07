@@ -5,8 +5,6 @@ use std::process::exit;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use common::{TaskSpec, ObjectSpec};
-use common::RcSet;
 use common::asyncinit::AsyncInitWrapper;
 use common::comm::Connection;
 use common::convert::{FromCapnp, ToCapnp};
@@ -16,16 +14,18 @@ use common::id::{empty_governor_id, DataObjectId, GovernorId, TaskId};
 use common::monitor::Monitor;
 use common::resources::Resources;
 use common::wrapped::WrappedRcRefCell;
+use common::RcSet;
+use common::{ObjectSpec, TaskSpec};
 
-use governor::data::Data;
 use governor::data::transport::TransportView;
+use governor::data::Data;
 use governor::fs::workdir::WorkDir;
+use governor::graph::executor::get_log_tails;
 use governor::graph::{executor_command, DataObject, DataObjectRef, DataObjectState, ExecutorRef,
                       Graph, TaskRef, TaskState};
-use governor::rpc::GovernorControlImpl;
 use governor::rpc::executor::check_registration;
-use governor::graph::executor::get_log_tails;
 use governor::rpc::executor_serde::ExecutorToGovernorMessage;
+use governor::rpc::GovernorControlImpl;
 use governor::tasks::TaskInstance;
 
 use capnp::capability::Promise;
@@ -163,12 +163,7 @@ impl State {
         inputs: Vec<DataObjectRef>,
         outputs: Vec<DataObjectRef>,
     ) -> TaskRef {
-        let task = TaskRef::new(
-            &mut self.graph,
-            spec,
-            inputs,
-            outputs,
-        );
+        let task = TaskRef::new(&mut self.graph, spec, inputs, outputs);
         if task.get().is_ready() {
             self.graph.ready_tasks.push(task.clone());
         }
@@ -352,7 +347,8 @@ impl State {
                         })
                         .and_then(move |status| {
                             error!("Executor {} terminated with {}", executor_id, status);
-                            let (out_log_name, err_log_name) = state_ref.get().log_dir().executor_log_paths(executor_id);
+                            let (out_log_name, err_log_name) =
+                                state_ref.get().log_dir().executor_log_paths(executor_id);
                             let logs = get_log_tails(&out_log_name, &err_log_name, 600);
                             bail!("Executor unexpectedly terminated with {}\n{}", status, logs);
                         });
@@ -459,12 +455,7 @@ impl State {
         state: DataObjectState,
         assigned: bool,
     ) -> DataObjectRef {
-        DataObjectRef::new(
-            &mut self.graph,
-            spec,
-            state,
-            assigned,
-        )
+        DataObjectRef::new(&mut self.graph, spec, state, assigned)
     }
 
     /// n_redirects is a protection against ifinite loop of redirections
@@ -509,7 +500,10 @@ impl State {
     // Call when object may be waiting for delete, but now is needed again
     pub fn mark_as_needed(&mut self, object_ref: &DataObjectRef) {
         if self.graph.delete_wait_list.remove(&object_ref).is_some() {
-            debug!("Object id={} is retaken from cache", object_ref.get().spec.id);
+            debug!(
+                "Object id={} is retaken from cache",
+                object_ref.get().spec.id
+            );
         }
     }
 

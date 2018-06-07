@@ -4,8 +4,8 @@ import tarfile
 
 import capnp
 
-from ..common import ID, DataType, RainException, ids
-from ..common.attributes import ObjectInfo, ObjectSpec
+from ..common import ID, DataType, RainException
+from ..common.attributes import ObjectSpec
 from ..common.content_type import (check_content_type, encode_value,
                                    merge_content_types)
 from .session import get_active_session
@@ -61,7 +61,8 @@ class DataObject:
 
     @property
     def info(self):
-        """Getter for object information. Read only in client! In remote tasks only `user` is writable."""
+        """Getter for object information. Read only in client!
+           In remote tasks only `user` is writable."""
         return self._info
 
     def _free(self):
@@ -141,11 +142,6 @@ class DataObject:
         t = " [D]" if self.spec.data_type == DataType.DIRECTORY else ""
         return "<DObj {}{} id={} {}>".format(
             self.spec.label, t, self.id, self.spec)
-
-    #def _as_outputclone(self):
-    #    """
-    #    Create a clone sharing the data_type and content_type (for use as an output).
-    #    """
 
 
 def blob(value, label="const", content_type=None, encode=None):

@@ -2,7 +2,7 @@ use capnp::capability::Promise;
 use chrono::TimeZone;
 use common::convert::FromCapnp;
 use common::id::{DataObjectId, TaskId};
-use common::{TaskInfo, ObjectInfo};
+use common::{ObjectInfo, TaskInfo};
 use governor_capnp::governor_upstream;
 use server::graph::{Governor, GovernorRef};
 use server::state::StateRef;
@@ -52,7 +52,8 @@ impl governor_upstream::Server for GovernorUpstreamImpl {
                     continue;
                 }
                 let object = pry!(state.object_by_id(id));
-                let info: ObjectInfo = ::serde_json::from_str(obj_update.get_info().unwrap()).unwrap();
+                let info: ObjectInfo =
+                    ::serde_json::from_str(obj_update.get_info().unwrap()).unwrap();
                 obj_updates.push((object, pry!(obj_update.get_state()), info));
             }
 

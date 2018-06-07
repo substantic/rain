@@ -16,4 +16,4 @@ def test_executor_no_registration(test_env):
         t1 = InvalidTask(inputs=(), outputs=0)
         s.submit()
         with pytest.raises(TaskException, match="stdout"):
-          t1.wait()
+            t1.wait()

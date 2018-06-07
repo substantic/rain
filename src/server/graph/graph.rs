@@ -30,7 +30,7 @@ impl Graph {
 
 mod tests {
     use super::super::{ClientRef, DataObjectRef, GovernorRef, Graph, SessionRef, TaskRef};
-    use common::attributes::{TaskSpec, TaskSpecInput, ObjectSpec};
+    use common::attributes::{ObjectSpec, TaskSpec, TaskSpecInput};
     use common::id::{DataObjectId, SId, TaskId};
     use common::resources::Resources;
 
@@ -58,7 +58,6 @@ mod tests {
                 let mut objs = Vec::new();
 
                 for oi in 0..objects {
-
                     let spec = ObjectSpec {
                         id: DataObjectId::new(s.get().id, oi as i32),
                         label: Default::default(),
@@ -67,12 +66,7 @@ mod tests {
                         content_type: None,
                     };
 
-                    let o = DataObjectRef::new(
-                        &s,
-                        spec,
-                        false,
-                        None,
-                    );
+                    let o = DataObjectRef::new(&s, spec, false, None);
                     objs.push(o);
                 }
                 for ti in 0..tasks {
@@ -90,7 +84,7 @@ mod tests {
                         }
                     }
                     let output_objs = vec![objs[ti].clone()];
-                    let outputs : Vec<_> = output_objs.iter().map(|o| o.get().id()).collect();
+                    let outputs: Vec<_> = output_objs.iter().map(|o| o.get().id()).collect();
 
                     let spec = TaskSpec {
                         id: TaskId::new(s.get_id(), (ti + objects) as i32),
@@ -102,12 +96,7 @@ mod tests {
                         user: Default::default(),
                     };
 
-                    TaskRef::new(
-                        &s,
-                        spec,
-                        input_objs,
-                        output_objs,
-                    ).unwrap();
+                    TaskRef::new(&s, spec, input_objs, output_objs).unwrap();
                 }
             }
         }

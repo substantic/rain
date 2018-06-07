@@ -6,8 +6,8 @@ use common::id::{DataObjectId, GovernorId, TaskId};
 use common::{ObjectSpec, TaskSpec};
 use errors::{Error, ErrorKind};
 use futures::future::Future;
+use governor::graph::DataObjectState;
 use governor::StateRef;
-use governor::graph::{DataObjectState};
 use governor_capnp::governor_control;
 
 pub struct GovernorControlImpl {
@@ -112,11 +112,7 @@ impl governor_control::Server for GovernorControlImpl {
             };
 
             let assigned = co.get_assigned();
-            let dataobject = state.add_dataobject(
-                spec,
-                object_state,
-                assigned,
-            );
+            let dataobject = state.add_dataobject(spec, object_state, assigned);
 
             debug!(
                 "Received DataObject {:?}, is_remote: {}",
@@ -132,11 +128,13 @@ impl governor_control::Server for GovernorControlImpl {
         for ct in new_tasks.iter() {
             let spec: TaskSpec = ::serde_json::from_str(ct.get_spec().unwrap()).unwrap();
 
-            let inputs: Vec<_> = spec.inputs.iter()
+            let inputs: Vec<_> = spec.inputs
+                .iter()
                 .map(|ci| state.object_by_id(ci.id).unwrap())
                 .collect();
 
-            let outputs: Vec<_> = spec.outputs.iter()
+            let outputs: Vec<_> = spec.outputs
+                .iter()
                 .map(|id| state.object_by_id(*id).unwrap())
                 .collect();
             let task = state.add_task(spec, inputs, outputs);
@@ -190,7 +188,10 @@ impl governor_control::Server for GovernorControlImpl {
         {
             let mut tasks = result.reborrow().init_tasks(state.graph.tasks.len() as u32);
             for (i, task) in state.graph.tasks.values().enumerate() {
-                task.get().spec.id.to_capnp(&mut tasks.reborrow().get(i as u32))
+                task.get()
+                    .spec
+                    .id
+                    .to_capnp(&mut tasks.reborrow().get(i as u32))
             }
         }
         {
@@ -200,7 +201,8 @@ impl governor_control::Server for GovernorControlImpl {
             for (i, object) in state.graph.objects.values().enumerate() {
                 object
                     .get()
-                    .spec.id
+                    .spec
+                    .id
                     .to_capnp(&mut objects.reborrow().get(i as u32))
             }
         }
@@ -210,7 +212,8 @@ impl governor_control::Server for GovernorControlImpl {
             for (i, (object, _)) in state.graph.delete_wait_list.iter().enumerate() {
                 object
                     .get()
-                    .spec.id
+                    .spec
+                    .id
                     .to_capnp(&mut objects.reborrow().get(i as u32))
             }
         }

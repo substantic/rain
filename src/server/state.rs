@@ -12,8 +12,8 @@ use common::id::{ClientId, DataObjectId, GovernorId, SId, SessionId, TaskId};
 use common::resources::Resources;
 use common::rpc::new_rpc_system;
 use common::wrapped::WrappedRcRefCell;
-use common::{ConsistencyCheck};
-use common::{RcSet, TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
+use common::ConsistencyCheck;
+use common::{ObjectInfo, ObjectSpec, RcSet, TaskInfo, TaskSpec};
 use errors::Result;
 use server::graph::{ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionError,
                     SessionRef, TaskRef, TaskState};
@@ -298,12 +298,7 @@ impl State {
         if self.graph.tasks.contains_key(&spec.id) {
             bail!("Task {} already in the graph", spec.id);
         }
-        let tref = TaskRef::new(
-            session,
-            spec,
-            inputs,
-            outputs,
-        )?;
+        let tref = TaskRef::new(session, spec, inputs, outputs)?;
         // add to graph
         self.graph.tasks.insert(tref.get().id(), tref.clone());
         // add to scheduler updates
@@ -435,7 +430,10 @@ impl State {
                 );
             }
             if o.producer.is_none() && o.data.is_none() {
-                bail!("Object {} submitted with neither producer nor data.", o.id());
+                bail!(
+                    "Object {} submitted with neither producer nor data.",
+                    o.id()
+                );
             }
         }
         // Verify every submitted object
@@ -864,7 +862,8 @@ impl State {
                     assert_eq!(t.state, TaskState::Assigned);
                     t.state = state;
                     t.info = info;
-                    self.logger.add_task_started_event(t.id(), governor.get_id());
+                    self.logger
+                        .add_task_started_event(t.id(), governor.get_id());
                 }
                 TaskState::Failed => {
                     debug!(
@@ -873,7 +872,9 @@ impl State {
                         governor,
                         info
                     );
-                    let error_message = info.error.clone().unwrap_or_else(|| "Task failed, but no error attribute was set".to_string());
+                    let error_message = info.error.clone().unwrap_or_else(|| {
+                        "Task failed, but no error attribute was set".to_string()
+                    });
                     let debug_message = info.debug.clone();
                     ignore_check_again = true;
                     self.underload_governors.insert(governor.clone());
@@ -1155,8 +1156,7 @@ impl StateRef {
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
         let bootstrap = ::server_capnp::server_bootstrap::ToClient::new(ServerBootstrapImpl::new(
-            self,
-            address,
+            self, address,
         )).from_server::<::capnp_rpc::Server>();
 
         let rpc_system = new_rpc_system(stream, Some(bootstrap.client));

@@ -3,9 +3,9 @@ use futures::{future, Future};
 use std::net::SocketAddr;
 
 use client_capnp::client_service;
-use common::{RcSet, TaskSpec, ObjectSpec};
 use common::convert::{FromCapnp, ToCapnp};
 use common::id::{DataObjectId, SId, TaskId};
+use common::{ObjectSpec, RcSet, TaskSpec};
 use errors::{Error, ErrorKind, Result};
 use server::graph::{ClientRef, SessionError, TaskRef};
 use server::graph::{DataObjectRef, DataObjectState};
@@ -129,12 +129,7 @@ impl client_service::Server for ClientServiceImpl {
                 } else {
                     None
                 };
-                let o = s.add_object(
-                    &session,
-                    spec,
-                    co.get_keep(),
-                    data,
-                )?;
+                let o = s.add_object(&session, spec, co.get_keep(), data)?;
                 created_objects.push(o);
             }
             // second create the tasks
@@ -149,21 +144,13 @@ impl client_service::Server for ClientServiceImpl {
                 for co in spec.outputs.iter() {
                     outputs.push(s.object_by_id(*co)?);
                 }
-                let t = s.add_task(
-                    &session,
-                    spec,
-                    inputs,
-                    outputs,
-                )?;
+                let t = s.add_task(&session, spec, inputs, outputs)?;
                 created_tasks.push(t);
             }
             debug!("New tasks: {:?}", created_tasks);
             debug!("New objects: {:?}", created_objects);
             s.logger.add_client_submit_event(
-                created_tasks
-                    .iter()
-                    .map(|t| t.get().spec.clone())
-                    .collect(),
+                created_tasks.iter().map(|t| t.get().spec.clone()).collect(),
                 created_objects
                     .iter()
                     .map(|o| o.get().spec.clone())

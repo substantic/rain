@@ -5,7 +5,6 @@ from . import rpc
 from ..common import RainException, SessionException, TaskException
 from ..common.attributes import ObjectInfo, TaskInfo
 from ..common.data_instance import DataInstance
-from ..common.data_type import DataType
 from ..common.ids import governor_id_from_capnp, id_from_capnp, id_to_capnp
 from .data import DataObject
 from .session import Session

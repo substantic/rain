@@ -4,14 +4,13 @@ use std::fmt;
 use super::{GovernorRef, SessionRef, TaskRef, TaskState};
 use common::id::{DataObjectId, SId};
 use common::wrapped::WrappedRcRefCell;
-use common::{ObjectSpec, ObjectInfo};
 use common::{ConsistencyCheck, FinishHook, RcSet};
+use common::{ObjectInfo, ObjectSpec};
 pub use common_capnp::DataObjectState;
 use errors::Result;
 
 #[derive(Debug)]
 pub struct DataObject {
-
     pub(in super::super) spec: ObjectSpec,
 
     pub(in super::super) info: ObjectInfo,

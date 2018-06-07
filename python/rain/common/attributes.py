@@ -48,7 +48,6 @@ class AttributeBase:
     def _from_json(cls, data):
         s = cls()
         for n, v in data.items():
-            #nc = cls._camelize(n)
             if n not in cls._ATTRS:
                 raise AttributeError("Unknown attribute {} for {}".format(n, cls))
             fj = cls._ATTRS[n][0] or (lambda x: x)
@@ -61,12 +60,11 @@ class AttributeBase:
             s.__setattr__(n, val)
         return s
 
-    def _to_json(self, camelize=True):
+    def _to_json(self):
         r = {}
         for n, ftj in self._ATTRS.items():
             val = self.__getattribute__(n)
             if val:
-                #nc = self._camelize(n) if camelize else n
                 try:
                     r[n] = (ftj[1] or (lambda x: x))(val)
                 except (TypeError, ValueError) as e:
@@ -76,7 +74,9 @@ class AttributeBase:
         return r
 
     def __repr__(self):
-        return "<{} {}>".format(self.__class__.__name__, short_str(self._to_json(camelize=False), max_len=42))
+        return "<{} {}>".format(
+            self.__class__.__name__,
+            short_str(self._to_json(), max_len=42))
 
 
 class TaskSpecInput(AttributeBase):

@@ -35,7 +35,8 @@ class Sleep(Task):
     def __init__(self, input, timeout, *, session=None, cpus=1):
         input = to_dataobj(input)
         otype = Output if input.spec.data_type == DataType.BLOB else OutputDir
-        output = otype(content_type=input.content_type) # , size_hint=input.spec.size_hint) TODO: Add size_hint
+        output = otype(content_type=input.content_type)
+        # , size_hint=input.spec.size_hint) TODO: Add size_hint
         super().__init__((input,), (output,), config=float(timeout), cpus=cpus, session=session)
 
 
@@ -99,7 +100,8 @@ class MakeDirectory(Task):
             paths_objects = list(paths_objects)
             paths, inputs = zip(*paths_objects)
         except (TypeError, ValueError) as e:
-            raise TypeError("MakeDirectory needs an iterable of pairs `(path, obj)` or a dictionary `{path: obj}`") from e
+            raise TypeError("MakeDirectory needs an iterable of pairs "
+                            "`(path, obj)` or a dictionary `{path: obj}`") from e
 
         super().__init__(inputs, outputs=(OutputDir(),), config={"paths": paths}, session=session)
 
@@ -203,4 +205,3 @@ class Execute(Task):
         return "<{} {}, inputs {}, outputs {}, cmd {!r}>".format(
             self.__class__.__name__, self.id, self.inputs,
             self.outputs, short_str(self.spec.config["args"]))
-

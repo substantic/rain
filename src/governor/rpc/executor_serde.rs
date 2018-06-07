@@ -1,5 +1,5 @@
-use common::{TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
 use common::id::{DataObjectId, ExecutorId, TaskId};
+use common::{ObjectInfo, ObjectSpec, TaskInfo, TaskSpec};
 use serde_bytes;
 use std::path::PathBuf;
 
@@ -89,7 +89,6 @@ pub struct LocalObjectIn {
     pub cache_hint: bool,
 }
 
-
 /// Data object information in `CallMsg` and `ResultMsg`. See the corresponding
 /// fields there for precise semantics.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -108,7 +107,6 @@ pub struct LocalObjectOut {
     #[serde(default)]
     pub cache_hint: bool,
 }
-
 
 /// Data location of inputs and outputs in `LocalObjectSpec::location`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -140,7 +138,7 @@ pub struct DropCachedMsg {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde::{Serialize, de::DeserializeOwned};
+    use serde::{de::DeserializeOwned, Serialize};
     use serde_cbor;
     use serde_json;
     use std::fmt::Debug;
@@ -157,7 +155,8 @@ mod tests {
 
     #[test]
     fn test_register() {
-        let s = r#"{"register": {"protocol": "swp1", "executor_id": 42, "executor_type": "dummy"}}"#;
+        let s =
+            r#"{"register": {"protocol": "swp1", "executor_id": 42, "executor_type": "dummy"}}"#;
         let m: ExecutorToGovernorMessage = serde_json::from_str(s).unwrap();
         test_ser_de_eq(&m);
     }

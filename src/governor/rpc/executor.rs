@@ -3,12 +3,12 @@ use std::path::Path;
 use std::sync::Arc;
 
 use bytes::BytesMut;
-use common::DataType;
 use common::id::ExecutorId;
-use governor::State;
+use common::DataType;
 use governor::data::{Data, Storage};
 use governor::rpc::executor_serde::ExecutorToGovernorMessage;
 use governor::rpc::executor_serde::{DataLocation, LocalObjectOut};
+use governor::State;
 
 use errors::Result;
 

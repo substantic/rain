@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import socket
 import base64
 import cloudpickle
@@ -9,10 +8,10 @@ import collections
 import traceback
 
 from ..common.fs import remove_dir_content
-from ..common import DataInstance, RainException, DataType
+from ..common import DataInstance, RainException
 from ..common.content_type import merge_content_types
 from ..common.comm import SocketWrapper
-from ..common.attributes import TaskSpec, TaskInfo, ObjectSpec, ObjectInfo
+from ..common.attributes import TaskSpec, ObjectSpec, ObjectInfo
 from .context import Context
 
 
@@ -135,7 +134,6 @@ class Executor:
                 inputs.append(obj)
 
             self.cache[inputs[0]._object_id] = inputs[0]
-            config = task_context.spec.config
 
             # List of OutputSpec
             outputs = [OutputSpec(
