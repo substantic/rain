@@ -1,4 +1,4 @@
-from .data import DataObject, DataType, to_data
+from .data import DataObject, DataType, to_dataobj
 from .task import Task
 
 
@@ -30,7 +30,7 @@ class InputBase:
                 path = "input_{}".format(id(self))
         self.path = path
         if dataobj is not None:
-            dataobj = to_data(dataobj)
+            dataobj = to_dataobj(dataobj)
             if dataobj.spec.data_type != self.data_type:
                 raise Exception(
                     "Input exects data type {}, but provided data object has type {}"

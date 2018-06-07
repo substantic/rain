@@ -104,6 +104,11 @@ class DataObject:
         """
         return self._session.fetch(self)
 
+    def expect_dir(self):
+        """Raise TypeError if the DataObject is not a directory data-type."""
+        if self.spec.data_type != DataType.DIRECTORY:
+            raise TypeError("Directory expected.")
+
     def update(self):
         self._session.update((self,))
 
@@ -198,11 +203,11 @@ def directory(path=None, label="const_dir"):
     return dataobj
 
 
-def to_data(obj):
+def to_dataobj(obj):
     """Convert an object to DataObject/DataObjectPart"""
     if isinstance(obj, DataObject):
         return obj
-    from .task import Task
+
     if isinstance(obj, Task):
         if len(obj.outputs) == 1:
             return obj.outputs[0]
@@ -221,3 +226,6 @@ def to_data(obj):
         "Instance of {!r} cannot be used as a data object.\n"
         "Hint: Wrap it with `pickled` or `blob(encode=...)` to use it as a data object."
         .format(type(obj)))
+
+
+from .task import Task  # noqa

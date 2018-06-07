@@ -145,6 +145,7 @@ impl governor_upstream::Server for GovernorUpstreamImpl {
 
         if params.get_include_info() {
             results.set_info(&::serde_json::to_string(&obj.info).unwrap());
+            results.set_transport_size(data.len() as u64);
         }
 
         Promise::ok(())

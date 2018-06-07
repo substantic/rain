@@ -56,6 +56,7 @@ impl governor_bootstrap::Server for GovernorBootstrapImpl {
         if params.get_include_info() {
             let obj_ref = state.graph.objects.get(&id).unwrap();
             let obj = obj_ref.get();
+            results.set_transport_size(slice.len() as u64);
             results.set_info(&::serde_json::to_string(&obj.info).unwrap());
         }
         Promise::ok(())

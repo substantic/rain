@@ -134,7 +134,7 @@ class Client:
 
         dataobj._info = ObjectInfo._from_json(json.loads(result.info))
 
-        size = dataobj._info.size
+        size = result.transportSize
         offset = len(result.data)
         data = [result.data]
 

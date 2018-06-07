@@ -1,5 +1,5 @@
 from .task import Task
-from .data import to_data
+from .data import to_dataobj
 from .input import Input, InputBase
 from .output import Output, OutputBase, OutputDir
 from .data import DataObject
@@ -33,8 +33,7 @@ class Sleep(Task):
     TASK_TYPE = "!sleep"
 
     def __init__(self, input, timeout, *, session=None, cpus=1):
-        if isinstance(input, Task):
-            input = input.output
+        input = to_dataobj(input)
         otype = Output if input.spec.data_type == DataType.BLOB else OutputDir
         output = otype(content_type=input.content_type) # , size_hint=input.spec.size_hint) TODO: Add size_hint
         super().__init__((input,), (output,), config=float(timeout), cpus=cpus, session=session)
@@ -117,6 +116,7 @@ class SliceDirectory(Task):
     TASK_TYPE = "!slice_directory"
 
     def __init__(self, input, path, output=None, *, session=None):
+        input = to_dataobj(input)
         input.expect_dir()
         if output is None:
             if path.endswith('/'):

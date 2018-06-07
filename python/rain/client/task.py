@@ -1,5 +1,5 @@
 from .session import get_active_session
-from .data import DataObject, to_data
+from .data import DataObject, to_dataobj
 from .output import OutputBase
 from ..common import RainException, ID, LabeledList, ids
 from ..common.attributes import TaskSpec, TaskSpecInput, TaskInfo
@@ -119,9 +119,9 @@ class Task(metaclass=TaskMeta):
         for input in inputs:
             if isinstance(input, tuple):
                 label, inp = input
-                input_pairs.append((label, to_data(inp)))
+                input_pairs.append((label, to_dataobj(inp)))
             else:
-                input_pairs.append((None, to_data(input)))
+                input_pairs.append((None, to_dataobj(input)))
         self._inputs = LabeledList(pairs=input_pairs)
         self._spec.inputs = [TaskSpecInput(id=i.id, label=lab) for lab, i in self._inputs.items()]
 

@@ -119,4 +119,6 @@ struct FetchResult {
 
     # DataObject info
     info @7: Text;
+
+    transportSize @8: UInt64;
 }
