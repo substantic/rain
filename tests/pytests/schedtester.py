@@ -52,7 +52,7 @@ class Scenario:
             task.test_label = label
             print("Creating task {} as {}".format(label, task))
             if cpus != 1:
-                task.attributes["resources"]["cpus"] = cpus
+                task.spec.resources["cpus"] = cpus
             if expect_governor:
                 if isinstance(expect_governor, Governor):
                     expect_governor = (expect_governor,)
@@ -66,7 +66,7 @@ class Scenario:
             self.session.update(list(self.task_expected_placement))
             error = False
             for task, expected_governors in self.task_expected_placement.items():
-                placement = task.attributes["info"]["governor"]
+                placement = task.info.governor
                 print("Task {} computed on {}".format(task.test_label, placement))
                 if placement not in [w.governor_id for w in expected_governors]:
                     print("!!! Task: ",

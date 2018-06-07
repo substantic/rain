@@ -8,9 +8,16 @@ class ExecutorTester:
     def __init__(self, name, path):
         self.name = name
         self.path = path
+        self.tasks = {}
 
     def task(self, method, **kwargs):
-        return Task(self.name + "/" + method, **kwargs)
+        cls = self.tasks.get(method)
+        if cls is None:
+            class MyClass(Task):
+                TASK_TYPE = self.name + "/" + method
+            cls = MyClass
+            self.tasks[method] = cls
+        return cls(**kwargs)
 
     def task_hello(self, obj):
         return self.task("hello", inputs=(obj,), outputs=1)

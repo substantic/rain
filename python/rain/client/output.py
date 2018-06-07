@@ -69,7 +69,7 @@ class OutputBase:
                        data_type=self.data_type,
                        content_type=self.content_type)
         if self.size_hint is not None:
-            d.attributes['size_hint'] = self.size_hint
+            d.spec.size_hint = self.size_hint
         return d
 
     @classmethod

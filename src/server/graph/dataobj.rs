@@ -266,13 +266,14 @@ impl ConsistencyCheck for DataObjectRef {
         } {
             bail!("state inconsistency in {:?}", s);
         }
-        // data consistency
-        if let Some(ref d) = s.data {
+        // data consistency [DISABLED BECAUSE OF SCHEDULER TESTING MODE DOES NOT HOLD THIS, see testmode.rs]
+        /*if let Some(ref d) = s.data {
             let size = s.info.size;
             if size != Some(d.len()) {
                 bail!("Info size and data len mismatch in {:?} ({:?} vs {:?})", s, size, Some(d.len()));
             }
-        }
+        }*/
+
         // finish hooks
         if !s.finish_hooks.is_empty() && s.state != DataObjectState::Unfinished {
             bail!("finish hooks for finished/removed object in {:?}", s);

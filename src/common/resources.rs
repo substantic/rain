@@ -1,6 +1,12 @@
 #[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Resources {
+    #[serde(default = "default_cpus")]
     pub cpus: u32,
+}
+
+#[inline]
+fn default_cpus() -> u32 {
+    1
 }
 
 impl Resources {
