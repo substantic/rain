@@ -100,8 +100,8 @@ def test_submit(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat((blob("a"), blob("b")))
-        t2 = tasks.sleep(1, t1)
+        t1 = tasks.Concat((blob("a"), blob("b")))
+        t2 = tasks.Sleep(t1, 1)
         assert s.task_count == 2
         assert s.dataobj_count == 4  # "a", "b", "ab", "ab"
         s.submit()
@@ -117,8 +117,8 @@ def test_wait_some(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat(("a", "b"))
-        t2 = tasks.sleep(0.4, t1)
+        t1 = tasks.Concat(("a", "b"))
+        t2 = tasks.Sleep(t1, 0.4)
         s.submit()
         finished = s.wait_some((t1,), ())
         assert t1.state == rpc.common.TaskState.finished
@@ -135,8 +135,8 @@ def test_wait_all(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat((blob("a"), blob("b")))
-        t2 = tasks.sleep(0.5, t1)
+        t1 = tasks.Concat((blob("a"), blob("b")))
+        t2 = tasks.Sleep(t1, 0.5)
         s.submit()
         test_env.assert_duration(0.35, 0.65, lambda: s.wait_all())
         assert t1.state == rpc.common.TaskState.finished
@@ -165,7 +165,7 @@ def test_early_wait_all_failed_(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t0 = tasks.sleep(0.4, blob("test"))
+        t0 = tasks.Sleep(blob("test"), 0.4)
         args = ("/bin/non-existing-program")
         program = Program(args, stdout="output", stdin="input")
         t1 = program(input=t0)
@@ -190,7 +190,7 @@ def test_wait_unsubmitted_task(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat(())
+        t1 = tasks.Concat(())
         with pytest.raises(RainException):
             t1.wait()
 
@@ -200,7 +200,7 @@ def test_fetch_unsubmitted_task(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat(())
+        t1 = tasks.Concat(())
         t1.keep_outputs()
         with pytest.raises(RainException):
             t1.fetch_outputs()
@@ -211,10 +211,10 @@ def test_unkeep_finished(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat((blob("a"), blob("b")))
+        t1 = tasks.Concat((blob("a"), blob("b")))
         t1_output = t1.output
         t1_output.keep()
-        t2 = tasks.sleep(0.3, t1)
+        t2 = tasks.Sleep(t1, 0.3)
         s.submit()
         t1.wait()
         assert t1_output.is_kept() is True
@@ -228,10 +228,10 @@ def test_unkeep_unfinished(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat((blob("a"), blob("b")))
+        t1 = tasks.Concat((blob("a"), blob("b")))
         t1_output = t1.output
         t1_output.keep()
-        t2 = tasks.sleep(0.3, t1)
+        t2 = tasks.Sleep(t1, 0.3)
         s.submit()
         assert t1_output.is_kept() is True
         t1_output.unkeep()
@@ -264,7 +264,7 @@ def test_update(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat((blob("a"), blob("b")))
+        t1 = tasks.Concat((blob("a"), blob("b")))
         s.submit()
         s.update((t1,))
         t1.wait()
@@ -276,7 +276,7 @@ def test_task_wait(test_env):
     client = test_env.client
     s = client.new_session()
     with s.bind_only():
-        t1 = tasks.concat((blob("a"), blob("b")))
+        t1 = tasks.Concat((blob("a"), blob("b")))
     assert t1.state is None
     s.submit()
     assert t1.state == rpc.common.TaskState.notAssigned
@@ -287,7 +287,7 @@ def test_task_wait(test_env):
 def test_fetch_removed_object_fails(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.sleep(0.01, blob("abc123456"))
+        t1 = tasks.Sleep(blob("abc123456"), 0.1)
         s.submit()
         with pytest.raises(RainException):
             t1.output.fetch()
@@ -331,7 +331,7 @@ def test_dataobj_wait(test_env):
     client = test_env.client
     s = client.new_session()
     with s:
-        t1 = tasks.concat((blob("a"), blob("b")))
+        t1 = tasks.Concat((blob("a"), blob("b")))
         o1 = t1.output
         assert t1.state is None
         s.submit()
@@ -343,10 +343,10 @@ def test_dataobj_wait(test_env):
 def test_fetch_outputs(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t0 = tasks.execute("ls /", stdout=True)
-        t1 = tasks.execute(("split", "-d", "-n", "l/2", t0),
+        t0 = tasks.Execute("ls /", stdout=True)
+        t1 = tasks.Execute(("split", "-d", "-n", "l/2", t0),
                            output_paths=["x00", "x01"])
-        t2 = tasks.execute("ls /", stdout=True)
+        t2 = tasks.Execute("ls /", stdout=True)
 
         t2.keep_outputs()
         t1.keep_outputs()

@@ -200,7 +200,7 @@ class Execute(Task):
         super().__init__(task_inputs, task_outputs, cpus=cpus, config=config)
 
     def __repr__(self):
-        return "<{} {}, inputs {}, outputs {}, cmd {:r}>".format(
-            self.__class__, self.id, self.task_type, self.inputs,
-            self.outputs, short_str(self._attributes.spec.config.args))
+        return "<{} {}, inputs {}, outputs {}, cmd {!r}>".format(
+            self.__class__.__name__, self.id, self.inputs,
+            self.outputs, short_str(self.spec.config["args"]))
 
