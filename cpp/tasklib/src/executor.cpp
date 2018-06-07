@@ -61,12 +61,17 @@ void tasklib::Executor::process_message(std::vector<char> &data)
 void tasklib::Executor::process_message_call(cbor_item_t *msg_data)
 {
    //cbor_describe(msg_data, stdout);
-   std::string method = cb_map_lookup_string(msg_data, "method");
-   cbor_item_t *id_item = cb_map_lookup(msg_data, "task");
+   cbor_item_t *spec = cb_map_lookup(msg_data, "spec");
+   std::string method = cb_map_lookup_string(spec, "task_type");
+
+   cbor_item_t *id_item = cb_map_lookup(spec, "id");
+   cbor_incref(id_item);
+
    TaskId task_id = TaskId::from(id_item);
+
    logger->info("Running method '{}' (id = {})", method, task_id.to_string());
 
-   auto fn = registered_tasks.find(method);
+   auto fn = registered_tasks.find(&method[type_name.size() + 1]); // remove prefix
    if (fn == registered_tasks.end()) {
         send_error(std::string("Method '") + method + "' not found in executor", id_item);
         return;
@@ -116,7 +121,7 @@ void tasklib::Executor::process_message_call(cbor_item_t *msg_data)
    cbor_item_t *result_data = cbor_new_definite_map(4);
    cbor_map_add(result_data, (struct cbor_pair) {
       .key = cbor_move(cbor_build_string("task")),
-      .value = id_item
+      .value = cbor_move(id_item),
    });
    cbor_map_add(result_data, (struct cbor_pair) {
       .key = cbor_move(cbor_build_string("success")),
@@ -129,10 +134,10 @@ void tasklib::Executor::process_message_call(cbor_item_t *msg_data)
 
    //cbor_tag_item *outputs_item = cbor_new_definite_array()
 
-   cbor_item_t *attributes = cbor_new_definite_map(0);
+   cbor_item_t *info = cbor_new_definite_map(0);
    cbor_map_add(result_data, (struct cbor_pair) {
-      .key = cbor_move(cbor_build_string("attributes")),
-      .value = cbor_move(attributes)
+      .key = cbor_move(cbor_build_string("info")),
+      .value = cbor_move(info)
    });
    send_message("result", result_data);
 }
@@ -144,22 +149,22 @@ void tasklib::Executor::send_error(const std::string &error_msg, cbor_item_t *id
     cbor_item_t *result_data = cbor_new_definite_map(3);
     cbor_map_add(result_data, (struct cbor_pair) {
        .key = cbor_move(cbor_build_string("task")),
-       .value = id_item
+       .value = cbor_move(id_item)
     });
     cbor_map_add(result_data, (struct cbor_pair) {
        .key = cbor_move(cbor_build_string("success")),
        .value = cbor_move(cbor_build_bool(false))
     });
 
-    cbor_item_t *attributes = cbor_new_definite_map(1);
-    cbor_map_add(attributes, (struct cbor_pair) {
+    cbor_item_t *info = cbor_new_definite_map(1);
+    cbor_map_add(info, (struct cbor_pair) {
        .key = cbor_move(cbor_build_string("error")),
        .value = cbor_move(cbor_build_string(message.c_str()))
     });
 
     cbor_map_add(result_data, (struct cbor_pair) {
-       .key = cbor_move(cbor_build_string("attributes")),
-       .value = cbor_move(attributes)
+       .key = cbor_move(cbor_build_string("info")),
+       .value = cbor_move(info)
     });
     send_message("result", result_data);
 }
@@ -197,11 +202,11 @@ void tasklib::Executor::init()
       .value = cbor_move(cbor_build_string("cbor-1"))
    });
    cbor_map_add(data, (struct cbor_pair) {
-      .key = cbor_move(cbor_build_string("executorType")),
+      .key = cbor_move(cbor_build_string("executor_type")),
       .value = cbor_move(cbor_build_string(type_name.c_str()))
    });
    cbor_map_add(data, (struct cbor_pair) {
-      .key = cbor_move(cbor_build_string("executorId")),
+      .key = cbor_move(cbor_build_string("executor_id")),
       .value = cbor_move(cbor_build_uint32(sw_id))
    });
    send_message("register", data);

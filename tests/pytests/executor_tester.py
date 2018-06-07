@@ -11,6 +11,7 @@ class ExecutorTester:
         self.tasks = {}
 
     def task(self, method, **kwargs):
+        kwargs.setdefault("inputs", ())
         cls = self.tasks.get(method)
         if cls is None:
             class MyClass(Task):
@@ -40,7 +41,7 @@ class ExecutorTester:
         self.start(test_env)
         with test_env.client.new_session() as s:
             d1 = blob("WORLD")
-            t0 = tasks.execute("ls",
+            t0 = tasks.Execute("ls",
                                input_paths=[Input("d1", dataobj=d1)],
                                output_paths=[Output("d1")])
             t1 = self.task_hello(t0.output)

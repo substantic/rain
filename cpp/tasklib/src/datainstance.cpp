@@ -16,15 +16,11 @@ tasklib::DataInstance::~DataInstance()
 cbor_item_t *tasklib::DataInstance::make_output_spec(cbor_item_t *output_item) const
 {
     cbor_item_t *root = cbor_new_definite_map(3);
-    cbor_map_add(root, (struct cbor_pair) {
-       .key = cbor_move(cbor_build_string("id")),
-       .value = cb_map_lookup(output_item, "id")
-    });
 
-    cbor_item_t *attributes = cbor_new_definite_map(0);
+    cbor_item_t *info = cbor_new_definite_map(0);
     cbor_map_add(root, (struct cbor_pair) {
-       .key = cbor_move(cbor_build_string("attributes")),
-       .value = cbor_move(attributes)
+       .key = cbor_move(cbor_build_string("info")),
+       .value = cbor_move(info)
     });
 
     cbor_map_add(root, (struct cbor_pair) {

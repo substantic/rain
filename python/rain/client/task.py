@@ -108,7 +108,7 @@ class Task(metaclass=TaskMeta):
         if outputs is None:
             outputs = ()
         elif isinstance(outputs, int):
-            outputs = tuple(to_data_object("") for i in range(outputs))
+            outputs = tuple(DataObject(session=session) for i in range(outputs))
         else:
             outputs = tuple(to_data_object(obj) for obj in outputs)
 

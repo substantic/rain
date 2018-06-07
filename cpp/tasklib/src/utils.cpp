@@ -8,6 +8,7 @@
 #include "utils.h"
 #include "log.h"
 
+// !! Does not increment reference of returned object
 cbor_item_t* tasklib::cb_map_lookup(const cbor_item_t *item, const char *name)
 {
    size_t name_len = strlen(name);
