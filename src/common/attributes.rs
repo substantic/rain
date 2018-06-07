@@ -78,7 +78,7 @@ pub struct TaskInfo {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub duration: Option<u32>,
+    pub duration: Option<f32>,
 
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     #[serde(default)]
@@ -105,7 +105,7 @@ pub struct ObjectSpec {
     pub user: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, PartialEq, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ObjectInfo {
 

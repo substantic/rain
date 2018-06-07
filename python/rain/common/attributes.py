@@ -122,7 +122,7 @@ class TaskInfo(AttributeBase):
     """Task runtime info.
 
     Attributes:
-        error (`str`): Error message. Non-empty error indicates failure. 
+        error (`str`): Error message. Non-empty error indicates failure.
             NB: Empty string is NOT a failure.
         start_time (`time`): Time the task was started.
         duration (`float`): Real-time duration in seconds (milisecond precision).
@@ -134,7 +134,7 @@ class TaskInfo(AttributeBase):
     _ATTRS = {
         "error": (str, str, str),
         "start_time": (str, str, str),  # TODO: to/from time object
-        "duration": (lambda ms: 0.001 * ms, lambda s: int(s * 1000), lambda: None),
+        "duration": (float, float, lambda: None),
         "governor": (str, str, str),
         "user": (dict, dict, dict),
         "debug": (str, str, str),
@@ -164,10 +164,10 @@ class ObjectInfo(AttributeBase):
     """Data object runtime info.
 
     Attributes:
-        error (`str`): Error message. Non-empty error indicates failure. 
+        error (`str`): Error message. Non-empty error indicates failure.
             NB: Empty string is NOT a failure.
         size (`int`): Final size in bytes (approximate for directories).
-        content_type (`str`): Content type name. 
+        content_type (`str`): Content type name.
         user (`dict` with `str` keys): Arbitrary json-serializable objects.
         debug (`str`): Free-form debugging log. This is the only mutable attribute,
             should be append-only.

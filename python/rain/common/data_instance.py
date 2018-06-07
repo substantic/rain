@@ -75,15 +75,11 @@ class DataInstance:
             self._object_id = data_object.id
         else:
             # At executor
-            assert spec is not None
             self._object_id = object_id
             self._info = info
             self._spec = spec
-            if content_type is not None:
-                self.attributes["info"]["content_type"] = \
-                    merge_content_types(content_type,
-                                        self.attributes["spec"].get("content_type"))
-        assert isinstance(self._object_id, ID) or self._object_id is None
+
+        assert self._object_id is None or isinstance(self._object_id, ID)
 
     @property
     def info(self):
@@ -99,8 +95,9 @@ class DataInstance:
 
     @property
     def content_type(self):
-        if self.info:
-            return self.info.content_type
+        content_type = self.info.content_type
+        if content_type:
+            return content_type
         return self.spec.content_type
 
     def load(self, cache=False):

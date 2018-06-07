@@ -119,7 +119,7 @@ impl TaskInstance {
                     task.info.governor = format!("{}", state.governor_id());
                     task.info.start_time = instance.start_timestamp.to_rfc3339();
                     task.info.duration = Some(Utc::now().signed_duration_since(instance.start_timestamp)
-                            .num_milliseconds() as u32);
+                            .num_milliseconds() as f32 * 0.001f32);
 
                     match r {
                         Ok((true, _)) => {
@@ -191,7 +191,6 @@ impl TaskInstance {
                                 let work_dir = executor.work_dir();
                                 assert!(task.spec.id == task_id);
                                 task.info = info;
-
                                 if success {
                                     debug!("Task id={} finished in executor", task.spec.id);
                                     for (co, output) in outputs.into_iter().zip(&task.outputs) {

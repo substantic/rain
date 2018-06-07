@@ -1,4 +1,4 @@
-use common::{TaskSpec, TaskInfo, ObjectSpec};
+use common::{TaskSpec, TaskInfo, ObjectSpec, ObjectInfo};
 use common::id::{DataObjectId, ExecutorId, TaskId};
 use serde_bytes;
 use std::path::PathBuf;
@@ -40,11 +40,11 @@ pub struct CallMsg {
     /// Task attributes
     pub spec: TaskSpec,
     /// Task input descriptions. In this context, all fields of `LocalObjectSpec` are valid.
-    pub inputs: Vec<LocalObjectSpec>,
+    pub inputs: Vec<LocalObjectIn>,
     /// Task outputt descriptions. In this context,
     /// `LocalObjectSpec::location` should not be present (and ignored if present), all other
     /// fields are valid.
-    pub outputs: Vec<LocalObjectSpec>,
+    pub outputs: Vec<LocalObjectIn>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -58,11 +58,10 @@ pub struct ResultMsg {
     pub info: TaskInfo,
     /// Task outputt descriptions. In this context, `LocalObjectSpec::label` should not be present,
     /// `LocalObjectSpec::cache_hint` should be missing or false.
-    /// In `LocalObjectSpec::attributes`, `spec` and `user_spec` are ignored if present.
     /// The list must match `CallMsg::outputs` lengts and on `id`s.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
-    pub outputs: Vec<LocalObjectSpec>,
+    pub outputs: Vec<LocalObjectOut>,
     /// If any objects with `cache_hint` were sent, report which were newly cached
     /// (does not include objects previously cached and now reported with `DataLocation::Cached`).
     /// It is always allowed to cache no object and even omit this field (for simpler executors).
@@ -75,7 +74,7 @@ pub struct ResultMsg {
 /// fields there for precise semantics.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct LocalObjectSpec {
+pub struct LocalObjectIn {
     pub spec: ObjectSpec,
     /// Object data location
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -90,8 +89,30 @@ pub struct LocalObjectSpec {
     pub cache_hint: bool,
 }
 
+
+/// Data object information in `CallMsg` and `ResultMsg`. See the corresponding
+/// fields there for precise semantics.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocalObjectOut {
+    pub info: ObjectInfo,
+    /// Object data location
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub location: Option<DataLocation>,
+    /// If able, the executor should cache this object, preferably in the
+    /// unpacked form to save repeated unpacking (e.g. python cloudpickle).
+    /// If the executor decides to cache the object, it must add it to
+    /// `ResultMsg::cached_objects`.
+    #[serde(skip_serializing_if = "::std::ops::Not::not")]
+    #[serde(default)]
+    pub cache_hint: bool,
+}
+
+
 /// Data location of inputs and outputs in `LocalObjectSpec::location`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum DataLocation {
     /// The data is present in the given path that is relative to the executor working directory.
     Path(PathBuf),

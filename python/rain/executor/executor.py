@@ -12,6 +12,7 @@ from ..common.fs import remove_dir_content
 from ..common import DataInstance, RainException, DataType
 from ..common.content_type import merge_content_types
 from ..common.comm import SocketWrapper
+from ..common.attributes import TaskSpec, TaskInfo, ObjectSpec, ObjectInfo
 from .context import Context
 
 
@@ -50,22 +51,13 @@ def unpickle_input_object(name, index, load, content_type):
         return input
 
 
-def load_attributes(data):
-    return dict((k, json.loads(v)) for k, v in data.items())
-
-
-def store_attributes(attributes):
-    return dict((k, json.dumps(v)) for k, v in attributes.items())
-
-
 def load_governor_object(data, cache):
-    object_id = tuple(data["id"])
+    spec = ObjectSpec._from_json(data["spec"])
 
     location = data["location"]
     if location == "cached":
         return cache[object_id]
 
-    attributes = load_attributes(data["attributes"])
     path = None
     data = None
     if "memory" == location[0]:
@@ -75,16 +67,16 @@ def load_governor_object(data, cache):
     else:
         raise Exception("Invalid location")
 
-    # TODO: data type
     data = DataInstance(data=data,
                         path=path,
-                        attributes=attributes,
-                        data_type=DataType(attributes["type"]))
-    data._object_id = object_id
+                        data_type=spec.data_type,
+                        spec=spec,
+                        object_id=spec.id,
+                        info=ObjectInfo())
     return data
 
 
-def store_result(instance, id):
+def store_result(instance):
 
     if instance._object_id:
         location = ["otherObject", instance._object_id]
@@ -94,15 +86,14 @@ def store_result(instance, id):
         location = ["memory", instance._data]
 
     return {
-        "id": id,
-        "attributes": store_attributes(instance.attributes),
+        "info": instance.info._to_json() if instance.info else {},
         "location": location,
-        "cacheHint": False,
+        "cache_hint": False,
     }
 
 
 OutputSpec = collections.namedtuple(
-    'OutputSpec', ['label', 'id', 'encode', 'attributes'])
+    'OutputSpec', ['spec', 'encode'])
 
 
 class Executor:
@@ -136,40 +127,37 @@ class Executor:
             self.process_message(message)
 
     def unpack_and_run_task(self, data):
-        task_context = Context(self, tuple(data["task"]))
-
+        task_context = Context(self)
+        task_context.spec = TaskSpec._from_json(data["spec"])
         try:
-            task_context.spec = data["spec"]
-            cfg = task_context.attributes["config"]
-
             inputs = []
             for dataobj in data["inputs"]:
                 obj = load_governor_object(dataobj, self.cache)
                 inputs.append(obj)
 
             self.cache[inputs[0]._object_id] = inputs[0]
+            config = task_context.spec.config
 
             # List of OutputSpec
             outputs = [OutputSpec(
-                            label=d.get("label"),
-                            id=tuple(d["id"]),
-                            attributes=load_attributes(d["attributes"]),
+                            spec=ObjectSpec._from_json(d["spec"]),
                             encode=encode)
                        for d, encode in zip(data["outputs"],
-                                            cfg['encode_outputs'])]
+                                            task_context.spec.config['encode_outputs'])]
 
             del data  # We do not need reference to raw data anymore
 
             task_results = self.run_task(task_context, inputs, outputs)
 
+            info = task_context.info
             if task_context._debug_messages:
-                task_context.attributes["debug"] = "\n".join(task_context._debug_messages)
+                info.debug = "\n".join(task_context._debug_messages)
 
             self.socket.send_message(["result", {
-                "task": task_context.task_id,
+                "task": task_context.spec.id,
                 "success": True,
-                "attributes": store_attributes(task_context.attributes),
-                "outputs": [store_result(data, output.id)
+                "info": info._to_json(),
+                "outputs": [store_result(data)
                             for data, output in zip(task_results, outputs)],
                 "cached_objects": [inputs[0]._object_id],
             }])
@@ -177,16 +165,15 @@ class Executor:
         except Exception:
             task_context._cleanup_on_fail()
 
-            attributes = {
-                "error": traceback.format_exc()
-            }
+            info = task_context.info
+            info.error = traceback.format_exc()
             if task_context._debug_messages:
-                attributes["debug"] = "\n".join(task_context._debug_messages)
+                info.debug = "\n".join(task_context._debug_messages)
 
             self.socket.send_message(["result", {
-                "task": task_context.task_id,
+                "task": task_context.spec.id,
+                "info": info._to_json(),
                 "success": False,
-                "attributes": store_attributes(attributes),
             }])
 
     def process_message(self, message):
@@ -210,7 +197,7 @@ class Executor:
         """
         fn = inputs[0].load(cache=True)
         context.function = fn
-        cfg = context.attributes["config"]
+        cfg = context.spec.config
         with _unpickle_inputs_context(inputs):
             args = [cloudpickle.loads(base64.b64decode(d))
                     for d in cfg["args"]]
@@ -249,9 +236,6 @@ class Executor:
                 di = context.blob(r)
             else:
                 raise Exception("Invalid result object: {!r}".format(r))
-            di.attributes['spec'] = o.attributes['spec']
-            if 'user_spec' in o.attributes:
-                di.attributes['user_spec'] = o.attributes['user_spec']
             res.append(di)
 
         return res

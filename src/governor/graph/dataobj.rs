@@ -6,7 +6,7 @@ use errors::{ErrorKind, Result};
 use governor::WorkDir;
 use governor::data::Data;
 use governor::graph::ExecutorRef;
-use governor::rpc::executor_serde::{DataLocation, LocalObjectSpec};
+use governor::rpc::executor_serde::{DataLocation, LocalObjectIn};
 
 use std::fmt;
 use std::net::SocketAddr;
@@ -134,8 +134,8 @@ impl DataObject {
         self.set_data(Arc::new(data))
     }
 
-    pub fn create_input_spec(&self, executor_ref: &ExecutorRef) -> LocalObjectSpec {
-        LocalObjectSpec {
+    pub fn create_input_spec(&self, executor_ref: &ExecutorRef) -> LocalObjectIn {
+        LocalObjectIn {
             spec: self.spec.clone(),
             location: if self.executor_cache.contains(executor_ref) {
                 Some(DataLocation::Cached)
@@ -146,8 +146,8 @@ impl DataObject {
         }
     }
 
-    pub fn create_output_spec(&self) -> LocalObjectSpec {
-        LocalObjectSpec {
+    pub fn create_output_spec(&self) -> LocalObjectIn {
+        LocalObjectIn {
             spec: self.spec.clone(),
             location: None,
             cache_hint: true,

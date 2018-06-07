@@ -39,7 +39,7 @@ class Scenario:
         assert all(w.governor_id for w in governors)
         with self.session.bind_only():
             obj = blob(b"")
-            obj.attributes["__test"] = {
+            obj.spec.user["_testing"] = {
                 "governors": [w.governor_id for w in governors],
                 "size": size
             }

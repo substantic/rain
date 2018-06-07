@@ -4,19 +4,19 @@ import os.path
 from ..common.data_instance import DataInstance
 from ..common import RainException, DataType
 from ..common.content_type import (check_content_type, encode_value)
+from ..common.attributes import TaskInfo
 
 
 class Context:
 
-    def __init__(self, executor, task_id):
+    def __init__(self, executor):
         self._executor = executor
         self._id_counter = 0
         self._staged_paths = set()
-        self._debug_messages = []
-        self.task_spec = {}
-        self.user_info = {}
-        #self.
         self.function = None
+        self.spec = None
+        self.info = TaskInfo()
+        self._debug_messages = []
 
     def stage_file(self, path, content_type=None):
         """Creates DataInstance from file.

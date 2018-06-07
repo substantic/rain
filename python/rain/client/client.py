@@ -242,12 +242,12 @@ class Client:
 
         for task_update, task in zip(results.tasks, tasks):
             task._state = task_update.state
-            task._info = TaskInfo._from_json(task_update.info)
+            task._info = TaskInfo._from_json(json.loads(task_update.info))
 
         for object_update in results.objects:
             dataobj = dataobjs_dict[object_update.id.id]
             dataobj._state = object_update.state
-            dataobj._info = ObjectInfo._from_json(object_update.info)
+            dataobj._info = ObjectInfo._from_json(json.loads(object_update.info))
 
 
 def split_items(items):
