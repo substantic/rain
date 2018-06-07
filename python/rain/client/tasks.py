@@ -33,12 +33,11 @@ class Sleep(Task):
     TASK_TYPE = "!sleep"
 
     def __init__(self, input, timeout, *, session=None, cpus=1):
-        time_ms = int(timeout * 1000)
-        otype = Output if input.spec.data_type == DataType.BLOB else OutputDir
         if isinstance(input, Task):
             input = input.output
+        otype = Output if input.spec.data_type == DataType.BLOB else OutputDir
         output = otype(content_type=input.content_type) # , size_hint=input.spec.size_hint) TODO: Add size_hint
-        super().__init__((input,), (output,), config=time_ms, cpus=cpus, session=session)
+        super().__init__((input,), (output,), config=float(timeout), cpus=cpus, session=session)
 
 
 class Load(Task):
