@@ -195,6 +195,7 @@ impl TaskInstance {
                                     debug!("Task id={} finished in executor", task.spec.id);
                                     for (co, output) in outputs.into_iter().zip(&task.outputs) {
                                         let mut o = output.get_mut();
+                                        o.info = co.info.clone();
                                         let data = data_output_from_spec(
                                             &state_ref.get(),
                                             work_dir,

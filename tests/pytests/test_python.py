@@ -345,44 +345,42 @@ def test_py_loadsave(test_env):
 def test_py_ctx_set_attributes(test_env):
     @remote()
     def test(ctx, a):
-        assert a.attributes["first"] == "first value"
-        assert a.attributes["second"] == {"integer": 12, "list": [1, 2, 3]}
-        assert ctx.attributes["in_string"] == "value"
-        assert ctx.attributes["in_complex"] == {"abc": 1200, "xyz": 321.12}
+        assert a.spec.user["first"] == "first value"
+        assert a.spec.user["second"] == {"integer": 12, "list": [1, 2, 3]}
+        assert ctx.spec.user["in_string"] == "value"
+        assert ctx.spec.user["in_complex"] == {"abc": 1200, "xyz": 321.12}
 
-        ctx.attributes["string"] = "value"
-        ctx.attributes["int"] = 103
-        ctx.attributes["float"] = 77.12
-        ctx.attributes["boolTrue"] = True
-        ctx.attributes["boolFalse"] = False
-        ctx.attributes["dict"] = {"abc": 1, "xyz": "zzz"}
+        ctx.info.user["string"] = "value"
+        ctx.info.user["int"] = 103
+        ctx.info.user["float"] = 77.12
+        ctx.info.user["boolTrue"] = True
+        ctx.info.user["boolFalse"] = False
+        ctx.info.user["dict"] = {"abc": 1, "xyz": "zzz"}
 
-        a.attributes["new"] = ["a", 10, "b"]
+        a.info.user["new"] = ["a", 10, "b"]
         return a
 
     test_env.start(1)
     with test_env.client.new_session() as s:
         d0 = blob("data")
-        d0.attributes["first"] = "first value"
-        d0.attributes["second"] = {"integer": 12, "list": [1, 2, 3]}
+        d0.spec.user["first"] = "first value"
+        d0.spec.user["second"] = {"integer": 12, "list": [1, 2, 3]}
         t0 = test(d0)
-        t0.attributes["in_string"] = "value"
-        t0.attributes["in_complex"] = {"abc": 1200, "xyz": 321.12}
+        t0.spec.user["in_string"] = "value"
+        t0.spec.user["in_complex"] = {"abc": 1200, "xyz": 321.12}
         s.submit()
         t0.wait()
         t0.update()
-        assert t0.attributes["string"] == "value"
-        assert t0.attributes["int"] == 103
-        assert t0.attributes["float"] == 77.12
-        assert t0.attributes["boolTrue"] is True
-        assert t0.attributes["boolFalse"] is False
-        assert t0.attributes["dict"] == {"abc": 1, "xyz": "zzz"}
+        assert t0.info.user["string"] == "value"
+        assert t0.info.user["int"] == 103
+        assert t0.info.user["float"] == 77.12
+        assert t0.info.user["boolTrue"] is True
+        assert t0.info.user["boolFalse"] is False
+        assert t0.info.user["dict"] == {"abc": 1, "xyz": "zzz"}
 
         o = t0.output
         o.update()
-        assert o.attributes["first"] == "first value"
-        assert o.attributes["second"] == {"integer": 12, "list": [1, 2, 3]}
-        assert o.attributes["new"] == ["a", 10, "b"]
+        assert o.info.user["new"] == ["a", 10, "b"]
 
 
 def test_remote_complex_args(test_env):
@@ -451,14 +449,14 @@ def test_output_detailed_specs(test_env):
 
     @remote()
     def test1(ctx) -> (Output(encode='pickle', label='test_pickle', size_hint=0.1),
-                       Output(content_type='text:latin2'),
+                       Output(content_type='text-latin2'),
                        "out_c",
                        "out_d"):
         return (obj, b'\xe1\xb9\xef\xeb', pickle.dumps(obj2),
                 ctx.blob(b"[42.0]", content_type='json'))
 
     @remote(outputs=[Output(encode='pickle', label='test_pickle', size_hint=0.1),
-                     Output(content_type='text:latin2'),
+                     Output(content_type='text-latin2'),
                      "out_c", "out_d"])
     def test2(ctx):
         return (obj, b'\xe1\xb9\xef\xeb', pickle.dumps(obj2),
@@ -474,7 +472,7 @@ def test_output_detailed_specs(test_env):
             t.keep_outputs()
             s.submit()
             (a, b, c, d) = t.fetch_outputs()
-            assert t.outputs['foo'].label == "foo"
+            assert t.outputs['foo'].spec.label == "foo"
             assert a.load() == obj
             assert b.load() == 'ášďë'
             assert b.get_bytes() == b'\xe1\xb9\xef\xeb'
@@ -503,7 +501,7 @@ def test_input_detailed_specs(test_env):
         assert in5 == obj5
         assert len(args) == 3
         for i in args:
-            assert i.content_type == "text:latin2"
+            assert i.content_type == "text-latin2"
             assert i.load() == "ňů"
         assert ina == "barbar"
         assert kwargs['kwA'] == ["A"]
@@ -551,9 +549,9 @@ def test_input_detailed_specs(test_env):
                 (pickled(42.0), "foo"),
                 blob(obj4, encode='json'),
                 obj5,
-                blob("ňů", encode="text:latin2"),
-                blob("ňů", encode="text:latin2"),
-                blob("ňů", encode="text:latin2"),
+                blob("ňů", encode="text-latin2"),
+                blob("ňů", encode="text-latin2"),
+                blob("ňů", encode="text-latin2"),
                 ina=blob("barbar", encode='cbor'),
                 kwA=pickled(["A"]),
                 kwB=blob(["B"], encode="json"),
@@ -572,7 +570,7 @@ def test_output_specs_num(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = test1(outputs=[Output(),
-                            Output(content_type='text:latin2'),
+                            Output(content_type='text-latin2'),
                             Output(content_type='pickle')])
         t1.keep_outputs()
         s.submit()
@@ -625,7 +623,7 @@ def test_debug_message(test_env):
         s.submit()
         t.wait()
         t.update()
-        assert t.attributes["debug"] == \
+        assert t.info.debug == \
             "This is first message\nThis is second message and variable a = 11"
 
 
@@ -670,7 +668,7 @@ def test_python_datainstance_write(test_env):
         s.submit()
         s.wait_all()
 
-        x = tasks.execute(
+        x = tasks.Execute(
             "ls",
             input_paths=[Input("d1", dataobj=d1), InputDir("d2", dataobj=d2)],
             output_paths=[Output("d1"), OutputDir("d2")])
@@ -714,7 +712,7 @@ def test_python_datainstance_link(test_env):
         s.submit()
         s.wait_all()
 
-        x = tasks.execute("ls",
+        x = tasks.Execute("ls",
                           input_paths=[Input("d1", dataobj=d1), InputDir("d2", dataobj=d2)],
                           output_paths=[Output("d1"), OutputDir("d2")])
         remote_fn(x.outputs["d1"], x.outputs["d2"])

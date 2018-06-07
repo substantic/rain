@@ -78,7 +78,7 @@ def load_governor_object(data, cache):
 def store_result(instance):
 
     if instance._object_id:
-        location = ["otherObject", instance._object_id]
+        location = ["other_object", instance._object_id]
     elif instance._path:
         location = ["path", instance._path]
     else:
@@ -178,13 +178,11 @@ class Executor:
     def process_message(self, message):
         if message[0] == "call":
             self.unpack_and_run_task(message[1])
-        elif message[0] == "dropCached":
+        elif message[0] == "drop_cached":
             for object_id in message[1]["objects"]:
                 del self.cache[tuple(object_id)]
         else:
-            raise Exception("Unknown message")
-        sys.stdout.flush()
-        pass  # TODO
+            raise Exception("Unknown message: {!r}".format(message[0]))
 
     def run_task(self, context, inputs, outputs):
         """

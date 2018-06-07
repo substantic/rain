@@ -76,6 +76,11 @@ class DataInstance:
         else:
             # At executor
             self._object_id = object_id
+            if info is None:
+                info = ObjectInfo()
+                info.content_type = content_type
+            else:
+                assert content_type is None
             self._info = info
             self._spec = spec
 
