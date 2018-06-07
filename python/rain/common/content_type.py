@@ -6,7 +6,7 @@ from .errors import RainException
 
 
 def check_content_type(name):
-    if name in [None, "pickle", "json", "dir", "text", "cbor", "arrow",
+    if name in [None, "", "pickle", "json", "dir", "text", "cbor", "arrow",
                 "protobuf", "cloudpickle"]:
         return True
     if (name.startswith("text-") or

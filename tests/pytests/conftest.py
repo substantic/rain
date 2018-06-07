@@ -207,7 +207,7 @@ class TestEnv(Env):
     def client(self):
         if self._client is not None:
             return self._client
-        import rain  # noqa
+        import rain.client  # noqa
         if self.running_port is None:
             raise Exception("Server was not started in test environment")
         client = rain.client.Client("127.0.0.1", self.running_port)
@@ -299,7 +299,7 @@ id_counter = 0
 @pytest.fixture
 def fake_session():
     """Returns a new fake session for tests that do not need any server"""
-    import rain  # noqa
+    import rain.client  # noqa
     global id_counter
     id_counter += 1
     return rain.client.session.Session(None, id_counter)

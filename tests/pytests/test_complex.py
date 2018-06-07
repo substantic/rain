@@ -43,7 +43,7 @@ def run_small_gridcat(session):
             t2 = md5sum(input=t1)
             t3 = take_first(t2)
             ts.append(t3.output)
-    result = md5sum(input=tasks.concat(ts))
+    result = md5sum(input=tasks.Concat(ts))
     result.output.keep()
     #  session.pending_graph().write("/home/spirali/tmp/graph.dot")
     session.submit()
@@ -100,7 +100,7 @@ def test_big_diamond(test_env):
         for i in range(LAYERS):
             new_layer = []
             for j in range(0, len(layer), 2):
-                new_layer.append(tasks.concat((layer[j], layer[j+1])))
+                new_layer.append(tasks.Concat((layer[j], layer[j+1])))
             layer = new_layer
         #  s.pending_graph().write("test.dot")
         assert len(layer) == 1

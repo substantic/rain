@@ -132,7 +132,7 @@ class TaskInfo(AttributeBase):
             should be append-only.
     """
     _ATTRS = {
-        "error": (str, str, str),
+        "error": (str, str, lambda: None),
         "start_time": (str, str, str),  # TODO: to/from time object
         "duration": (float, float, lambda: None),
         "governor": (str, str, str),

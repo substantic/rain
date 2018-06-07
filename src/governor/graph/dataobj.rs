@@ -63,7 +63,7 @@ impl DataObject {
             bail!(
                 "Output '{}' (content_type={}) expects type {}, but {} is provided",
                 self.spec.label,
-                self.display_content_type(),
+                self.content_type(),
                 self.spec.data_type,
                 data.data_type(),
             )
@@ -77,11 +77,7 @@ impl DataObject {
         self.info = info;
     }
 
-    pub fn display_content_type(&self) -> String {
-        self.content_type().clone().unwrap_or_else(|| "<None>".to_string())
-    }
-
-    pub fn content_type(&self) -> &Option<String> {
+    pub fn content_type(&self) -> &String {
         &self.spec.content_type
     }
 

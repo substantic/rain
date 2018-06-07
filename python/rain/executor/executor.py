@@ -43,8 +43,7 @@ def unpickle_input_object(name, index, load, content_type):
     global _global_unpickle_inputs
     assert _global_unpickle_inputs is not None
     input = _global_unpickle_inputs[index]
-    input.attributes['spec']['content_type'] = \
-        merge_content_types(input.content_type, content_type)
+    input.spec.content_type = merge_content_types(input.content_type, content_type)
     if load:
         return input.load()
     else:
@@ -56,7 +55,7 @@ def load_governor_object(data, cache):
 
     location = data["location"]
     if location == "cached":
-        return cache[object_id]
+        return cache[spec.id]
 
     path = None
     data = None
@@ -216,7 +215,7 @@ class Executor:
         if len(outputs) == 1:
             result = [result]
         if isinstance(result, collections.Mapping):
-            result = [result.pop(o.label) for o in outputs]
+            result = [result.pop(o.spec.label) for o in outputs]
         if not isinstance(result, collections.Sequence):
             raise RainException("Invalid result of task (not a sequence type): {!r}"
                                 .format(result))

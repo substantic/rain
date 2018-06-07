@@ -94,9 +94,9 @@ pub struct ObjectSpec {
     #[serde(default)]
     pub label: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "String::is_empty")]
     #[serde(default)]
-    pub content_type: Option<String>,
+    pub content_type: String,
 
     pub data_type: DataType,
 
