@@ -2,6 +2,7 @@
 User's Guide
 ************
 
+
 Basic terms
 ===========
 
@@ -11,20 +12,19 @@ running). Tasks can be external programs, python functions, and basic built-in
 operations.
 
 **Data objects** are objects that are read and created by tasks. Data
-instances are immutable, once they are created they cannot be modified. They are
-generic data blobs (or directories) with accompanying metadata. It is upto tasks
-to interpret the data object content.
-
+instances are immutable, once they are created they cannot be modified.
+They are generic data blobs or directories with accompanying metadata.
+It is upto tasks to interpret the data object content.
 
 
 Task definition and submission
 ==============================
 
-Rain represents your computation as a graph of tasks and data objects. Tasks are
-not eagerly executed during the graph construction. Instead, the actual
-execution is managed by Rain infrastructure after an explicit submission. This
-leads to a programming model in which you first only **define** a graph and then
-**execute** it.
+Rain represents your computation as a graph of tasks and data objects.
+Tasks are not eagerly executed during the graph construction.
+Instead, the actual execution is managed by Rain infrastructure after
+an explicit submission. This leads to a programming model in which you
+first only **define** a graph and then **execute** it.
 
 Let us consider the following example, where two constant objects are created
 and merged together::
@@ -38,7 +38,7 @@ and merged together::
 
       a = blob("Hello ")    # Create a definition of data object in the current session
       b = blob("world!")    # Create a definition of data object in the current session
-      tasks.concat((a, b))  # Create a task definition in the current session
+      tasks.Concat([a, b])  # Create a task definition in the current session
                             # that concatenates input data objects
 
       session.submit()      # Send the created graph into the server, where the computation
@@ -66,9 +66,9 @@ returns :class:`rain.common.DataInstance` that wraps data together with some
 additional information. To get raw bytes from :class:`rain.common.DataInstance`
 you can call method ``get_bytes()``.
 
-In the following example, we download the result back to the Python client code.
-Expression ``t.output`` refers to the data object that is the output of task
-``t``::
+In the following example, we download the result back to the Python client
+code. Expression ``t.output`` refers to the data object that is the output
+of task ``t``::
 
 
   from rain.client import Client, tasks, blob
@@ -78,7 +78,7 @@ Expression ``t.output`` refers to the data object that is the output of task
   with client.new_session() as session:
       a = blob("Hello ")
       b = blob("world!")
-      t = tasks.concat((a, b))
+      t = tasks.Concat((a, b))
       t.output.keep()            # Tell server to keep result of task
 
       session.submit()           # Submit task graph
@@ -116,8 +116,8 @@ intuitive example to demostrate the concept of task chaining::
   with client.new_session() as session:
       a = blob("Hello ")
       b = blob("world!")
-      t1 = tasks.sleep(1.0, b)   # Wait for one second and then returns 'b'
-      t2 = tasks.concat((a, t1.output))
+      t1 = tasks.Sleep(b, 1.0)   # Wait for one second and then returns 'b'
+      t2 = tasks.Concat((a, t1.output))
       t2.output.keep()
 
       session.submit()           # Submit task graph
@@ -129,7 +129,7 @@ If a task produces only a single output, we can ommit ``.output`` and directly
 use the task as an input for another task. In our example, we can define ``t2``
 as follows::
 
-  t2 = tasks.concat((a, t1))
+  t2 = tasks.Concat((a, t1))
 
 This shortened notation is used in the rest of the text.
 
@@ -144,9 +144,9 @@ accessible via attribute ``outputs``. That contains an instance of
 
 ::
 
-   # The following task creates two outputs labeled "output1" and "output2"
-   # Details of this task is explained later
-   t = tasks.execute(["tee", Output("output1")], stdout="output2", stdin=data)
+   # The following task creates two outputs labeled "output1" and "output2" with
+   # an equivalent of 'cat data | tee output1 > output2'.
+   t = tasks.Execute(["tee", Output("output1")], stdout="output2", stdin=data)
 
    t.outputs["output1"]  # Access to output "output1"
    t.outputs["output2"]  # Access to output "output2"
@@ -164,27 +164,51 @@ If a task has more than one output or zero outputs, then accessing attribute
 independantly on the number of outputs.
 
 
-Content types
-=============
+Dbject data types
+=================
 
-Data objects may represent different type of data in different formats. However,
-Rain treats all data objects as raw binary blobs, and it is up to tasks to
-interpret them. Content type is a string identifier that helps to identify the
-format of the data in tasks and clients. Python code also recognize some of
-content types and allows to deserialize them directly.
+Every data object represents either a single binary data blob or a directory.
+Since these two object *data types* behave very differently, they are
+distinguished and checked already when constructing the computation graph.
+The *data type* may be one of:
 
-Recognized content types:
+* 'blob' - Binary data block. May have a :ref:`content type` specified.
+* 'dir' - Directory structure, see section :ref:`directories`.
 
-  * <None> - Raw binary data / Unknown content type
-  * pickle - Serialized Python object
-  * cloudpickle - Serialized Python object via Cloudpickle
-  * json - Object serialized into JSON
-  * cbor - Object serialized into CBOR
-  * arrow - Object serialized with Apache Arrow
-  * text - UTF-8 string.
-  * text:<ENCODING> - Text with specified encoding
-  * mime:<MIME> - Content type defined as MIME type
-  * user:<TYPE> - User defined type, <TYPE> may be arbitrary string
+We consider developing other data object "modes", e.g. streams.
+
+.. _`content type`:
+
+Object content types
+====================
+
+Binary data objecs represent different type of data in different formats.
+The Rain infrastructure treats all data objects as raw binary blobs,
+and it is up to tasks to interpret them. Content type is a string identifier
+of the format of the data in tasks and clients. Python code also recognize
+some of content types and allows to deserialize them directly.
+
+Currently recognized content types are:
+
+  * '' - Raw binary data, unknown or unspecified content type
+  * 'pickle' - Serialized Python object
+  * 'cloudpickle' - Serialized Python object via Cloudpickle
+  * 'json' - Object serialized into JSON
+  * 'cbor' - Object serialized into CBOR
+  * 'arrow' - Object serialized with Apache Arrow
+  * 'text' - UTF-8 string.
+  * 'text-<ENCODING>' - Text with specified encoding
+  * 'mime/<MIME>' - Content type defined as MIME type
+  * 'user/<TYPE>' - User defined type, <TYPE> may be arbitrary string
+
+An object may have two different content-types: First, a type is specified
+when constructing the task graph. Second, the type may be set by the task
+executor dynamically (e.g. depending on some input data).
+If present, the latter is taken to be the actual content type and must
+be a sub-type of the former.
+Any type is considered a subtype of the unspecified type.
+
+
 
 
 Constant data objects
@@ -197,84 +221,89 @@ the task graph.
 ::
 
    from rain.client import blob, pickled
-
    blob(b"Raw data")  # Creates a data object with a defined content
-
    blob(b"Raw data", label="input data")  # Data with a non-default label
                                           # (Default label is 'const')
-
    blob("String data")  # Creates a data object from a string, the content type
                         # is set to 'text'
-
    blob("[1, 2, 3, 4]", content_type="json")  # Data with a specified content type
-
    blob([1, 2, 3, 4], encode="json")  # Serialize python object to JSON and set
                                       # content type to "json"
-
    blob([1, 2, 3, 4], encode="pickle")  # Serialize python object by pickle
                                         # content type to "pickle"
-
    pickled([1, 2, 3, 4])  # Short-cut for blob(..., encode="pickle")
 
 
 Built-in tasks
 ==============
 
-The following four tasks are supported directly by Rain governor:
+The following tasks are supported directly by the Rain governor:
 
-* *concat* (:func:`rain.client.tasks.export`) Concatencates inputs into one
-  resulting blob.
-* *export* (:func:`rain.client.tasks.export`) Saves data object to a filesystem.
-  The data are saved into local file system of the governor on which the task is
-  executed. This task is usually used for saving files to a distributed file
-  system, hence it does not matter which governor performs the task.
-* *open* (:func:`rain.client.tasks.open`) Creates data object from a file (Note:
-  The current version does not support tracking external resources; therefore,
-  this operation "internalize" file, i.e. it makes a copy of it into the working
-  directory.
-* *sleep* (:func:`rain.client.tasks.sleep`) Task that forwards its input as its
-  output after a specified delay.
-* *make_directory* (:func:`rain.client.tasks.make_directory`) Tasks that creates
-  a directory from input data objects.
-* *split_directory* (:func:`rain.client.tasks.slice_directory`) Tasks that takes
-  a file/subdirectory from a directory object.
+*Concat* (:class:`rain.client.tasks.Concat`)
+  Concatencates inputs into one resulting blob.
 
-(Examples for last two tasks are in section :ref:`directories`)
+*Load*, *LoadDir* (:class:`rain.client.tasks.Load`, :class:`rain.client.tasks.LoadDir`)
+  Creates data object from an external file or direftory.
+  (Note: The current version does not support tracking external resources;
+  therefore, this operation "internalizes" the file, i.e. it makes a copy
+  of it into the working directory.)
+
+*Store* (:class:`rain.client.tasks.Store`)
+  Saves data object to a filesystem.
+  The data are saved into local file system of the governor on which the
+  task is executed. This task is usually used for saving files to
+  a distributed file system, hence it does not matter which governor
+  performs the task.
+
+*Sleep* (:class:`rain.client.tasks.Sleep`)
+  Task that forwards its input as its
+  output after a specified delay. Mostly for testing and benchmarking.
+
+*Execute* (:class:`rain.client.tasks.SliceDirectory`)
+  Run an external program with given inputs, parameters and resources.
+  See :class:`rain.client.Program` if you execute a program repeatedly
+  with different data.
+
+*MakeDirectory* (:class:`rain.client.tasks.MakeDirectory`)
+  Tasks that creates a directory combining the inputs under given paths.
+
+*SliceDirectory* (:class:`rain.client.tasks.SliceDirectory`)
+  Tasks that extracts a file or subdirectory from a directory object.
 
 ::
 
   # This example demonstrates usage of four built-in tasks
-
   from rain.client import tasks, Client, blob
-
 
   client = Client("localhost", 7210)
 
   with client.new_session() as session:
 
       # Create tasks opening an external file
-      data1 = tasks.open("/path/to/data")
+      data1 = tasks.Load("/path/to/data")
 
       # Create a constant object
       data2 = blob("constant data")
 
       # Merge two objects
-      merge = tasks.concat((data1, data2))
+      merge = tasks.Concat((data1, data2))
 
       # Sleep for 1s
-      result = tasks.sleep(1, merge)
+      result = tasks.Sleep(merge, 1.0)
 
       # Write result into file
-      tasks.export(result, "/path/to/result")
+      tasks.Store(result, "/path/to/result")
 
       session.submit()
       session.wait_all()
+
+(Examples for the directory-related tasks are in section :ref:`directories`)
 
 
 Running external programs
 =========================
 
-Task ``tasks.execute``
+Task ``tasks.Execute``
 ----------------------
 
 The whole functionality is built around built-in task
@@ -287,27 +316,27 @@ The idea is that this directory is program's sandbox where input data objects
 are mapped and files created in this directory may be moved out as new data
 objects when computation completes. Therefore, in contrast with many other
 workflow systems, programs in rain should not be called with absolute paths in
-arguments but use relative paths (to stay in its working directory). Governors try
-to avoid unnecessary data object replication in the cases when a data object is
-used by multiple tasks that run on the same governor.
+arguments but use relative paths (to stay in its working directory).
+Governors try to avoid unnecessary data object replication in the cases when
+a data object is used by multiple tasks that run on the same governor.
 
 If the executed program terminates with a non-zero code, then tasks fails and
 content of standard error output is written into the error message.
 
 The simple example looks as follow::
 
-  tasks.execute("sleep 1")
+  tasks.Execute("sleep 1")
 
-This creates a task with no inputs and no outputs executing program "sleep" with
-argument "1". Arguments are parsed in shell-like manner.
+This creates a task with no inputs and no outputs executing program "sleep"
+with argument "1". Arguments are parsed in shell-like manner.
 Arguments can be also specified explicitly as a list::
 
-  tasks.execute(("sleep",  "1"))
+  tasks.Execute(("sleep",  "1"))
 
 Command may be also interpreted by shell, if the argument ``shell=True`` is
 provided::
 
-  tasks.execute("sleep 1 && sleep 1", shell=True)
+  tasks.Execute("sleep 1 && sleep 1", shell=True)
 
 
 Outputs
@@ -325,16 +354,17 @@ output of :func:`rain.cient.tasks.execute`. The following example calls program
   client = Client("localhost", 7210)
 
   with client.new_session() as session:
-      t = tasks.execute("wget https://github.com/",
+      t = tasks.Execute("wget https://github.com/",
                          output_paths=[Output("index", path="index.html")])
       t.output.keep()
 
       session.submit()
       result = t.output.fetch().get_bytes()
 
-The class :class:`rain.client.Output` allows to configure the outputs. The first
-argument is the label of the output. The argument ``path`` sets the path to the
-file used as output. It is a relative path w.r.t. the working directory of the
+The class :class:`rain.client.Output` allows to configure the outputs.
+The first argument is the label of the output. The argument ``path`` sets the
+path to the file used as output.
+It is a relative path w.r.t. the working directory of the
 task. If the path is not defined, then label is used as path; e.g.
 ``Output("my_output")`` is equivalent to ``Output("my_output",
 path="my_output")``. The Output instance can be also used for specification of
@@ -342,10 +372,11 @@ additional attributes such content type or size hint. Please see the class
 documentation for more details.
 
 If we do not want to configure the output, it is possible to use just a string
-instead of instance of ``Output``. It creates the output with the same label and
-path as the given string. Therefore we can create the previous task as follows::
+instead of instance of ``Output``. It creates the output with the same label
+and path as the given string.
+Therefore we can create the previous task as follows::
 
-  t = tasks.execute("wget https://github.com/", output_paths=["index.html"])
+  t = tasks.Execute("wget https://github.com/", output_paths=["index.html"])
 
 The only difference is that label of the output is now "index.html" (not
 "index").
@@ -353,40 +384,42 @@ The only difference is that label of the output is now "index.html" (not
 Of course, more than one output may be specified. Program ``wget`` allows to
 redirect its log to a file through ``--output-file`` option::
 
-  t = tasks.execute("wget https://github.com/ --output-file log",
+  t = tasks.Execute("wget https://github.com/ --output-file log",
                     outputs_paths=["index.html", "log"])
 
-This creates a task with two outputs with labels "index.html" and "log". The outputs
-are available using standard syntax, e.g. ``t.outputs["log"]``.
+This creates a task with two outputs with labels "index.html" and "log".
+The outputs are available using standard syntax, e.g. ``t.outputs["log"]``.
 
-Outputs can be also passed directly as program arguments. This is a shortcut for
-two actions: passing the output path as an argument and putting output into
-``output_paths``. The example above can be written as follows::
+Outputs can be also passed directly as program arguments.
+This is a shortcut for two actions: passing the output path as an argument
+and putting output into ``output_paths``.
+The example above can be written as follows::
 
-  t = tasks.execute(["wget", "https://github.com/", "--output-file", Output("log")],
+  t = tasks.Execute(["wget", "https://github.com/", "--output-file", Output("log")],
                     output_paths=["index.html"])
 
 The argument ``stdout`` allows to use program's standard output::
 
    # Creates output from stdout labelled "stdout"
-   tasks.execute("ls /", stdout=True)
+   tasks.Execute("ls /", stdout=True)
 
    # Creates output from stdout with label "my_label"
-   tasks.execute("ls /", stdout="my_label")
+   tasks.Execute("ls /", stdout="my_label")
 
    # Creates output through Output object, argument 'path' is not allowed
-   tasks.execute("ls /", stdout=Output("my_label"))
+   tasks.Execute("ls /", stdout=Output("my_label"))
 
 
 Inputs
 ------
 
 Data objects can be mapped into the working directory of
-:func:`rain.client.tasks`. The simplest case is to use a data object directly as
-arguments for a program. In such case, the data object is mapped into randomly
-named file and the name is placed into program arguments. Note that files are by
-default mapped only for reading (and proctected by setting file permissions).
-More options of mapping is described in :ref:`fs_mapping`.
+:func:`rain.client.tasks`. The simplest case is to use a data object directly
+as arguments for a program. In such case, the data object is mapped into
+randomly named file and the name is placed into program arguments.
+Note that files are by default mapped only for reading (and proctected by
+setting file permissions). More options of mapping is described in
+:ref:`fs_mapping`.
 
 ::
 
@@ -399,7 +432,7 @@ More options of mapping is described in :ref:`fs_mapping`.
 
       # Maps 'data' into file XXX where is a random name and executes
       # "grep rain XXX"
-      task = tasks.execute(["grep", "rain", data], stdout=True)
+      task = tasks.Execute(["grep", "rain", data], stdout=True)
       task.output.keep()
 
       session.submit()
@@ -416,7 +449,7 @@ For additional settings and file name control, there is
     # It executes a program "a-program" with arguments "argument1" and "myfile"
     # and while it maps dataobject in variable 'data' into file 'myfile'
     my_data = ... # A data object
-    task = tasks.execute(["a-program", "argument1",
+    task = tasks.Execute(["a-program", "argument1",
                           Input("my_label", path="myfile", dataobj=my_data)])
 
 The argument ``input_paths`` of :func:`rain.client.tasks.execute` serves to map
@@ -425,7 +458,7 @@ arguments::
 
   # It executes a program "a-program" with arguments "argument1"
   # and while it maps dataobject in variable 'data' into file 'myfile'
-  tasks.execute(["a-program", "argument1"],
+  tasks.Execute(["a-program", "argument1"],
                 input_paths=[Input("my_label", path="myfile", dataobj=my_data)])
 
 The argument ``stdin`` serves to map a data object on the standard input of the
@@ -433,7 +466,7 @@ program::
 
   # Executes a program "a-program" with argument "argument1" while mapping
   # a data object on the standard input
-  tasks.execute(["a-program", "argument1"], stdin=my_data)
+  tasks.Execute(["a-program", "argument1"], stdin=my_data)
 
 
 Factory ``Program``
@@ -568,9 +601,9 @@ encapsulated in own data structures::
    filtering kind of generator.
 
 All metadata of data objects (including content type) are passed to the data
-instances occuring in remote functions. Therefore, it is possible to call method
-``load()`` on data instances to deserialize objects according to their content
-types::
+instances occuring in remote functions. Therefore, it is possible to call
+method ``load()`` on data instances to deserialize objects according to
+their content types::
 
    @remote()
    def fn1(ctx, data):
@@ -706,22 +739,107 @@ cpus for a task::
       pass
 
 
-Attributes
-==========
+Attributes 'spec' and 'info'
+============================
 
-Each task and data object has an assigned *attributes* a dictionary of JSON
-serializable values. Some attributes are set when task/object is created, some
-are added when object is computed or finished. When an object/task is finished,
-attributes are no longer changed.
+Most of the information about the tasks and data objects falls into
+two categories:
 
-A client may ask for attributes of any task/object as long as session is open;
-"keep" flag is not necessary. Attributes are not updated automatically,
-``fetch()`` or ``update()`` has to be called to update attributes.
+* The user-created specification data (*spec*).
+* The information about the task execution and object computation (*info*).
 
-::
+These are stored and transmitted separately. Once the objects and tasks
+are submitted, the spec is immutable. The info is initially empty
+and is set by the governor (and in part by the task executor). When
+a task or object is finished, info is also immutable.
+
+The data is transmitted as JSON, attributes with values ``None``,
+empty strings and empty lists may be omitted when encoding.
+
+A client may ask for info attributes of any task/object as long as session
+is open; "keep" flag is not necessary. Attributes are not updated
+automatically, ``fetch()`` or ``update()`` has to be called to update
+attributes.
+
+Error, debugn and user
+----------------------
+
+The task info and object info share ``error`` attribute. When non-empty,
+the task is assumed to have failed. You may specify ``error``
+of an object to indicate the error more precisely, but it usually
+indicates a failure of the generating task.
+Note that empty ``error`` is assumedto mean success even if explicitly present.
+
+The ``debug`` attribute is intended for any log messages from Rain or the user,
+especially for internal and external debugging. General node progress is
+normally not logged here as it is contained in the Rain event log.
+This is the only attribute that is not immutable once set and may be appended
+to.
+
+Both task and object info and spec have a ``user`` dictionary intended
+for any JSON-serializable data for any purpose. The keys prefixed with ``_``
+are used internally in testing and development.
+
+
+Task spec and info
+------------------
+
+Task spec (:class:`rain.common.attributes.TaskSpec` in Python)
+has the following attributes:
+
+* ``id`` - Task ID tuple, type :class:`rain.common.ids.ID`.
+* ``task_type`` - The task-type identificator (e.g. "executor/method").
+* ``config`` - Any task-type specific configuration data, JSON-serializable.
+* ``inputs`` - A list of input object IDs and labels as
+  :class:`rain.common.attributes.TaskSpecInput`
+  * ``id`` - Input object ID.
+  * ``label`` - Optional label.
+* ``outputs`` - List of output object IDs.
+* ``resources`` - Dictionary with resource specification.
+* ``user`` - Arbitrary user json-serializable attributes.
+
+Task info (:class:`rain.common.attributes.TaskInfo` in Python)
+has the following attributes:
+
+* ``error`` - Error message. Non-empty error indicates failure.
+* ``start_time`` - Time the task was started.
+* ``duration`` - Real-time duration in seconds (floating-point number).
+* ``governor`` - The ID of the governor that executed this task.
+* ``debug`` - Debugging log, usually empty.
+* ``user`` - Arbitrary json-serializable objects.
+
+Data object spec and info
+-------------------------
+
+Data object spec (:class:`rain.common.attributes.ObjectSpec` in Python)
+has the following attributes:
+
+* ``id`` - Object ID tuple, type :class:`rain.common.ids.ID`.
+* ``label`` - Label (role) of this output at the generating task.
+* ``content_type`` - Specified content type name, see `content type`_.
+* ``data_type`` - Object data type, ``"blob"`` or ``"dir"``.
+* ``user`` - Arbitrary user json-serializable attributes.
+
+Data object info (:class:`rain.common.attributes.ObjectInfo` in Python)
+has the following attributes:
+
+* ``error`` - Error message. Non-empty error indicates failure.
+* ``size`` - Final size in bytes (approximate for directories).
+* ``content_type`` - Content type after execution. Note that this must
+  be a sub-type of ``spec.content_type``.
+* ``debug`` - Debugging log, usually empty.
+* ``user`` - Arbitrary json-serializable objects.
+
+Python API
+----------
+
+In the client, the attributes are available as ``spec`` and ``info`` on 
+:class:`rain.client.Task` and :class:`rain.client.DataObject`.
+
+An example of fetching and querying the attributes at the client::
 
     with client.new_session() as s:
-        task = tasks.execute("sleep 1")
+        task = tasks.Execute("sleep 1")
         s.submit()
 
         s.wait_all()
@@ -730,34 +848,38 @@ A client may ask for attributes of any task/object as long as session is open;
         task.update()
 
         # Print name of governor where task was executed
-        print(task.attributes["info"]["governor"])
+        print(task.info.governor)
 
-TODO: List of built-in attributes
+In the python executor and remote tasks, the object attributes are
+available on the input :class:`rain.common.DataInstance`s, the
+task attributes on the execution context (:class:`rain.executor.context.Context`).
 
-Users are allowed to store arbitrary information under keys "user_spec" and "user_info".
-The former serves for task configuration, the latter serves for information generated
-during task execution.
-
-::
+An example of remote attribute manipulation::
 
     @remote()
     def attr_demo(ctx):
        # read user defined attributes
-       spec = ctx.attributes["user_spec"]
+       foo = ctx.spec.user["foo"]
 
        # setup new "user_info" attribute
-       ctx.attributes["user_info"] = [1, 2, spec]
+       ctx.info.user["bar"] = [1, 2, foo]
+
+       # Write some debug log
+       ctx.debug("Running at governor", ctx.info.governor)
        return b"Result"
 
     with client.new_session() as session:
         task = attr_demo()
-        task.attributes["user_spec"] = "mystring"
+        task.spec.user["foo"] = 42
         session.submit()
         session.wait_all()
         task.update()
 
-        # prints: [1, 2, "mystring"]
-        print(tasks.attributes["user_info"])
+        # prints: [1, 2, 42]
+        print(task.info.user["bar"])
+
+        # prints the debug log
+        print(task.info.debug)
 
 
 Waiting for object(s) and task(s)
