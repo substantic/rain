@@ -139,7 +139,7 @@ More outputs
 
 A task may generally create zero, one, or more outputs. All outputs are
 accessible via attribute ``outputs``. That contains an instance of
-:class:`rain.client.LabeledList`. It is an extension of a standard list
+:class:`rain.common.LabeledList`. It is an extension of a standard list
 (indexed from zero), that also allows to be accessed via string labels.
 
 ::
@@ -307,8 +307,8 @@ Task ``tasks.Execute``
 ----------------------
 
 The whole functionality is built around built-in task
-:func:`rain.client.tasks.execute`. When a program is executed through
-:func:`rain.client.tasks.execute`, then a new temporary directory is created.
+:class:`rain.client.tasks.Execute`. When a program is executed through
+:class:`rain.client.tasks.Execute`, then a new temporary directory is created.
 This directory will be removed at the end of program execution. The current
 working directory of the program is set to this directory.
 
@@ -343,7 +343,7 @@ Outputs
 -------
 
 Files created during task execution or task standard output can be used as the
-output of :func:`rain.cient.tasks.execute`. The following example calls program
+output of :class:`rain.client.tasks.Execute`. The following example calls program
 ``wget`` that downloads web page at https://github.com/ and saves it as
 `index.html`. The created file is forwarded as the output of the task.
 
@@ -419,7 +419,7 @@ as arguments for a program. In such case, the data object is mapped into
 randomly named file and the name is placed into program arguments.
 Note that files are by default mapped only for reading (and proctected by
 setting file permissions). More options of mapping is described in
-:ref:`fs_mapping`.
+:ref:`fs_mappings`.
 
 ::
 
@@ -452,7 +452,7 @@ For additional settings and file name control, there is
     task = tasks.Execute(["a-program", "argument1",
                           Input("my_label", path="myfile", dataobj=my_data)])
 
-The argument ``input_paths`` of :func:`rain.client.tasks.execute` serves to map
+The argument ``input_paths`` of :class:`rain.client.tasks.Execute` serves to map
 a data object into file without putting its filename into the program
 arguments::
 
@@ -474,7 +474,7 @@ Factory ``Program``
 
 In many cases, we need to call the same program with the same argument set.
 Class :class:`rain.client.Program` serves as a factory for
-:func:`rain.client.tasks.execute` for this purpose. An instance of ``Program``
+:class:`rain.client.tasks.Execute` for this purpose. An instance of ``Program``
 can be called as a function that takes data objects; the call creates a task in
 the active session.
 
@@ -625,7 +625,7 @@ their content types::
    data = blob([1,2,3,4], encode="json")
    fn1(data)
 
-The second case uses :class:`rain.common.Input` to configure individual
+The second case uses :class:`rain.client.Input` to configure individual
 parameters. It can be also used for additional configurations, like data-object
 size hints for Rain scheduler, or content type specification::
 
@@ -731,7 +731,7 @@ of cpus. This following example shows how to request a a specific number of
 cpus for a task::
 
   # Reserve 4 CPUs for execution of a program
-  tasks.execute("a-parallel-program", cpus=4)
+  tasks.Execute("a-parallel-program", cpus=4)
 
   # Resere 4 CPUs for a Python task
   @remote(cpus=4)
@@ -784,21 +784,21 @@ are used internally in testing and development.
 Task spec and info
 ------------------
 
-Task spec (:class:`rain.common.attributes.TaskSpec` in Python)
+Task spec ( ::`rain.common.attributes.TaskSpec` in Python)
 has the following attributes:
 
-* ``id`` - Task ID tuple, type :class:`rain.common.ids.ID`.
+* ``id`` - Task ID tuple, type :class:`rain.common.ID`.
 * ``task_type`` - The task-type identificator (e.g. "executor/method").
 * ``config`` - Any task-type specific configuration data, JSON-serializable.
 * ``inputs`` - A list of input object IDs and labels as
-  :class:`rain.common.attributes.TaskSpecInput`
+  ::`rain.common.attributes.TaskSpecInput`
   * ``id`` - Input object ID.
   * ``label`` - Optional label.
 * ``outputs`` - List of output object IDs.
 * ``resources`` - Dictionary with resource specification.
 * ``user`` - Arbitrary user json-serializable attributes.
 
-Task info (:class:`rain.common.attributes.TaskInfo` in Python)
+Task info (::`rain.common.attributes.TaskInfo` in Python)
 has the following attributes:
 
 * ``error`` - Error message. Non-empty error indicates failure.
@@ -811,16 +811,16 @@ has the following attributes:
 Data object spec and info
 -------------------------
 
-Data object spec (:class:`rain.common.attributes.ObjectSpec` in Python)
+Data object spec (::`rain.common.attributes.ObjectSpec` in Python)
 has the following attributes:
 
-* ``id`` - Object ID tuple, type :class:`rain.common.ids.ID`.
+* ``id`` - Object ID tuple, type :class:`rain.common.ID`.
 * ``label`` - Label (role) of this output at the generating task.
 * ``content_type`` - Specified content type name, see `content type`_.
 * ``data_type`` - Object data type, ``"blob"`` or ``"dir"``.
 * ``user`` - Arbitrary user json-serializable attributes.
 
-Data object info (:class:`rain.common.attributes.ObjectInfo` in Python)
+Data object info (::`rain.common.attributes.ObjectInfo` in Python)
 has the following attributes:
 
 * ``error`` - Error message. Non-empty error indicates failure.
@@ -851,8 +851,8 @@ An example of fetching and querying the attributes at the client::
         print(task.info.governor)
 
 In the python executor and remote tasks, the object attributes are
-available on the input :class:`rain.common.DataInstance`s, the
-task attributes on the execution context (:class:`rain.executor.context.Context`).
+available on the input :class:`rain.common.DataInstance`, the
+task attributes on the execution context (::`rain.executor.context.Context`).
 
 An example of remote attribute manipulation::
 
@@ -916,7 +916,7 @@ Directories
 ===========
 
 Rain allows to use directories in the similar way to blobs. Rain allows to
-create directory data objects that can be passed to ``tasks.execute()``, remote
+create directory data objects that can be passed to ``tasks.Execute()``, remote
 python code, and other places without any differences. There are only two
 specific features:
 
@@ -949,21 +949,21 @@ places where ``Input`` and ``Output`` classes are used, there are classes
        data2 = blob(b"67890")
 
        # Task that creates a directory from data objects
-       d2 = tasks.make_directory(tasks.make_directory([
+       d2 = tasks.MakeDirectory(tasks.make_directory([
             ("myfile.txt", data1),  # Map 'data1' as file 'myfile.txt' into directory
             ("adir", d),  # Map directory 'd' as subdir named 'adir'
             ("a/deep/path/x", data2),  # Map 'data2' as a file 'x'; all subdirs on path is created
        ])
 
        # Task taking a file from a directory data object
-       d3 = tasks.slice_directory(d2, "a/deep/path/x")
+       d3 = tasks.SliceDirectory(d2, "a/deep/path/x")
 
        # Task taking a directory from a directory data object
        # This is indicated by  '/' at the end of the path.
-       d3 = tasks.slice_directory(d2, "a/deep/")
+       d3 = tasks.SliceDirectory(d2, "a/deep/")
 
        # Taking directory as outpout of task.execute
-       tasks.execute("git clone https://github.com/substantic/rain",
+       tasks.Execute("git clone https://github.com/substantic/rain",
                      output_paths=[OutputDir("rain")])
 
 
@@ -977,21 +977,22 @@ Rain knows two methods of maping a data objects onto filesystem.
 * **write** - creates a fresh copy of data objects is created on filesystem that
   can be freely modified. Changes of the file is *not* propagated back to data
   object.
-* **link** - symlink to the internal storage of governor. The user can only read
-this data. This method may silently fall back to 'write' when governor has no file
-system representation of the object.
 
-Task :func:`tasks.execute` maps files by **link** method. It can be changed by
-``write`` argument of ``Input``::
+* **link** - symlink to the internal storage of governor. The user can only read
+  this data. This method may silently fall back to 'write' when governor has no file
+  system representation of the object.
+
+Task :func:`rain.client.tasks.Execute` maps files by **link** method.
+It can be changed by ``write`` argument of ``Input``::
 
   # Let 'obj' contains a data object
 
   # THIS IS INVALID! You cannot modified linked objects
-  tasks.execute("echo 'New line' >> myfile", shell=True,
+  tasks.Execute("echo 'New line' >> myfile", shell=True,
                 input_paths=[Input("myfile", dataobj=obj)])
 
   # This is ok. Writable copy of 'obj' is created.
-  tasks.execute("echo 'New line' >> myfile", shell=True,
+  tasks.Execute("echo 'New line' >> myfile", shell=True,
                 input_paths=[Input("myfile", dataobj=obj, write=True)])
 
 Data instance has methods ``write(path)`` and ``link(path)`` that performs the
