@@ -69,14 +69,14 @@ impl TaskInstance {
             let task_type: &str = task.spec.task_type.as_ref();
             // Built-in task
             match task_type {
-                task_type if !task_type.starts_with("!") => Self::start_task_in_executor,
-                "!run" => tasks::run::task_run,
-                "!concat" => tasks::basic::task_concat,
-                "!open" => tasks::basic::task_open,
-                "!export" => tasks::basic::task_export,
-                "!slice_directory" => tasks::basic::task_slice_directory,
-                "!make_directory" => tasks::basic::task_make_directory,
-                "!sleep" => tasks::basic::task_sleep,
+                task_type if !task_type.starts_with("buildin/") => Self::start_task_in_executor,
+                "buildin/run" => tasks::run::task_run,
+                "buildin/concat" => tasks::basic::task_concat,
+                "buildin/open" => tasks::basic::task_open,
+                "buildin/export" => tasks::basic::task_export,
+                "buildin/slice_directory" => tasks::basic::task_slice_directory,
+                "buildin/make_directory" => tasks::basic::task_make_directory,
+                "buildin/sleep" => tasks::basic::task_sleep,
                 _ => fail_unknown_type,
             }
         };

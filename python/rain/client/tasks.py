@@ -13,7 +13,7 @@ class Concat(Task):
     """
     Creates a task concatenating the given data objects.
     """
-    TASK_TYPE = "!concat"
+    TASK_TYPE = "buildin/concat"
 
     def __init__(self, inputs, session=None):
         super().__init__(inputs, 1, session=session)
@@ -30,7 +30,7 @@ class Sleep(Task):
         timeout (`float`): Number of seconds to wait, converted to whole miliseconds.
         cpus (`int`): Number of CPUs to reserve, for testing purposes.
     """
-    TASK_TYPE = "!sleep"
+    TASK_TYPE = "buildin/sleep"
 
     def __init__(self, input, timeout, *, session=None, cpus=1):
         input = to_dataobj(input)
@@ -44,7 +44,7 @@ class Load(Task):
     """
     Load and output a file at the given path (at the worker).
     """
-    TASK_TYPE = "!open"
+    TASK_TYPE = "buildin/open"
 
     def __init__(self, path, output=None, *, session=None):
         if output is None:
@@ -60,7 +60,7 @@ class LoadDir(Task):
 
     TODO: Implement
     """
-    TASK_TYPE = "!open_dir"
+    TASK_TYPE = "buildin/open_dir"
 
     def __init__(self, path, output=None, *, session=None):
         if output is None:
@@ -74,7 +74,7 @@ class Store(Task):
     """
     Store the given object (blob or directory) at the given path (at the worker).
     """
-    TASK_TYPE = "!export"
+    TASK_TYPE = "buildin/export"
 
     def __init__(self, input, path, *, session=None):
         super().__init__((input, ), 0, config={"path": path}, session=session)
@@ -91,7 +91,7 @@ class MakeDirectory(Task):
 
     TODO: Specify behavior on overlapping subdirs/contents.
     """
-    TASK_TYPE = "!make_directory"
+    TASK_TYPE = "buildin/make_directory"
 
     def __init__(self, paths_objects, *, session=None):
         if isinstance(paths_objects, dict):
@@ -115,7 +115,7 @@ class SliceDirectory(Task):
             is a directory object, otherwise a file object is creates.
         output (`Output` or `OutputDir`): An optional output specification.
     """
-    TASK_TYPE = "!slice_directory"
+    TASK_TYPE = "buildin/slice_directory"
 
     def __init__(self, input, path, output=None, *, session=None):
         input = to_dataobj(input)
@@ -137,7 +137,7 @@ class Execute(Task):
     """
     A task executing a single external program with rich argument support.
     """
-    TASK_TYPE = "!run"
+    TASK_TYPE = "buildin/run"
 
     def __init__(self, args,
                  stdout=None,
