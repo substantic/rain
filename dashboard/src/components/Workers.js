@@ -76,7 +76,7 @@ class Workers extends Component {
           {
             this.state.workers.map(w =>
               <div key={w.name}>
-                <h2>Governor {w.name}</h2>
+                <h2>Worker {w.name}</h2>
                 {<Chart data={w}/>}
               </div>
             )

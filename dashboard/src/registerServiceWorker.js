@@ -1,4 +1,4 @@
-// In production, we register a service governor to serve assets from local cache.
+// In production, we register a service workernor to serve assets from local cache.
 
 // This lets the app load faster on subsequent visits in production, and gives
 // it offline capabilities. However, it also means that developers (and users)
@@ -19,33 +19,33 @@ const isLocalhost = Boolean(
 );
 
 export default function register() {
-  if (process.env.NODE_ENV === 'production' && 'serviceGovernor' in navigator) {
+  if (process.env.NODE_ENV === 'production' && 'serviceWorkernor' in navigator) {
     // The URL constructor is available in all browsers that support SW.
     const publicUrl = new URL(process.env.PUBLIC_URL, window.location);
     if (publicUrl.origin !== window.location.origin) {
-      // Our service governor won't work if PUBLIC_URL is on a different origin
+      // Our service workernor won't work if PUBLIC_URL is on a different origin
       // from what our page is served on. This might happen if a CDN is used to
       // serve assets; see https://github.com/facebookincubator/create-react-app/issues/2374
       return;
     }
 
     window.addEventListener('load', () => {
-      const swUrl = `${process.env.PUBLIC_URL}/service-governor.js`;
+      const swUrl = `${process.env.PUBLIC_URL}/service-workernor.js`;
 
       if (isLocalhost) {
-        // This is running on localhost. Lets check if a service governor still exists or not.
-        checkValidServiceGovernor(swUrl);
+        // This is running on localhost. Lets check if a service workernor still exists or not.
+        checkValidServiceWorkernor(swUrl);
 
         // Add some additional logging to localhost, pointing developers to the
-        // service governor/PWA documentation.
-        navigator.serviceGovernor.ready.then(() => {
+        // service workernor/PWA documentation.
+        navigator.serviceWorkernor.ready.then(() => {
           console.log(
             'This web app is being served cache-first by a service ' +
-              'governor. To learn more, visit https://goo.gl/SC7cgQ'
+              'workernor. To learn more, visit https://goo.gl/SC7cgQ'
           );
         });
       } else {
-        // Is not local host. Just register service governor
+        // Is not local host. Just register service workernor
         registerValidSW(swUrl);
       }
     });
@@ -53,14 +53,14 @@ export default function register() {
 }
 
 function registerValidSW(swUrl) {
-  navigator.serviceGovernor
+  navigator.serviceWorkernor
     .register(swUrl)
     .then(registration => {
       registration.onupdatefound = () => {
-        const installingGovernor = registration.installing;
-        installingGovernor.onstatechange = () => {
-          if (installingGovernor.state === 'installed') {
-            if (navigator.serviceGovernor.controller) {
+        const installingWorkernor = registration.installing;
+        installingWorkernor.onstatechange = () => {
+          if (installingWorkernor.state === 'installed') {
+            if (navigator.serviceWorkernor.controller) {
               // At this point, the old content will have been purged and
               // the fresh content will have been added to the cache.
               // It's the perfect time to display a "New content is
@@ -77,27 +77,27 @@ function registerValidSW(swUrl) {
       };
     })
     .catch(error => {
-      console.error('Error during service governor registration:', error);
+      console.error('Error during service workernor registration:', error);
     });
 }
 
-function checkValidServiceGovernor(swUrl) {
-  // Check if the service governor can be found. If it can't reload the page.
+function checkValidServiceWorkernor(swUrl) {
+  // Check if the service workernor can be found. If it can't reload the page.
   fetch(swUrl)
     .then(response => {
-      // Ensure service governor exists, and that we really are getting a JS file.
+      // Ensure service workernor exists, and that we really are getting a JS file.
       if (
         response.status === 404 ||
         response.headers.get('content-type').indexOf('javascript') === -1
       ) {
-        // No service governor found. Probably a different app. Reload the page.
-        navigator.serviceGovernor.ready.then(registration => {
+        // No service workernor found. Probably a different app. Reload the page.
+        navigator.serviceWorkernor.ready.then(registration => {
           registration.unregister().then(() => {
             window.location.reload();
           });
         });
       } else {
-        // Service governor found. Proceed as normal.
+        // Service workernor found. Proceed as normal.
         registerValidSW(swUrl);
       }
     })
@@ -109,8 +109,8 @@ function checkValidServiceGovernor(swUrl) {
 }
 
 export function unregister() {
-  if ('serviceGovernor' in navigator) {
-    navigator.serviceGovernor.ready.then(registration => {
+  if ('serviceWorkernor' in navigator) {
+    navigator.serviceWorkernor.ready.then(registration => {
       registration.unregister();
     });
   }
