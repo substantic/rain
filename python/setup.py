@@ -29,10 +29,15 @@ with open('requirements.txt') as reqs:
 
 now = datetime.datetime.now()
 
-setup(name='rain',
+long_desc = """
+This is a Python part of Rain. Rain is distributed computational framework.
+See https://github.com/substantic/rain for more details."""
+
+setup(name='rain-python',
       version=load_version(),
       description='Distributed Computational Framework',
-      url='substantic.net/rain',
+      long_description=long_desc,
+      url='https://github.com/substantic/rain',
       author='Stanislav Bohm, Vojtech Cima, Tomas Gavenciak',
       author_email='rain@substantic.net',
       license='MIT',
