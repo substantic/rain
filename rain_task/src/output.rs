@@ -8,7 +8,6 @@ use std::{fmt, fs, mem};
 
 use librain::common::id::SId;
 use librain::common::id::{DataObjectId, ExecutorId, TaskId};
-use librain::common::Attributes;
 use librain::common::DataType;
 use librain::governor::rpc::executor_serde::*;
 
@@ -40,49 +39,45 @@ enum OutputState {
 /// This means fast (lockless) writes to the `Write` but you need to make sure your
 /// other threads do not starve or deadlock.
 #[derive(Debug)]
-pub struct Output<'a> {
+pub struct Output {
     /// The original output description
-    spec: &'a DataObjectSpec,
+    pub spec: ObjectSpec,
     /// Mutex holding the output state
     data: OutputState,
     /// The resulting attributes. Initially empty.
-    attributes: Attributes,
+    info: ObjectInfo,
     /// Path for the resulting file or directory if written to fs (may not exist)
     path: PathBuf,
     /// Order of the output in outputs
     order: usize,
 }
 
-impl<'a> fmt::Display for Output<'a> {
+impl fmt::Display for Output {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let label = self.spec
-            .label
-            .as_ref()
-            .map(|s| s as &str)
-            .unwrap_or("none");
         write!(
             f,
             "Output #{} ({:?} ID {}, label {:?})",
             self.order,
-            self.get_data_type(),
+            self.spec.data_type,
             self.spec.id,
-            label
+            self.spec.label
         )
     }
 }
 
-impl<'a> Output<'a> {
+impl Output {
     /// Create an output from DataObjectSpec. Internal.
-    pub(crate) fn new(spec: &'a DataObjectSpec, stage_path: &Path, order: usize) -> Self {
+    pub(crate) fn new(obj: LocalObjectIn, stage_path: &Path, order: usize) -> Self {
+        assert!(obj.info.is_none());
         Output {
-            spec: spec,
-            data: OutputState::Empty,
-            attributes: Attributes::new(),
             path: stage_path.join(format!(
-                "output-{}-{}",
-                spec.id.get_session_id(),
-                spec.id.get_id()
+                "output-{}_{}",
+                obj.spec.id.get_session_id(),
+                obj.spec.id.get_id()
             )),
+            spec: obj.spec,
+            data: OutputState::Empty,
+            info: ObjectInfo::default(),
             order: order,
         }
     }
@@ -92,12 +87,10 @@ impl<'a> Output<'a> {
     /// Currently, this executor never caches.
     ///
     /// NOTE: The returned path may be still an open file until this Output is dropped.
-    pub(crate) fn into_output_spec(self) -> (DataObjectSpec, bool) {
+    pub(crate) fn into_output_spec(self) -> (LocalObjectOut, bool) {
         (
-            DataObjectSpec {
-                id: self.spec.id,
-                label: None,
-                attributes: self.attributes,
+            LocalObjectOut {
+                info: self.info,
                 location: Some(match self.data {
                     OutputState::Empty => DataLocation::Memory(Vec::new()),
                     OutputState::MemBacked(data) => DataLocation::Memory(data),
@@ -181,7 +174,7 @@ impl<'a> Output<'a> {
     /// The input *must* belong to the same task (this is not checked).
     /// Not allowed if the output was submitted or written to.
     pub fn stage_input(&mut self, object: &DataInstance) -> TaskResult<()> {
-        if self.get_data_type() != object.get_data_type() {
+        if self.spec.data_type != object.spec.data_type {
             bail!("Can't stage input {} as output {}: data type mismatch.")
         }
         if !matchvar!(self.data, OutputState::Empty) {
@@ -205,14 +198,16 @@ impl<'a> Output<'a> {
         if remove_path {
             fs::remove_dir_all(&self.path).expect("error removing staged path on task failure");
         }
-        self.attributes = Attributes::new();
+        let debug = self.info.debug.clone();
+        self.info = ObjectInfo::default();
+        self.info.debug = debug;
     }
 
     /// A shorthand to check that the input is a directory.
     ///
     /// Returns `Err(TaskError)` if not a directory.
     pub fn check_directory(&self) -> TaskResult<()> {
-        if self.get_data_type() == DataType::Directory {
+        if self.spec.data_type == DataType::Directory {
             Ok(())
         } else {
             bail!("The output {} expects a directory.", self)
@@ -223,20 +218,11 @@ impl<'a> Output<'a> {
     ///
     /// Returns `Err(TaskError)` if not a blob.
     pub fn check_blob(&self) -> TaskResult<()> {
-        if self.get_data_type() == DataType::Blob {
+        if self.spec.data_type == DataType::Blob {
             Ok(())
         } else {
             bail!("The output {} expects a file or a data blob.", self)
         }
-    }
-
-    /// Return the object `DataType`.
-    pub fn get_data_type(&self) -> DataType {
-        let dt: String = self.spec
-            .attributes
-            .get::<String>("type")
-            .expect("error parsing data_type");
-        DataType::from_attribute(&dt)
     }
 
     /// Get the content-type of the object.
@@ -244,44 +230,26 @@ impl<'a> Output<'a> {
     /// Returns the type set in the executor if any, or the type in the spec.
     /// Returns "" for directories.
     pub fn get_content_type(&self) -> String {
-        if self.get_data_type() != DataType::Blob {
+        if self.spec.data_type != DataType::Blob {
             return "".into();
         }
-        let info = self.attributes.get::<HashMap<String, String>>("info");
-        if let Ok(info2) = info {
-            if let Some(s) = info2.get("content_type") {
-                return s.clone();
-            }
+        if self.info.content_type.len() > 0 {
+            self.info.content_type.clone()
+        } else {
+            self.spec.content_type.clone()
         }
-        let spec = self.spec
-            .attributes
-            .get::<HashMap<String, String>>("spec")
-            .unwrap();
-        if let Some(s) = spec.get("content_type") {
-            return s.clone();
-        }
-        "".into()
     }
 
     /// Sets the content type of the object.
     ///
     /// Returns an error for directories, incompatible content types and if it has been already set.
-    pub fn set_content_type(&mut self, ctype: &str) -> TaskResult<()> {
+    pub fn set_content_type(&mut self, ctype: impl Into<String>) -> TaskResult<()> {
         self.check_blob()?;
         // TODO: Check the content type compatibility
-        let mut info = self.attributes
-            .get::<HashMap<String, String>>("info")
-            .unwrap_or_else(|_| HashMap::new());
-        if let Some(ref s) = info.get("content_type") {
-            bail!(
-                "The content type of {} has been already set to {:?} (trying to set to {:?})",
-                self,
-                s,
-                ctype
-            );
+        if self.info.content_type.len() > 0 {
+            bail!("The content type of {} has been already set.", self);
         }
-        info.insert("content_type".into(), ctype.into());
-        self.attributes.set("info", info).unwrap();
+        self.info.content_type = ctype.into();
         Ok(())
     }
 
@@ -323,7 +291,7 @@ impl<'a> Output<'a> {
     }
 }
 
-impl<'a> Write for Output<'a> {
+impl Write for Output {
     fn write(&mut self, buf: &[u8]) -> ::std::io::Result<usize> {
         if matchvar!(self.data, OutputState::Empty) {
             self.data = OutputState::MemBacked(Vec::new());

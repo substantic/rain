@@ -3,15 +3,15 @@ use std::{env, fs, mem};
 
 /// State of the processed Task instance and its specification.
 #[derive(Debug)]
-pub struct Context<'a> {
+pub struct Context {
     /// The call message the Context was created for.
-    spec: &'a CallMsg,
+    pub spec: TaskSpec,
+    /// The resulting task info
+    pub(crate) info: TaskInfo,
     /// List of input objects. This is empty during task function call!
-    pub(crate) inputs: Vec<DataInstance<'a>>,
+    pub(crate) inputs: Vec<DataInstance>,
     /// List of output objects. This is empty during task function call!
-    pub(crate) outputs: Vec<Output<'a>>,
-    /// Task attributes
-    pub(crate) attributes: Attributes,
+    pub(crate) outputs: Vec<Output>,
     /// Absolute path to task working dir
     pub(crate) work_dir: PathBuf,
     /// Absolute path to staging dir with input and output objects
@@ -20,24 +20,24 @@ pub struct Context<'a> {
     pub(crate) success: bool,
 }
 
-impl<'a> Context<'a> {
-    pub(crate) fn for_call_msg(cm: &'a CallMsg, staging_dir: &Path, work_dir: &Path) -> Self {
+impl Context {
+    pub(crate) fn for_call_msg(cm: CallMsg, staging_dir: &Path, work_dir: &Path) -> Self {
         assert!(work_dir.is_absolute());
         let inputs = cm.inputs
-            .iter()
+            .into_iter()
             .enumerate()
             .map(|(order, inp)| DataInstance::new(inp, work_dir, order))
             .collect();
         let outputs = cm.outputs
-            .iter()
+            .into_iter()
             .enumerate()
             .map(|(order, outp)| Output::new(outp, staging_dir, order))
             .collect();
         Context {
-            spec: cm,
+            spec: cm.spec,
+            info: TaskInfo::default(),
             inputs: inputs,
             outputs: outputs,
-            attributes: Attributes::new(),
             work_dir: work_dir.into(),
             staging_dir: staging_dir.into(),
             success: true,
@@ -46,9 +46,9 @@ impl<'a> Context<'a> {
 
     pub(crate) fn into_result_msg(self) -> ResultMsg {
         ResultMsg {
-            task: self.spec.task,
+            task: self.spec.id,
             success: self.success,
-            attributes: self.attributes,
+            info: self.info,
             outputs: self.outputs
                 .into_iter()
                 .map(|o| {
@@ -68,11 +68,21 @@ impl<'a> Context<'a> {
         // Inputs and outputs are swapped out from the Context to hand over to the task.
         mem::swap(&mut outputs, &mut self.outputs);
         mem::swap(&mut inputs, &mut self.inputs);
-        debug!("Calling {:?} in {:?}", self.spec.method, self.work_dir);
+        debug!("Calling {:?} in {:?}", self.spec.task_type, self.work_dir);
         let res = f(self, &inputs, &mut outputs);
         mem::swap(&mut outputs, &mut self.outputs);
         mem::swap(&mut inputs, &mut self.inputs);
         res
+    }
+
+    /// Set the state of the task to failed with given message
+    pub fn fail(&mut self, mut msg: String) {
+        if msg.is_empty() {
+            msg = "(unspecified error)".into();
+        }
+        debug!("Task {} failed: {}", self.spec.id, msg);
+        self.success = false;
+        self.info.error = msg;
     }
 
     // TODO: add inputs number checking, outputs number checking, attribute access, debug to attrs,

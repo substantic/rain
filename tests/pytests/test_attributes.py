@@ -7,12 +7,14 @@ def test_update_attributes(test_env):
     def test(ctx):
         import time
         time.sleep(0.3)
+        assert ctx.spec.user["foo"] == "bar"
         ctx.info.user["test123"] = ["A", 1, 2]
         return b""
 
     test_env.start(1)
     with test_env.client.new_session() as s:
         t1 = test()
+        t1.spec.user["foo"] = "bar"
         s.submit()
         t1.wait()
         assert t1.info is None

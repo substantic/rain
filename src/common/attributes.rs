@@ -59,9 +59,9 @@ impl TaskSpec {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct TaskInfo {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "String::is_empty")]
     #[serde(default)]
-    pub error: Option<String>,
+    pub error: String,
 
     #[serde(skip_serializing_if = "String::is_empty")]
     #[serde(default)]
@@ -115,9 +115,9 @@ pub struct ObjectInfo {
     #[serde(default)]
     pub content_type: String,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "String::is_empty")]
     #[serde(default)]
-    pub error: Option<String>,
+    pub error: String,
 
     #[serde(skip_serializing_if = "String::is_empty")]
     #[serde(default)]

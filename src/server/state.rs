@@ -872,9 +872,11 @@ impl State {
                         governor,
                         info
                     );
-                    let error_message = info.error.clone().unwrap_or_else(|| {
+                    let error_message = if info.error.len() > 0 {
+                        info.error.clone()
+                    } else {
                         "Task failed, but no error attribute was set".to_string()
-                    });
+                    };
                     let debug_message = info.debug.clone();
                     ignore_check_again = true;
                     self.underload_governors.insert(governor.clone());

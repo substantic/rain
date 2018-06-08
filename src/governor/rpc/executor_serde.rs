@@ -75,7 +75,12 @@ pub struct ResultMsg {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LocalObjectIn {
+    /// Compulsory object spec
     pub spec: ObjectSpec,
+    /// Object info for inputs, None for outputs
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
+    pub info: Option<ObjectInfo>,
     /// Object data location
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]

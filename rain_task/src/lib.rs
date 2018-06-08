@@ -52,7 +52,7 @@ use std::path::PathBuf;
 
 use librain::common::id::SId;
 use librain::common::id::{DataObjectId, ExecutorId, TaskId};
-use librain::common::Attributes;
+use librain::common::attributes::{TaskInfo, TaskSpec, ObjectInfo, ObjectSpec};
 use librain::governor::rpc::executor_serde::*;
 
 /// Maximal protocol message size (128 MB)

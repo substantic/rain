@@ -16,8 +16,10 @@ enum InputState {
 
 /// One instance of input `DataObject`.
 #[derive(Debug)]
-pub struct DataInstance<'a> {
-    pub(crate) spec: &'a DataObjectSpec,
+pub struct DataInstance {
+    pub spec: ObjectSpec,
+    pub info: ObjectInfo,
+    location: DataLocation,
     state: Mutex<InputState>,
     /// The absolute path to the existing (or potential) file or dir.
     /// NB: Must NOT be modified after DataInstance creation!
@@ -25,46 +27,41 @@ pub struct DataInstance<'a> {
     order: usize,
 }
 
-impl<'a> fmt::Display for DataInstance<'a> {
+impl fmt::Display for DataInstance {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let label = self.spec
-            .label
-            .as_ref()
-            .map(|s| s as &str)
-            .unwrap_or("none");
         write!(
             f,
             "Input #{} ({:?} ID {}, label {:?})",
             self.order,
-            self.get_data_type(),
+            self.spec.data_type,
             self.spec.id,
-            label
+            self.spec.label
         )
     }
 }
 
-impl<'a> DataInstance<'a> {
-    pub(crate) fn new(spec: &'a DataObjectSpec, work_dir: &Path, order: usize) -> Self {
-        let istate = match spec.location
-            .as_ref()
-            .expect("bug: input needs a data location")
-        {
+impl DataInstance {
+    pub(crate) fn new(obj: LocalObjectIn, work_dir: &Path, order: usize) -> Self {
+        let location = obj.location.expect("bug: input needs a data location");
+        let istate = match location {
             DataLocation::Cached => panic!("bug: cached object requested"),
             DataLocation::OtherObject(_) => panic!("bug: `OtherObject` location in input"),
             DataLocation::Memory(_) => InputState::SpecMem,
             DataLocation::Path(_) => InputState::NotOpen,
         };
-        let path = if let DataLocation::Path(p) = spec.location.as_ref().unwrap() {
+        let path = if let DataLocation::Path(ref p) = &location {
             p.into()
         } else {
             work_dir.join(format!(
                 "input-{}-{}",
-                spec.id.get_session_id(),
-                spec.id.get_id()
+                obj.spec.id.get_session_id(),
+                obj.spec.id.get_id()
             ))
         };
         DataInstance {
-            spec: spec,
+            spec: obj.spec,
+            info: obj.info.expect("bug: inputs needs the info attribute"),
+            location: location,
             state: Mutex::new(istate),
             path: path,
             order: order,
@@ -77,7 +74,7 @@ impl<'a> DataInstance<'a> {
     /// Note that every invocation locks the input mutex.
     ///
     /// Panics on any I/O error. Returns an error if the input is a directory.
-    pub fn get_bytes(&self) -> TaskResult<&'a [u8]> {
+    pub fn get_bytes<'a>(&'a self) -> TaskResult<&'a [u8]> {
         self.check_blob()?;
         // Make sure the lock guard is dropped before panicking
         Ok((|| -> Result<&'a [u8]> {
@@ -85,8 +82,8 @@ impl<'a> DataInstance<'a> {
             if matchvar!(*guard, InputState::SpecMem)
                 || matchvar!(*guard, InputState::SpecMemAndFile)
             {
-                if let Some(DataLocation::Memory(d)) = self.spec.location.as_ref() {
-                    return Ok(&d);
+                if let DataLocation::Memory(ref d) = self.location {
+                    return Ok(d);
                 }
                 unreachable!();
             }
@@ -119,20 +116,11 @@ impl<'a> DataInstance<'a> {
         self.path.clone()
     }
 
-    /// Return the object `DataType`.
-    pub fn get_data_type(&self) -> DataType {
-        let dt = self.spec
-            .attributes
-            .get::<String>("type")
-            .expect("error parsing data_type");
-        DataType::from_attribute(&dt)
-    }
-
     /// A shorthand to check that the input is a directory.
     ///
     /// Returns `Err(TaskError)` if not a directory.
     pub fn check_directory(&self) -> TaskResult<()> {
-        if self.get_data_type() == DataType::Directory {
+        if self.spec.data_type == DataType::Directory {
             Ok(())
         } else {
             bail!("Expected directory as input {}", self)
@@ -143,7 +131,7 @@ impl<'a> DataInstance<'a> {
     ///
     /// Returns `Err(TaskError)` if not a blob.
     pub fn check_blob(&self) -> TaskResult<()> {
-        if self.get_data_type() == DataType::Blob {
+        if self.spec.data_type == DataType::Blob {
             Ok(())
         } else {
             bail!("Expected blob/file as input {}", self)
@@ -156,7 +144,7 @@ impl<'a> DataInstance<'a> {
     /// the input is not valud utf-8. Any other encoding needs to be decoded manually.
     ///
     /// Note: checks for valid utf-8 on every call.
-    pub fn get_str(&self) -> TaskResult<&'a str> {
+    pub fn get_str<'a>(&'a self) -> TaskResult<&'a str> {
         self.check_content_type("text")?;
         match str::from_utf8(self.get_bytes()?) {
             Err(e) => bail!(
@@ -171,7 +159,7 @@ impl<'a> DataInstance<'a> {
     /// Check the input content-type.
     ///
     /// Return Ok if the actual type is a subtype or supertype of the given type.
-    pub fn check_content_type(&self, ctype: &str) -> TaskResult<()> {
+    pub fn check_content_type(&self, _ctype: &str) -> TaskResult<()> {
         self.check_blob()?;
         // TODO: Actually check
         Ok(())
@@ -181,23 +169,13 @@ impl<'a> DataInstance<'a> {
     ///
     /// Returns "" for directories.
     pub fn get_content_type(&self) -> String {
-        if self.get_data_type() != DataType::Blob {
+        if self.spec.data_type != DataType::Blob {
             return "".into();
         }
-        let info = self.spec
-            .attributes
-            .get::<HashMap<String, String>>("info")
-            .unwrap();
-        if let Some(s) = info.get("content_type") {
-            return s.clone();
+        if self.info.content_type.len() > 0 {
+            self.info.content_type.clone()
+        } else {
+            self.spec.content_type.clone()
         }
-        let spec = self.spec
-            .attributes
-            .get::<HashMap<String, String>>("spec")
-            .unwrap();
-        if let Some(s) = spec.get("content_type") {
-            return s.clone();
-        }
-        "".into()
     }
 }

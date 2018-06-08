@@ -132,6 +132,7 @@ impl DataObject {
     pub fn create_input_spec(&self, executor_ref: &ExecutorRef) -> LocalObjectIn {
         LocalObjectIn {
             spec: self.spec.clone(),
+            info: Some(self.info.clone()),
             location: if self.executor_cache.contains(executor_ref) {
                 Some(DataLocation::Cached)
             } else {
@@ -144,6 +145,7 @@ impl DataObject {
     pub fn create_output_spec(&self) -> LocalObjectIn {
         LocalObjectIn {
             spec: self.spec.clone(),
+            info: None,
             location: None,
             cache_hint: true,
         }

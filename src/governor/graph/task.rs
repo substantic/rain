@@ -83,8 +83,10 @@ impl Task {
         warn!("Task {} failed: {}", self.spec.id, error_message);
         assert_ne!(self.state, TaskState::Failed);
         self.state = TaskState::Failed;
-        if self.info.error.is_none() {
-            self.info.error = Some(error_message);
+        if self.info.error != "" {
+            self.info.error = format!("{}\n{}", self.info.error, error_message);
+        } else {
+            self.info.error = error_message;
         }
     }
 }

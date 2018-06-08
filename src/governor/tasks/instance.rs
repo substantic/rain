@@ -231,7 +231,7 @@ impl TaskInstance {
                         "Lost connection to executor\n{}",
                         executor_ref
                             .get()
-                            .get_log_tails(state_ref.get().log_dir(), 400)
+                            .get_log_tails(state_ref.get().log_dir(), 4096)
                     ).into()),
                 }
             })

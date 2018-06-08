@@ -177,28 +177,24 @@ impl Executor {
         let task_name = format!(
             "{}-task-{}_{}",
             chrono::Local::now().format("%Y%m%d-%H%M%S"),
-            call_msg.task.get_session_id(),
-            call_msg.task.get_id()
+            call_msg.spec.id.get_session_id(),
+            call_msg.spec.id.get_id()
         );
         let task_dir = self.tasks_dir.join(task_name);
-        let mut context = Context::for_call_msg(&call_msg, &self.staging_dir, &task_dir);
-        match self.tasks.get(&call_msg.method) {
+        let (task_exec, task_method): (String, String) = {
+            let mut m_split = call_msg.spec.task_type.splitn(2, "/");
+            (m_split.next().unwrap().into(),
+             m_split.next()
+                .expect("Call method must be in the form \"executor_type/method\"").into()) };
+        let mut context = Context::for_call_msg(call_msg, &self.staging_dir, &task_dir);
+        if task_exec != self.executor_type {
+            context.fail(format!("Mismatch of executor type in call: {:?} vs {:?}",
+                task_exec, self.executor_type))
+        }
+        match self.tasks.get(&task_method) {
             None => {
-                debug!(
-                    "Task {:?} not found in executor {:?}",
-                    call_msg.method, self.executor_type
-                );
-                context.success = false;
-                context
-                    .attributes
-                    .set(
-                        "error",
-                        format!(
-                            "Task {:?} not found in executor {:?}",
-                            call_msg.method, self.executor_type
-                        ),
-                    )
-                    .unwrap();
+                context.fail(format!("Task {:?} not found in executor {:?}",
+                    task_method, self.executor_type))
             }
             Some(f) => {
                 fs::create_dir(&task_dir).expect("error creating task dir");
@@ -209,19 +205,10 @@ impl Executor {
                 if let Err(ref e) = res {
                     debug!(
                         "Method {:?} in {:?} failed: {}",
-                        call_msg.method, task_dir, e
+                        task_method, task_dir, e
                     );
-                    context.success = false;
-                    context
-                        .attributes
-                        .set(
-                            "error",
-                            format!(
-                                "error returned from call to {:?} (in {:?}):\n{}",
-                                call_msg.method, task_dir, e
-                            ),
-                        )
-                        .unwrap();
+                    context.fail(format!("error returned from call to {:?} (in {:?}):\n{}",
+                        task_method, task_dir, e));
                     // Clean already staged/open outputs
                     for mut o in context.outputs.iter_mut() {
                         o.cleanup_failed_task();
@@ -232,7 +219,7 @@ impl Executor {
                             .expect("error removing the task direcotry after failure");
                     }
                 } else {
-                    debug!("Method {:?} finished", call_msg.method);
+                    debug!("Method {:?} finished successfully", task_method);
                     // cleanup of the task working dir
                     fs::remove_dir_all(task_dir)
                         .expect("error removing the finished task direcotry");
