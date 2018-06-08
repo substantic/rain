@@ -38,6 +38,7 @@ extern crate chrono;
 extern crate env_logger;
 extern crate memmap;
 extern crate serde_cbor;
+extern crate serde_json;
 
 use std::collections::HashMap;
 use std::default::Default;
@@ -54,6 +55,8 @@ use librain::common::id::SId;
 use librain::common::id::{DataObjectId, ExecutorId, TaskId};
 use librain::common::attributes::{TaskInfo, TaskSpec, ObjectInfo, ObjectSpec};
 use librain::governor::rpc::executor_serde::*;
+
+pub type UserValue = serde_json::Value;
 
 /// Maximal protocol message size (128 MB)
 pub const MAX_MSG_SIZE: usize = 128 * 1024 * 1024;

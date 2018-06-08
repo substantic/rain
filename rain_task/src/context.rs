@@ -75,6 +75,13 @@ impl Context {
         res
     }
 
+    /// Sets the `info.user[key]` to value.
+    /// 
+    /// Any old value is overwriten.
+    pub fn set_user_info(&mut self, key: impl Into<String>, val: UserValue) {
+        self.info.user.insert(key.into(), val);
+    }
+
     /// Set the state of the task to failed with given message
     pub fn fail(&mut self, mut msg: String) {
         if msg.is_empty() {

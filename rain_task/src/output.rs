@@ -253,6 +253,13 @@ impl Output {
         Ok(())
     }
 
+    /// Sets the `info.user[key]` to value.
+    /// 
+    /// Any old value is overwriten.
+    pub fn set_user_info(&mut self, key: impl Into<String>, val: UserValue) {
+        self.info.user.insert(key.into(), val);
+    }
+
     /// Convert a MemBacked ouptut (not Empty) to a FileBacked output.
     fn convert_to_file(&mut self) -> ::std::io::Result<()> {
         assert!(matchvar!(self.data, OutputState::MemBacked(_)));
