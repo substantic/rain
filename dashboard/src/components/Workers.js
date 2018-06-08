@@ -7,16 +7,16 @@ import Error from './Error.js';
 import Chart from './Chart';
 
 
-class Governors extends Component {
+class Workers extends Component {
 
   constructor(props) {
     super(props);
-    this.state = {governors: []};
+    this.state = {workers: []};
     this.unsubscribe = fetch_events({"event_types": [{value: "Monitoring", mode: "="}]}, event => {
       //console.log("EVENT", event);
       let index = -1;
       let i = 0;
-      for (let w of this.state.governors) {
+      for (let w of this.state.workers) {
         if (w.name === event.event.governor) {
           index = i;
           break;
@@ -25,8 +25,8 @@ class Governors extends Component {
       }
 
       if (index === -1) {
-        index = this.state.governors.length;
-        this.setState(update(this.state, {governors: {$push: [{
+        index = this.state.workers.length;
+        this.setState(update(this.state, {workers: {$push: [{
           name: event.event.governor,
           version: 0,
           x: "x",
@@ -39,7 +39,7 @@ class Governors extends Component {
       }
 
       // We are abusing immutablity here, but implicit versioning fixes this (performance reasons :( )
-      let governor = this.state.governors[index];
+      let governor = this.state.workers[index];
 
       governor.columns[0].push(parse_date(event.time));
 
@@ -58,8 +58,8 @@ class Governors extends Component {
     }, error => {
       this.setState(update(this.state, {error: {$set: error}}));
     }, () => {
-      for (let i = 0; i < this.state.governors.length; i++) {
-          this.setState(update(this.state, {governors: {[i]: {version: {$set: this.state.governors[i].version + 1}}}}));
+      for (let i = 0; i < this.state.workers.length; i++) {
+          this.setState(update(this.state, {workers: {[i]: {version: {$set: this.state.workers[i].version + 1}}}}));
       }
     });
   }
@@ -72,9 +72,9 @@ class Governors extends Component {
     return (
         <div>
           <Error error={this.state.error}/>
-          <h1>Governors</h1>
+          <h1>Workers</h1>
           {
-            this.state.governors.map(w =>
+            this.state.workers.map(w =>
               <div key={w.name}>
                 <h2>Governor {w.name}</h2>
                 {<Chart data={w}/>}
@@ -86,4 +86,4 @@ class Governors extends Component {
   }
 }
 
-export default Governors;
+export default Workers;

@@ -70,10 +70,10 @@ class Session extends Component {
       fill: FIN_FILL,
       stroke: FIN_STROKE
     };
-    let id = event.event.task.id;
-    this.graph.updateNode("task" + id, update, this.do_effect);
+    let id = event.event.task[1];
+    this.graph.updateNode("t" + id, update, this.do_effect);
     for (let output of this.state.task_nodes.get(id).outputs) {
-        this.graph.updateNode(output, update, this.do_effect);
+        this.graph.updateNode(output.id, update, this.do_effect);
     }
   }
 
@@ -83,57 +83,60 @@ class Session extends Component {
     let obj_nodes = new Map(this.state.obj_nodes);
     let nodes = [];
 
-    for (let task of event.event.tasks) {
+    for (let obj of event.event.dataobjs) {
+      let id = "o" + obj.id[1];
       let node = {
-        "id": "task" + task.id.id,
+        "id": id,
+        "type": "box",
+        "fill": UNFIN_FILL,
+        "stroke": UNFIN_STROKE,
+        inputs: [],
+        outputs: [],
+      };
+      nodes.push(node);
+      obj_nodes.set(obj.id[1], node);
+    }
+
+    for (let task of event.event.tasks) {
+      let inputs = task.inputs.map(i => obj_nodes.get(i.id[1]));
+      let outputs = task.outputs.map(o => obj_nodes.get(o[1]));
+
+      let node = {
+        "id": "t" + task.id[1],
         "type": "circle",
         "label": task.task_type,
         "fill": UNFIN_FILL,
         "stroke": UNFIN_STROKE,
-        outputs: [],
+        inputs: inputs,
+        outputs: outputs,
       };
-      nodes.push(node);
-      task_nodes.set(task.id.id, node);
-    }
 
-    for (let obj of event.event.dataobjs) {
-      let inputs = [];
-      let id = "task" + obj.id.id;
-      if (obj.producer) {
-          inputs.push(task_nodes.get(obj.producer.id));
-          task_nodes.get(obj.producer.id).outputs.push(id);
+      for (let o of inputs) {
+        o.outputs.push(node);
       }
 
-      let fill, stroke;
-
-      if (inputs.length === 0) {
-        fill = FIN_FILL;
-        stroke = FIN_STROKE;
-      } else {
-        fill = UNFIN_FILL;
-        stroke = UNFIN_STROKE;
+      for (let o of outputs) {
+        o.inputs.push(node);
       }
 
-      let node = {
-        "id": id,
-        "inputs": inputs,
-        "type": "box",
-        "fill": fill,
-        "stroke": stroke
-      };
       nodes.push(node);
-      obj_nodes.set(obj.id.id, node);
+      task_nodes.set(task.id[1], node);
     }
 
-    for (let task of event.event.tasks) {
-        task_nodes.get(task.id.id).inputs = task.inputs.map(i => obj_nodes.get(i.id.id));
+    for (let o of obj_nodes.values()) {
+        if (o.inputs.length === 0) {
+          o.fill = FIN_FILL;
+          o.stroke = FIN_STROKE;
+        }
     }
+
     this.graph.addNodes(nodes);
     this.setState({
       task_nodes: task_nodes,
       obj_nodes: obj_nodes,
     })
   }
+
 
   render() {
     return (
