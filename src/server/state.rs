@@ -1055,8 +1055,12 @@ impl StateRef {
         log_dir: PathBuf,
         test_mode: bool,
     ) -> Self {
+        let (logger, last_session) = SQLiteLogger::new(&log_dir).unwrap();
+        debug!("Session counter set to {}", last_session);
+        let graph = Graph::new(last_session);
+
         let s = Self::wrap(State {
-            graph: Default::default(),
+            graph,
             test_mode: test_mode,
             listen_address: listen_address,
             http_listen_address: http_listen_address,
@@ -1066,7 +1070,7 @@ impl StateRef {
             updates: Default::default(),
             stop_server: false,
             self_ref: None,
-            logger: Box::new(SQLiteLogger::new(&log_dir).unwrap()),
+            logger: Box::new(logger),
             ignored_sessions: Default::default(),
         });
         s.get_mut().self_ref = Some(s.clone());

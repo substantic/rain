@@ -16,8 +16,10 @@ pub struct Graph {
 }
 
 impl Graph {
-    pub fn new() -> Self {
-        Default::default()
+    pub fn new(session_id_counter: SessionId) -> Self {
+        let mut g: Graph = Default::default();
+        g.session_id_counter = session_id_counter;
+        g
     }
 
     pub fn new_session_id(&mut self) -> SessionId {

@@ -3,6 +3,7 @@ use std::path::PathBuf;
 //use common::id::{SessionId, GovernorId, DataObjectId, TaskId, ClientId, SId};
 use super::logger::{Logger, SearchCriteria};
 use common::events;
+use common::id::SessionId;
 use common::logging::logger::QueryEvents;
 use errors::{Error, Result};
 use futures::sync::{mpsc, oneshot};
@@ -98,7 +99,7 @@ fn load_events(conn: &mut Connection, search_criteria: &SearchCriteria) -> Resul
 }
 
 impl SQLiteLogger {
-    pub fn new(log_dir: &PathBuf) -> Result<Self> {
+    pub fn new(log_dir: &PathBuf) -> Result<(Self, SessionId)> {
         let mut conn = Connection::open(log_dir.join("events.db"))?;
 
         // There are basically two type of queries
@@ -122,6 +123,13 @@ impl SQLiteLogger {
             &[],
         )?;
 
+        let last_session: SessionId = {
+            let mut q = conn.prepare("SELECT MAX(session) FROM events WHERE session IS NOT NULL;")?;
+            let mut r = q.query_map(&[], |row| row.get_checked(0).unwrap_or(0))
+                .unwrap();
+            r.next().unwrap().unwrap()
+        };
+
         let (sx, rx) = mpsc::unbounded();
 
         ::std::thread::spawn(move || {
@@ -144,10 +152,13 @@ impl SQLiteLogger {
             core.run(future).unwrap();
         });
 
-        Ok(SQLiteLogger {
-            events: Vec::new(),
-            queue: sx,
-        })
+        Ok((
+            SQLiteLogger {
+                events: Vec::new(),
+                queue: sx,
+            },
+            last_session,
+        ))
     }
 }
 
