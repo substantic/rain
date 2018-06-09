@@ -104,7 +104,7 @@ Inter-task dependencies
 
 Naturally, an output of a task may be used as an input for another task. This
 is demonstrated by the following example. In the example, we use
-``tasks.sleep(T, O)`` that creates a task taking an arbitrary data object ``O``
+``tasks.Sleep(O, T)`` that creates a task taking an arbitrary data object ``O``
 and waits for ``T`` seconds and then returns ``O`` as its output. Being aware
 that such task is not very useful in practice, we find it useful as an
 intuitive example to demostrate the concept of task chaining::
@@ -833,7 +833,7 @@ has the following attributes:
 Python API
 ----------
 
-In the client, the attributes are available as ``spec`` and ``info`` on 
+In the client, the attributes are available as ``spec`` and ``info`` on
 :class:`rain.client.Task` and :class:`rain.client.DataObject`.
 
 An example of fetching and querying the attributes at the client::
@@ -893,8 +893,8 @@ session::
 
   with client.new_session() as session:
       a = blob("Hello world")
-      t1 = tasks.sleep(1.0, a)
-      t2 = tasks.sleep(2.0, a)
+      t1 = tasks.Sleep(a, 1.0)
+      t2 = tasks.Sleep(a, 2.0)
       session.submit()
 
       t1.wait()  # This blocks until t1 is finished, independently of t2
@@ -1116,17 +1116,17 @@ they have to be marked as "kept" explicitly.
 
    with client.new_session() as session:
       a = blob("Hello world")
-      t1 = tasks.sleep(1.0, a)
+      t1 = tasks.Sleep(a, 1.0)
       t1.output.keep()
 
       session.submit()  # First submit
 
-      t2 = tasks.sleep(1.0, t1.output)
+      t2 = tasks.Sleep(t1.output, 1.0)
 
       session.submit()  # Second submit
       session.wait_all()  # Wait until everything is finished
 
-      t3 = tasks.sleep(1.0, t1.output)
+      t3 = tasks.Sleep(t1.output, 1.0)
 
       session.submit()  # Third submit
       session.wait_all()  # Wait again until everything is finished

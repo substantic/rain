@@ -44,7 +44,7 @@ a simple "Hello world" application.
     with client.new_session() as session:
 
         # Create task (and two data objects)
-        task = tasks.concat((blob("Hello "), blob("world!"),))
+        task = tasks.Concat((blob("Hello "), blob("world!"),))
 
         # Mark that the output should be kept after submit
         task.output.keep()

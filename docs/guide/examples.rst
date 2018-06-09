@@ -59,22 +59,22 @@ Distributed cross-validation with libsvm
         with client.new_session() as session:
 
             # Load data - this is already task, so load is performed on governor
-            input_data = tasks.open(DATA_FILE)
+            input_data = tasks.Load(DATA_FILE)
 
             # Convert data - note that the function is marked @remote
             # so it is not executed now, but on a governor
             converted_data = convert_to_libsvm_format(input_data)
 
             # Using unix command "sort" to shuffle dataset
-            randomized_data = tasks.execute(("sort", "--random-sort", converted_data), stdout=True)
+            randomized_data = tasks.Execute(("sort", "--random-sort", converted_data), stdout=True)
 
             # Create chunks via unix command "split"
-            chunks = tasks.execute(("split", "-d", "-n", "l/{}".format(CHUNKS), randomized_data),
+            chunks = tasks.Execute(("split", "-d", "-n", "l/{}".format(CHUNKS), randomized_data),
                                 output_files=["x{:02}".format(i) for i in range(CHUNKS)]).outputs
                                 # Note that we are taking "outputs" of the task here ==> ^^^^^^^^
 
             # Make folds
-            train_sets = [tasks.concat(chunks[:i] + chunks[i+1:]) for i, c in enumerate(chunks)]
+            train_sets = [tasks.Concat(chunks[:i] + chunks[i+1:]) for i, c in enumerate(chunks)]
 
             # Train models
             models = [train(data=train_set) for train_set in train_sets]

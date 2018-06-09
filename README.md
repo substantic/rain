@@ -76,7 +76,7 @@ from rain.client import Client, tasks, blob
 client = Client("localhost", 7210)
 
 with client.new_session() as session:
-    task = tasks.concat((blob("Hello "), blob("world!")))
+    task = tasks.Concat((blob("Hello "), blob("world!")))
     task.output.keep()
     session.submit()
     result = task.output.fetch().get_bytes()
