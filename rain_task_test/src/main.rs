@@ -23,12 +23,14 @@ fn task_panic(_ctx: &mut Context) -> TaskResult<()> {
 
 fn task_meta(ctx: &mut Context, input: &DataInstance, output: &mut Output) -> TaskResult<()> {
     // Copy input user attr to output user attr
-    let uo: UserValue = input.spec.user.get("test").ok_or_else(
-        || Err("Expected input user attribute \"foo\"".to_owned()))?;
+    let uo: UserValue = input.spec.user.get("test")
+        .expect("Expected input user attribute \"test\"")
+        .clone();
     output.set_user_info("test", uo);
     // Copy task spec.user attr to task info.user attr
-    let ut: UserValue = ctx.spec.user.get("test").ok_or_else(
-        || Err("Expected input user attribute \"foo\"".to_owned()))?;
+    let ut: UserValue = ctx.spec.user.get("test")
+        .expect("Expected task user attribute \"test\"")
+        .clone();
     ctx.set_user_info("test", ut);
     output.set_content_type(input.get_content_type())?;
     output.write_all(input.get_bytes()?)?;

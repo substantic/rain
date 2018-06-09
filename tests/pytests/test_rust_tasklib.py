@@ -32,6 +32,10 @@ def test_rust_panic(test_env):
     tester.test_panic(test_env)
 
 
+def test_rust_meta(test_env):
+    tester.test_meta(test_env)
+
+
 def test_rust_hello_chain(test_env):
     tester.test_hello_chain(test_env)
 

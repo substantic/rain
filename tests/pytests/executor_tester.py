@@ -23,11 +23,31 @@ class ExecutorTester:
     def task_hello(self, obj):
         return self.task("hello", inputs=(obj,), outputs=1)
 
+    def task_meta(self, obj):
+        return self.task("meta", inputs=(obj,), outputs=1)
+
     def task_fail(self, obj):
         return self.task("fail", inputs=(obj,), outputs=0)
 
     def start(self, test_env, nodes=1):
         test_env.start(nodes, executor=(self.name, self.path))
+
+    def test_meta(self, test_env):
+        self.start(test_env)
+        with test_env.client.new_session() as s:
+            obj = blob("foo")
+            obj.spec.user['test'] = [42, 43]
+            t1 = self.task_meta(obj)
+            t1.output.keep()
+            t1.spec.user['test'] = {'bar': 'baz'}
+            s.submit()
+
+            assert t1.output.fetch().get_bytes() == b"foo"
+            assert t1.output.content_type == "text"
+            assert t1.output.info.user['test'] == [42, 43]
+            t1.update()
+            assert t1.spec.user['test'] == {'bar': 'baz'}
+            assert t1.info.user['test'] == {'bar': 'baz'}
 
     def test_hello_mem(self, test_env):
         self.start(test_env)
