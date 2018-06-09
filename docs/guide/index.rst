@@ -12,6 +12,7 @@ Welcome to Rain's documentation!
    overview
    quickstart
    user
+   executors
    install
    examples
    python_api

@@ -58,7 +58,7 @@ Starting infrastructure
 =======================
 
 Starting local governors
-----------------------
+------------------------
 
 The most simple case is running starting server and one governor with all
 resources of the local machine. The following command do all work for you::
@@ -73,7 +73,7 @@ It starts two governors with 4 assigned cpus and one with 2 assigned cpus::
 
 
 Starting remote governors
------------------------
+-------------------------
 
 If you have more machines that are reachable via SSH you can use the following
 command. We assume that file ``my_hosts`` contains addresses of hosts, one per
@@ -106,7 +106,7 @@ It executes governor on each node allocated by PBS scheduler.
 
 
 Starting governors manually
--------------------------
+---------------------------
 
 If you need a special setup that is not covered by ``rain start`` you can
 simply start server and governors manually::
@@ -218,7 +218,7 @@ Runs Rain server.
 
 
 Command: governor
----------------
+-----------------
 
 Runs Rain governor.
 

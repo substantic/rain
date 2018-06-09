@@ -164,7 +164,7 @@ If a task has more than one output or zero outputs, then accessing attribute
 independantly on the number of outputs.
 
 
-Dbject data types
+Object data types
 =================
 
 Every data object represents either a single binary data blob or a directory.
