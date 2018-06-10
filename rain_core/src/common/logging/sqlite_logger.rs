@@ -208,7 +208,7 @@ mod tests {
     }
 
     fn create_logger() -> SQLiteLogger {
-        SQLiteLogger::new(&PathBuf::from("/tmp")).unwrap()
+        SQLiteLogger::new(&PathBuf::from("/tmp")).unwrap().0
     }
 
     #[test]

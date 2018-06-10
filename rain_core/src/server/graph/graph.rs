@@ -45,7 +45,7 @@ mod tests {
     ) -> Graph {
         use common::DataType;
 
-        let g = Graph::new();
+        let g = Graph::new(1);
         for wi in 0..governors {
             GovernorRef::new(
                 format!("0.0.0.{}:67", wi + 1).parse().unwrap(),
@@ -65,7 +65,7 @@ mod tests {
                         label: Default::default(),
                         user: Default::default(),
                         data_type: DataType::Blob,
-                        content_type: None,
+                        content_type: "".into(),
                     };
 
                     let o = DataObjectRef::new(&s, spec, false, None);

@@ -170,18 +170,21 @@ mod tests {
     fn test_call() {
         let s = r#"{"call": {
              "spec":{
-                    "id": [42, 48]
+                    "id": [42, 48],
+                    "task_type": "foo"
             },
             "inputs": [
-                {"id": [3,6], "label": "in1", "attributes": {},
+                {"spec": {"id": [3,6], "label": "in1", "data_type": "blob"},
                  "location": {"memory": [0,0,0,0,0]}},
-                {"id": [3,7], "label": "in2", "attributes": {},
+                {"spec": {"id": [3,7], "label": "in2", "data_type": "blob"},
                  "location": {"path": "in1.txt"}, "cache_hint": true},
-                {"id": [3,8], "attributes": {}, "location": "cached"}
+                {"spec": {"id": [3,8], "data_type": "blob"},
+                 "location": "cached"}
             ],
             "outputs": [
-                {"id": [3,11], "label": "out1", "attributes": {}, "cache_hint": true},
-                {"id": [3,12], "attributes": {}}
+                {"spec": {"id": [3,11], "label": "out1", "data_type": "blob"},
+                 "cache_hint": true},
+                {"spec": {"id": [3,12], "data_type": "dir"}}
             ]
             }}"#;
         let m: GovernorToExecutorMessage = serde_json::from_str(s).unwrap();
@@ -199,10 +202,10 @@ mod tests {
     #[test]
     fn test_result() {
         let s = r#"{"result": {"task": [42, 48], "success": true,
-            "attributes": {},
+            "info": {},
             "outputs": [
-                {"id": [3,11], "attributes": {}, "location": {"path": "in1.txt"}},
-                {"id": [3,12], "attributes": {}, "location": {"other_object": [3, 6]}}
+                {"info": {"debug": "log"}, "location": {"path": "in1.txt"}},
+                {"info": {"size": 42}, "location": {"other_object": [3, 6]}, "cache_hint": true}
             ]
             }}"#;
         let m: ExecutorToGovernorMessage = serde_json::from_str(s).unwrap();
