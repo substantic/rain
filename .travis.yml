@@ -7,17 +7,17 @@ notifications:
 jobs:
   include:
     - stage: build rain_server
-      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cargo build --all-features --release --verbose'
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cargo build --all-features --release --verbose -p rain_server'
     - stage: install python
       script: docker run rain /bin/bash -c 'cd python && python3 setup.py install'
     - stage: test rain_server
-      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cargo test'
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cargo test -p rain_server'
     - stage: build rain_task
-      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cd rain_task && cargo build'
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cd rain_task && cargo build -p rain_task'
     - stage: test rain_task
-      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cd rain_task && cargo test -- --test-threads=1'
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cd rain_task && cargo test -p rain_task -- --test-threads=1'
     - stage: build rain_task_test
-      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cd rain_task_test && cargo build'
+      script: docker run rain /bin/bash -c '. $HOME/.cargo/env && cd rain_task_test && cargo build -p rain_task_test'
     - stage: test python
       script: docker run -u 123 -e RAIN_TEST_BIN=/rain/target/release/rain rain pytest -x -v --timeout=300
     - stage: stylecheck
