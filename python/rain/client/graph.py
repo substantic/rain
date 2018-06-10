@@ -86,7 +86,7 @@ class Graph(object):
                 extra += " color=\"{}\"".format(node.color)
             if node.fillcolor is not None:
                 extra += " style=filled fillcolor=\"{}\"" \
-                             .format(node.fillcolor)
+                         .format(node.fillcolor)
             stream.append("v{} [label=\"{}\" shape=\"{}\"{}]\n".format(
                 id(node), node.label, node.shape, extra))
             for arc in node.arcs:

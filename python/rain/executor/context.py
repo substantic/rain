@@ -68,7 +68,7 @@ class Context:
 
         if not isinstance(value, bytes):
             raise RainException(
-              "Invalid blob type (only str or bytes allowed without `encode`)")
+                "Invalid blob type (only str or bytes allowed without `encode`)")
 
         return DataInstance(data=value, content_type=content_type, data_type=DataType.BLOB)
 

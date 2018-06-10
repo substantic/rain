@@ -100,7 +100,7 @@ def test_big_diamond(test_env):
         for i in range(LAYERS):
             new_layer = []
             for j in range(0, len(layer), 2):
-                new_layer.append(tasks.Concat((layer[j], layer[j+1])))
+                new_layer.append(tasks.Concat((layer[j], layer[j + 1])))
             layer = new_layer
         #  s.pending_graph().write("test.dot")
         assert len(layer) == 1

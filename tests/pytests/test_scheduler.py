@@ -40,7 +40,7 @@ def test_scheduler_big_and_small(test_env):
 def test_scheduler_fit_to_cpus(test_env):
     NUMBER_OF_GOVERNORS = 6
     r = random.Random(b"Rain")
-    governors = [Governor(cpus=i+1) for i in range(NUMBER_OF_GOVERNORS)]
+    governors = [Governor(cpus=i + 1) for i in range(NUMBER_OF_GOVERNORS)]
     r.shuffle(governors)
     s = Scenario(test_env, governors)
     r.shuffle(governors)
@@ -67,8 +67,8 @@ def test_scheduler_biggest_irrelevant(test_env):
     print("w1 =", w1.governor_id)
     print("w2 =", w2.governor_id)
 
-    o1 = s.new_object(governors=governors, size=10*BIG)
-    o2 = s.new_object(governors=governors, size=10*BIG)
+    o1 = s.new_object(governors=governors, size=10 * BIG)
+    o2 = s.new_object(governors=governors, size=10 * BIG)
     o3 = s.new_object(governors=w0, size=BIG)
 
     s.new_task([o1, o2, o3], expect_governor=w0, label="t0")  # t0
@@ -96,8 +96,8 @@ def test_scheduler_big_vs_dynamic_small(test_env):
     s = Scenario(test_env, governors)
     r.shuffle(governors)
     w0, w1, w2 = governors
-    o1 = s.new_object(governors=w0, size=10*BIG)
-    o2 = s.new_object(governors=w1, size=10*BIG)
+    o1 = s.new_object(governors=w0, size=10 * BIG)
+    o2 = s.new_object(governors=w1, size=10 * BIG)
 
     t0 = s.new_task([o1], expect_governor=w0)
     s.new_task([t0.output, o2], expect_governor=w1)

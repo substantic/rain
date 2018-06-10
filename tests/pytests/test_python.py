@@ -416,7 +416,8 @@ def test_remote_complex_args(test_env):
 def test_remote_arg_signature(fake_session):
 
     @remote()
-    def test(ctx, a, c={}, *args, d): pass
+    def test(ctx, a, c={}, *args, d):
+        pass
 
     with fake_session:
         with pytest.raises(TypeError, match="required argument: 'a'"):
@@ -432,7 +433,8 @@ def test_remote_large_args(fake_session):
 
     "Reject >1M direct argument to py task, accept <1K argument"
     @remote()
-    def test(ctx, a): pass
+    def test(ctx, a):
+        pass
 
     with fake_session:
         with pytest.raises(RainWarning,

@@ -114,9 +114,9 @@ class Executor:
         self.socket = SocketWrapper(sock)
         self.socket.send_message(["register",
                                   {
-                                    "protocol": EXECUTOR_PROTOCOL,
-                                    "executor_id": executor_id,
-                                    "executor_type": "py"
+                                      "protocol": EXECUTOR_PROTOCOL,
+                                      "executor_id": executor_id,
+                                      "executor_type": "py"
                                   }])
 
     def run(self):
@@ -137,10 +137,10 @@ class Executor:
 
             # List of OutputSpec
             outputs = [OutputSpec(
-                            spec=ObjectSpec._from_json(d["spec"]),
-                            encode=encode)
-                       for d, encode in zip(data["outputs"],
-                                            task_context.spec.config['encode_outputs'])]
+                spec=ObjectSpec._from_json(d["spec"]),
+                encode=encode)
+                for d, encode in zip(data["outputs"],
+                                     task_context.spec.config['encode_outputs'])]
 
             del data  # We do not need reference to raw data anymore
 
