@@ -1,56 +1,13 @@
-[package]
-name = "rain"
-version = "0.2.1"
-authors = [
-    "Stanislav Bohm <spirali@kreatrix.org>",
-    "Tomas Gavenciak <gavento@ucw.cz>",
-    "Vojtech Cima <cima.vojtech@gmail.com>",
-    ]
-build = "build.rs"
+[workspace]
 
-[lib]
-name = "librain"
-path = "src/lib.rs"
+members = [
+    "rain_core",
+    "rain_server",
+    "rain_task",
+    "rain_task_test",
+]
 
-[[bin]]
-name = "rain"
-path = "src/bin.rs"
+[patch.crates-io]
+#rain_core = { path = "rain_core" }
+#rain_task = { path = "rain_task" }
 
-[dependencies]
-atty="*"
-error-chain="*"
-capnp = "*"
-capnp-rpc = "*"
-clap = "*"
-fs_extra = "*"
-log = ">=0.4"
-futures="0.1"
-tokio-core="*"
-tokio-io="*"
-tokio-timer = "*"
-tokio-uds="*"
-tokio-process="0.1"
-env_logger = "*"
-arrayref = "*"
-num_cpus = "*"
-nix = "*"
-lazy_static = "*"
-bytes = "*"
-tempdir = "*"
-memmap = "*"
-sysconf = "*"
-sys-info = "*"
-hyper = "*"
-chrono = { version = "*", features = ["serde"] }
-rusqlite = { version = "*", features = ["chrono", "serde_json"] }
-serde_derive = "*"
-serde = "*"
-serde_json = "*"
-tar = "*"
-toml = "*"
-walkdir = "*"
-serde_cbor = "*"
-serde_bytes = "*"
-
-[build-dependencies]
-capnpc = "0.8"

@@ -1,6 +1,6 @@
 use super::*;
-use librain::common::DataType;
-use librain::governor::rpc::executor_serde::*;
+use rain_core::common::DataType;
+use rain_core::governor::rpc::executor_serde::*;
 use memmap::Mmap;
 use std::sync::{Mutex, MutexGuard};
 use std::{fmt, mem, str};

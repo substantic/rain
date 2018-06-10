@@ -1,12 +1,21 @@
 [package]
 name = "rain_task"
-version = "0.1.0"
-authors = ["Tomáš Gavenčiak <gavento@ucw.cz>"]
-description = "A library to easily write custom Rain tasks in Rust."
-licence = "MIT"
+version = "0.2.1"
+
+description = "Distributed computational framework for large-scale task-based pipelines. A custom task library in Rust."
+documentation = "https://rain.readthedocs.io/"
+homepage = "https://github.com/substantic/rain"
+repository = "https://github.com/substantic/rain/"
+readme = "README.md"
+authors = [
+    "Stanislav Bohm <spirali@kreatrix.org>",
+    "Tomas Gavenciak <gavento@ucw.cz>",
+    "Vojtech Cima <cima.vojtech@gmail.com>",
+    ]
+license = "MIT"
 
 [dependencies]
-rain = { path = ".." }
+rain_core = { path = "../rain_core" }
 log = ">=0.4"
 serde_derive = "1.*"
 serde = "1.*"

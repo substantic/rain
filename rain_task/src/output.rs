@@ -6,10 +6,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
 use std::{fmt, fs, mem};
 
-use librain::common::id::SId;
-use librain::common::id::{DataObjectId, ExecutorId, TaskId};
-use librain::common::DataType;
-use librain::governor::rpc::executor_serde::*;
+use rain_core::common::id::SId;
+use rain_core::common::id::{DataObjectId, ExecutorId, TaskId};
+use rain_core::common::DataType;
+use rain_core::governor::rpc::executor_serde::*;
 
 use super::*;
 

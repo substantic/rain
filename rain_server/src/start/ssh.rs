@@ -4,7 +4,7 @@ use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use librain::errors::Result;
+use rain_core::errors::Result;
 use start::common::Readiness;
 use std::io::BufReader;
 

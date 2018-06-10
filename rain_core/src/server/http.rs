@@ -135,15 +135,15 @@ impl Service for RequestHandler {
                 // to protect against caching, .js contain hash in index.html, the same for .css file
                 path if path.starts_with("/static/js/main.") && path.ends_with(".js") => {
                     static_gzipped_response(
-                        &include_bytes!("./../../dashboard/dist/main.js.gz")[..],
+                        &include_bytes!("./../../../dashboard/dist/main.js.gz")[..],
                     )
                 }
                 path if path.starts_with("/static/css/main.") && path.ends_with(".css") => {
                     static_gzipped_response(
-                        &include_bytes!("./../../dashboard/dist/main.css.gz")[..],
+                        &include_bytes!("./../../../dashboard/dist/main.css.gz")[..],
                     )
                 }
-                _ => static_data_response(&include_bytes!("./../../dashboard/dist/index.html")[..]),
+                _ => static_data_response(&include_bytes!("./../../../dashboard/dist/index.html")[..]),
                 /*path =>  {
                         warn!("Invalid HTTP request: {}", path);
                         Response::new().with_status(StatusCode::NotFound)

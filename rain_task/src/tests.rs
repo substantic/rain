@@ -1,6 +1,6 @@
 use super::framing::SocketExt;
 use super::*;
-use librain::governor::rpc::executor_serde::*;
+use rain_core::governor::rpc::executor_serde::*;
 use serde_cbor;
 use std::env;
 use std::fs;

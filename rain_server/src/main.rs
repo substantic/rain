@@ -5,7 +5,6 @@ extern crate clap;
 extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
-extern crate librain;
 #[macro_use]
 extern crate log;
 extern crate nix;
@@ -15,6 +14,8 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate tokio_core;
 extern crate toml;
+
+extern crate rain_core;
 
 pub mod start;
 
@@ -29,8 +30,8 @@ use std::process::exit;
 use clap::{App, Arg, ArgMatches, SubCommand};
 use nix::unistd::getpid;
 
-use librain::errors::Result;
-use librain::{governor, server, VERSION};
+use rain_core::errors::Result;
+use rain_core::{governor, server, VERSION};
 
 const DEFAULT_SERVER_PORT: u16 = 7210;
 const DEFAULT_GOVERNOR_PORT: u16 = 0;
@@ -77,7 +78,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         .unwrap_or(false);
 
     if debug_mode {
-        ::librain::DEBUG_CHECK_CONSISTENCY.store(true, ::std::sync::atomic::Ordering::Relaxed);
+        ::rain_core::DEBUG_CHECK_CONSISTENCY.store(true, ::std::sync::atomic::Ordering::Relaxed);
         info!("DEBUG mode enabled");
     }
 
@@ -100,7 +101,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     // Create ready file - a file that is created when server is ready
     if let Some(name) = ready_file {
-        ::librain::common::fs::create_ready_file(Path::new(name));
+        ::rain_core::common::fs::create_ready_file(Path::new(name));
     }
 
     loop {
@@ -113,13 +114,13 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 fn default_working_directory() -> PathBuf {
     let pid = getpid();
-    let hostname = ::librain::common::sys::get_hostname();
+    let hostname = ::rain_core::common::sys::get_hostname();
     PathBuf::from("/tmp/rain-work").join(format!("governor-{}-{}", hostname, pid))
 }
 
 fn default_logging_directory(basename: &str) -> PathBuf {
     let pid = getpid();
-    let hostname = ::librain::common::sys::get_hostname();
+    let hostname = ::rain_core::common::sys::get_hostname();
     PathBuf::from("/tmp/rain-logs").join(format!("{}-{}-{}", basename, hostname, pid))
 }
 

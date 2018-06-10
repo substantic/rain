@@ -1,0 +1,59 @@
+[package]
+name = "rain_server"
+version = "0.2.1"
+
+description = "Distributed computational framework for large-scale task-based pipelines. Server and governor binaries."
+documentation = "https://rain.readthedocs.io/"
+homepage = "https://github.com/substantic/rain"
+repository = "https://github.com/substantic/rain/"
+readme = "README.md"
+authors = [
+    "Stanislav Bohm <spirali@kreatrix.org>",
+    "Tomas Gavenciak <gavento@ucw.cz>",
+    "Vojtech Cima <cima.vojtech@gmail.com>",
+    ]
+license = "MIT"
+
+[[bin]]
+name = "rain"
+path = "src/main.rs"
+
+[dependencies]
+rain_core = { path = "../rain_core" }
+atty="*"
+error-chain="*"
+capnp = "*"
+capnp-rpc = "*"
+clap = "*"
+fs_extra = "*"
+log = ">=0.4"
+futures="0.1"
+tokio-core="*"
+tokio-io="*"
+tokio-timer = "*"
+tokio-uds="0.1"
+tokio-process="0.1"
+env_logger = "*"
+arrayref = "*"
+num_cpus = "*"
+nix = "*"
+lazy_static = "*"
+bytes = "*"
+tempdir = "*"
+memmap = "*"
+sysconf = "*"
+sys-info = "*"
+hyper = "0.11"
+chrono = { version = "*", features = ["serde"] }
+rusqlite = { version = "*", features = ["chrono", "serde_json"] }
+serde_derive = "*"
+serde = "*"
+serde_json = "*"
+tar = "*"
+toml = "*"
+walkdir = "*"
+serde_cbor = "*"
+serde_bytes = "*"
+
+[build-dependencies]
+capnpc = "0.8"

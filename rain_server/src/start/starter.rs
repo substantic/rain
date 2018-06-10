@@ -1,4 +1,4 @@
-use librain::errors::Result;
+use rain_core::errors::Result;
 use start::common::Readiness;
 use start::process::Process;
 use start::ssh::RemoteProcess;
@@ -206,7 +206,7 @@ impl Starter {
                     .arg(&ready_file),
             )?;
             let server_pid = process.id();
-            let hostname = ::librain::common::sys::get_hostname();
+            let hostname = ::rain_core::common::sys::get_hostname();
             info!("Dashboard: http://{}:{}/", hostname, http_port);
             info!("Server pid = {}", server_pid);
             server_pid
@@ -268,7 +268,7 @@ impl Starter {
         let hostname = if localhost {
             "127.0.0.1".to_string()
         } else {
-            ::librain::common::sys::get_hostname()
+            ::rain_core::common::sys::get_hostname()
         };
         format!("{}:{}", hostname, self.config.server_listen_address.port())
     }

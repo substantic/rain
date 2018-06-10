@@ -1,6 +1,6 @@
 use chrono;
-use librain::common::id::{DataObjectId, ExecutorId, TaskId};
-use librain::governor::rpc::executor_serde::*;
+use rain_core::common::id::{DataObjectId, ExecutorId, TaskId};
+use rain_core::governor::rpc::executor_serde::*;
 
 use super::*;
 use std::borrow::Borrow;

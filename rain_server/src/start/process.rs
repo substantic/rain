@@ -2,7 +2,7 @@ use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 
-use librain::errors::Result;
+use rain_core::errors::Result;
 
 use start::common::Readiness;
 

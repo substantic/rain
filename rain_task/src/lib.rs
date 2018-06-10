@@ -29,7 +29,7 @@
 //! ```
 
 extern crate byteorder;
-extern crate librain;
+extern crate rain_core;
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -51,10 +51,10 @@ use std::os::unix::net::UnixStream;
 use std::path::Path;
 use std::path::PathBuf;
 
-use librain::common::id::SId;
-use librain::common::id::{DataObjectId, ExecutorId, TaskId};
-use librain::common::attributes::{TaskInfo, TaskSpec, ObjectInfo, ObjectSpec};
-use librain::governor::rpc::executor_serde::*;
+use rain_core::common::id::SId;
+use rain_core::common::id::{DataObjectId, ExecutorId, TaskId};
+use rain_core::common::attributes::{TaskInfo, TaskSpec, ObjectInfo, ObjectSpec};
+use rain_core::governor::rpc::executor_serde::*;
 
 pub type UserValue = serde_json::Value;
 
