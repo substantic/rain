@@ -1,4 +1,4 @@
-#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Resources {
     #[serde(default = "default_cpus")]
     pub cpus: u32,
@@ -7,6 +7,14 @@ pub struct Resources {
 #[inline]
 fn default_cpus() -> u32 {
     1
+}
+
+impl ::std::default::Default for Resources {
+    fn default() -> Self {
+        Resources {
+            cpus: default_cpus(),
+        }
+    }
 }
 
 impl Resources {

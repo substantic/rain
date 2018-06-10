@@ -23,3 +23,9 @@ impl ::std::fmt::Display for DataType {
         }
     }
 }
+
+impl ::std::default::Default for DataType {
+    fn default() -> Self {
+        DataType::Blob
+    }
+}

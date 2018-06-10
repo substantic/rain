@@ -7,7 +7,7 @@ use std::error::Error;
 
 use serde_json;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(deny_unknown_fields)]
 pub struct TaskSpecInput {
     pub id: DataObjectId,
@@ -17,7 +17,7 @@ pub struct TaskSpecInput {
     pub label: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(deny_unknown_fields)]
 pub struct TaskSpec {
     pub id: TaskId,
@@ -36,6 +36,7 @@ pub struct TaskSpec {
     #[serde(default)]
     pub config: Option<serde_json::Value>,
 
+    #[serde(default)]
     pub resources: Resources,
 
     #[serde(skip_serializing_if = "HashMap::is_empty")]
@@ -84,7 +85,7 @@ pub struct TaskInfo {
     pub user: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct ObjectSpec {
     pub id: DataObjectId,
