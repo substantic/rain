@@ -143,7 +143,9 @@ impl Service for RequestHandler {
                         &include_bytes!("./../../../dashboard/dist/main.css.gz")[..],
                     )
                 }
-                _ => static_data_response(&include_bytes!("./../../../dashboard/dist/index.html")[..]),
+                _ => static_data_response(
+                    &include_bytes!("./../../../dashboard/dist/index.html")[..],
+                ),
                 /*path =>  {
                         warn!("Invalid HTTP request: {}", path);
                         Response::new().with_status(StatusCode::NotFound)

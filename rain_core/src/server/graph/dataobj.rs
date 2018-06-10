@@ -258,7 +258,9 @@ impl ConsistencyCheck for DataObjectRef {
                 s.data.is_some() || (s.located.len() >= 1 && s.assigned.len() >= 1)
             }
             DataObjectState::Removed => {
-                s.located.is_empty() && s.scheduled.is_empty() && s.assigned.is_empty()
+                s.located.is_empty()
+                    && s.scheduled.is_empty()
+                    && s.assigned.is_empty()
                     && s.finish_hooks.is_empty()
             } /* &&  Why this?? s.size.is_some()*/
               /* This is not true when session failed && s.data.is_none()*/
@@ -284,7 +286,8 @@ impl ConsistencyCheck for DataObjectRef {
         }
 
         // used or kept objects must be assigned when their producers are
-        if (s.client_keep || !s.consumers.is_empty()) && s.assigned.is_empty()
+        if (s.client_keep || !s.consumers.is_empty())
+            && s.assigned.is_empty()
             && s.state == DataObjectState::Unfinished
         {
             if let Some(ref prod) = s.producer {

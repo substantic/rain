@@ -57,10 +57,7 @@ impl fmt::Display for Output {
         write!(
             f,
             "Output #{} ({:?} ID {}, label {:?})",
-            self.order,
-            self.spec.data_type,
-            self.spec.id,
-            self.spec.label
+            self.order, self.spec.data_type, self.spec.id, self.spec.label
         )
     }
 }
@@ -254,7 +251,7 @@ impl Output {
     }
 
     /// Sets the `info.user[key]` to value.
-    /// 
+    ///
     /// Any old value is overwriten.
     pub fn set_user_info(&mut self, key: impl Into<String>, val: UserValue) {
         self.info.user.insert(key.into(), val);
@@ -263,10 +260,12 @@ impl Output {
     /// Convert a MemBacked ouptut (not Empty) to a FileBacked output.
     fn convert_to_file(&mut self) -> ::std::io::Result<()> {
         assert!(matchvar!(self.data, OutputState::MemBacked(_)));
-        let mut f = BufWriter::new(OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&self.path)?);
+        let mut f = BufWriter::new(
+            OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&self.path)?,
+        );
         if let OutputState::MemBacked(ref data) = self.data {
             f.write_all(data)?;
         } else {
@@ -285,7 +284,8 @@ impl Output {
             self.data = OutputState::MemBacked(Vec::new());
         }
         Ok(match self.data {
-            OutputState::MemBacked(_) => self.convert_to_file()
+            OutputState::MemBacked(_) => self
+                .convert_to_file()
                 .expect("error writing output to file"),
             OutputState::FileBacked(_) => (),
             _ => {

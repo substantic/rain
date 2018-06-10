@@ -21,8 +21,10 @@ use governor::data::transport::TransportView;
 use governor::data::Data;
 use governor::fs::workdir::WorkDir;
 use governor::graph::executor::get_log_tails;
-use governor::graph::{executor_command, DataObject, DataObjectRef, DataObjectState, ExecutorRef,
-                      Graph, TaskRef, TaskState};
+use governor::graph::{
+    executor_command, DataObject, DataObjectRef, DataObjectState, ExecutorRef, Graph, TaskRef,
+    TaskState,
+};
 use governor::rpc::executor::check_registration;
 use governor::rpc::executor_serde::ExecutorToGovernorMessage;
 use governor::rpc::GovernorControlImpl;
@@ -291,7 +293,8 @@ impl State {
     ) -> Result<Box<Future<Item = ExecutorRef, Error = Error>>> {
         use tokio_process::CommandExt;
 
-        let sw_result = self.graph
+        let sw_result = self
+            .graph
             .idle_executors
             .iter()
             .find(|sw| sw.get().executor_type() == executor_type)
@@ -511,7 +514,8 @@ impl State {
         if !object.assigned && object.consumers.is_empty() {
             debug!("Object {:?} is not needed", object);
             assert!(!object.is_removed());
-            if !object.is_finished() || self.graph.delete_wait_list.len() > 100
+            if !object.is_finished()
+                || self.graph.delete_wait_list.len() > 100
                 || self.delete_list_max_timeout == 0
             {
                 // Instant deletion
@@ -764,7 +768,8 @@ impl StateRef {
             .to_capnp(&mut req.get().get_resources().unwrap());
 
         let state = self.clone();
-        let future = req.send()
+        let future = req
+            .send()
             .promise
             .and_then(move |response| {
                 let response = pry!(response.get());
@@ -856,7 +861,8 @@ impl StateRef {
                     return Ok(());
                 }
                 let now = ::std::time::Instant::now();
-                let to_delete: Vec<_> = s.graph
+                let to_delete: Vec<_> = s
+                    .graph
                     .delete_wait_list
                     .iter()
                     .filter(|pair| pair.1 < &now)
@@ -871,7 +877,8 @@ impl StateRef {
                     s.graph.delete_wait_list.remove(&obj);
                 }
 
-                let to_delete: Vec<DataObjectId> = s.transport_views
+                let to_delete: Vec<DataObjectId> = s
+                    .transport_views
                     .iter()
                     .filter(|pair| (pair.1).1 < now)
                     .map(|pair| *pair.0)

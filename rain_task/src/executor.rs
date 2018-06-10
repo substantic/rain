@@ -183,19 +183,26 @@ impl Executor {
         let task_dir = self.tasks_dir.join(task_name);
         let (task_exec, task_method): (String, String) = {
             let mut m_split = call_msg.spec.task_type.splitn(2, "/");
-            (m_split.next().unwrap().into(),
-             m_split.next()
-                .expect("Call method must be in the form \"executor_type/method\"").into()) };
+            (
+                m_split.next().unwrap().into(),
+                m_split
+                    .next()
+                    .expect("Call method must be in the form \"executor_type/method\"")
+                    .into(),
+            )
+        };
         let mut context = Context::for_call_msg(call_msg, &self.staging_dir, &task_dir);
         if task_exec != self.executor_type {
-            context.fail(format!("Mismatch of executor type in call: {:?} vs {:?}",
-                task_exec, self.executor_type))
+            context.fail(format!(
+                "Mismatch of executor type in call: {:?} vs {:?}",
+                task_exec, self.executor_type
+            ))
         }
         match self.tasks.get(&task_method) {
-            None => {
-                context.fail(format!("Task {:?} not found in executor {:?}",
-                    task_method, self.executor_type))
-            }
+            None => context.fail(format!(
+                "Task {:?} not found in executor {:?}",
+                task_method, self.executor_type
+            )),
             Some(f) => {
                 fs::create_dir(&task_dir).expect("error creating task dir");
                 // Call the method function with context
@@ -203,12 +210,11 @@ impl Executor {
                 // Check and handle in-task errors
                 env::set_current_dir(&self.working_dir).expect("error on chdir to work dir");
                 if let Err(ref e) = res {
-                    debug!(
-                        "Method {:?} in {:?} failed: {}",
+                    debug!("Method {:?} in {:?} failed: {}", task_method, task_dir, e);
+                    context.fail(format!(
+                        "error returned from call to {:?} (in {:?}):\n{}",
                         task_method, task_dir, e
-                    );
-                    context.fail(format!("error returned from call to {:?} (in {:?}):\n{}",
-                        task_method, task_dir, e));
+                    ));
                     // Clean already staged/open outputs
                     for mut o in context.outputs.iter_mut() {
                         o.cleanup_failed_task();

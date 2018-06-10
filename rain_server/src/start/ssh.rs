@@ -43,7 +43,8 @@ impl RemoteProcess {
     }
 
     pub fn run_ssh_first_line(&self, command: &str) -> Result<String> {
-        let mut child = self.create_ssh_command()
+        let mut child = self
+            .create_ssh_command()
             .spawn()
             .map_err(|e| format!("Start of 'ssh' failed: {}", e.description()))?;
         {
@@ -66,7 +67,8 @@ impl RemoteProcess {
     }
 
     pub fn run_ssh(&self, command: &str) -> Result<(String, String)> {
-        let mut child = self.create_ssh_command()
+        let mut child = self
+            .create_ssh_command()
             .spawn()
             .map_err(|e| format!("Start of 'ssh' failed: {}", e.description()))?;
         {

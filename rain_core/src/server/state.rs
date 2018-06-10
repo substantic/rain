@@ -15,8 +15,10 @@ use common::wrapped::WrappedRcRefCell;
 use common::ConsistencyCheck;
 use common::{ObjectInfo, ObjectSpec, RcSet, TaskInfo, TaskSpec};
 use errors::Result;
-use server::graph::{ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionError,
-                    SessionRef, TaskRef, TaskState};
+use server::graph::{
+    ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionError, SessionRef,
+    TaskRef, TaskState,
+};
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{ReactiveScheduler, UpdatedIn};
 
@@ -465,7 +467,8 @@ impl State {
             let mut co = &mut new_objects.reborrow().get(0);
             let o = object.get();
             o.to_governor_capnp(&mut co);
-            let placement = o.located
+            let placement = o
+                .located
                 .iter()
                 .next()
                 .map(|w| w.get().id().clone())
@@ -509,7 +512,8 @@ impl State {
         wref.check_consistency_opt().unwrap(); // non-recoverable
 
         // Create request
-        let mut req = wref.get()
+        let mut req = wref
+            .get()
             .control
             .as_ref()
             .unwrap()
@@ -571,7 +575,8 @@ impl State {
                 let o = input.get_mut();
                 if !o.assigned.contains(&wref) {
                     // Just take first placement
-                    let placement = o.located
+                    let placement = o
+                        .located
                         .iter()
                         .next()
                         .map(|w| w.get().id().clone())
@@ -666,7 +671,8 @@ impl State {
         wref.get_mut().assigned_tasks.remove(task);
         self.update_task_assignment(task);
 
-        for oref in task.get()
+        for oref in task
+            .get()
             .outputs
             .iter()
             .map(|x| x.clone())
@@ -981,7 +987,8 @@ impl State {
                 && !wref.get().scheduled_ready_tasks.is_empty()
             {
                 // TODO: Prioritize older members of w.scheduled_ready_tasks (order-preserving set)
-                let tref = wref.get()
+                let tref = wref
+                    .get()
                     .scheduled_ready_tasks
                     .iter()
                     .next()

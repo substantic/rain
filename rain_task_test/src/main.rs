@@ -13,7 +13,7 @@ fn task_hello(_ctx: &mut Context, input: &DataInstance, output: &mut Output) -> 
 }
 
 fn task_fail(_ctx: &mut Context, input: &DataInstance) -> TaskResult<()> {
-    let message : &str = ::std::str::from_utf8(input.get_bytes()?).unwrap_or("Invalid message");
+    let message: &str = ::std::str::from_utf8(input.get_bytes()?).unwrap_or("Invalid message");
     Err(message.into())
 }
 
@@ -23,12 +23,18 @@ fn task_panic(_ctx: &mut Context) -> TaskResult<()> {
 
 fn task_meta(ctx: &mut Context, input: &DataInstance, output: &mut Output) -> TaskResult<()> {
     // Copy input user attr to output user attr
-    let uo: UserValue = input.spec.user.get("test")
+    let uo: UserValue = input
+        .spec
+        .user
+        .get("test")
         .expect("Expected input user attribute \"test\"")
         .clone();
     output.set_user_info("test", uo);
     // Copy task spec.user attr to task info.user attr
-    let ut: UserValue = ctx.spec.user.get("test")
+    let ut: UserValue = ctx
+        .spec
+        .user
+        .get("test")
         .expect("Expected task user attribute \"test\"")
         .clone();
     ctx.set_user_info("test", ut);

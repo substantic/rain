@@ -23,12 +23,14 @@ pub struct Context {
 impl Context {
     pub(crate) fn for_call_msg(cm: CallMsg, staging_dir: &Path, work_dir: &Path) -> Self {
         assert!(work_dir.is_absolute());
-        let inputs = cm.inputs
+        let inputs = cm
+            .inputs
             .into_iter()
             .enumerate()
             .map(|(order, inp)| DataInstance::new(inp, work_dir, order))
             .collect();
-        let outputs = cm.outputs
+        let outputs = cm
+            .outputs
             .into_iter()
             .enumerate()
             .map(|(order, outp)| Output::new(outp, staging_dir, order))
@@ -49,7 +51,8 @@ impl Context {
             task: self.spec.id,
             success: self.success,
             info: self.info,
-            outputs: self.outputs
+            outputs: self
+                .outputs
                 .into_iter()
                 .map(|o| {
                     let (os, _cached) = o.into_output_spec();
@@ -76,7 +79,7 @@ impl Context {
     }
 
     /// Sets the `info.user[key]` to value.
-    /// 
+    ///
     /// Any old value is overwriten.
     pub fn set_user_info(&mut self, key: impl Into<String>, val: UserValue) {
         self.info.user.insert(key.into(), val);

@@ -51,9 +51,9 @@ use std::os::unix::net::UnixStream;
 use std::path::Path;
 use std::path::PathBuf;
 
+use rain_core::common::attributes::{ObjectInfo, ObjectSpec, TaskInfo, TaskSpec};
 use rain_core::common::id::SId;
 use rain_core::common::id::{DataObjectId, ExecutorId, TaskId};
-use rain_core::common::attributes::{TaskInfo, TaskSpec, ObjectInfo, ObjectSpec};
 use rain_core::governor::rpc::executor_serde::*;
 
 pub type UserValue = serde_json::Value;
@@ -91,9 +91,9 @@ use input::*;
 
 pub use context::Context;
 pub use errors::{TaskError, TaskResult};
+pub use executor::{Executor, TaskFn};
 pub use input::DataInstance;
 pub use output::Output;
-pub use executor::{Executor, TaskFn};
 
 #[cfg(test)]
 mod tests;

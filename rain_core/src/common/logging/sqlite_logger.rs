@@ -63,7 +63,8 @@ fn load_events(conn: &mut Connection, search_criteria: &SearchCriteria) -> Resul
     }
 
     if let Some(ref v) = search_criteria.event_types {
-        let conditions: Result<Vec<_>> = v.iter()
+        let conditions: Result<Vec<_>> = v
+            .iter()
             .map(|e| make_where_string("event_type", &e.mode))
             .collect();
         where_conds.push(format!("({})", conditions?.join(" OR ")));
@@ -125,7 +126,8 @@ impl SQLiteLogger {
 
         let last_session: SessionId = {
             let mut q = conn.prepare("SELECT MAX(session) FROM events WHERE session IS NOT NULL;")?;
-            let mut r = q.query_map(&[], |row| row.get_checked(0).unwrap_or(0))
+            let mut r = q
+                .query_map(&[], |row| row.get_checked(0).unwrap_or(0))
                 .unwrap();
             r.next().unwrap().unwrap()
         };

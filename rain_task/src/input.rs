@@ -1,7 +1,7 @@
 use super::*;
+use memmap::Mmap;
 use rain_core::common::DataType;
 use rain_core::governor::rpc::executor_serde::*;
-use memmap::Mmap;
 use std::sync::{Mutex, MutexGuard};
 use std::{fmt, mem, str};
 
@@ -32,10 +32,7 @@ impl fmt::Display for DataInstance {
         write!(
             f,
             "Input #{} ({:?} ID {}, label {:?})",
-            self.order,
-            self.spec.data_type,
-            self.spec.id,
-            self.spec.label
+            self.order, self.spec.data_type, self.spec.id, self.spec.label
         )
     }
 }

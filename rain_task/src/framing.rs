@@ -1,5 +1,5 @@
 use super::{
-    Result, ExecutorToGovernorMessage, GovernorToExecutorMessage, MAX_MSG_SIZE, MSG_PROTOCOL,
+    ExecutorToGovernorMessage, GovernorToExecutorMessage, Result, MAX_MSG_SIZE, MSG_PROTOCOL,
 };
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use serde_cbor;
