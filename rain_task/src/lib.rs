@@ -51,10 +51,9 @@ use std::os::unix::net::UnixStream;
 use std::path::Path;
 use std::path::PathBuf;
 
-use rain_core::common::attributes::{ObjectInfo, ObjectSpec, TaskInfo, TaskSpec};
-use rain_core::common::id::SId;
-use rain_core::common::id::{DataObjectId, ExecutorId, TaskId};
-use rain_core::governor::rpc::executor_serde::*;
+// Internal rain_core uses
+use rain_core::types::*;
+use rain_core::comm::*;
 
 /// Maximal protocol message size (128 MB)
 pub const MAX_MSG_SIZE: usize = 128 * 1024 * 1024;
@@ -92,6 +91,7 @@ pub use errors::{TaskError, TaskResult};
 pub use executor::{Executor, TaskFn};
 pub use input::DataInstance;
 pub use output::Output;
+pub use rain_core::types::{TaskSpecInput, ObjectInfo, ObjectSpec, TaskInfo, TaskSpec, DataObjectId, TaskId, DataType, UserValue, Resources};
 
 #[cfg(test)]
 mod tests;

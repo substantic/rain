@@ -1,15 +1,12 @@
-use super::framing::SocketExt;
-use super::*;
-use rain_core::common::attributes::*;
-use rain_core::common::datatype::DataType;
-use rain_core::governor::rpc::executor_serde::*;
-
 use serde_cbor;
 use std::env;
 use std::fs;
 use std::io::Read;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::thread::{spawn, JoinHandle};
+
+use super::framing::SocketExt;
+use super::*;
 
 /// Start dummy governor RPC in another thread, waiting for registration and submitting given task calls.
 /// Returns a list of received task relies (if there is an I/O error, the thread returns successfully

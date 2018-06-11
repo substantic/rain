@@ -1,10 +1,9 @@
-use super::{
-    ExecutorToGovernorMessage, GovernorToExecutorMessage, Result, MAX_MSG_SIZE, MSG_PROTOCOL,
-};
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use serde_cbor;
 use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
+
+use super::*;
 
 /// Auxiliary trait for reading from and writing to sockets.
 pub(crate) trait SocketExt {

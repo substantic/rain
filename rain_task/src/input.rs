@@ -1,9 +1,8 @@
-use super::*;
 use memmap::Mmap;
-use rain_core::common::DataType;
-use rain_core::governor::rpc::executor_serde::*;
 use std::sync::{Mutex, MutexGuard};
 use std::{fmt, mem, str};
+
+use super::*;
 
 #[allow(dead_code)] // TODO: Remove when used
 #[derive(Debug)]
