@@ -1,7 +1,7 @@
 from executor_tester import ExecutorTester
 
 
-tester = ExecutorTester("rusttester", "rain_task_test/target/debug/rain_task_test")
+tester = ExecutorTester("rusttester", "target/debug/rain_task_test")
 
 
 def test_rust_hello_mem(test_env):
