@@ -1,6 +1,6 @@
+use rain_core::{errors::*, types::*};
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
-use rain_core::{errors::*, types::*};
 
 use super::tempfile::TempFileName;
 

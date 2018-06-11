@@ -38,7 +38,7 @@ pub mod sys;
 pub mod types;
 pub mod utils;
 
-pub use errors::{Error, Result, ErrorKind, ResultExt};
+pub use errors::{Error, ErrorKind, Result, ResultExt};
 
 pub mod server_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/server_capnp.rs"));
@@ -92,4 +92,3 @@ pub mod governor_capnp {
 pub mod monitor_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/monitor_capnp.rs"));
 }
-

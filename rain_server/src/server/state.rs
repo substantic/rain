@@ -4,22 +4,21 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use futures::{Future, Stream};
-use tokio_core::net::{TcpListener, TcpStream};
-use tokio_core::reactor::Handle;
-use rain_core::{errors::*, types::*, utils::*, comm::*, sys::*};
+use hyper::server::Http;
 use rain_core::logging::logger::Logger;
 use rain_core::logging::sqlite_logger::SQLiteLogger;
-use hyper::server::Http;
+use rain_core::{comm::*, errors::*, sys::*, types::*, utils::*};
+use tokio_core::net::{TcpListener, TcpStream};
+use tokio_core::reactor::Handle;
 
-use wrapped::WrappedRcRefCell;
 use server::graph::{
-    ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionRef,
-    TaskRef, TaskState,
+    ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionRef, TaskRef, TaskState,
 };
+use server::http::RequestHandler;
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{ReactiveScheduler, UpdatedIn};
-use server::http::RequestHandler;
 use server::testmode;
+use wrapped::WrappedRcRefCell;
 
 const LOGGING_INTERVAL: u64 = 1; // Logging interval in seconds
 
@@ -1160,9 +1159,9 @@ impl StateRef {
 
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
-        let bootstrap = ::rain_core::server_capnp::server_bootstrap::ToClient::new(ServerBootstrapImpl::new(
-            self, address,
-        )).from_server::<::capnp_rpc::Server>();
+        let bootstrap = ::rain_core::server_capnp::server_bootstrap::ToClient::new(
+            ServerBootstrapImpl::new(self, address),
+        ).from_server::<::capnp_rpc::Server>();
 
         let rpc_system = new_rpc_system(stream, Some(bootstrap.client));
         self.get()

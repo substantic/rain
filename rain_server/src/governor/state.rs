@@ -1,12 +1,12 @@
+use rain_core::logging::{events, monitor::Monitor};
+use rain_core::types::id::empty_governor_id;
+use rain_core::{comm::*, errors::*, sys::*, types::*, utils::*};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
-use rain_core::{sys::*, comm::*, errors::*, types::*, utils::*};
-use rain_core::logging::{events, monitor::Monitor};
-use rain_core::types::id::empty_governor_id;
 
 use governor::data::transport::TransportView;
 use governor::data::Data;
@@ -50,8 +50,10 @@ pub struct State {
     /// Handle to GovernorUpstream (that resides in server)
     upstream: Option<::rain_core::governor_capnp::governor_upstream::Client>,
 
-    remote_governors:
-        HashMap<GovernorId, AsyncInitWrapper<::rain_core::governor_capnp::governor_bootstrap::Client>>,
+    remote_governors: HashMap<
+        GovernorId,
+        AsyncInitWrapper<::rain_core::governor_capnp::governor_bootstrap::Client>,
+    >,
 
     updated_objects: RcSet<DataObjectRef>,
     updated_tasks: RcSet<TaskRef>,
@@ -622,7 +624,9 @@ impl State {
     pub fn wait_for_remote_governor(
         &mut self,
         governor_id: &GovernorId,
-    ) -> Box<Future<Item = Rc<::rain_core::governor_capnp::governor_bootstrap::Client>, Error = Error>> {
+    ) -> Box<
+        Future<Item = Rc<::rain_core::governor_capnp::governor_bootstrap::Client>, Error = Error>,
+    > {
         if let Some(ref mut wrapper) = self.remote_governors.get_mut(governor_id) {
             return wrapper.wait();
         }

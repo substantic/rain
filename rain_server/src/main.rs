@@ -34,11 +34,13 @@ extern crate walkdir;
 
 extern crate rain_core;
 
-mod start;
 mod governor;
 mod server;
+mod start;
 mod wrapped;
 
+use clap::{App, Arg, ArgMatches, SubCommand};
+use nix::unistd::getpid;
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::Read;
@@ -46,11 +48,9 @@ use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use clap::{App, Arg, ArgMatches, SubCommand};
-use nix::unistd::getpid;
 
-use rain_core::{errors::*,utils::*};
-use rain_core::sys::{get_hostname, create_ready_file};
+use rain_core::sys::{create_ready_file, get_hostname};
+use rain_core::{errors::*, utils::*};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_SERVER_PORT: u16 = 7210;

@@ -6,8 +6,8 @@ use std::io::BufReader;
 use sys_info::mem_info;
 use sysconf;
 
-use types::GovernorId;
 use super::events;
+use types::GovernorId;
 
 type CpuTimes = Vec<u64>;
 type CpuUsage = u8;

@@ -1,6 +1,6 @@
+use rain_core::errors::*;
 use std::fs::File;
 use std::sync::Arc;
-use rain_core::{errors::*};
 
 use super::super::State;
 use super::{Data, Storage};

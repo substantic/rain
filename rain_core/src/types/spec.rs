@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::error::Error;
 
-use types::{DataObjectId, TaskId, DataType, Resources, UserAttrs};
 use errors::Result;
+use types::{DataObjectId, DataType, Resources, TaskId, UserAttrs};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(deny_unknown_fields)]
@@ -73,4 +73,3 @@ pub struct ObjectSpec {
     #[serde(default)]
     pub user: UserAttrs,
 }
-

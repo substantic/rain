@@ -1,7 +1,7 @@
+use bytes::BytesMut;
+use rain_core::{comm::*, errors::*, types::*};
 use std::path::Path;
 use std::sync::Arc;
-use bytes::BytesMut;
-use rain_core::{errors::*, types::*, comm::*};
 
 use governor::data::{Data, Storage};
 use governor::State;

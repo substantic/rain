@@ -1,4 +1,4 @@
-use rain_core::{types::*};
+use rain_core::types::*;
 use std::collections::HashMap;
 
 use super::{ClientRef, DataObjectRef, GovernorRef, SessionRef, TaskRef};

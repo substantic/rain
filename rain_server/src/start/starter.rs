@@ -1,12 +1,12 @@
+use nix::unistd::getpid;
 use rain_core::errors::Result;
 use rain_core::sys::get_hostname;
-use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use nix::unistd::getpid;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::net::SocketAddr;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use start::common::Readiness;
 use start::process::Process;

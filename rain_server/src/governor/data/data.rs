@@ -1,5 +1,5 @@
+use rain_core::{comm::*, errors::*, types::*};
 use std::path::{Path, PathBuf};
-use rain_core::{errors::*, types::*, comm::*};
 
 #[derive(Debug)]
 pub struct DataOnFs {

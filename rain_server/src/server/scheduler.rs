@@ -1,8 +1,8 @@
+use rain_core::utils::*;
 use std::clone::Clone;
 use std::collections::hash_map::HashMap;
-use rain_core::{utils::*};
 
-use server::graph::{SessionRef, DataObjectRef, GovernorRef, Graph, TaskRef, TaskState};
+use server::graph::{DataObjectRef, GovernorRef, Graph, SessionRef, TaskRef, TaskState};
 
 #[derive(Default, Clone, Debug)]
 pub struct UpdatedOut {

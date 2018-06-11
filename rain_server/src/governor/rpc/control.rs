@@ -1,7 +1,7 @@
-use std::sync::Arc;
 use capnp::capability::Promise;
-use rain_core::{errors::*, types::*, utils::*};
 use futures::future::Future;
+use rain_core::{errors::*, types::*, utils::*};
+use std::sync::Arc;
 
 use governor::graph::DataObjectState;
 use governor::StateRef;

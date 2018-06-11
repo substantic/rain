@@ -1,13 +1,12 @@
-use std::rc::Rc;
-use rain_core::{errors::*, types::*, utils::*};
-use futures::{future, Future};
 use futures::future::Either;
 use futures::IntoFuture;
+use futures::{future, Future};
+use rain_core::{errors::*, types::*, utils::*};
+use std::rc::Rc;
 
 use governor::data::{Data, DataBuilder};
 use governor::graph::DataObjectRef;
 use governor::StateRef;
-
 
 pub struct FetchContext {
     pub state_ref: StateRef,

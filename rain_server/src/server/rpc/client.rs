@@ -1,8 +1,8 @@
 use capnp::capability::Promise;
 use futures::{future, Future};
-use std::net::SocketAddr;
-use rain_core::{errors::*, types::*, utils::*};
 use rain_core::client_capnp::client_service;
+use rain_core::{errors::*, types::*, utils::*};
+use std::net::SocketAddr;
 
 use server::graph::{ClientRef, TaskRef};
 use server::graph::{DataObjectRef, DataObjectState};
@@ -176,7 +176,10 @@ impl client_service::Server for ClientServiceImpl {
         mut result: client_service::WaitResults,
     ) -> Promise<(), ::capnp::Error> {
         // Set error from session to result
-        fn set_error(result: &mut ::rain_core::common_capnp::unit_result::Builder, error: &SessionError) {
+        fn set_error(
+            result: &mut ::rain_core::common_capnp::unit_result::Builder,
+            error: &SessionError,
+        ) {
             error.to_capnp(&mut result.reborrow().init_error());
         }
 

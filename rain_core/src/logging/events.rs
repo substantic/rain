@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use types::{SId, ClientId, DataObjectId, GovernorId, SessionId, TaskId, ObjectSpec, TaskSpec};
+use types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SId, SessionId, TaskId, TaskSpec};
 
 pub type EventId = i64;
 

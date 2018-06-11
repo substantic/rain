@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use futures::Future;
-use rain_core::{errors::*, comm::*};
+use rain_core::{comm::*, errors::*};
 
 use governor::graph::{ExecutorRef, TaskRef, TaskState};
 use governor::rpc::executor::data_output_from_spec;

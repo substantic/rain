@@ -1,7 +1,7 @@
+use futures::{future, Future};
+use rain_core::{errors::*, types::*};
 use std::path::Path;
 use std::sync::Arc;
-use rain_core::{errors::*, types::*};
-use futures::{future, Future};
 
 use super::TaskResult;
 use governor::data::{Data, DataBuilder};

@@ -52,8 +52,8 @@ use std::path::Path;
 use std::path::PathBuf;
 
 // Internal rain_core uses
-use rain_core::types::*;
 use rain_core::comm::*;
+use rain_core::types::*;
 
 /// Maximal protocol message size (128 MB)
 pub const MAX_MSG_SIZE: usize = 128 * 1024 * 1024;
@@ -91,7 +91,10 @@ pub use errors::{TaskError, TaskResult};
 pub use executor::{Executor, TaskFn};
 pub use input::DataInstance;
 pub use output::Output;
-pub use rain_core::types::{TaskSpecInput, ObjectInfo, ObjectSpec, TaskInfo, TaskSpec, DataObjectId, TaskId, DataType, UserValue, Resources};
+pub use rain_core::types::{
+    DataObjectId, DataType, ObjectInfo, ObjectSpec, Resources, TaskId, TaskInfo, TaskSpec,
+    TaskSpecInput, UserValue,
+};
 
 #[cfg(test)]
 mod tests;

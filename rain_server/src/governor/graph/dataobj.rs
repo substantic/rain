@@ -1,14 +1,14 @@
-use rain_core::{errors::*, types::*, utils::*, comm::*};
+use rain_core::{comm::*, errors::*, types::*, utils::*};
 use std::fmt;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
 
 use super::{Graph, TaskRef};
-use wrapped::WrappedRcRefCell;
 use governor::data::Data;
 use governor::graph::ExecutorRef;
 use governor::WorkDir;
+use wrapped::WrappedRcRefCell;
 
 #[derive(Debug)]
 pub enum DataObjectState {

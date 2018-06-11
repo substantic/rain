@@ -1,6 +1,6 @@
 use futures::unsync::oneshot::Receiver;
-use std::fmt;
 use rain_core::{errors::*, types::*, utils::*};
+use std::fmt;
 
 use super::{ClientRef, DataObjectRef, DataObjectState, TaskRef, TaskState};
 use wrapped::WrappedRcRefCell;
@@ -149,4 +149,3 @@ impl fmt::Debug for SessionRef {
         write!(f, "SessionRef {}", self.get_id())
     }
 }
-

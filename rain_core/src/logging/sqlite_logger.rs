@@ -1,15 +1,15 @@
 use chrono::{DateTime, Utc};
+use futures::sync::{mpsc, oneshot};
 use futures::Future;
 use futures::Stream;
-use futures::sync::{mpsc, oneshot};
 use rusqlite::Connection;
 use serde_json;
 use std::path::PathBuf;
 
 //use common::id::{SessionId, GovernorId, DataObjectId, TaskId, ClientId, SId};
-use errors::{Error, Result};
 use super::events;
-use super::logger::{Logger, SearchCriteria, QueryEvents};
+use super::logger::{Logger, QueryEvents, SearchCriteria};
+use errors::{Error, Result};
 use types::SessionId;
 
 #[derive(Clone, Debug)]

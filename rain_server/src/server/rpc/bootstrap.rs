@@ -1,9 +1,9 @@
 use capnp;
 use capnp::capability::Promise;
 use futures::Future;
-use std::net::SocketAddr;
-use rain_core::{types::*, utils::*};
 use rain_core::server_capnp::server_bootstrap;
+use rain_core::{types::*, utils::*};
+use std::net::SocketAddr;
 
 use super::{ClientServiceImpl, GovernorUpstreamImpl};
 use server::state::StateRef;
@@ -58,10 +58,9 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
 
         self.registered = true;
 
-        let service = ::rain_core::client_capnp::client_service::ToClient::new(pry!(ClientServiceImpl::new(
-            &self.state,
-            &self.address
-        ))).from_server::<::capnp_rpc::Server>();
+        let service = ::rain_core::client_capnp::client_service::ToClient::new(pry!(
+            ClientServiceImpl::new(&self.state, &self.address)
+        )).from_server::<::capnp_rpc::Server>();
 
         info!("Connection {} registered as client", self.address);
         results.get().set_service(service);

@@ -1,8 +1,8 @@
+use rain_core::{comm::*, errors::*, sys::*, types::*};
 use std::fs::File;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 use std::process::{Command, Stdio};
-use rain_core::{errors::*, types::*, comm::*, sys::*};
 
 use governor::graph::Task;
 use wrapped::WrappedRcRefCell;

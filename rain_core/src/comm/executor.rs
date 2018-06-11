@@ -1,7 +1,7 @@
 use serde_bytes;
 use std::path::PathBuf;
 
-use types::{DataObjectId, ExecutorId, TaskId, ObjectInfo, ObjectSpec, TaskInfo, TaskSpec};
+use types::{DataObjectId, ExecutorId, ObjectInfo, ObjectSpec, TaskId, TaskInfo, TaskSpec};
 
 /// Message from executor to governor.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.

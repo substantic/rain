@@ -1,7 +1,7 @@
 use futures::unsync::oneshot;
-use std::fmt;
-use rain_core::{errors::*, types::*, utils::*};
 pub use rain_core::common_capnp::TaskState;
+use rain_core::{errors::*, types::*, utils::*};
+use std::fmt;
 
 use super::{DataObjectRef, DataObjectState, GovernorRef, SessionRef};
 use wrapped::WrappedRcRefCell;
@@ -330,4 +330,3 @@ impl fmt::Debug for TaskRef {
         write!(f, "TaskRef {}", self.get().id())
     }
 }
-

@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use futures::Future;
 
 use super::events::{self, Event};
-use types::{ClientId, DataObjectId, GovernorId, SessionId, TaskId, ObjectSpec, TaskSpec};
 use errors::Error;
+use types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SessionId, TaskId, TaskSpec};
 
 #[derive(Deserialize)]
 pub struct SearchItemInt {

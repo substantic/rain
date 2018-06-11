@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use std::rc::Rc;
 
 use futures::Future;
-use rain_core::{errors::*, types::*, utils::*, comm::*};
+use rain_core::{comm::*, errors::*, types::*, utils::*};
 
 use super::super::state::StateRef;
 use super::{DataObjectRef, TaskRef};
@@ -43,7 +43,8 @@ pub struct Governor {
     /// Control interface. Optional for testing and modelling.
     pub(in super::super) control: Option<::rain_core::governor_capnp::governor_control::Client>,
 
-    data_connection: Option<AsyncInitWrapper<::rain_core::governor_capnp::governor_bootstrap::Client>>,
+    data_connection:
+        Option<AsyncInitWrapper<::rain_core::governor_capnp::governor_bootstrap::Client>>,
 
     pub(in super::super) resources: Resources,
 }
@@ -61,7 +62,9 @@ impl Governor {
         &mut self,
         governor_ref: &GovernorRef,
         state_ref: &StateRef,
-    ) -> Box<Future<Item = Rc<::rain_core::governor_capnp::governor_bootstrap::Client>, Error = Error>> {
+    ) -> Box<
+        Future<Item = Rc<::rain_core::governor_capnp::governor_bootstrap::Client>, Error = Error>,
+    > {
         if let Some(ref mut store) = self.data_connection {
             return store.wait();
         }

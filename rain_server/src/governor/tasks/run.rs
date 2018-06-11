@@ -1,11 +1,11 @@
 use futures::Future;
+use rain_core::errors::*;
 use std::fs::File;
 use std::io::Read;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use tokio_process::CommandExt;
-use rain_core::{errors::*};
 
 use super::TaskResult;
 use governor::graph::TaskRef;

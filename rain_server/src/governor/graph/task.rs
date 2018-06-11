@@ -1,9 +1,9 @@
-use std::sync::Arc;
 use rain_core::{errors::*, types::*, utils::*};
 use std::fmt;
+use std::sync::Arc;
 
-use governor::data::Data;
 use super::{DataObjectRef, Graph};
+use governor::data::Data;
 use wrapped::WrappedRcRefCell;
 
 #[derive(PartialEq, Eq, Debug)]

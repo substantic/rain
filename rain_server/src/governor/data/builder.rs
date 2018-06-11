@@ -1,6 +1,6 @@
+use rain_core::{errors::*, types::*};
 use std::fs::File;
 use std::io::Write;
-use rain_core::{errors::*, types::*};
 
 use super::super::fs::workdir::WorkDir;
 use super::data::{Data, Storage};
