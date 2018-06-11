@@ -6,28 +6,20 @@ use std::time::{Duration, Instant};
 use futures::{Future, Stream};
 use tokio_core::net::{TcpListener, TcpStream};
 use tokio_core::reactor::Handle;
+use rain_core::{errors::*, types::*, utils::*, comm::*, sys::*};
+use rain_core::logging::logger::Logger;
+use rain_core::logging::sqlite_logger::SQLiteLogger;
+use hyper::server::Http;
 
-use common::convert::ToCapnp;
-use common::id::{ClientId, DataObjectId, GovernorId, SId, SessionId, TaskId};
-use common::resources::Resources;
-use common::rpc::new_rpc_system;
-use common::wrapped::WrappedRcRefCell;
-use common::ConsistencyCheck;
-use common::{ObjectInfo, ObjectSpec, RcSet, TaskInfo, TaskSpec};
-use errors::Result;
+use wrapped::WrappedRcRefCell;
 use server::graph::{
-    ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionError, SessionRef,
+    ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionRef,
     TaskRef, TaskState,
 };
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{ReactiveScheduler, UpdatedIn};
-
-use hyper::server::Http;
 use server::http::RequestHandler;
 use server::testmode;
-
-use common::logging::logger::Logger;
-use common::logging::sqlite_logger::SQLiteLogger;
 
 const LOGGING_INTERVAL: u64 = 1; // Logging interval in seconds
 
@@ -458,7 +450,7 @@ impl State {
         assert!(!object.get().assigned.contains(wref));
         object.check_consistency_opt().unwrap(); // non-recoverable
         wref.check_consistency_opt().unwrap(); // non-recoverable
-        let empty_governor_id = ::common::id::empty_governor_id();
+        let empty_governor_id = ::rain_core::types::id::empty_governor_id();
 
         // Create request
         let mut req = wref.get().control.as_ref().unwrap().add_nodes_request();
@@ -568,7 +560,7 @@ impl State {
             let wref = t.scheduled.as_ref().unwrap().clone();
             t.assigned = Some(wref.clone());
             let governor_id = wref.get_id();
-            let empty_governor_id = ::common::id::empty_governor_id();
+            let empty_governor_id = ::rain_core::types::id::empty_governor_id();
             debug!("Assiging task id={} to governor={}", t.id(), governor_id);
 
             for input in t.inputs.iter() {
@@ -1124,7 +1116,7 @@ impl StateRef {
                 .map_err(|_| ()),
         );
 
-        let hostname = ::common::sys::get_hostname();
+        let hostname = get_hostname();
         info!(
             "Dashboard: http://{}:{}/",
             hostname,

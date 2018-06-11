@@ -49,7 +49,40 @@ pub mod client_capnp {
 }
 
 pub mod common_capnp {
+    use std::fmt;
+
     include!(concat!(env!("OUT_DIR"), "/capnp/common_capnp.rs"));
+
+    impl fmt::Debug for DataObjectState {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(
+                f,
+                "{}",
+                match *self {
+                    DataObjectState::Unfinished => "Unfinished",
+                    DataObjectState::Finished => "Finished",
+                    DataObjectState::Removed => "Removed",
+                }
+            )
+        }
+    }
+
+    impl fmt::Debug for TaskState {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(
+                f,
+                "{}",
+                match *self {
+                    TaskState::NotAssigned => "NotAssigned",
+                    TaskState::Assigned => "Assigned",
+                    TaskState::Ready => "Ready",
+                    TaskState::Running => "Running",
+                    TaskState::Finished => "Finished",
+                    TaskState::Failed => "Failed",
+                }
+            )
+        }
+    }
 }
 
 pub mod governor_capnp {
@@ -59,3 +92,4 @@ pub mod governor_capnp {
 pub mod monitor_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/monitor_capnp.rs"));
 }
+

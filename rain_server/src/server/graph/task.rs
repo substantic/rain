@@ -1,13 +1,10 @@
 use futures::unsync::oneshot;
 use std::fmt;
+use rain_core::{errors::*, types::*, utils::*, comm::*};
+pub use rain_core::common_capnp::TaskState;
 
 use super::{DataObjectRef, DataObjectState, GovernorRef, SessionRef};
-use common::attributes::{TaskInfo, TaskSpec};
-use common::id::{SId, TaskId};
-use common::wrapped::WrappedRcRefCell;
-use common::{ConsistencyCheck, FinishHook, RcSet};
-pub use common_capnp::TaskState;
-use errors::Result;
+use wrapped::WrappedRcRefCell;
 
 #[derive(Debug)]
 pub struct Task {
@@ -334,19 +331,3 @@ impl fmt::Debug for TaskRef {
     }
 }
 
-impl fmt::Debug for TaskState {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match *self {
-                TaskState::NotAssigned => "NotAssigned",
-                TaskState::Assigned => "Assigned",
-                TaskState::Ready => "Ready",
-                TaskState::Running => "Running",
-                TaskState::Finished => "Finished",
-                TaskState::Failed => "Failed",
-            }
-        )
-    }
-}

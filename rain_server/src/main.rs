@@ -11,6 +11,7 @@ extern crate env_logger;
 extern crate error_chain;
 extern crate fs_extra;
 extern crate futures;
+extern crate hyper;
 #[macro_use]
 extern crate log;
 extern crate memmap;
@@ -30,12 +31,11 @@ extern crate tokio_timer;
 extern crate tokio_uds;
 extern crate toml;
 extern crate walkdir;
-
 extern crate rain_core;
 
 mod start;
 mod governor;
-//mod server;
+mod server;
 mod wrapped;
 
 use std::collections::HashMap;

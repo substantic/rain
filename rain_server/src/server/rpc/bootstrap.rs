@@ -2,16 +2,13 @@ use capnp;
 use capnp::capability::Promise;
 use futures::Future;
 use std::net::SocketAddr;
+use rain_core::{errors::*, types::*, utils::*, comm::*};
+use rain_core::server_capnp::server_bootstrap;
 
 use super::{ClientServiceImpl, GovernorUpstreamImpl};
-use common::convert::{FromCapnp, ToCapnp};
-use common::id::GovernorId;
-use common::resources::Resources;
 use server::state::StateRef;
-use server_capnp::server_bootstrap;
 
-use CLIENT_PROTOCOL_VERSION;
-use GOVERNOR_PROTOCOL_VERSION;
+use rain_core::{CLIENT_PROTOCOL_VERSION, GOVERNOR_PROTOCOL_VERSION};
 
 // ServerBootstrap is the entry point of RPC service.
 // It is created on the server and provided
@@ -61,7 +58,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
 
         self.registered = true;
 
-        let service = ::client_capnp::client_service::ToClient::new(pry!(ClientServiceImpl::new(
+        let service = ::rain_core::client_capnp::client_service::ToClient::new(pry!(ClientServiceImpl::new(
             &self.state,
             &self.address
         ))).from_server::<::capnp_rpc::Server>();

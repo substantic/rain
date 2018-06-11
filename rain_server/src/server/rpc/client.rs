@@ -1,13 +1,10 @@
 use capnp::capability::Promise;
 use futures::{future, Future};
 use std::net::SocketAddr;
+use rain_core::{errors::*, types::*, utils::*, comm::*};
+use rain_core::client_capnp::client_service;
 
-use client_capnp::client_service;
-use common::convert::{FromCapnp, ToCapnp};
-use common::id::{DataObjectId, SId, TaskId};
-use common::{ObjectSpec, RcSet, TaskSpec};
-use errors::{Error, ErrorKind, Result};
-use server::graph::{ClientRef, SessionError, TaskRef};
+use server::graph::{ClientRef, TaskRef};
 use server::graph::{DataObjectRef, DataObjectState};
 use server::state::StateRef;
 

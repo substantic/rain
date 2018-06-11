@@ -3,16 +3,11 @@ use std::net::SocketAddr;
 use std::rc::Rc;
 
 use futures::Future;
+use rain_core::{errors::*, types::*, utils::*, comm::*};
 
 use super::super::state::StateRef;
 use super::{DataObjectRef, TaskRef};
-use common::asyncinit::AsyncInitWrapper;
-use common::id::GovernorId;
-use common::resources::Resources;
-use common::wrapped::WrappedRcRefCell;
-use common::{ConsistencyCheck, RcSet};
-use errors::Error;
-use errors::Result;
+use wrapped::WrappedRcRefCell;
 
 pub struct Governor {
     /// Unique ID, here the registration socket address.
@@ -78,7 +73,7 @@ impl Governor {
             ::tokio_core::net::TcpStream::connect(&self.id, state.handle())
                 .map(move |stream| {
                     stream.set_nodelay(true).unwrap();
-                    let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
+                    let mut rpc_system = new_rpc_system(stream, None);
                     let bootstrap: ::rain_core::governor_capnp::governor_bootstrap::Client =
                         rpc_system.bootstrap(::capnp_rpc::rpc_twoparty_capnp::Side::Server);
                     let bootstrap_rc = Rc::new(bootstrap);

@@ -1,12 +1,9 @@
 use futures::unsync::oneshot::Receiver;
 use std::fmt;
+use rain_core::{errors::*, types::*, utils::*, comm::*};
 
 use super::{ClientRef, DataObjectRef, DataObjectState, TaskRef, TaskState};
-use common::convert::ToCapnp;
-use common::id::{SessionId, TaskId};
-use common::wrapped::WrappedRcRefCell;
-use common::{ConsistencyCheck, FinishHook, RcSet};
-use errors::Result;
+use wrapped::WrappedRcRefCell;
 
 #[derive(Debug)]
 pub struct Session {

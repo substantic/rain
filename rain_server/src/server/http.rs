@@ -4,6 +4,8 @@ use futures::Stream;
 use hyper::header::{AccessControlAllowOrigin, ContentEncoding, ContentLength, Encoding};
 use hyper::server::{Request, Response, Service};
 use hyper::{Error, StatusCode};
+use rain_core::errors;
+
 use server::state::StateRef;
 
 pub struct RequestHandler {
@@ -29,7 +31,7 @@ impl RequestHandler {
     }
 }
 
-type ResponseFuture = Box<futures::Future<Item = Response, Error = ::errors::Error>>;
+type ResponseFuture = Box<futures::Future<Item = Response, Error = errors::Error>>;
 
 fn get_events(state: &StateRef, body: &str) -> ResponseFuture {
     let state = state.clone();

@@ -1,10 +1,8 @@
 use std::net::SocketAddr;
+use rain_core::{errors::*, types::*, utils::*, comm::*};
 
 use super::SessionRef;
-use common::id::ClientId;
-use common::wrapped::WrappedRcRefCell;
-use common::{ConsistencyCheck, RcSet};
-use errors::Result;
+use wrapped::WrappedRcRefCell;
 
 #[derive(Debug)]
 pub struct Client {

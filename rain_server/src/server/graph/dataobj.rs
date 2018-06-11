@@ -1,13 +1,10 @@
 use futures::unsync::oneshot;
 use std::fmt;
+use rain_core::{errors::*, types::*, utils::*, comm::*};
+pub use rain_core::common_capnp::DataObjectState;
 
 use super::{GovernorRef, SessionRef, TaskRef, TaskState};
-use common::id::{DataObjectId, SId};
-use common::wrapped::WrappedRcRefCell;
-use common::{ConsistencyCheck, FinishHook, RcSet};
-use common::{ObjectInfo, ObjectSpec};
-pub use common_capnp::DataObjectState;
-use errors::Result;
+use wrapped::WrappedRcRefCell;
 
 #[derive(Debug)]
 pub struct DataObject {
@@ -307,19 +304,5 @@ impl ConsistencyCheck for DataObjectRef {
 impl ::std::fmt::Debug for DataObjectRef {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         write!(f, "DataObjectRef {}", self.get().spec.id)
-    }
-}
-
-impl fmt::Debug for DataObjectState {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match *self {
-                DataObjectState::Unfinished => "Unfinished",
-                DataObjectState::Finished => "Finished",
-                DataObjectState::Removed => "Removed",
-            }
-        )
     }
 }

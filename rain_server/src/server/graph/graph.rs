@@ -1,6 +1,7 @@
-use super::{ClientRef, DataObjectRef, GovernorRef, SessionRef, TaskRef};
-use common::id::{ClientId, DataObjectId, GovernorId, SessionId, TaskId};
+use rain_core::{types::*};
 use std::collections::HashMap;
+
+use super::{ClientRef, DataObjectRef, GovernorRef, SessionRef, TaskRef};
 
 #[derive(Clone, Default)]
 pub struct Graph {
