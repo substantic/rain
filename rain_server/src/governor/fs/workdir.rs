@@ -1,9 +1,8 @@
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
+use rain_core::{errors::*, types::*};
 
 use super::tempfile::TempFileName;
-use common::id::{ExecutorId, SId, TaskId};
-use errors::Result;
 
 pub struct WorkDir {
     path: PathBuf,

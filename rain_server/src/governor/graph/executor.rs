@@ -2,16 +2,10 @@ use std::fs::File;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 use std::process::{Command, Stdio};
+use rain_core::{errors::*, types::*, comm::*, sys::*};
 
-use common::comm::Sender;
-use common::fs::LogDir;
-use common::id::{DataObjectId, ExecutorId};
-use common::wrapped::WrappedRcRefCell;
 use governor::graph::Task;
-use governor::rpc::executor_serde::GovernorToExecutorMessage;
-use governor::rpc::executor_serde::{CallMsg, DropCachedMsg, ResultMsg};
-
-use errors::Result;
+use wrapped::WrappedRcRefCell;
 
 pub struct Executor {
     executor_id: ExecutorId,
@@ -43,10 +37,10 @@ impl Executor {
 pub fn get_log_tails(out_log_name: &Path, err_log_name: &Path, size: u64) -> String {
     format!(
         "{}\n\n{}\n",
-        ::common::fs::read_tail(&out_log_name, size)
+        read_tail(&out_log_name, size)
             .map(|s| format!("Content of stdout (last {} bytes):\n{}", size, s))
             .unwrap_or_else(|e| format!("Cannot read stdout: {}", e.description())),
-        ::common::fs::read_tail(&err_log_name, size)
+        read_tail(&err_log_name, size)
             .map(|s| format!("Content of stderr (last {} bytes):\n{}", size, s))
             .unwrap_or_else(|e| format!("Cannot read stderr: {}", e.description()))
     )

@@ -1,8 +1,9 @@
-use super::super::State;
-use super::{Data, Storage};
-use errors::Result;
 use std::fs::File;
 use std::sync::Arc;
+use rain_core::{errors::*};
+
+use super::super::State;
+use super::{Data, Storage};
 
 pub enum TransportView {
     Empty([u8; 0]),

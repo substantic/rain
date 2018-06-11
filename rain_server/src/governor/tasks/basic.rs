@@ -1,10 +1,9 @@
 use std::path::Path;
 use std::sync::Arc;
+use rain_core::{errors::*, types::*};
+use futures::{future, Future};
 
 use super::TaskResult;
-use common::DataType;
-use errors::ErrorKind;
-use futures::{future, Future};
 use governor::data::{Data, DataBuilder};
 use governor::graph::TaskRef;
 use governor::state::State;

@@ -1,6 +1,6 @@
-use errors::Result;
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use rain_core::{errors::*};
 
 pub struct TempFileName {
     path: PathBuf,

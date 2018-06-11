@@ -5,9 +5,9 @@ use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use tokio_process::CommandExt;
+use rain_core::{errors::*};
 
 use super::TaskResult;
-use errors::Result;
 use governor::graph::TaskRef;
 use governor::state::State;
 

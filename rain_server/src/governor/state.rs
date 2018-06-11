@@ -4,18 +4,9 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
-
-use common::asyncinit::AsyncInitWrapper;
-use common::comm::Connection;
-use common::convert::{FromCapnp, ToCapnp};
-use common::events;
-use common::fs::logdir::LogDir;
-use common::id::{empty_governor_id, DataObjectId, GovernorId, TaskId};
-use common::monitor::Monitor;
-use common::resources::Resources;
-use common::wrapped::WrappedRcRefCell;
-use common::RcSet;
-use common::{ObjectSpec, TaskSpec};
+use rain_core::{sys::*, comm::*, errors::*, types::*, utils::*};
+use rain_core::logging::{events, monitor::Monitor};
+use rain_core::types::id::empty_governor_id;
 
 use governor::data::transport::TransportView;
 use governor::data::Data;
@@ -26,13 +17,12 @@ use governor::graph::{
     TaskState,
 };
 use governor::rpc::executor::check_registration;
-use governor::rpc::executor_serde::ExecutorToGovernorMessage;
 use governor::rpc::GovernorControlImpl;
 use governor::tasks::TaskInstance;
+use wrapped::WrappedRcRefCell;
 
 use capnp::capability::Promise;
 use capnp_rpc::rpc_twoparty_capnp;
-use errors::{Error, Result};
 use futures::Future;
 use futures::IntoFuture;
 use futures::Stream;
@@ -41,7 +31,7 @@ use tokio_core::net::TcpStream;
 use tokio_core::reactor::Handle;
 use tokio_uds::UnixListener;
 
-use GOVERNOR_PROTOCOL_VERSION;
+use rain_core::GOVERNOR_PROTOCOL_VERSION;
 
 const MONITORING_INTERVAL: u64 = 5; // Monitoring interval in seconds
 const DELETE_WAIT_LIST_INTERVAL: u64 = 2; // How often is delete_wait_list checked in seconds
@@ -58,10 +48,10 @@ pub struct State {
     handle: Handle,
 
     /// Handle to GovernorUpstream (that resides in server)
-    upstream: Option<::governor_capnp::governor_upstream::Client>,
+    upstream: Option<::rain_core::governor_capnp::governor_upstream::Client>,
 
     remote_governors:
-        HashMap<GovernorId, AsyncInitWrapper<::governor_capnp::governor_bootstrap::Client>>,
+        HashMap<GovernorId, AsyncInitWrapper<::rain_core::governor_capnp::governor_bootstrap::Client>>,
 
     updated_objects: RcSet<DataObjectRef>,
     updated_tasks: RcSet<TaskRef>,
@@ -121,7 +111,7 @@ impl State {
     }
 
     #[inline]
-    pub fn upstream(&self) -> &Option<::governor_capnp::governor_upstream::Client> {
+    pub fn upstream(&self) -> &Option<::rain_core::governor_capnp::governor_upstream::Client> {
         &self.upstream
     }
 
@@ -230,7 +220,7 @@ impl State {
                 let mut object = object.get_mut();
 
                 if object.is_finished() {
-                    co.set_state(::common_capnp::DataObjectState::Finished);
+                    co.set_state(::rain_core::common_capnp::DataObjectState::Finished);
                     co.set_info(&::serde_json::to_string(&object.info).unwrap());
                 } else {
                     // TODO: Handle failure state
@@ -262,9 +252,9 @@ impl State {
                 let mut task = task.get_mut();
 
                 ct.set_state(match task.state {
-                    TaskState::Running => ::common_capnp::TaskState::Running,
-                    TaskState::Finished => ::common_capnp::TaskState::Finished,
-                    TaskState::Failed => ::common_capnp::TaskState::Failed,
+                    TaskState::Running => ::rain_core::common_capnp::TaskState::Running,
+                    TaskState::Finished => ::rain_core::common_capnp::TaskState::Finished,
+                    TaskState::Failed => ::rain_core::common_capnp::TaskState::Failed,
                     _ => panic!("Invalid state"),
                 });
 
@@ -364,7 +354,7 @@ impl State {
                         .and_then(move |(r, _)| {
                             info!("Connection for executor id={}", executor_id);
                             let (raw_stream, _) = r.unwrap();
-                            let stream = ::common::comm::create_protocol_stream(raw_stream);
+                            let stream = create_protocol_stream(raw_stream);
                             stream
                                 .into_future()
                                 .map_err(|(e, _)| {
@@ -632,7 +622,7 @@ impl State {
     pub fn wait_for_remote_governor(
         &mut self,
         governor_id: &GovernorId,
-    ) -> Box<Future<Item = Rc<::governor_capnp::governor_bootstrap::Client>, Error = Error>> {
+    ) -> Box<Future<Item = Rc<::rain_core::governor_capnp::governor_bootstrap::Client>, Error = Error>> {
         if let Some(ref mut wrapper) = self.remote_governors.get_mut(governor_id) {
             return wrapper.wait();
         }
@@ -647,9 +637,9 @@ impl State {
             TcpStream::connect(&governor_id, &self.handle)
                 .map(move |stream| {
                     debug!("Connection to governor {} established", governor_id);
-                    let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
+                    let mut rpc_system = new_rpc_system(stream, None);
                     let bootstrap: Rc<
-                        ::governor_capnp::governor_bootstrap::Client,
+                        ::rain_core::governor_capnp::governor_bootstrap::Client,
                     > = Rc::new(rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server));
                     let mut s = state.get_mut();
                     {
@@ -733,10 +723,10 @@ impl StateRef {
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
 
-        let bootstrap = ::governor_capnp::governor_bootstrap::ToClient::new(
+        let bootstrap = ::rain_core::governor_capnp::governor_bootstrap::ToClient::new(
             ::governor::rpc::bootstrap::GovernorBootstrapImpl::new(self),
         ).from_server::<::capnp_rpc::Server>();
-        let rpc_system = ::common::rpc::new_rpc_system(stream, Some(bootstrap.client));
+        let rpc_system = new_rpc_system(stream, Some(bootstrap.client));
         self.get()
             .spawn_panic_on_error(rpc_system.map_err(|e| e.into()));
     }
@@ -750,11 +740,11 @@ impl StateRef {
     ) {
         info!("Connected to server; registering as governor");
         stream.set_nodelay(true).unwrap();
-        let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
-        let bootstrap: ::server_capnp::server_bootstrap::Client =
+        let mut rpc_system = new_rpc_system(stream, None);
+        let bootstrap: ::rain_core::server_capnp::server_bootstrap::Client =
             rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
 
-        let governor_control = ::governor_capnp::governor_control::ToClient::new(
+        let governor_control = ::rain_core::governor_capnp::governor_control::ToClient::new(
             GovernorControlImpl::new(self),
         ).from_server::<::capnp_rpc::Server>();
 
@@ -782,7 +772,7 @@ impl StateRef {
 
                 // Create ready file - a file that is created when governor is connected & registered
                 if let Some(name) = ready_file {
-                    ::common::fs::create_ready_file(Path::new(&name));
+                    create_ready_file(Path::new(&name));
                 }
 
                 Promise::ok(())

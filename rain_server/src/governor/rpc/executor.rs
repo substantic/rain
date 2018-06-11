@@ -1,16 +1,10 @@
 use std::path::Path;
-
 use std::sync::Arc;
-
 use bytes::BytesMut;
-use common::id::ExecutorId;
-use common::DataType;
-use governor::data::{Data, Storage};
-use governor::rpc::executor_serde::ExecutorToGovernorMessage;
-use governor::rpc::executor_serde::{DataLocation, LocalObjectOut};
-use governor::State;
+use rain_core::{errors::*, types::*, comm::*};
 
-use errors::Result;
+use governor::data::{Data, Storage};
+use governor::State;
 
 static PROTOCOL_VERSION: &'static str = "cbor-1";
 

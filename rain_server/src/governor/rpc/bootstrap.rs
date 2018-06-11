@@ -1,8 +1,8 @@
 use capnp::capability::Promise;
-use common::convert::FromCapnp;
-use common::id::DataObjectId;
+use rain_core::{types::*, utils::*};
+
 use governor::StateRef;
-use governor_capnp::governor_bootstrap;
+use rain_core::governor_capnp::governor_bootstrap;
 
 impl GovernorBootstrapImpl {
     pub fn new(state: &StateRef) -> Self {

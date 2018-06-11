@@ -1,7 +1,7 @@
 use std::sync::atomic::AtomicBool;
 
 lazy_static! {
-    // Init debug mode TODO: depend on opts
+    // Init debug mode
     pub static ref DEBUG_CHECK_CONSISTENCY: AtomicBool = AtomicBool::new(false);
 }
 

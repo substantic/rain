@@ -1,12 +1,10 @@
-use super::{DataObjectRef, Graph};
-use common::{RcSet, TaskInfo, TaskSpec};
 use std::sync::Arc;
-
-use common::wrapped::WrappedRcRefCell;
-use governor::data::Data;
+use rain_core::{errors::*, types::*, utils::*};
 use std::fmt;
 
-use errors::Result;
+use governor::data::Data;
+use super::{DataObjectRef, Graph};
+use wrapped::WrappedRcRefCell;
 
 #[derive(PartialEq, Eq, Debug)]
 pub enum TaskState {

@@ -1,23 +1,42 @@
 extern crate atty;
+extern crate bytes;
 extern crate chrono;
 #[macro_use]
 extern crate clap;
+extern crate capnp;
+#[macro_use]
+extern crate capnp_rpc;
 extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
+extern crate fs_extra;
+extern crate futures;
 #[macro_use]
 extern crate log;
+extern crate memmap;
 extern crate nix;
 extern crate num_cpus;
+extern crate serde_bytes;
+extern crate serde_cbor;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate tar;
+extern crate tempdir;
 extern crate tokio_core;
+extern crate tokio_io;
+extern crate tokio_process;
+extern crate tokio_timer;
+extern crate tokio_uds;
 extern crate toml;
+extern crate walkdir;
 
 extern crate rain_core;
 
-pub mod start;
+mod start;
+mod governor;
+//mod server;
+mod wrapped;
 
 use std::collections::HashMap;
 use std::error::Error;
@@ -26,16 +45,15 @@ use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::process::exit;
-
 use clap::{App, Arg, ArgMatches, SubCommand};
 use nix::unistd::getpid;
 
-use rain_core::errors::Result;
-use rain_core::{governor, server, VERSION};
+use rain_core::{errors::*,utils::*};
+use rain_core::sys::{get_hostname, create_ready_file};
 
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_SERVER_PORT: u16 = 7210;
 const DEFAULT_GOVERNOR_PORT: u16 = 0;
-
 const DEFAULT_HTTP_SERVER_PORT: u16 = 8080;
 
 fn parse_listen_arg(key: &str, args: &ArgMatches, default_port: u16) -> SocketAddr {
@@ -78,7 +96,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         .unwrap_or(false);
 
     if debug_mode {
-        ::rain_core::DEBUG_CHECK_CONSISTENCY.store(true, ::std::sync::atomic::Ordering::Relaxed);
+        DEBUG_CHECK_CONSISTENCY.store(true, ::std::sync::atomic::Ordering::Relaxed);
         info!("DEBUG mode enabled");
     }
 
@@ -101,7 +119,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     // Create ready file - a file that is created when server is ready
     if let Some(name) = ready_file {
-        ::rain_core::common::fs::create_ready_file(Path::new(name));
+        create_ready_file(Path::new(name));
     }
 
     loop {
@@ -114,13 +132,13 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
 fn default_working_directory() -> PathBuf {
     let pid = getpid();
-    let hostname = ::rain_core::common::sys::get_hostname();
+    let hostname = get_hostname();
     PathBuf::from("/tmp/rain-work").join(format!("governor-{}-{}", hostname, pid))
 }
 
 fn default_logging_directory(basename: &str) -> PathBuf {
     let pid = getpid();
-    let hostname = ::rain_core::common::sys::get_hostname();
+    let hostname = get_hostname();
     PathBuf::from("/tmp/rain-logs").join(format!("{}-{}-{}", basename, hostname, pid))
 }
 

@@ -1,10 +1,9 @@
 use chrono::{DateTime, Utc};
 use futures::Future;
+use rain_core::{errors::*, comm::*};
 
-use errors::{Error, Result};
 use governor::graph::{ExecutorRef, TaskRef, TaskState};
 use governor::rpc::executor::data_output_from_spec;
-use governor::rpc::executor_serde::ResultMsg;
 use governor::state::State;
 use governor::tasks;
 

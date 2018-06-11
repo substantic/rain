@@ -1,5 +1,5 @@
 pub(crate) mod data_type;
-pub(crate) mod id;
+pub mod id;
 pub(crate) mod info;
 pub(crate) mod resources;
 pub(crate) mod spec;

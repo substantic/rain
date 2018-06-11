@@ -48,7 +48,7 @@ pub type TaskRef = WrappedRcRefCell<Task>;
 
 impl Task {
     // To capnp for governor message
-    pub fn to_governor_capnp(&self, builder: &mut ::governor_capnp::task::Builder) {
+    pub fn to_governor_capnp(&self, builder: &mut ::rain_core::governor_capnp::task::Builder) {
         builder.set_spec(&::serde_json::to_string(&self.spec).unwrap());
     }
 

@@ -123,7 +123,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
                 Some(control),
                 resources,
             ));
-            let upstream = ::governor_capnp::governor_upstream::ToClient::new(
+            let upstream = ::rain_core::governor_capnp::governor_upstream::ToClient::new(
                 GovernorUpstreamImpl::new(&state, &governor),
             ).from_server::<::capnp_rpc::Server>();
             results.get().set_upstream(upstream);

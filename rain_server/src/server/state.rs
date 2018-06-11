@@ -73,7 +73,7 @@ impl State {
     pub fn add_governor(
         &mut self,
         address: SocketAddr,
-        control: Option<::governor_capnp::governor_control::Client>,
+        control: Option<::rain_core::governor_capnp::governor_control::Client>,
         resources: Resources,
     ) -> Result<GovernorRef> {
         debug!("New governor {}", address);
@@ -1168,7 +1168,7 @@ impl StateRef {
 
         info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
-        let bootstrap = ::server_capnp::server_bootstrap::ToClient::new(ServerBootstrapImpl::new(
+        let bootstrap = ::rain_core::server_capnp::server_bootstrap::ToClient::new(ServerBootstrapImpl::new(
             self, address,
         )).from_server::<::capnp_rpc::Server>();
 

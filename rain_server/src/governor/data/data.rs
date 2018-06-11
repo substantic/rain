@@ -1,9 +1,5 @@
 use std::path::{Path, PathBuf};
-
-use common::DataType;
-use governor::rpc::executor_serde::DataLocation;
-
-use errors::Result;
+use rain_core::{errors::*, types::*, comm::*};
 
 #[derive(Debug)]
 pub struct DataOnFs {

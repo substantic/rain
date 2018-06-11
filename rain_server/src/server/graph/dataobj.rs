@@ -54,7 +54,7 @@ pub struct DataObject {
 impl DataObject {
     /// To capnp for governor message
     /// It does not fill `placement` and `assigned`, that must be done by caller
-    pub fn to_governor_capnp(&self, builder: &mut ::governor_capnp::data_object::Builder) {
+    pub fn to_governor_capnp(&self, builder: &mut ::rain_core::governor_capnp::data_object::Builder) {
         builder.set_state(self.state);
         builder.set_spec(&::serde_json::to_string(&self.spec).unwrap());
     }

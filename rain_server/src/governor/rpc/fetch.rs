@@ -1,21 +1,18 @@
 use std::rc::Rc;
-
-use common::convert::FromCapnp;
-use common::convert::ToCapnp;
-use common::id::GovernorId;
-use errors::{Error, ErrorKind};
+use rain_core::{errors::*, types::*, utils::*};
 use futures::{future, Future};
+use futures::future::Either;
+use futures::IntoFuture;
+
 use governor::data::{Data, DataBuilder};
 use governor::graph::DataObjectRef;
 use governor::StateRef;
 
-use futures::future::Either;
-use futures::IntoFuture;
 
 pub struct FetchContext {
     pub state_ref: StateRef,
     pub dataobj_ref: DataObjectRef,
-    pub remote: Option<Rc<::governor_capnp::governor_bootstrap::Client>>,
+    pub remote: Option<Rc<::rain_core::governor_capnp::governor_bootstrap::Client>>,
     pub builder: Option<DataBuilder>,
     pub offset: usize,
     pub size: usize,
@@ -68,7 +65,7 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                     let state_ref = context.state_ref.clone();
                     let mut state = state_ref.get_mut();
                     match response.get_status().which().unwrap() {
-                        ::common_capnp::fetch_result::status::Ok(()) => {
+                        ::rain_core::common_capnp::fetch_result::status::Ok(()) => {
                             if context.builder.is_none() {
                                 let mut dataobj = context.dataobj_ref.get_mut();
                                 dataobj.info =
@@ -98,13 +95,13 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                                     .into_future(),
                             )
                         }
-                        ::common_capnp::fetch_result::status::NotHere(()) => {
+                        ::rain_core::common_capnp::fetch_result::status::NotHere(()) => {
                             assert!(context.remote.is_some()); // The response is NOT from server
                                                                // Let us ask server
                             context.remote = None;
                             Either::A(Ok(future::Loop::Continue(context)).into_future())
                         }
-                        ::common_capnp::fetch_result::status::Redirect(w) => {
+                        ::rain_core::common_capnp::fetch_result::status::Redirect(w) => {
                             assert!(context.remote.is_none()); // The response is from the server
 
                             context.n_redirects += 1;
@@ -119,7 +116,7 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                                 },
                             ))
                         }
-                        ::common_capnp::fetch_result::status::Ignored(()) => {
+                        ::rain_core::common_capnp::fetch_result::status::Ignored(()) => {
                             assert!(context.remote.is_none()); // The response is from the server
                             debug!("Datastore ignore occured; id={}", id);
                             Either::A(

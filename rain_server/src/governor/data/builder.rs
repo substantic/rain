@@ -1,10 +1,10 @@
-use super::super::fs::workdir::WorkDir;
-use super::data::{Data, Storage};
-use common::DataType;
-use errors::Result;
-use governor::fs::tempfile::TempFileName;
 use std::fs::File;
 use std::io::Write;
+use rain_core::{errors::*, types::*};
+
+use super::super::fs::workdir::WorkDir;
+use super::data::{Data, Storage};
+use governor::fs::tempfile::TempFileName;
 
 enum BuilderStorage {
     Memory(Vec<u8>),

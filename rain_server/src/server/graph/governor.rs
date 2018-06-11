@@ -46,9 +46,9 @@ pub struct Governor {
     pub(in super::super) scheduled_objects: RcSet<DataObjectRef>,
 
     /// Control interface. Optional for testing and modelling.
-    pub(in super::super) control: Option<::governor_capnp::governor_control::Client>,
+    pub(in super::super) control: Option<::rain_core::governor_capnp::governor_control::Client>,
 
-    data_connection: Option<AsyncInitWrapper<::governor_capnp::governor_bootstrap::Client>>,
+    data_connection: Option<AsyncInitWrapper<::rain_core::governor_capnp::governor_bootstrap::Client>>,
 
     pub(in super::super) resources: Resources,
 }
@@ -66,7 +66,7 @@ impl Governor {
         &mut self,
         governor_ref: &GovernorRef,
         state_ref: &StateRef,
-    ) -> Box<Future<Item = Rc<::governor_capnp::governor_bootstrap::Client>, Error = Error>> {
+    ) -> Box<Future<Item = Rc<::rain_core::governor_capnp::governor_bootstrap::Client>, Error = Error>> {
         if let Some(ref mut store) = self.data_connection {
             return store.wait();
         }
@@ -79,7 +79,7 @@ impl Governor {
                 .map(move |stream| {
                     stream.set_nodelay(true).unwrap();
                     let mut rpc_system = ::common::rpc::new_rpc_system(stream, None);
-                    let bootstrap: ::governor_capnp::governor_bootstrap::Client =
+                    let bootstrap: ::rain_core::governor_capnp::governor_bootstrap::Client =
                         rpc_system.bootstrap(::capnp_rpc::rpc_twoparty_capnp::Side::Server);
                     let bootstrap_rc = Rc::new(bootstrap);
                     state_ref2
@@ -102,7 +102,7 @@ impl Governor {
 impl GovernorRef {
     pub fn new(
         address: SocketAddr,
-        control: Option<::governor_capnp::governor_control::Client>,
+        control: Option<::rain_core::governor_capnp::governor_control::Client>,
         resources: Resources,
     ) -> Self {
         GovernorRef::wrap(Governor {
