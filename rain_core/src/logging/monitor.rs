@@ -1,11 +1,13 @@
 use chrono::{DateTime, Utc};
-use common::id::GovernorId;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use sys_info::mem_info;
 use sysconf;
+
+use types::GovernorId;
+use super::events;
 
 type CpuTimes = Vec<u64>;
 type CpuUsage = u8;
@@ -118,7 +120,7 @@ impl Monitor {
         net_stat
     }
 
-    pub fn build_event(&mut self, governor_id: &GovernorId) -> ::common::events::Event {
+    pub fn build_event(&mut self, governor_id: &GovernorId) -> events::Event {
         let timestamp = Utc::now();
         let cpu_time = self.get_cpu_time();
         let cpu_usage = self.get_cpu_usage(&cpu_time, timestamp);
@@ -128,7 +130,7 @@ impl Monitor {
         self.last_timestamp = timestamp;
         self.last_cpu_time = cpu_time;
 
-        ::common::events::Event::Monitoring(::common::events::MonitoringEvent {
+        events::Event::Monitoring(events::MonitoringEvent {
             governor: governor_id.clone(),
             cpu_usage: cpu_usage,
             mem_usage: mem_usage,

@@ -1,10 +1,11 @@
-use super::convert::{FromCapnp, ReadCapnp, ToCapnp, WriteCapnp};
 use capnp::serialize;
-use common_capnp::{data_object_id, socket_address, task_id};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::io::Read;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
+
+use common_capnp::{data_object_id, socket_address, task_id};
+use utils::{FromCapnp, ReadCapnp, ToCapnp, WriteCapnp};
 
 /// Generic ID type. Negative values have special meaning.
 pub type Id = i32;

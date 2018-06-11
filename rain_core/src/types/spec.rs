@@ -1,11 +1,8 @@
-use common::id::{DataObjectId, TaskId};
-use common::DataType;
-use common::Resources;
-use errors::Result;
 use std::collections::HashMap;
 use std::error::Error;
 
-use serde_json;
+use types::{DataObjectId, TaskId, DataType, Resources, UserAttrs};
+use errors::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(deny_unknown_fields)]
@@ -34,14 +31,14 @@ pub struct TaskSpec {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(default)]
-    pub config: Option<serde_json::Value>,
+    pub config: Option<::serde_json::Value>,
 
     #[serde(default)]
     pub resources: Resources,
 
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     #[serde(default)]
-    pub user: HashMap<String, serde_json::Value>,
+    pub user: UserAttrs,
 }
 
 impl TaskSpec {
@@ -55,34 +52,6 @@ impl TaskSpec {
             None => Err("Task config is empty, but non-empty config is expected".into()),
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
-#[serde(deny_unknown_fields)]
-pub struct TaskInfo {
-    #[serde(skip_serializing_if = "String::is_empty")]
-    #[serde(default)]
-    pub error: String,
-
-    #[serde(skip_serializing_if = "String::is_empty")]
-    #[serde(default)]
-    pub debug: String,
-
-    #[serde(skip_serializing_if = "String::is_empty")]
-    #[serde(default)]
-    pub governor: String,
-
-    #[serde(skip_serializing_if = "String::is_empty")]
-    #[serde(default)]
-    pub start_time: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    pub duration: Option<f32>,
-
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    #[serde(default)]
-    pub user: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
@@ -102,29 +71,6 @@ pub struct ObjectSpec {
 
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     #[serde(default)]
-    pub user: HashMap<String, serde_json::Value>,
+    pub user: UserAttrs,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Deserialize, Default)]
-#[serde(deny_unknown_fields)]
-pub struct ObjectInfo {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    pub size: Option<usize>,
-
-    #[serde(skip_serializing_if = "String::is_empty")]
-    #[serde(default)]
-    pub content_type: String,
-
-    #[serde(skip_serializing_if = "String::is_empty")]
-    #[serde(default)]
-    pub error: String,
-
-    #[serde(skip_serializing_if = "String::is_empty")]
-    #[serde(default)]
-    pub debug: String,
-
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    #[serde(default)]
-    pub user: HashMap<String, serde_json::Value>,
-}

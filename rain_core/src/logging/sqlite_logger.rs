@@ -1,19 +1,16 @@
+use chrono::{DateTime, Utc};
+use futures::Future;
+use futures::Stream;
+use futures::sync::{mpsc, oneshot};
+use rusqlite::Connection;
+use serde_json;
 use std::path::PathBuf;
 
 //use common::id::{SessionId, GovernorId, DataObjectId, TaskId, ClientId, SId};
-use super::logger::{Logger, SearchCriteria};
-use common::events;
-use common::id::SessionId;
-use common::logging::logger::QueryEvents;
 use errors::{Error, Result};
-use futures::sync::{mpsc, oneshot};
-use futures::Future;
-use futures::Stream;
-
-use rusqlite::Connection;
-use serde_json;
-
-use chrono::{DateTime, Utc};
+use super::events;
+use super::logger::{Logger, SearchCriteria, QueryEvents};
+use types::SessionId;
 
 #[derive(Clone, Debug)]
 pub struct EventWrapper {

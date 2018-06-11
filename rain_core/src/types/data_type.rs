@@ -1,3 +1,5 @@
+use std::{default, fmt};
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum DataType {
     #[serde(rename = "blob")]
@@ -15,8 +17,8 @@ impl DataType {
     }
 }
 
-impl ::std::fmt::Display for DataType {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl fmt::Display for DataType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             &DataType::Blob => write!(f, "blob"),
             &DataType::Directory => write!(f, "dir"),
@@ -24,7 +26,7 @@ impl ::std::fmt::Display for DataType {
     }
 }
 
-impl ::std::default::Default for DataType {
+impl default::Default for DataType {
     fn default() -> Self {
         DataType::Blob
     }

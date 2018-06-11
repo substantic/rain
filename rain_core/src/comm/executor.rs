@@ -1,7 +1,7 @@
-use common::id::{DataObjectId, ExecutorId, TaskId};
-use common::{ObjectInfo, ObjectSpec, TaskInfo, TaskSpec};
 use serde_bytes;
 use std::path::PathBuf;
+
+use types::{DataObjectId, ExecutorId, TaskId, ObjectInfo, ObjectSpec, TaskInfo, TaskSpec};
 
 /// Message from executor to governor.
 /// In JSON-equivalent serialized as `{"message": "register", "data": { ... }}`.

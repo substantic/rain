@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use common::id::ExecutorId;
+use types::ExecutorId;
 
 pub struct LogDir {
     path: PathBuf,

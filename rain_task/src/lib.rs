@@ -56,8 +56,6 @@ use rain_core::common::id::SId;
 use rain_core::common::id::{DataObjectId, ExecutorId, TaskId};
 use rain_core::governor::rpc::executor_serde::*;
 
-pub type UserValue = serde_json::Value;
-
 /// Maximal protocol message size (128 MB)
 pub const MAX_MSG_SIZE: usize = 128 * 1024 * 1024;
 
