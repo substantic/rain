@@ -1,6 +1,6 @@
 use futures::unsync::oneshot;
 use std::fmt;
-use rain_core::{errors::*, types::*, utils::*, comm::*};
+use rain_core::{errors::*, types::*, utils::*};
 pub use rain_core::common_capnp::TaskState;
 
 use super::{DataObjectRef, DataObjectState, GovernorRef, SessionRef};

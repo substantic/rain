@@ -2,7 +2,7 @@ use capnp;
 use capnp::capability::Promise;
 use futures::Future;
 use std::net::SocketAddr;
-use rain_core::{errors::*, types::*, utils::*, comm::*};
+use rain_core::{types::*, utils::*};
 use rain_core::server_capnp::server_bootstrap;
 
 use super::{ClientServiceImpl, GovernorUpstreamImpl};

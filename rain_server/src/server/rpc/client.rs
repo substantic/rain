@@ -1,7 +1,7 @@
 use capnp::capability::Promise;
 use futures::{future, Future};
 use std::net::SocketAddr;
-use rain_core::{errors::*, types::*, utils::*, comm::*};
+use rain_core::{errors::*, types::*, utils::*};
 use rain_core::client_capnp::client_service;
 
 use server::graph::{ClientRef, TaskRef};

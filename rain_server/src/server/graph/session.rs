@@ -1,6 +1,6 @@
 use futures::unsync::oneshot::Receiver;
 use std::fmt;
-use rain_core::{errors::*, types::*, utils::*, comm::*};
+use rain_core::{errors::*, types::*, utils::*};
 
 use super::{ClientRef, DataObjectRef, DataObjectState, TaskRef, TaskState};
 use wrapped::WrappedRcRefCell;

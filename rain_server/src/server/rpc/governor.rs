@@ -1,6 +1,6 @@
 use capnp::capability::Promise;
 use chrono::TimeZone;
-use rain_core::{errors::*, types::*, utils::*, comm::*};
+use rain_core::{types::*, utils::*};
 use rain_core::governor_capnp::governor_upstream;
 
 use server::graph::{Governor, GovernorRef};

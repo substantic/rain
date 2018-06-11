@@ -1,3 +1,5 @@
+#![allow(renamed_and_removed_lints)]
+
 use std::{fmt, io};
 
 /// The internal error type

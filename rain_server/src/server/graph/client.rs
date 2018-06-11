@@ -1,5 +1,5 @@
 use std::net::SocketAddr;
-use rain_core::{errors::*, types::*, utils::*, comm::*};
+use rain_core::{errors::*, types::*, utils::*};
 
 use super::SessionRef;
 use wrapped::WrappedRcRefCell;

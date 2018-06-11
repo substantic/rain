@@ -1,11 +1,11 @@
 extern crate atty;
 extern crate bytes;
-extern crate chrono;
-#[macro_use]
-extern crate clap;
 extern crate capnp;
 #[macro_use]
 extern crate capnp_rpc;
+extern crate chrono;
+#[macro_use]
+extern crate clap;
 extern crate env_logger;
 #[macro_use]
 extern crate error_chain;
@@ -31,6 +31,7 @@ extern crate tokio_timer;
 extern crate tokio_uds;
 extern crate toml;
 extern crate walkdir;
+
 extern crate rain_core;
 
 mod start;
