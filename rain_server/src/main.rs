@@ -34,6 +34,7 @@ extern crate walkdir;
 
 extern crate rain_core;
 
+mod common;
 mod governor;
 mod server;
 mod start;

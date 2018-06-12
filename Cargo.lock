@@ -579,7 +579,6 @@ dependencies = [
  "sys-info 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "sysconf 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-core 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "tokio-io 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio-timer 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

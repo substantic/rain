@@ -4,7 +4,7 @@ use tokio_io::codec::length_delimited::{Builder, Framed};
 use tokio_io::AsyncRead;
 use tokio_io::AsyncWrite;
 
-use errors::{Error, Result};
+use rain_core::errors::{Error, Result};
 
 pub type SendType = Vec<u8>;
 

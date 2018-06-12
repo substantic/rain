@@ -36,7 +36,6 @@ serde_json = "*"
 sys-info = "*"
 sysconf = "*"
 tokio-core="*"
-tokio-io="*"
 tokio-timer = "*"
 
 [build-dependencies]

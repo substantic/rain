@@ -3,7 +3,8 @@ use std::net::SocketAddr;
 use std::rc::Rc;
 
 use futures::Future;
-use rain_core::{comm::*, errors::*, types::*, utils::*};
+use rain_core::{errors::*, types::*, utils::*};
+use common::new_rpc_system;
 
 use super::super::state::StateRef;
 use super::{DataObjectRef, TaskRef};

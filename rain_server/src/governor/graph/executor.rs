@@ -1,4 +1,6 @@
-use rain_core::{comm::*, errors::*, sys::*, types::*};
+use rain_core::{errors::*, sys::*, types::*};
+use rain_core::comm::{ResultMsg, GovernorToExecutorMessage, DropCachedMsg, CallMsg};
+use common::{Sender};
 use std::fs::File;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;

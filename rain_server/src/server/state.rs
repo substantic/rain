@@ -7,10 +7,11 @@ use futures::{Future, Stream};
 use hyper::server::Http;
 use rain_core::logging::logger::Logger;
 use rain_core::logging::sqlite_logger::SQLiteLogger;
-use rain_core::{comm::*, errors::*, sys::*, types::*, utils::*};
+use rain_core::{errors::*, sys::*, types::*, utils::*};
 use tokio_core::net::{TcpListener, TcpStream};
 use tokio_core::reactor::Handle;
 
+use common::new_rpc_system;
 use server::graph::{
     ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionRef, TaskRef, TaskState,
 };
