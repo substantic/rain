@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use futures::Future;
 
-use super::events::{self, Event};
-use errors::Error;
-use types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SessionId, TaskId, TaskSpec};
+use rain_core::logging::{EventId, Event, events};
+use rain_core::errors::Error;
+use rain_core::types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SessionId, TaskId, TaskSpec};
 
 #[derive(Deserialize)]
 pub struct SearchItemInt {
@@ -24,7 +24,7 @@ pub struct SearchCriteria {
     pub session: Option<SearchItemInt>,
 }
 
-pub type QueryEvents = Vec<(events::EventId, DateTime<Utc>, String)>;
+pub type QueryEvents = Vec<(EventId, DateTime<Utc>, String)>;
 
 pub trait Logger {
     fn add_event(&mut self, event: Event) {

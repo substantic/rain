@@ -6,11 +6,12 @@ use rusqlite::Connection;
 use serde_json;
 use std::path::PathBuf;
 
-//use common::id::{SessionId, GovernorId, DataObjectId, TaskId, ClientId, SId};
-use super::events;
+use rain_core::logging::events;
+use rain_core::errors::{Error, Result};
+use rain_core::types::SessionId;
+
 use super::logger::{Logger, QueryEvents, SearchCriteria};
-use errors::{Error, Result};
-use types::SessionId;
+
 
 #[derive(Clone, Debug)]
 pub struct EventWrapper {

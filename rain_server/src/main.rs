@@ -17,6 +17,7 @@ extern crate log;
 extern crate memmap;
 extern crate nix;
 extern crate num_cpus;
+extern crate rusqlite;
 extern crate serde_bytes;
 extern crate serde_cbor;
 #[macro_use]
@@ -31,6 +32,8 @@ extern crate tokio_timer;
 extern crate tokio_uds;
 extern crate toml;
 extern crate walkdir;
+extern crate sys_info;
+extern crate sysconf;
 
 extern crate rain_core;
 

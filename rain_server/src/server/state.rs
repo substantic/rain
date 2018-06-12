@@ -5,8 +5,6 @@ use std::time::{Duration, Instant};
 
 use futures::{Future, Stream};
 use hyper::server::Http;
-use rain_core::logging::logger::Logger;
-use rain_core::logging::sqlite_logger::SQLiteLogger;
 use rain_core::{errors::*, sys::*, types::*, utils::*};
 use tokio_core::net::{TcpListener, TcpStream};
 use tokio_core::reactor::Handle;
@@ -15,6 +13,8 @@ use common::new_rpc_system;
 use server::graph::{
     ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionRef, TaskRef, TaskState,
 };
+use server::logging::logger::Logger;
+use server::logging::sqlite_logger::SQLiteLogger;
 use server::http::RequestHandler;
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{ReactiveScheduler, UpdatedIn};

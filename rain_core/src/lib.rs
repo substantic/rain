@@ -20,8 +20,6 @@ extern crate serde_cbor;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
-extern crate sys_info;
-extern crate sysconf;
 extern crate tokio_core;
 extern crate tokio_timer;
 

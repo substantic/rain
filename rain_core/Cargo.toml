@@ -33,8 +33,6 @@ serde_bytes = "*"
 serde_cbor = "*"
 serde_derive = "*"
 serde_json = "*"
-sys-info = "*"
-sysconf = "*"
 tokio-core="*"
 tokio-timer = "*"
 

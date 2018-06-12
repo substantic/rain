@@ -6,8 +6,8 @@ use std::io::BufReader;
 use sys_info::mem_info;
 use sysconf;
 
-use super::events;
-use types::GovernorId;
+use rain_core::logging::events;
+use rain_core::types::GovernorId;
 
 type CpuTimes = Vec<u64>;
 type CpuUsage = u8;

@@ -1,4 +1,4 @@
-use rain_core::logging::{events, monitor::Monitor};
+use rain_core::logging::events;
 use rain_core::types::id::empty_governor_id;
 use rain_core::{errors::*, sys::*, types::*, utils::*};
 use rain_core::comm::ExecutorToGovernorMessage;
@@ -10,6 +10,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use common::{Connection, create_protocol_stream, new_rpc_system};
+use common::Monitor;
 
 use governor::data::transport::TransportView;
 use governor::data::Data;
