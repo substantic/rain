@@ -33,9 +33,9 @@ impl Graph {
 
 mod tests {
     use super::super::{ClientRef, DataObjectRef, GovernorRef, Graph, SessionRef, TaskRef};
-    use common::attributes::{ObjectSpec, TaskSpec, TaskSpecInput};
-    use common::id::{DataObjectId, SId, TaskId};
-    use common::resources::Resources;
+    use rain_core::types::{ObjectSpec, TaskSpec, TaskSpecInput};
+    use rain_core::types::{DataObjectId, SId, TaskId};
+    use rain_core::types::Resources;
 
     fn create_test_graph(
         governors: usize,
@@ -44,7 +44,7 @@ mod tests {
         tasks: usize,
         objects: usize,
     ) -> Graph {
-        use common::DataType;
+        use rain_core::types::DataType;
 
         let g = Graph::new(1);
         for wi in 0..governors {

@@ -200,12 +200,13 @@ impl Logger for SQLiteLogger {
 
 mod tests {
     use super::*;
-    use common::id::GovernorId;
-    use std::net::{IpAddr, Ipv4Addr};
 
+    /*
+    use std::net::{IpAddr, Ipv4Addr};
+    use rain_core::types::GovernorId;
     fn create_test_governor_id() -> GovernorId {
         GovernorId::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 9010)
-    }
+    }*/
 
     fn create_logger() -> SQLiteLogger {
         SQLiteLogger::new(&PathBuf::from("/tmp")).unwrap().0
