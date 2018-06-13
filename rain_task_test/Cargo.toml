@@ -3,7 +3,7 @@ name = "rain_task_test"
 version = "0.2.1"
 authors = ["Tomas Gavenciak <gavento@ucw.cz>"]
 description = "A testing Rain executor in Rust."
-licence = "MIT"
+license = "MIT"
 publish = false
 
 [dependencies]
