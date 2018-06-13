@@ -12,6 +12,7 @@
   * Scripts for deploying Rain on exoscale infrastructure
   * Dashboard now shows that a session was closed
   * Support of Arrow in Python encode()/load()
+  * Big refactoring of rust packages
 
 ### Updates
 
