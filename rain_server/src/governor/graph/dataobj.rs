@@ -69,10 +69,6 @@ impl DataObject {
         Ok(())
     }
 
-    pub fn set_info(&mut self, info: ObjectInfo) {
-        self.info = info;
-    }
-
     pub fn content_type(&self) -> &String {
         &self.spec.content_type
     }

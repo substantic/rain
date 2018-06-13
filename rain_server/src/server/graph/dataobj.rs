@@ -85,11 +85,6 @@ impl DataObject {
         receiver
     }
 
-    #[inline]
-    pub fn state(&self) -> DataObjectState {
-        self.state
-    }
-
     /// Is the Finished object data still needed by client (keep flag) or future tasks?
     /// Scheduling is not accounted here.
     /// Asserts the object is finished.
@@ -101,11 +96,6 @@ impl DataObject {
     #[inline]
     pub fn id(&self) -> DataObjectId {
         self.spec.id
-    }
-
-    #[inline]
-    pub fn producer(&self) -> &Option<TaskRef> {
-        &self.producer
     }
 }
 

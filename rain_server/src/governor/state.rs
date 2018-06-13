@@ -121,10 +121,6 @@ impl State {
         &self.upstream
     }
 
-    pub fn plan_scheduling(&mut self) {
-        unimplemented!();
-    }
-
     pub fn get_resources(&self) -> &Resources {
         &self.resources
     }
@@ -172,13 +168,6 @@ impl State {
         match self.graph.objects.get(&id) {
             Some(o) => Ok(o.clone()),
             None => Err(format!("Object {:?} not found", id))?,
-        }
-    }
-
-    pub fn task_by_id(&self, id: TaskId) -> Result<TaskRef> {
-        match self.graph.tasks.get(&id) {
-            Some(t) => Ok(t.clone()),
-            None => Err(format!("Task {:?} not found", id))?,
         }
     }
 
@@ -659,10 +648,6 @@ impl State {
                 })
                 .map_err(|e| e.into()),
         )
-    }
-
-    pub fn monitor_mut(&mut self) -> &mut Monitor {
-        &mut self.monitor
     }
 
     /// Send event to server

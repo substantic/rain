@@ -26,11 +26,6 @@ impl Executor {
     }
 
     #[inline]
-    pub fn id(&self) -> ExecutorId {
-        self.executor_id
-    }
-
-    #[inline]
     pub fn work_dir(&self) -> &Path {
         self.work_dir.path()
     }

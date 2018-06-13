@@ -106,22 +106,6 @@ impl State {
         */
     }
 
-    /// Put the governor into a failed state, unassigning all tasks and objects.
-    /// Needs a lot of cleanup and recovery to avoid panic. Now just panics :-)
-    pub fn fail_governor(&mut self, governor: &mut GovernorRef, cause: String) -> Result<()> {
-        debug!(
-            "Failing governor {} with cause {:?}",
-            governor.get_id(),
-            cause
-        );
-        assert!(governor.get_mut().error.is_none());
-        governor.get_mut().error = Some(cause.clone());
-        // TODO: Cleanup and recovery if possible
-        self.logger
-            .add_governor_removed_event(governor.get_id(), cause.clone());
-        panic!("Governor {} error: {:?}", governor.get_id(), cause);
-    }
-
     /// Add new client, register it in the graph
     pub fn add_client(&mut self, address: SocketAddr) -> Result<ClientRef> {
         debug!("New client {}", address);
@@ -326,20 +310,6 @@ impl State {
     #[inline]
     pub fn is_object_ignored(&self, object_id: &DataObjectId) -> bool {
         self.ignored_sessions.contains(&object_id.get_session_id())
-    }
-
-    pub fn governor_by_id(&self, id: GovernorId) -> Result<GovernorRef> {
-        match self.graph.governors.get(&id) {
-            Some(w) => Ok(w.clone()),
-            None => Err(format!("Governor {:?} not found", id))?,
-        }
-    }
-
-    pub fn client_by_id(&self, id: ClientId) -> Result<ClientRef> {
-        match self.graph.clients.get(&id) {
-            Some(c) => Ok(c.clone()),
-            None => Err(format!("Client {:?} not found", id))?,
-        }
     }
 
     pub fn session_by_id(&self, id: SessionId) -> Result<SessionRef> {
@@ -1168,10 +1138,5 @@ impl StateRef {
         self.get()
             .handle
             .spawn(rpc_system.map_err(|e| panic!("RPC error: {:?}", e)));
-    }
-
-    #[inline]
-    pub fn handle(&self) -> Handle {
-        self.get().handle.clone()
     }
 }

@@ -8,11 +8,6 @@ use rain_core::errors::Result;
 use start::common::Readiness;
 use std::io::BufReader;
 
-pub struct User {
-    pub username: String,
-    pub password: String,
-}
-
 pub struct RemoteProcess {
     name: String,
     host: String,

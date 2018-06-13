@@ -20,9 +20,6 @@ pub struct Governor {
     /// Scheduled tasks. Superset of `assigned_tasks`.
     pub(in super::super) scheduled_tasks: RcSet<TaskRef>,
 
-    /// State of the governor with optional error message (informative only).
-    pub(in super::super) error: Option<String>,
-
     /// Scheduled tasks that are also ready but not yet assigned. Disjoint from
     /// `assigned_tasks`, subset of `scheduled_tasks`.
     pub(in super::super) scheduled_ready_tasks: RcSet<TaskRef>,
@@ -108,7 +105,6 @@ impl GovernorRef {
             id: address,
             assigned_tasks: Default::default(),
             scheduled_tasks: Default::default(),
-            error: None,
             scheduled_ready_tasks: Default::default(),
             located_objects: Default::default(),
             assigned_objects: Default::default(),

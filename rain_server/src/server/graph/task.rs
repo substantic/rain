@@ -55,11 +55,6 @@ impl Task {
     }
 
     #[inline]
-    pub fn inputs(&self) -> &Vec<DataObjectRef> {
-        &self.inputs
-    }
-
-    #[inline]
     pub fn spec(&self) -> &TaskSpec {
         &self.spec
     }
