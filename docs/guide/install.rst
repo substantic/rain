@@ -125,20 +125,22 @@ Synopsis
 
   rain start --simple [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
+           [--governor-config=PATH]
   rain start --autoconf=CONF [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
-           [--remote-init=COMMANDS]
+           [--governor-config=PATH] [--remote-init=COMMANDS]
   rain start --local-governors [--listen=ADDRESS] [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
+           [--governor-config=PATH]
   rain start --governor-host-file=FILE [-S] [--listen=ADDRESS]
            [--http-listen=ADDRESS]
            [-S] [--runprefix=CMD] [--logdir=DIR] [--workdir=DIR]
-           [--remote-init=COMMANDS]
+           [--governor-config=PATH] [--remote-init=COMMANDS]
 
   rain server [--listen=LISTEN_ADDRESS] [--http-listen=LISTEN_ADDRESS]
               [--logdir=DIR] [--ready-file=<FILE>]
   rain governor [--cpus=N] [--workdir=DIR] [--logdir=DIR]
-              [--ready-file=FILE] SERVER_ADDRESS[:PORT]
+              [--ready-file=FILE] [--config=PATH] SERVER_ADDRESS[:PORT]
   rain --version | -v
   rain --help | -h
 
@@ -162,6 +164,9 @@ ready and terminates.
 **--local-governors=RESOURCES**
   Start local with a given number of cpus. E.g. --local-governors=[4,4,2]
   starts three governors: two with 4 cpus and one with 2 cpus.
+
+**--governor-config=PATH**
+  Path to governor config. It is passed as --config argument for all governors.
 
 **--governor-host-file=FILE**
   Starts local server and remote governors. FILE should be file containing
@@ -201,6 +206,7 @@ ready and terminates.
   Commands executed on each remote connection. For example:
   ``--remote-init="export PATH=$PATH:/path/bin"``.
 
+
 Command: server
 ---------------
 
@@ -226,6 +232,9 @@ Runs Rain governor.
   An address where a server listens. If the port is omitted than port 7210 is
   used.
 
+**--config=PATH**
+  Set a path for a governor config.
+
 **--cpus=N**
   Set a number of cpus available to the governor (default: 'detect')
 
@@ -244,6 +253,10 @@ Runs Rain governor.
   Set the logging directory for the governor. Default is
   ``/tmp/rain/logs/governor-<HOSTNAME>-<PID>/logs``.
 
+**--ready-file=FILE**
+  Creates the file containing a single line "ready", when the governor is
+  connected to server and ready to accept governor-to-governor connections.
+
 **--workdir=DIR**
   Set the working directory where the governor stores intermediate results.
   The defautl is ``/tmp/rain/work/governor-<HOSTNAME>-<PID>``
@@ -251,7 +264,3 @@ Runs Rain governor.
   .. warning::
      Rain assumes that working directory is placed on a fast device (ideally
      ramdisk). Avoid placing workdir on a network file system.
-
-**--ready-file=FILE**
-  Creates the file containing a single line "ready", when the governor is
-  connected to server and ready to accept governor-to-governor connections.

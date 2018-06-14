@@ -379,6 +379,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     );
 
     config.governor_host_file = cmd_args.value_of("GOVERNOR_HOST_FILE").map(PathBuf::from);
+    config.governor_config = cmd_args.value_of("GOVERNOR_CONFIG").map(String::from);
 
     // Autoconf
     match cmd_args.value_of("AUTOCONF") {
@@ -553,6 +554,10 @@ fn main() {
                     .long("--http-listen")
                     .value_name("ADDRESS")
                     .help("Server listening HTTP port/address/address:port (default = 0.0.0.0:8080)")
+                    .takes_value(true))
+                .arg(Arg::with_name("GOVERNOR_CONFIG")
+                    .long("--governor-config")
+                    .help("Path to governor configuration file")
                     .takes_value(true))
                 .arg(Arg::with_name("RUN_PREFIX")
                     .long("--runprefix")

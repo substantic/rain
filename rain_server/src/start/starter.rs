@@ -27,6 +27,8 @@ pub struct StarterConfig {
 
     pub governor_host_file: Option<PathBuf>,
 
+    pub governor_config: Option<String>,
+
     /// Shell command that is executed fist after ssh connection
     pub remote_init: String,
 
@@ -52,6 +54,7 @@ impl StarterConfig {
             server_http_listen_address,
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
             governor_host_file: None,
+            governor_config: None,
             remote_init,
             reserve_cpu_on_server,
             run_prefix,
@@ -233,6 +236,14 @@ impl Starter {
                 host,
                 Readiness::WaitingForReadyFile(ready_file.to_path_buf()),
             );
+
+            let mut args = format!("--ready-file {:?}", ready_file);
+
+            if let Some(ref config) = self.config.governor_config {
+                args.push_str(" --config ");
+                args.push_str(config);
+            }
+
             let command = if self.config.reserve_cpu_on_server {
                 format!(
                     "if (ps --pid {server_pid} | grep rain); then \n\
@@ -240,23 +251,23 @@ impl Starter {
                     else \n\
                     CPUS=detect \n\
                     fi \n\
-                    {remote_init}
-                    {program} {program_args} governor {server_address} --cpus=$CPUS --ready-file {ready_file:?}",
+                    {remote_init}\n
+                    {program} {program_args} governor {server_address} --cpus=$CPUS {args}",
                     program = program,
                     remote_init = self.config.remote_init,
                     program_args = program_args.join(" "),
                     server_address = server_address,
-                    ready_file = ready_file,
                     server_pid = self.server_pid,
+                    args = args
                 )
             } else {
                 format!(
-                    "{remote_init}\n{program} {program_args} governor {server_address} --ready-file {ready_file:?}",
+                    "{remote_init}\n{program} {program_args} governor {server_address} {args}",
                     program = program,
                     remote_init = self.config.remote_init,
                     program_args = program_args.join(" "),
                     server_address = server_address,
-                    ready_file = ready_file,
+                    args = args
                 )
             };
             process.start(&command, &dir, &self.config.log_dir)?;
@@ -298,10 +309,17 @@ impl Starter {
                 .arg(self.config.log_dir.join(format!("governor-{}", i)))
                 .arg("--ready-file")
                 .arg(&ready_file);
+
             if let Some(cpus) = resource {
                 cmd.arg("--cpus");
                 cmd.arg(cpus.to_string());
             }
+
+            if let Some(ref config) = self.config.governor_config {
+                cmd.arg("--config");
+                cmd.arg(config);
+            }
+
             self.spawn_process(&format!("governor-{}", i), &ready_file, &mut cmd)?;
         }
         Ok(())
