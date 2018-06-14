@@ -1,6 +1,6 @@
+use common::Sender;
+use rain_core::comm::{CallMsg, DropCachedMsg, GovernorToExecutorMessage, ResultMsg};
 use rain_core::{errors::*, sys::*, types::*};
-use rain_core::comm::{ResultMsg, GovernorToExecutorMessage, DropCachedMsg, CallMsg};
-use common::{Sender};
 use std::fs::File;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
@@ -77,13 +77,11 @@ impl Executor {
         let control = self.control.as_ref().clone().unwrap();
         let message = GovernorToExecutorMessage::Call(CallMsg {
             spec: task.spec.clone(),
-            inputs: task
-                .inputs
+            inputs: task.inputs
                 .iter()
                 .map(|i| i.get().create_input_spec(executor_ref))
                 .collect(),
-            outputs: task
-                .outputs
+            outputs: task.outputs
                 .iter()
                 .map(|o| o.get().create_output_spec())
                 .collect(),

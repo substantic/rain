@@ -40,8 +40,7 @@ impl client_service::Server for ClientServiceImpl {
         debug!("Client asked for info");
         let s = self.state.get();
 
-        let futures: Vec<_> = s
-            .graph
+        let futures: Vec<_> = s.graph
             .governors
             .iter()
             .map(|(governor_id, governor)| {
@@ -193,8 +192,7 @@ impl client_service::Server for ClientServiceImpl {
             object_ids.len()
         );
 
-        if task_ids.len() == 1
-            && object_ids.len() == 0
+        if task_ids.len() == 1 && object_ids.len() == 0
             && task_ids.get(0).get_id() == ::rain_core::common_capnp::ALL_TASKS_ID
         {
             let session_id = task_ids.get(0).get_session_id();

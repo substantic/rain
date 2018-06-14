@@ -91,10 +91,8 @@ pub use errors::{TaskError, TaskResult};
 pub use executor::{Executor, TaskFn};
 pub use input::DataInstance;
 pub use output::Output;
-pub use rain_core::types::{
-    DataObjectId, DataType, ObjectInfo, ObjectSpec, Resources, TaskId, TaskInfo, TaskSpec,
-    TaskSpecInput, UserValue,
-};
+pub use rain_core::types::{DataObjectId, DataType, ObjectInfo, ObjectSpec, Resources, TaskId,
+                           TaskInfo, TaskSpec, TaskSpecInput, UserValue};
 
 #[cfg(test)]
 mod tests;

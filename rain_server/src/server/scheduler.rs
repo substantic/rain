@@ -30,9 +30,7 @@ pub struct UpdatedIn {
 
 impl UpdatedIn {
     pub fn is_empty(&self) -> bool {
-        self.tasks.is_empty()
-            && self.objects.is_empty()
-            && self.new_tasks.is_empty()
+        self.tasks.is_empty() && self.objects.is_empty() && self.new_tasks.is_empty()
             && self.new_objects.is_empty()
     }
 

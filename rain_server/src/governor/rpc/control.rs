@@ -125,14 +125,12 @@ impl governor_control::Server for GovernorControlImpl {
         for ct in new_tasks.iter() {
             let spec: TaskSpec = ::serde_json::from_str(ct.get_spec().unwrap()).unwrap();
 
-            let inputs: Vec<_> = spec
-                .inputs
+            let inputs: Vec<_> = spec.inputs
                 .iter()
                 .map(|ci| state.object_by_id(ci.id).unwrap())
                 .collect();
 
-            let outputs: Vec<_> = spec
-                .outputs
+            let outputs: Vec<_> = spec.outputs
                 .iter()
                 .map(|id| state.object_by_id(*id).unwrap())
                 .collect();

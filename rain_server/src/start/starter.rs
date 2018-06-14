@@ -292,8 +292,7 @@ impl Starter {
         );
         let server_address = self.server_address(true);
         let (program, program_args) = self.local_rain_command();
-        let governors: Vec<_> = self
-            .config
+        let governors: Vec<_> = self.config
             .local_governors
             .iter()
             .cloned()

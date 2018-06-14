@@ -31,8 +31,7 @@ fn task_meta(ctx: &mut Context, input: &DataInstance, output: &mut Output) -> Ta
         .clone();
     output.set_user_info("test", uo);
     // Copy task spec.user attr to task info.user attr
-    let ut: UserValue = ctx
-        .spec
+    let ut: UserValue = ctx.spec
         .user
         .get("test")
         .expect("Expected task user attribute \"test\"")

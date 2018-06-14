@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use futures::Future;
 
-use rain_core::logging::{EventId, Event, events};
 use rain_core::errors::Error;
+use rain_core::logging::{events, Event, EventId};
 use rain_core::types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SessionId, TaskId, TaskSpec};
 
 #[derive(Deserialize)]

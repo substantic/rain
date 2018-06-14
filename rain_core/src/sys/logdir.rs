@@ -17,11 +17,9 @@ impl LogDir {
 
     /// Get path to logs for executor
     pub fn executor_log_paths(&self, id: ExecutorId) -> (PathBuf, PathBuf) {
-        let out = self
-            .path
+        let out = self.path
             .join(Path::new(&format!("executors/executor-{}.out", id)));
-        let err = self
-            .path
+        let err = self.path
             .join(Path::new(&format!("executors/executor-{}.err", id)));
         (out, err)
     }
