@@ -97,12 +97,66 @@ and returns one blob as the output.
 
 
 Registration in governor
-====================================
+========================
 
-TODO
+When you write your own executors, you have to registrate them in the governor.
+For this purpose, you have to create a configuration file for governor.
+
+As an example, let us assume that we want to register called "example1".
+
+::
+
+   [executors.example1]
+       command = "/path/to/executor/binary"
+
+The configuration is in TOML format. If we save it as ``/path/to/config.toml``
+we can provide the path to the governor by starting as follows::
+
+  rain governor <SERVER_ADDRESS> --config=/path/to/config.toml
+
+or if you are using "rain start"::
+
+  rain start --simple --governor-config=/path/to/config
+
+More about starting Rain can be found at :ref:`start-rain`.
 
 
 Client API
 ==========
 
-TODO
+.. highlight:: py
+
+This section describes how to call own tasks from Python API.
+
+Each task contains a string value called ``task_type`` that specifies executor
+and function. It has format ``<EXECUTOR>/<FUNCTION>``.
+So far we have created (and registered) own executor called ``example1``
+that provides task ``hello``. The task type is ``example1/hello`.
+
+The followig code creates a class ``Hello`` that serves for calling our task::
+
+
+   from rain.client import Task
+
+
+   class Hello(Task):
+       """ Task takes one blob as input and puts b"Hello " before
+           and "!" after the input. """
+
+       TASK_TYPE = "example1/hello"
+
+       def __init__(self, obj):
+            # Define task with one input and one output,
+            # Outputs may be a (labelled) list of data objects or a number.
+            # If a number is used than it creates the specified number of blob outputs
+            super().__init__(inputs=(obj,), outputs=1)
+
+
+This class can be used to create task in task graph in the same way as tasks
+from module ``rain.client.tasks``, e.g.::
+
+  with client.new_session() as session:
+      a = blob("Hello world")
+      t = Hello(a)
+      session.submit()
+      print(t.output.fetch().get_bytes())  # prints b"Hello WORLD!"
