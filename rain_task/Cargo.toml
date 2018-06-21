@@ -1,6 +1,6 @@
 [package]
 name = "rain_task"
-version = "0.2.1"
+version = "0.2.2-pre"
 
 description = "Distributed computational framework for large-scale task-based pipelines. A custom task library in Rust."
 documentation = "https://rain.readthedocs.io/"
@@ -15,14 +15,14 @@ authors = [
 license = "MIT"
 
 [dependencies]
-rain_core = { path = "../rain_core" }
-log = ">=0.4"
-serde_derive = "1.*"
+byteorder = "1.*"
+chrono = "0.4"
+env_logger = "0.5"
+error-chain="0.11"
+log = "0.4"
+memmap = "0.6"
+rain_core = "0.2.2-pre"
 serde = "1.*"
+serde_cbor = "0.8"
+serde_derive = "1.*"
 serde_json = "1.*"
-byteorder = ">=1.2"
-serde_cbor = ">=0.8"
-memmap = ">=0.6"
-error-chain=">=0.11"
-chrono = ">=0.4"
-env_logger = ">=0.5"
