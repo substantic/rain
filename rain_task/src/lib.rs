@@ -2,7 +2,8 @@
 
 //! A library to easily write custom Rain tasks in Rust.
 //!
-//! See `README.md` for more information.
+//! See `README.md` and the [project page](https://github.com/substantic/rain/)
+//! for more information.
 //!
 //! # Example
 //!

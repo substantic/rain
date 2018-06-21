@@ -3,8 +3,8 @@ name = "rain_core"
 version = "0.2.2-pre"
 
 description = "Distributed computational framework for large-scale task-based pipelines. Common core library."
-documentation = "https://rain.readthedocs.io/"
-homepage = "https://github.com/substantic/rain"
+# documentation = "https://docs.rs/rain_core/" # defult docs.rs 
+homepage = "https://github.com/substantic/rain/"
 repository = "https://github.com/substantic/rain/"
 readme = "README.md"
 authors = [
@@ -15,6 +15,10 @@ authors = [
 license = "MIT"
 
 build = "build.rs"
+
+[badges]
+travis-ci = { repository = "substantic/rain", branch = "master" }
+maintenance = { status = "actively-developed" }
 
 [dependencies]
 arrayref = "0.3"

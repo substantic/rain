@@ -1,3 +1,12 @@
+//! Core library for the Rain framework.
+//!
+//! This documentation is minimalistic but still hopefully useful.
+//! As an user, you may be interested in the
+//! [rain_task lirary documentation](https://docs.rs/rain_task/).
+//! 
+//! See `README.md` and the [project page](https://github.com/substantic/rain/)
+//! for general information.
+
 #[macro_use]
 extern crate arrayref;
 extern crate bytes;

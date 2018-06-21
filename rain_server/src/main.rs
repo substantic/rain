@@ -1,3 +1,8 @@
+//! Server and governor binaries of the Rain framework.
+//!
+//! See `README.md` and the [project page](https://github.com/substantic/rain/)
+//! for more information.
+
 extern crate atty;
 extern crate bytes;
 extern crate capnp;
