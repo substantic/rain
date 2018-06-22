@@ -47,12 +47,6 @@ C++ tasklib
   implemented yet.
 
 
-Installation of C++ tasklib
----------------------------
-
-TODO
-
-
 Getting started
 ---------------
 
@@ -94,6 +88,43 @@ and returns one blob as the output.
     // This function is never finished.
     executor.start();
   }
+
+
+Building
+--------
+
+To compile the example we need to creating following file structure:
+
+* myexecutor
+
+  * myexecutor.cpp  -- Source code of our example
+
+  * CMakeFile.txt -- CMake configuration file. The content is below.
+
+  * tasklib -- Copy of tasklib from Rain repository (located in ``rain/cpp/tasklib``)
+
+
+Content of ``CMakeFile.txt`` is following::
+
+  cmake_minimum_required(VERSION 3.1)
+  project(myexecutor)
+
+  add_subdirectory(tasklib)
+
+  add_executable(myexecutor
+                myexecutor.cpp)
+
+  target_include_directories(myexecutor PUBLIC ${CBOR_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  target_link_libraries (myexecutor tasklib ${CBOR_LIBRARIES} pthread)
+
+
+Now, we can build the executor as follows::
+
+  $ cd myexecutor
+  $ mkdir _build
+  $ cd _build
+  $ cmake ..
+  $ make
 
 
 Registration in governor
