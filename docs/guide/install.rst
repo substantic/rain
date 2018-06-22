@@ -22,7 +22,21 @@ It can be downloaded and unpacked as follows:
 
 Installation of Python API::
 
-$ pip3 install https://github.com/substantic/rain/releases/download/v0.2.1/rain-0.2.1-py3-none-any.whl
+  $ pip3 install rain-python
+
+
+Build via cargo
+===============
+
+If you have installed Rust toolchain, you can use cargo to build
+Rust binaries and skip manual download::
+
+   $ cargo install rain_server
+
+Note that you still have to install Python API through pip::
+
+  $ pip3 install rain-python
+
 
 Build from sources
 ==================
