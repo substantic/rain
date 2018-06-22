@@ -35,7 +35,7 @@ dashboard.
 Rust tasklib
 ============
 
-TODO
+https://docs.rs/rain_task/
 
 
 C++ tasklib
@@ -160,9 +160,9 @@ Client API
 This section describes how to call own tasks from Python API.
 
 Each task contains a string value called ``task_type`` that specifies executor
-and function. It has format ``<EXECUTOR>/<FUNCTION>``.
-So far we have created (and registered) own executor called ``example1``
-that provides task ``hello``. The task type is ``example1/hello`.
+and function. It has format ``<EXECUTOR>/<FUNCTION>``. So far we have created
+(and registered) own executor called ``example1`` that provides task ``hello``.
+The task type is ``example1/hello`.
 
 The followig code creates a class ``Hello`` that serves for calling our task::
 
