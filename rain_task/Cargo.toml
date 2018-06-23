@@ -14,6 +14,8 @@ authors = [
     ]
 license = "MIT"
 
+exclude = ["testing"]
+
 [badges]
 travis-ci = { repository = "substantic/rain", branch = "master" }
 maintenance = { status = "actively-developed" }
