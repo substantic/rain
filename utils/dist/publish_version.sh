@@ -70,32 +70,26 @@ git add utils/deployment/exoscale/README.md
     exit 1
 }
 
-echo "Disabling [patch]"
-update '^rain_core = { path = "rain_core" }$' '#rain_core = { path = "rain_core" }' Cargo.toml
-update '^rain_task = { path = "rain_task" }$' '#rain_task = { path = "rain_task" }' Cargo.toml
-
 echo "Updating root version"
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
-git add Cargo.toml
+
+echo "Disabling [workspace]"
+mv Cargo.toml Cargo.toml.disabled
 
 echo "Updating rain_core"
 cd rain_core
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
-git add Cargo.toml
 if [ "$GO" == "T" ]; then
     echo "Publishing ..."
     cargo publish --allow-dirty
 fi
 update '^rain_core *= *"'$OLDPAT'"$' 'rain_core = "'$VER'"' ../rain_server/Cargo.toml
-git add ../rain_server/Cargo.toml
 update '^rain_core *= *"'$OLDPAT'"$' 'rain_core = "'$VER'"' ../rain_task/Cargo.toml
-git add ../rain_task/Cargo.toml
 cd ..
 
 echo "Updating rain_server"
 cd rain_server
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
-git add Cargo.toml
 if [ "$GO" == "T" ]; then
     echo "Publishing ..."
     cargo publish --allow-dirty
@@ -105,29 +99,20 @@ cd ..
 echo "Updating rain_task"
 cd rain_task
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
-git add Cargo.toml
 if [ "$GO" == "T" ]; then
     echo "Publishing ..."
     cargo publish --allow-dirty
 fi
 update '^rain_task *= *"'$OLDPAT'"$' 'rain_task = "'$VER'"' ../rain_task_test/Cargo.toml
-git add ../rain_task_test/Cargo.toml
 cd ..
 
 echo "Updating rain_task_test"
 cd rain_task_test
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
-git add Cargo.toml
-if [ "$GO" == "T" ]; then
-    echo "Testing ..."
-    cargo test
-fi
 cd ..
 
-echo "Re-enabling [patch]"
-update '^#rain_core = { path = "rain_core" }$' 'rain_core = { path = "rain_core" }' Cargo.toml
-update '^#rain_task = { path = "rain_task" }$' 'rain_task = { path = "rain_task" }' Cargo.toml
-git add Cargo.toml
+echo "Re-enabling [workspace]"
+mv Cargo.toml.disabled Cargo.toml
 
 if [ "$GO" == "T" ]; then
     echo "Updating rain_* in Cargo.lock"
@@ -136,8 +121,11 @@ if [ "$GO" == "T" ]; then
 fi
 
 git commit -m "Releasing version $VER"
+git add Cargo.toml rain_core/Cargo.toml rain_server/Cargo.toml rain_task/Cargo.toml rain_task_test/Cargo.toml
 
 if [ "$GO" == "T" ]; then
+    echo "Testing ..."
+    cargo test -q -- --test-threads=1
     git tag "$TAG"
     echo "Created tag $TAG (not pushed automatically)"
 fi
