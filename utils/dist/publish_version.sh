@@ -21,6 +21,11 @@ function update () {
     }
 }
 
+if [ ! -f "utils/dist/publish_version.sh" ]; then
+    echo "Run from workspace root"
+    exit 1
+fi
+
 if [ "$1" == "-f" ]; then
     GO="T"
     VER="$2"
