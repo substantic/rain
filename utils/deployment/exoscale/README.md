@@ -45,7 +45,7 @@ cert = /path/to/client_exoscale.pem
 
 ```
 python3 exoscale.py create -n 2 --keypair <KEYPAIR-NAME>
-python3 exoscale.py install --env default.env --rain-download 0.2.1.dev20180430
+python3 exoscale.py install --env default.env --rain-download 0.2.2-pre
 python3 exoscale.py start --env default.env
 python3 exoscale.py destroy --env default.env
 ```
