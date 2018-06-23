@@ -52,20 +52,33 @@ insightful monitoring on top.
 * Download binary
 
 ```
-$ wget https://github.com/substantic/rain/releases/download/v0.2.1/rain-v0.2.1-linux-x64.tar.xz
-$ tar xvf rain-v0.2.1-linux-x64.tar.xz
+$ wget https://github.com/substantic/rain/releases/download/v0.3.0/rain-v0.3.0-linux-x64.tar.xz
+lr
+$ tar xvf rain-v0.3.0-linux-x64.tar.xz
+```
+
+OR (install via cargo)
+
+```
+cargo install rain_server
 ```
 
 * Install Python API
 
 ```
-$ pip3 install https://github.com/substantic/rain/releases/download/v0.2.1/rain-0.2.1-py3-none-any.whl
+$ pip3 install rain-python
 ```
 
 * Start server & a single local governor
 
 ```
-$ ./rain-v0.2.1-linux-x86/rain start --simple
+$ ./rain-v0.3.0-linux-x86/rain start --simple
+```
+
+OR (if installed via cargo)
+
+```
+$ rain start --simple
 ```
 
 * Rain "Hello world" in Python
