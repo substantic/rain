@@ -53,14 +53,7 @@ insightful monitoring on top.
 
 ```
 $ wget https://github.com/substantic/rain/releases/download/v0.3.0/rain-v0.3.0-linux-x64.tar.xz
-lr
 $ tar xvf rain-v0.3.0-linux-x64.tar.xz
-```
-
-OR (install via cargo)
-
-```
-cargo install rain_server
 ```
 
 * Install Python API
@@ -73,12 +66,6 @@ $ pip3 install rain-python
 
 ```
 $ ./rain-v0.3.0-linux-x86/rain start --simple
-```
-
-OR (if installed via cargo)
-
-```
-$ rain start --simple
 ```
 
 * Rain "Hello world" in Python
@@ -94,6 +81,18 @@ with client.new_session() as session:
     session.submit()
     result = task.output.fetch().get_bytes()
     print(result)
+```
+
+### Installation via cargo
+
+If you have installed Rust, you can install and start Rain as follows:
+
+```
+$ cargo install rust_server
+
+$ pip3 install rain-python
+
+$ rain start --simple
 ```
 
 [Read the docs](http://rain.readthedocs.io/en/latest/examples.html) for more examples.
