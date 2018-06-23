@@ -51,9 +51,9 @@ if [ -n "$GITST" ]; then
 fi
 
 echo "Updating README.md"
-update "^\\$ wget https://github.com/substantic/rain/releases/download/v$OLDPAT/rain-v$OLDPAT-linux-x64.tar.xz" "wget https://github.com/substantic/rain/releases/download/v$VER/rain-v$VER-linux-x64.tar.xz" README.md
-update "^\\$ tar xvf rain-v$OLDPAT-linux-x64.tar.xz" "tar xvf rain-v$VER-linux-x64.tar.xz" README.md
-update "^\\$ ./rain-v$OLDPAT-linux-x86/rain start --simple" "./rain-v$VER-linux-x86/rain start --simple" README.md
+update "^\\$ wget https://github.com/substantic/rain/releases/download/v$OLDPAT/rain-v$OLDPAT-linux-x64.tar.xz" "$ wget https://github.com/substantic/rain/releases/download/v$VER/rain-v$VER-linux-x64.tar.xz" README.md
+update "^\\$ tar xvf rain-v$OLDPAT-linux-x64.tar.xz" "$ tar xvf rain-v$VER-linux-x64.tar.xz" README.md
+update "^\\$ ./rain-v$OLDPAT-linux-x86/rain start --simple" "$ ./rain-v$VER-linux-x86/rain start --simple" README.md
 git add README.md
 
 echo "Updating docs/guide/install.rst"
@@ -82,7 +82,8 @@ echo "Updating rain_core"
 cd rain_core
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
 if [ "$GO" == "T" ]; then
-    cargo publish --allow-dirty -q
+    echo "Publishing ..."
+    cargo publish --allow-dirty
 fi
 git add Cargo.toml
 cd ..
@@ -92,7 +93,8 @@ cd rain_server
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
 update '^rain_core *= *"'$OLDPAT'"$' 'rain_core = "'$VER'"' Cargo.toml
 if [ "$GO" == "T" ]; then
-    cargo publish --allow-dirty -q
+    echo "Publishing ..."
+    cargo publish --allow-dirty
 fi
 git add Cargo.toml
 cd ..
@@ -102,7 +104,8 @@ cd rain_task
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
 update '^rain_core *= *"'$OLDPAT'"$' 'rain_core = "'$VER'"' Cargo.toml
 if [ "$GO" == "T" ]; then
-    cargo publish --allow-dirty -q
+    echo "Publishing ..."
+    cargo publish --allow-dirty
 fi
 git add Cargo.toml
 cd ..
@@ -112,6 +115,7 @@ cd rain_task_test
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
 update '^rain_task *= *"'$OLDPAT'"$' 'rain_task = "'$VER'"' Cargo.toml
 if [ "$GO" == "T" ]; then
+    echo "Testing ..."
     cargo test
 fi
 git add Cargo.toml
@@ -122,7 +126,14 @@ update '^#rain_core = { path = "rain_core" }$' 'rain_core = { path = "rain_core"
 update '^#rain_task = { path = "rain_task" }$' 'rain_task = { path = "rain_task" }' Cargo.toml
 git add Cargo.toml
 
+if [ "$GO" == "T" ]; then
+    echo "Updating rain_* in Cargo.lock"
+    cargo update -p rain_core -p rain_task -p rain_server -p rain_task_test
+    git add Cargo.lock
+fi
+
 git commit -m "Releasing version $VER"
+
 if [ "$GO" == "T" ]; then
     git tag "$TAG"
     echo "Created tag $TAG (not pushed automatically)"
