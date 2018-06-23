@@ -11,20 +11,20 @@ Tasks are executed on computational nodes (computers where Rain governors are
 running). Tasks can be external programs, python functions, and basic built-in
 operations.
 
-**Data objects** are objects that are read and created by tasks. Data
-instances are immutable, once they are created they cannot be modified.
-They are generic data blobs or directories with accompanying metadata.
-It is upto tasks to interpret the data object content.
+**Data objects** are objects that are read and created by tasks. Data objects
+are immutable, once they are created they cannot be modified. They are generic
+data blobs or directories with accompanying metadata. It is upto tasks to
+interpret the data object content.
 
 
 Task definition and submission
 ==============================
 
-Rain represents your computation as a graph of tasks and data objects.
-Tasks are not eagerly executed during the graph construction.
-Instead, the actual execution is managed by Rain infrastructure after
-an explicit submission. This leads to a programming model in which you
-first only **define** a graph and then **execute** it.
+Rain represents your computation as a graph of tasks and data objects. Tasks are
+not eagerly executed during the graph construction. Instead, the actual
+execution is managed by Rain infrastructure after an explicit submission. This
+leads to a programming model in which you first only **define** a graph and then
+**execute** it.
 
 Let us consider the following example, where two constant objects are created
 and merged together::
@@ -161,7 +161,7 @@ accessible via attribute ``outputs``. That contains an instance of
 
 If a task has more than one output or zero outputs, then accessing attribute
 ``.output`` throws an exception. Attribute ``.outputs`` is always availble
-independantly on the number of outputs.
+independently on the number of outputs.
 
 
 Object data types
@@ -176,6 +176,7 @@ The *data type* may be one of:
 * 'dir' - Directory structure, see section :ref:`directories`.
 
 We consider developing other data object "modes", e.g. streams.
+
 
 .. _`content type`:
 
@@ -207,8 +208,6 @@ executor dynamically (e.g. depending on some input data).
 If present, the latter is taken to be the actual content type and must
 be a sub-type of the former.
 Any type is considered a subtype of the unspecified type.
-
-
 
 
 Constant data objects
@@ -302,6 +301,7 @@ The following tasks are supported directly by the Rain governor:
 
 Running external programs
 =========================
+
 
 Task ``tasks.Execute``
 ----------------------
@@ -761,6 +761,7 @@ is open; "keep" flag is not necessary. Attributes are not updated
 automatically, ``fetch()`` or ``update()`` has to be called to update
 attributes.
 
+
 Error, debugn and user
 ----------------------
 
@@ -808,6 +809,7 @@ has the following attributes:
 * ``debug`` - Debugging log, usually empty.
 * ``user`` - Arbitrary json-serializable objects.
 
+
 Data object spec and info
 -------------------------
 
@@ -829,6 +831,7 @@ has the following attributes:
   be a sub-type of ``spec.content_type``.
 * ``debug`` - Debugging log, usually empty.
 * ``user`` - Arbitrary json-serializable objects.
+
 
 Python API
 ----------
@@ -909,6 +912,7 @@ session::
 
   Note that in the case of ``wait()`` (in contrast with ``fetch()``), object
   does not have to be marked as "kept".
+
 
 .. _directories:
 

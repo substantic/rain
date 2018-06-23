@@ -5,6 +5,7 @@ Installation, Running & Deployment
 Rain Distributed Execution Framework consists is an all-in-one binary.
 Rain API is a pure Python package with a set of dependencies installable via pip.
 
+
 Binaries
 ========
 
@@ -67,10 +68,12 @@ Installation of Python API::
   $ cd python
   $ python setup.py install
 
+
 .. _start-rain:
 
 Starting infrastructure
 =======================
+
 
 Starting local governors
 ------------------------
@@ -132,6 +135,7 @@ simply start server and governors manually::
 
 Arguments for program *rain*
 ============================
+
 
 Synopsis
 --------

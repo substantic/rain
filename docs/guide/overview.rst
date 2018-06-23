@@ -36,6 +36,9 @@ straightforward installation and deployment with insightful monitoring on top.
   a language-independent interface that does not prevent adding support for
   other languages in the future.
 
+* **Tasks in Python/C++/Rust** Rain provides a way to define user-defined tasks
+  in Python, C++, and Rust.
+
 * **Monitoring** Rain is designed to support both online and postmortem
   monitoring.
 
@@ -128,17 +131,13 @@ supporting memory requirements, but other resources (GPUs, TPUs, disk space,
 ...) should be possible with enough work and interest.
 
 
-Directory and stream objects support
-------------------------------------
+Stream objects support
+----------------------
 
-Currently, only plain file objects are supported (with optional content type
-hints). We are working on also supporting arbitrary directories, picking just a
-subset of files for transport and "lazy" remote access. This will also allow for
-simple map/array data types for large volumes. Some tasks work in a streaming
-fashion and it would be inefficient to wait for their entire output before
-starting a consumer task. We plan to include streaming data objects but there
-are semantic and usage issues about resources, scheduling, multiple consumers
-and resiliency.
+Some tasks work in a streaming fashion and it would be inefficient to wait for
+their entire output before starting a consumer task. We plan to include
+streaming data objects but there are semantic and usage issues about resources,
+scheduling, multiple consumers and resiliency.
 
 
 REST client interface
@@ -163,6 +162,7 @@ What we do *NOT* want to do
 
 There are also some directions we do NOT intend to focus on in the scope of Rain.
 
+
 Visual editor
 -------------
 
@@ -170,12 +170,14 @@ We do not plan to support visual creation and editing of pipelines. The scale of
 reasonably editable workflows is usually very small. We focus on clean and easy
 client APIs and great visualization.
 
+
 User isolation and task sandboxing
 ----------------------------------
 
 We do not plan to limit malicious users or tasks from doing any harm. Use
 existing tools for task isolation. The system is lightweight enough to have one
 instance per user if necessary.
+
 
 Fair user scheduling, accounting and quotas
 -------------------------------------------
@@ -188,6 +190,7 @@ Comparison with similar tools
 =============================
 
 TODO
+
 
 Roadmap
 =======

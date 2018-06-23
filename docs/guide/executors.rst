@@ -15,16 +15,16 @@ There are generally two types of executors: **Universal executors** and
 and specialized offers a fix of tasks that they provide.
 
 The current version of Rain supports universal executor for Python. This is how
-`remove()` decorator works. It serializes a decorated function into a data
+`@remote()` decorator works. It serializes a decorated function into a data
 object and creates a task that needs Python executor that executes it.
 
-For languages where code cannot be simply transferred in portable way, Rain
+For languages where code cannot be simply transferred in a portable way, Rain
 offers **tasklibs**, a libraries for writing specialized executors. The current
 version provides tasklibs for C++ and Rust. A tasklib allows to create a
 stand-alone program that know how to communicate with governor and provides a
 set of functions.
 
-This sections covers how to write new tasks using tasklibs for C++ and Rust and
+This sections shows how to write new tasks using tasklibs for C++ and Rust and
 how to create run this tasks from client.
 
 Note: Governor itself also provides some of basic task types, that are provided
@@ -35,7 +35,11 @@ dashboard.
 Rust tasklib
 ============
 
-https://docs.rs/rain_task/
+The documentation for writing executor in Rust can be found at
+https://docs.rs/rain_task/. Registration of an executor into a governor and
+using client API are same for all executors (:ref:`register_exec` and
+:ref:`task_api`).
+
 
 
 C++ tasklib
@@ -127,6 +131,8 @@ Now, we can build the executor as follows::
   $ make
 
 
+.. _register_exec:
+
 Registration in governor
 ========================
 
@@ -151,6 +157,8 @@ or if you are using "rain start"::
 
 More about starting Rain can be found at :ref:`start-rain`.
 
+
+.. _task_api:
 
 Client API
 ==========
