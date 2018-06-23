@@ -1,6 +1,6 @@
 [package]
 name = "rain_core"
-version = "0.2.2-pre"
+version = "0.3.0-pre"
 
 description = "Distributed computational framework for large-scale task-based pipelines. Common core library."
 # documentation = "https://docs.rs/rain_core/" # defult docs.rs 

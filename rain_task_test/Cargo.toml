@@ -1,13 +1,13 @@
 [package]
 name = "rain_task_test"
-version = "0.2.2-pre"
+version = "0.3.0-pre"
 authors = ["Tomas Gavenciak <gavento@ucw.cz>"]
 description = "A testing Rain executor in Rust."
 license = "MIT"
 publish = false
 
 [dependencies]
-rain_task = "0.2.2-pre"
+rain_task = "0.3.0-pre"
 log = "0.4"
 serde_derive = "1.*"
 serde = "1.*"
