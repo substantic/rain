@@ -82,46 +82,46 @@ echo "Updating rain_core"
 cd rain_core
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
 git add Cargo.toml
-update '^rain_core *= *"'$OLDPAT'"$' 'rain_core = "'$VER'"' ../rain_server/Cargo.toml
-git add ../rain_server/Cargo.toml
-update '^rain_core *= *"'$OLDPAT'"$' 'rain_core = "'$VER'"' ../rain_task/Cargo.toml
-git add ../rain_task/Cargo.toml
 if [ "$GO" == "T" ]; then
     echo "Publishing ..."
     cargo publish --allow-dirty
 fi
+update '^rain_core *= *"'$OLDPAT'"$' 'rain_core = "'$VER'"' ../rain_server/Cargo.toml
+git add ../rain_server/Cargo.toml
+update '^rain_core *= *"'$OLDPAT'"$' 'rain_core = "'$VER'"' ../rain_task/Cargo.toml
+git add ../rain_task/Cargo.toml
 cd ..
 
 echo "Updating rain_server"
 cd rain_server
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
+git add Cargo.toml
 if [ "$GO" == "T" ]; then
     echo "Publishing ..."
     cargo publish --allow-dirty
 fi
-git add Cargo.toml
 cd ..
 
 echo "Updating rain_task"
 cd rain_task
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
-update '^rain_task *= *"'$OLDPAT'"$' 'rain_task = "'$VER'"' ../rain_task_test/Cargo.toml
-git add ../rain_task_test/Cargo.toml
+git add Cargo.toml
 if [ "$GO" == "T" ]; then
     echo "Publishing ..."
     cargo publish --allow-dirty
 fi
-git add Cargo.toml
+update '^rain_task *= *"'$OLDPAT'"$' 'rain_task = "'$VER'"' ../rain_task_test/Cargo.toml
+git add ../rain_task_test/Cargo.toml
 cd ..
 
 echo "Updating rain_task_test"
 cd rain_task_test
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
+git add Cargo.toml
 if [ "$GO" == "T" ]; then
     echo "Testing ..."
     cargo test
 fi
-git add Cargo.toml
 cd ..
 
 echo "Re-enabling [patch]"
