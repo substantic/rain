@@ -14,7 +14,7 @@ authors = [
     ]
 license = "MIT"
 
-exclude = ["testing"]
+exclude = ["testing/**/*"]
 
 [badges]
 travis-ci = { repository = "substantic/rain", branch = "master" }

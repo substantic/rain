@@ -117,6 +117,11 @@ cd rain_task_test
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
 cd ..
 
+echo "Cleanup of local Cargo.lock, target/"
+for D in rain_core rain_server rain_task rain_task_test ; do
+    rm -rf "$D/Cargo.lock" "$D/target"
+done
+
 echo "Re-enabling [workspace]"
 mv Cargo.toml.disabled Cargo.toml
 
@@ -126,8 +131,8 @@ if [ "$GO" == "T" ]; then
     git add Cargo.lock
 fi
 
-git commit -m "Releasing version $VER"
 git add Cargo.toml rain_core/Cargo.toml rain_server/Cargo.toml rain_task/Cargo.toml rain_task_test/Cargo.toml
+git commit -m "Releasing version $VER"
 
 if [ "$GO" == "T" ]; then
     echo "Testing ..."
