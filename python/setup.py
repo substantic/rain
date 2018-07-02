@@ -7,14 +7,16 @@ RAIN_DIR = os.path.dirname(PYTHON_DIR)
 
 
 def load_cargo_version():
-    with open(os.path.abspath(os.path.join(RAIN_DIR, "Cargo.toml"))) as f:
-        import re
-        exp = re.compile('^version = "([^"]*)"$')
-        for line in f:
-            m = exp.search(line)
-            if m:
-                return m.groups()[0]
-    raise Exception("Cannot determine version")
+    try:
+        with open(os.path.abspath(os.path.join(RAIN_DIR, "Cargo.toml"))) as f:
+            import re
+            exp = re.compile('^version = "([^"]*)"$')
+            for line in f:
+                m = exp.search(line)
+                if m:
+                    return m.groups()[0]
+    except:
+        return "0.0"
 
 
 def load_version():
