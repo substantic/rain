@@ -48,7 +48,8 @@ def create(args):
             name="{}-{}".format(args.name, i),
             serviceOfferingId=OFFERINGS[args.offering],
             # templateId="4fedad2b-e96c-4a70-95f7-a9142995dba4",
-            templateId="709687a4-35a7-4bfe-af24-aa00f3f391e8",  # Ubuntu 17.10
+            # templateId="709687a4-35a7-4bfe-af24-aa00f3f391e8",  # Ubuntu 17.10
+            templateId="4c9f5519-730f-46cb-b292-4e73ca578947",  # Ubuntu 18.04
             zoneId=ZONES[args.zone],
             userdata=base64.b64encode(INIT_SCRIPT.encode("utf-8")),
             keypair=args.keypair))
@@ -117,7 +118,7 @@ def install_node(k, nodes, hosts, pub_key):
         stdin.write("sudo mv ./rain-v{}-linux-x64/rain /usr/local/bin/\n"
                     .format(args.rain_download))
 
-        rain_whl = "rain-{}-py3-none-any.whl".format(args.rain_download)
+        rain_whl = "rain_python-{}-py3-none-any.whl".format(args.rain_download)
         python_url = ("{}/{}v{}/{}"
                       .format(url_base, nightly, args.rain_download, rain_whl))
         stdin.write("wget {}\n".format(python_url))
