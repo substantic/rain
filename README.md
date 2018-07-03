@@ -88,7 +88,7 @@ with client.new_session() as session:
 If you have installed Rust, you can install and start Rain as follows:
 
 ```
-$ cargo install rust_server
+$ cargo install rain_server
 
 $ pip3 install rain-python
 
