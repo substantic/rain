@@ -1,0 +1,1080 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Python API &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="index.html"/>
+        <link rel="next" title="Contributors’s Guide" href="dev.html"/>
+        <link rel="prev" title="Examples" href="examples.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html">User’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="executors.html">Writing Own Executors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation, Running &amp; Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Python API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#client-api">Client API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#client">Client</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#session">Session</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-objects">Data objects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tasks">Tasks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#attributes">Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#input-and-output">Input and Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#builtin-tasks-and-external-programs">Builtin tasks and external programs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-instance-objects">Data instance objects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#resources">Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#labeled-list">Labeled list</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#remote-python-tasks">Remote Python tasks</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Contributors’s Guide</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Python API</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/python_api.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="python-api">
+<h1>Python API<a class="headerlink" href="#python-api" title="Permalink to this headline">¶</a></h1>
+<p>The Rain Pyton API consists of two domains that observe the
+workflow graph differently, although the concepts are similar
+and some classes are used in both contexts.</p>
+<ul class="simple">
+<li>Code run at <em>the client</em>, creating sessions and task graphs,
+executing and querying sessions. There, the tasks are only
+created and declared, never actually executed.</li>
+<li>Python code that runs inside remote Pyhton tasks on the governors.
+This code has access to the actual input data, but only sees the adjacent
+data objects (input and output).</li>
+</ul>
+<div class="section" id="client-api">
+<h2>Client API<a class="headerlink" href="#client-api" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="rain.client.RainException">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">RainException</code><a class="reference internal" href="_modules/rain/common/errors.html#RainException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.RainException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic Rain error.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.RainWarning">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">RainWarning</code><a class="reference internal" href="_modules/rain/common/errors.html#RainWarning"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.RainWarning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic Rain warning.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.common.ID">
+<em class="property">class </em><code class="descclassname">rain.common.</code><code class="descname">ID</code><a class="reference internal" href="_modules/rain/common/ids.html#ID"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.ID" title="Permalink to this definition">¶</a></dt>
+<dd><p>A rain task and object ID. A named tuple <code class="xref any docutils literal"><span class="pre">(session_id,</span> <span class="pre">id)</span></code>.</p>
+</dd></dl>
+
+<div class="section" id="client">
+<h3>Client<a class="headerlink" href="#client" title="Permalink to this headline">¶</a></h3>
+<p>One instance per connection to a server.</p>
+<dl class="class">
+<dt id="rain.client.Client">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Client</code><span class="sig-paren">(</span><em>address</em>, <em>port</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/client.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Client" title="Permalink to this definition">¶</a></dt>
+<dd><p>A client connection object. Can hold multiple
+<a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref py py-class docutils literal"><span class="pre">Session</span></code></a>s.</p>
+<dl class="method">
+<dt id="rain.client.Client.get_server_info">
+<code class="descname">get_server_info</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/client.html#Client.get_server_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Client.get_server_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns basic server info. Unstable.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><em>dict</em> – A JSON-like dictionary.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Client.new_session">
+<code class="descname">new_session</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/client.html#Client.new_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Client.new_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new session.</p>
+<p>Note the session is destroyed server-side when the client disconnects.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref py py-class docutils literal"><span class="pre">Session</span></code></a> – A new session</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="session">
+<h3>Session<a class="headerlink" href="#session" title="Permalink to this headline">¶</a></h3>
+<p>One instance per a constructed graph (possibly with multiple submits).
+Tied to one <a class="reference internal" href="#rain.client.Client" title="rain.client.Client"><code class="xref any py py-class docutils literal"><span class="pre">Client</span></code></a>.</p>
+<dl class="class">
+<dt id="rain.client.Session">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Session</code><span class="sig-paren">(</span><em>client</em>, <em>session_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session" title="Permalink to this definition">¶</a></dt>
+<dd><p>A container for one task graph.</p>
+<p>Do not create directly, rather using <a class="reference internal" href="#rain.client.Client.new_session" title="rain.client.Client.new_session"><code class="xref py py-func docutils literal"><span class="pre">Client.new_session()</span></code></a>.
+When used as a context manager, all new objects and tasks are created
+within the session. Note the session is closed afterwards.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">bl</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;Hello rain!&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">tsk</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">bl</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">tsk</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="n">s</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">tsk</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">fetch</span><span class="p">())</span> <span class="c1"># waits for completion</span>
+</pre></div>
+</div>
+<p>Currently, the graph and objects are alive on the server only as long as
+the <a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref any py py-class docutils literal"><span class="pre">Session</span></code></a> exists.</p>
+<dl class="method">
+<dt id="rain.client.Session.bind_only">
+<code class="descname">bind_only</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.bind_only"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.bind_only" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method serves to bind session without autoclose functionality.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">session</span><span class="o">.</span><span class="n">bind_only</span><span class="p">()</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">doSometing</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>binds the session, but do not close it at the end (so it may be bound
+again either with <a class="reference internal" href="#rain.client.Session.bind_only" title="rain.client.Session.bind_only"><code class="xref any py py-meth docutils literal"><span class="pre">bind_only</span></code></a> or normally with <code class="xref any docutils literal"><span class="pre">with</span> <span class="pre">session:</span> <span class="pre">...</span></code>).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Session.close">
+<code class="descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes session; all tasks are stopped, all objects freed.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.Session.dataobj_count">
+<code class="descname">dataobj_count</code><a class="headerlink" href="#rain.client.Session.dataobj_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of unsubmitted objects.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Session.fetch">
+<code class="descname">fetch</code><span class="sig-paren">(</span><em>dataobject</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.fetch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.fetch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the object to finish, update its state and
+fetch the object data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><a class="reference internal" href="#rain.common.DataInstance" title="rain.common.DataInstance"><code class="xref any py py-class docutils literal"><span class="pre">DataInstance</span></code></a> – The object data proxy.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Session.keep_all">
+<code class="descname">keep_all</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.keep_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.keep_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set keep flag for all unsubmitted objects</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Session.make_graph">
+<code class="descname">make_graph</code><span class="sig-paren">(</span><em>show_ids=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.make_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.make_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a graph of tasks and objects that were <em>not yet</em> submitted.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Session.submit">
+<code class="descname">submit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.submit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.submit" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Submit all unsubmitted objects.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.Session.task_count">
+<code class="descname">task_count</code><a class="headerlink" href="#rain.client.Session.task_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of unsubmitted tasks.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Session.unkeep">
+<code class="descname">unkeep</code><span class="sig-paren">(</span><em>dataobjects</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.unkeep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.unkeep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unset keep flag for given objects.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Session.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>items</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the status and metadata of given tasks and objects.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Session.wait">
+<code class="descname">wait</code><span class="sig-paren">(</span><em>items</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.wait"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait until <em>all</em> specified tasks and dataobjects are finished.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Session.wait_all">
+<code class="descname">wait_all</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.wait_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.wait_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait until all submitted tasks and objects are finished.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Session.wait_some">
+<code class="descname">wait_some</code><span class="sig-paren">(</span><em>items</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/session.html#Session.wait_some"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Session.wait_some" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait until <em>some</em> of specified tasks/dataobjects are finished.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><code class="xref any docutils literal"><span class="pre">(finished_tasks,</span> <span class="pre">finished_dataobjs)</span></code></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="data-objects">
+<h3>Data objects<a class="headerlink" href="#data-objects" title="Permalink to this headline">¶</a></h3>
+<p>Tied to a <a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref any py py-class docutils literal"><span class="pre">Session</span></code></a>.</p>
+<dl class="function">
+<dt id="rain.client.blob">
+<code class="descclassname">rain.client.</code><code class="descname">blob</code><span class="sig-paren">(</span><em>value</em>, <em>label='const'</em>, <em>content_type=None</em>, <em>encode=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/data.html#blob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.blob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a constant data object with accompanying data.</p>
+<p>Given <code class="xref any docutils literal"><span class="pre">value</span></code> may be either <code class="xref any docutils literal"><span class="pre">bytes</span></code> or any object to be encoded with
+<code class="xref any docutils literal"><span class="pre">encoding</span></code> content type. Strings are encoded with utf-8 by default.
+Specify at most one of <a class="reference internal" href="#rain.client.DataObject.content_type" title="rain.client.DataObject.content_type"><code class="xref any py py-attr docutils literal"><span class="pre">content_type</span></code></a> and <code class="xref any docutils literal"><span class="pre">encode</span></code>.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rain.client.pickled">
+<code class="descclassname">rain.client.</code><code class="descname">pickled</code><span class="sig-paren">(</span><em>val</em>, <em>label='pickle'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/data.html#pickled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.pickled" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a data object with pickled <code class="xref any docutils literal"><span class="pre">val</span></code>.</p>
+<p>A shorthand for <code class="xref any docutils literal"><span class="pre">blob(val,</span> <span class="pre">ancode='pickle')</span></code>.
+The default label is “pickle”.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.DataObject">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">DataObject</code><span class="sig-paren">(</span><em>label=None</em>, <em>session=None</em>, <em>data_type=&lt;DataType.BLOB: 'blob'&gt;</em>, <em>content_type=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/data.html#DataObject"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.DataObject" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="rain.client.DataObject.content_type">
+<code class="descname">content_type</code><a class="headerlink" href="#rain.client.DataObject.content_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Final content type (if known and present) or just the spec content_type.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.DataObject.expect_dir">
+<code class="descname">expect_dir</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/data.html#DataObject.expect_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.DataObject.expect_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise TypeError if the DataObject is not a directory data-type.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.DataObject.fetch">
+<code class="descname">fetch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/data.html#DataObject.fetch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.DataObject.fetch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch the object data and update its state.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">DataInstance</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.DataObject.id">
+<code class="descname">id</code><a class="headerlink" href="#rain.client.DataObject.id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Getter for object ID.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.DataObject.info">
+<code class="descname">info</code><a class="headerlink" href="#rain.client.DataObject.info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Getter for object information. Read only in client!
+In remote tasks only <a class="reference internal" href="user.html"><span class="doc">User’s Guide</span></a> is writable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.DataObject.is_kept">
+<code class="descname">is_kept</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/data.html#DataObject.is_kept"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.DataObject.is_kept" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the value of self._keep</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.DataObject.keep">
+<code class="descname">keep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/data.html#DataObject.keep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.DataObject.keep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set flag that is object should be kept on the server</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.DataObject.spec">
+<code class="descname">spec</code><a class="headerlink" href="#rain.client.DataObject.spec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Getter for object specification. Read only!</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.DataObject.state">
+<code class="descname">state</code><a class="headerlink" href="#rain.client.DataObject.state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Getter for object state.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.DataObject.unkeep">
+<code class="descname">unkeep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/data.html#DataObject.unkeep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.DataObject.unkeep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove data object from the server</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="tasks">
+<h3>Tasks<a class="headerlink" href="#tasks" title="Permalink to this headline">¶</a></h3>
+<p>Tied to a <a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref any py py-class docutils literal"><span class="pre">Session</span></code></a>.</p>
+<dl class="class">
+<dt id="rain.client.Task">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Task</code><span class="sig-paren">(</span><em>inputs</em>, <em>outputs</em>, <em>*</em>, <em>config=None</em>, <em>session=None</em>, <em>task_type=None</em>, <em>cpus=1</em>, <em>user_spec=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/task.html#Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>A task instance in the task graph.</p>
+<p><code class="xref any docutils literal"><span class="pre">__init__</span></code> creates a single task instance, inserts it into <a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref any py py-class docutils literal"><span class="pre">Session</span></code></a>
+and assigns it an <a class="reference internal" href="#rain.common.ID" title="rain.common.ID"><code class="xref any py py-class docutils literal"><span class="pre">ID</span></code></a>. Creates output <a class="reference internal" href="#rain.client.DataObject" title="rain.client.DataObject"><code class="xref any py py-class docutils literal"><span class="pre">DataObject</span></code></a> instances based
+on <a class="reference internal" href="#rain.client.Task.outputs" title="rain.client.Task.outputs"><code class="xref any py py-attr docutils literal"><span class="pre">outputs</span></code></a> given.</p>
+<p><a class="reference internal" href="#rain.client.Task" title="rain.client.Task"><code class="xref any py py-class docutils literal"><span class="pre">Task</span></code></a> is commonly created by functions in <a class="reference internal" href="#module-rain.client.tasks" title="rain.client.tasks"><code class="xref any py py-mod docutils literal"><span class="pre">rain.client.tasks</span></code></a>, or task builders
+created by <a class="reference internal" href="#rain.client.Remote" title="rain.client.Remote"><code class="xref any py py-class docutils literal"><span class="pre">Remote</span></code></a> or <a class="reference internal" href="#rain.client.Program" title="rain.client.Program"><code class="xref any py py-class docutils literal"><span class="pre">Program</span></code></a>. Always belongs to a <a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref any py py-class docutils literal"><span class="pre">Session</span></code></a> and has a valid <a class="reference internal" href="#rain.common.ID" title="rain.common.ID"><code class="xref any py py-class docutils literal"><span class="pre">ID</span></code></a>.
+You may wish to call it explicitely (or subclass it) when creating your own task-types.</p>
+<p>Particular task types are not realized via subclasses but
+with string <a class="reference internal" href="#rain.client.Task.task_type" title="rain.client.Task.task_type"><code class="xref any py py-attr docutils literal"><span class="pre">task_type</span></code></a> attribute. (Subclassing may be introduced later.)</p>
+<p>The task state is <em>not</em> automatically updated by the server. The state and
+attributes are updated on <a class="reference internal" href="#rain.client.Task.update" title="rain.client.Task.update"><code class="xref any py py-meth docutils literal"><span class="pre">Task.update()</span></code></a>, <code class="xref any docutils literal"><span class="pre">Task.fetch()</span></code> and <a class="reference internal" href="#rain.client.Task.wait" title="rain.client.Task.wait"><code class="xref any py py-meth docutils literal"><span class="pre">Task.wait()</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>task_type</strong> (<code class="xref any docutils literal"><span class="pre">str</span></code>) – Task-type name known to rain governors.</li>
+<li><strong>config</strong> – Any task-specific config.</li>
+<li><strong>inputs</strong> (<a class="reference internal" href="#rain.common.LabeledList" title="rain.common.LabeledList"><code class="xref any py py-class docutils literal"><span class="pre">LabeledList</span></code></a> or sequence) – Sequence of <a class="reference internal" href="#rain.client.Input" title="rain.client.Input"><code class="xref any py py-class docutils literal"><span class="pre">Input</span></code></a> or <a class="reference internal" href="#rain.client.DataObject" title="rain.client.DataObject"><code class="xref any py py-class docutils literal"><span class="pre">DataObject</span></code></a>.</li>
+<li><strong>outputs</strong> (<a class="reference internal" href="#rain.common.LabeledList" title="rain.common.LabeledList"><code class="xref any py py-class docutils literal"><span class="pre">LabeledList</span></code></a> or sequence) – Specification of <a class="reference internal" href="#rain.client.Output" title="rain.client.Output"><code class="xref any py py-class docutils literal"><span class="pre">Output</span></code></a>s for the task.</li>
+<li><strong>session</strong> (<a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref any py py-class docutils literal"><span class="pre">Session</span></code></a> or <code class="xref any docutils literal"><span class="pre">None</span></code>) – Session to create the task in.
+If not specified, the current <a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref any py py-class docutils literal"><span class="pre">Session</span></code></a> is used.</li>
+<li><strong>cpus</strong> (<code class="xref any docutils literal"><span class="pre">int</span></code>) – Number of cpus.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="rain.client.Task.id">
+<code class="descname">id</code><a class="headerlink" href="#rain.client.Task.id" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#rain.common.ID" title="rain.common.ID"><code class="xref any py py-class docutils literal"><span class="pre">ID</span></code></a> – Auto-assigned task ID.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.Task.inputs">
+<code class="descname">inputs</code><a class="headerlink" href="#rain.client.Task.inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="xref any docutils literal"><span class="pre">LabeledList[DataObject]</span></code> – Input objects.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.Task.outputs">
+<code class="descname">outputs</code><a class="headerlink" href="#rain.client.Task.outputs" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="xref any docutils literal"><span class="pre">LabeledList[DataObject]</span></code> – Output objects created by the task.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.Task.output">
+<code class="descname">output</code><a class="headerlink" href="#rain.client.Task.output" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#rain.client.DataObject" title="rain.client.DataObject"><code class="xref any py py-class docutils literal"><span class="pre">DataObject</span></code></a> – Shortcut for <code class="xref any docutils literal"><span class="pre">outputs[0]</span></code>. Raises Exception on multiple outputs.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.Task.spec">
+<code class="descname">spec</code><a class="headerlink" href="#rain.client.Task.spec" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="xref any docutils literal"><span class="pre">TaskSpec</span></code> – Task specification data.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.Task.info">
+<code class="descname">info</code><a class="headerlink" href="#rain.client.Task.info" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="xref any docutils literal"><span class="pre">TaskInfo</span></code> – Task state information on last update.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.Task.state">
+<code class="descname">state</code><a class="headerlink" href="#rain.client.Task.state" title="Permalink to this definition">¶</a></dt>
+<dd><p><code class="xref any docutils literal"><span class="pre">TaskState</span></code> enum – Task state on last update.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.Task.stack">
+<code class="descname">stack</code><a class="headerlink" href="#rain.client.Task.stack" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>str</em> – Text description of stack when task was created, used for debug messages</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Task.fetch_outputs">
+<code class="descname">fetch_outputs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/task.html#Task.fetch_outputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Task.fetch_outputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetch all outputs of the task.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">[<a class="reference internal" href="#rain.common.DataInstance" title="rain.common.DataInstance"><code class="xref any py py-class docutils literal"><span class="pre">DataInstance</span></code></a>] – Fetched output data.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">id</code></dt>
+<dd><p>Getter for Task ID.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">info</code></dt>
+<dd><p>Getter for Task info on last update (<code class="xref any docutils literal"><span class="pre">None</span></code> when never updated). Read only!</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">inputs</code></dt>
+<dd><p>Getter for inputs LabeledList. Read only!</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Task.keep_outputs">
+<code class="descname">keep_outputs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/task.html#Task.keep_outputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Task.keep_outputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keep all output objects of the task.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">output</code></dt>
+<dd><p>Getter for the only output of the task. Fails if <code class="xref any docutils literal"><span class="pre">len(self.outputs)!=1</span></code>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">outputs</code></dt>
+<dd><p>Getter for outputs LabeledList. Read only!</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">spec</code></dt>
+<dd><p>Getter for Task specification. Read only!</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">state</code></dt>
+<dd><p>Getter for Task state on last update.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="rain.client.Task.task_type">
+<code class="descname">task_type</code><a class="headerlink" href="#rain.client.Task.task_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Getter for task_type identifier.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Task.unkeep_outputs">
+<code class="descname">unkeep_outputs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/task.html#Task.unkeep_outputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Task.unkeep_outputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unkeep all output objects of the task.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Task.update">
+<code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/task.html#Task.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Task.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update task state and attributes. See <a class="reference internal" href="#rain.client.Session.update" title="rain.client.Session.update"><code class="xref any py py-meth docutils literal"><span class="pre">Session.update()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.Task.wait">
+<code class="descname">wait</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/task.html#Task.wait"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Task.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wait for the task to complete. See <a class="reference internal" href="#rain.client.Session.wait" title="rain.client.Session.wait"><code class="xref any py py-meth docutils literal"><span class="pre">Session.wait()</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="attributes">
+<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="input-and-output">
+<h3>Input and Output<a class="headerlink" href="#input-and-output" title="Permalink to this headline">¶</a></h3>
+<p>These are helper objects are used to specify task
+input and output attributes. In particular, specifying
+an <a class="reference internal" href="#rain.client.Output" title="rain.client.Output"><code class="xref any py py-class docutils literal"><span class="pre">Output</span></code></a> is the preferred way to set properties of the
+output <a class="reference internal" href="#rain.client.DataObject" title="rain.client.DataObject"><code class="xref any py py-class docutils literal"><span class="pre">DataObject</span></code></a>.</p>
+<dl class="class">
+<dt id="rain.client.InputBase">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">InputBase</code><span class="sig-paren">(</span><em>label=None</em>, <em>path=None</em>, <em>dataobj=None</em>, <em>load=None</em>, <em>content_type=None</em>, <em>write=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/input.html#InputBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.InputBase" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="rain.client.Input">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Input</code><span class="sig-paren">(</span><em>label=None</em>, <em>path=None</em>, <em>dataobj=None</em>, <em>load=None</em>, <em>content_type=None</em>, <em>write=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/input.html#Input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="rain.client.InputDir">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">InputDir</code><span class="sig-paren">(</span><em>label=None</em>, <em>path=None</em>, <em>dataobj=None</em>, <em>load=None</em>, <em>content_type=None</em>, <em>write=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/input.html#InputDir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.InputDir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="rain.client.OutputBase">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">OutputBase</code><span class="sig-paren">(</span><em>label=None</em>, <em>*</em>, <em>size_hint=None</em>, <em>content_type=None</em>, <em>mode=None</em>, <em>encode=None</em>, <em>path=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/output.html#OutputBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.OutputBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>A multi-purpose object for specifying output data objects of tasks.</p>
+<p>May be used in task factory construction (e.g. in <code class="xref any docutils literal"><span class="pre">&#64;remote</span></code> and <a class="reference internal" href="#rain.client.Program" title="rain.client.Program"><code class="xref any py py-class docutils literal"><span class="pre">Program</span></code></a>),
+or in concrete task instantiation (as <code class="xref any docutils literal"><span class="pre">outputs=[...]</span></code> or <code class="xref any docutils literal"><span class="pre">output=...</span></code>).</p>
+<p>A default label is the number of the output in the task.</p>
+<dl class="method">
+<dt id="rain.client.OutputBase.expect_blob">
+<code class="descname">expect_blob</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/output.html#OutputBase.expect_blob"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.OutputBase.expect_blob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise TypeError if the Output is not a directory data-type.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.OutputBase.expect_dir">
+<code class="descname">expect_dir</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/output.html#OutputBase.expect_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.OutputBase.expect_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise TypeError if the Output is not a directory data-type.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.client.OutputBase.merge_with_prototype">
+<code class="descname">merge_with_prototype</code><span class="sig-paren">(</span><em>proto</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/output.html#OutputBase.merge_with_prototype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.OutputBase.merge_with_prototype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a copy of self updated with <a class="reference internal" href="#rain.client.Output" title="rain.client.Output"><code class="xref any py py-class docutils literal"><span class="pre">Output</span></code></a> <code class="xref any docutils literal"><span class="pre">proto</span></code> properties.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.Output">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Output</code><span class="sig-paren">(</span><em>label=None</em>, <em>*</em>, <em>size_hint=None</em>, <em>content_type=None</em>, <em>mode=None</em>, <em>encode=None</em>, <em>path=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/output.html#Output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Output" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="rain.client.OutputDir">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">OutputDir</code><span class="sig-paren">(</span><em>label=None</em>, <em>*</em>, <em>size_hint=None</em>, <em>content_type=None</em>, <em>mode=None</em>, <em>encode=None</em>, <em>path=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/output.html#OutputDir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.OutputDir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="builtin-tasks-and-external-programs">
+<h3>Builtin tasks and external programs<a class="headerlink" href="#builtin-tasks-and-external-programs" title="Permalink to this headline">¶</a></h3>
+<p>Native Rain tasks to be run at the governors.</p>
+<span class="target" id="module-rain.client.tasks"></span><dl class="class">
+<dt id="rain.client.tasks.Concat">
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Concat</code><span class="sig-paren">(</span><em>inputs</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Concat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Concat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a task concatenating the given data objects.</p>
+<dl class="attribute">
+<dt id="rain.client.tasks.Concat.TASK_TYPE">
+<code class="descname">TASK_TYPE</code><em class="property"> = 'buildin/concat'</em><a class="headerlink" href="#rain.client.tasks.Concat.TASK_TYPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.tasks.Execute">
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Execute</code><span class="sig-paren">(</span><em>args</em>, <em>stdout=None</em>, <em>stdin=None</em>, <em>input_paths=()</em>, <em>output_paths=()</em>, <em>shell=False</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Execute" title="Permalink to this definition">¶</a></dt>
+<dd><p>A task executing a single external program with rich argument support.</p>
+<dl class="attribute">
+<dt id="rain.client.tasks.Execute.TASK_TYPE">
+<code class="descname">TASK_TYPE</code><em class="property"> = 'buildin/run'</em><a class="headerlink" href="#rain.client.tasks.Execute.TASK_TYPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.tasks.Load">
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Load</code><span class="sig-paren">(</span><em>path</em>, <em>output=None</em>, <em>*</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load and output a file at the given path (at the worker).</p>
+<dl class="attribute">
+<dt id="rain.client.tasks.Load.TASK_TYPE">
+<code class="descname">TASK_TYPE</code><em class="property"> = 'buildin/open'</em><a class="headerlink" href="#rain.client.tasks.Load.TASK_TYPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.tasks.LoadDir">
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">LoadDir</code><span class="sig-paren">(</span><em>path</em>, <em>output=None</em>, <em>*</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#LoadDir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.LoadDir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load and output a directory at the given path (at the worker).</p>
+<p>TODO: Implement</p>
+<dl class="attribute">
+<dt id="rain.client.tasks.LoadDir.TASK_TYPE">
+<code class="descname">TASK_TYPE</code><em class="property"> = 'buildin/open_dir'</em><a class="headerlink" href="#rain.client.tasks.LoadDir.TASK_TYPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.tasks.MakeDirectory">
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">MakeDirectory</code><span class="sig-paren">(</span><em>paths_objects</em>, <em>*</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#MakeDirectory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.MakeDirectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a directory from other objects (blobs or other directories).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>paths_objects</strong> – An iterable of pairs <code class="xref any docutils literal"><span class="pre">(path,</span> <span class="pre">obj)</span></code> or a dictionary <code class="xref any docutils literal"><span class="pre">{path:</span> <span class="pre">obj}</span></code>
+where <code class="xref any docutils literal"><span class="pre">path</span></code> is the new relative path. Paths of some of the more directory
+object may be <code class="xref any docutils literal"><span class="pre">''</span></code> or <code class="xref any docutils literal"><span class="pre">'.'</span></code> to use them as the base directory.</td>
+</tr>
+</tbody>
+</table>
+<p>TODO: Specify behavior on overlapping subdirs/contents.</p>
+<dl class="attribute">
+<dt id="rain.client.tasks.MakeDirectory.TASK_TYPE">
+<code class="descname">TASK_TYPE</code><em class="property"> = 'buildin/make_directory'</em><a class="headerlink" href="#rain.client.tasks.MakeDirectory.TASK_TYPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.tasks.Sleep">
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Sleep</code><span class="sig-paren">(</span><em>input</em>, <em>timeout</em>, <em>*</em>, <em>session=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Sleep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Sleep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Task that forwards argument ‘dataobj’ after ‘timeout’ seconds.
+The type of resulting data object is the same as type of input data object
+This task serves for testing purposes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>input</strong> (<a class="reference internal" href="#rain.client.DataObject" title="rain.client.DataObject"><code class="xref any py py-class docutils literal"><span class="pre">DataObject</span></code></a>) – The object to pass through.</li>
+<li><strong>timeout</strong> (<code class="xref any docutils literal"><span class="pre">float</span></code>) – Number of seconds to wait, converted to whole miliseconds.</li>
+<li><strong>cpus</strong> (<code class="xref any docutils literal"><span class="pre">int</span></code>) – Number of CPUs to reserve, for testing purposes.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="rain.client.tasks.Sleep.TASK_TYPE">
+<code class="descname">TASK_TYPE</code><em class="property"> = 'buildin/sleep'</em><a class="headerlink" href="#rain.client.tasks.Sleep.TASK_TYPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.tasks.SliceDirectory">
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">SliceDirectory</code><span class="sig-paren">(</span><em>input</em>, <em>path</em>, <em>output=None</em>, <em>*</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#SliceDirectory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.SliceDirectory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract a file from a directory.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>input</strong> (<a class="reference internal" href="#rain.client.DataObject" title="rain.client.DataObject"><code class="xref any py py-class docutils literal"><span class="pre">DataObject</span></code></a>) – A directory object to slice.</li>
+<li><strong>path</strong> (<code class="xref any docutils literal"><span class="pre">[str]</span></code>) – An iterable of paths. If the path ends with a slash <code class="xref any docutils literal"><span class="pre">'/'</span></code>, the output
+is a directory object, otherwise a file object is creates.</li>
+<li><strong>output</strong> (<a class="reference internal" href="#rain.client.Output" title="rain.client.Output"><code class="xref any py py-class docutils literal"><span class="pre">Output</span></code></a> or <a class="reference internal" href="#rain.client.OutputDir" title="rain.client.OutputDir"><code class="xref any py py-class docutils literal"><span class="pre">OutputDir</span></code></a>) – An optional output specification.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="rain.client.tasks.SliceDirectory.TASK_TYPE">
+<code class="descname">TASK_TYPE</code><em class="property"> = 'buildin/slice_directory'</em><a class="headerlink" href="#rain.client.tasks.SliceDirectory.TASK_TYPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.tasks.Store">
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Store</code><span class="sig-paren">(</span><em>input</em>, <em>path</em>, <em>*</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Store"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store the given object (blob or directory) at the given path (at the worker).</p>
+<dl class="attribute">
+<dt id="rain.client.tasks.Store.TASK_TYPE">
+<code class="descname">TASK_TYPE</code><em class="property"> = 'buildin/export'</em><a class="headerlink" href="#rain.client.tasks.Store.TASK_TYPE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.Program">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Program</code><span class="sig-paren">(</span><em>args</em>, <em>stdout=None</em>, <em>stdin=None</em>, <em>input_paths=()</em>, <em>output_paths=()</em>, <em>shell=False</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/program.html#Program"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Program" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="data-instance-objects">
+<h3>Data instance objects<a class="headerlink" href="#data-instance-objects" title="Permalink to this headline">¶</a></h3>
+<p>Tied to a session and a <a class="reference internal" href="#rain.client.DataObject" title="rain.client.DataObject"><code class="xref any py py-class docutils literal"><span class="pre">DataObject</span></code></a>. Also used in <a class="reference internal" href="#sec-remote"><span class="std std-ref">Remote Python tasks</span></a>.</p>
+<dl class="class">
+<dt id="rain.common.DataInstance">
+<em class="property">class </em><code class="descclassname">rain.common.</code><code class="descname">DataInstance</code><span class="sig-paren">(</span><em>data_type</em>, <em>*</em>, <em>data=None</em>, <em>path=None</em>, <em>data_object=None</em>, <em>content_type=None</em>, <em>info=None</em>, <em>spec=None</em>, <em>object_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/data_instance.html#DataInstance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.DataInstance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instance of Data object with data or file reference.</p>
+<p>This serves as a proxy to a <em>finished</em> <a class="reference internal" href="#rain.client.DataObject" title="rain.client.DataObject"><code class="xref any py py-class docutils literal"><span class="pre">DataObject</span></code></a>.
+The class is used in a python task in executors and as a result
+of <a class="reference internal" href="#rain.client.DataObject.fetch" title="rain.client.DataObject.fetch"><code class="xref any py py-meth docutils literal"><span class="pre">DataObject.fetch</span></code></a>.</p>
+<p>The user should not manually create this object, but always use <a class="reference internal" href="#rain.client.Session.fetch" title="rain.client.Session.fetch"><code class="xref any py py-meth docutils literal"><span class="pre">fetch()</span></code></a>
+or a method on python task context.</p>
+<dl class="method">
+<dt id="rain.common.DataInstance.get_bytes">
+<code class="descname">get_bytes</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/data_instance.html#DataInstance.get_bytes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.DataInstance.get_bytes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the data as <code class="xref any docutils literal"><span class="pre">bytes</span></code>. May read them from the disk.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.common.DataInstance.get_str">
+<code class="descname">get_str</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/data_instance.html#DataInstance.get_str"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.DataInstance.get_str" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shortcut for get_bytes().decode()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.common.DataInstance.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>cache=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/data_instance.html#DataInstance.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.DataInstance.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load object according content type, optionally caching the result.</p>
+<p>If you set <code class="xref any docutils literal"><span class="pre">cache=True</span></code>, you must not modify the returned object as it
+may be shared between loads or even tasks. With <code class="xref any docutils literal"><span class="pre">cache=False</span></code>, you get
+a new copy every time.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.common.DataInstance.write">
+<code class="descname">write</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/data_instance.html#DataInstance.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.DataInstance.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write fresh copy of data into target path.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="resources">
+<h3>Resources<a class="headerlink" href="#resources" title="Permalink to this headline">¶</a></h3>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">TODO: Describe and document task resources.</p>
+</div>
+<dl class="class">
+<dt id="rain.common.LabeledList">
+<em class="property">class </em><code class="descclassname">rain.common.</code><code class="descname">LabeledList</code><span class="sig-paren">(</span><em>items=None</em>, <em>labels=None</em>, <em>pairs=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/labeled_list.html#LabeledList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.LabeledList" title="Permalink to this definition">¶</a></dt>
+<dd><p>List data structure with additional optional unique labels for items.
+Supports all list operations except <code class="xref any docutils literal"><span class="pre">sort</span></code> (in general
+<code class="xref any docutils literal"><span class="pre">collections.MutableSequence</span></code>).</p>
+<p>Indexing <code class="xref any docutils literal"><span class="pre">l[x]</span></code> accepts either an integer, slice or a label.
+Modifying the sequence using <code class="xref any docutils literal"><span class="pre">l[x]=42</span></code> clears the label.
+Use <code class="xref any docutils literal"><span class="pre">l.set(x,</span> <span class="pre">42,</span> <span class="pre">label='answer')</span></code> or <code class="xref any docutils literal"><span class="pre">l.set_label(x,</span> <span class="pre">'answer')</span></code>.</p>
+<p>Labels may be any hashable objects except <code class="xref any docutils literal"><span class="pre">None</span></code> (which represents no
+label) or <code class="xref any docutils literal"><span class="pre">int</span></code> or <code class="xref any docutils literal"><span class="pre">slice</span></code> (which are used for array indexing).
+The labels must be unique.</p>
+<dl class="method">
+<dt id="rain.common.LabeledList.get_label">
+<code class="descname">get_label</code><span class="sig-paren">(</span><em>idx</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/labeled_list.html#LabeledList.get_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.LabeledList.get_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the label for given index.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.common.LabeledList.items">
+<code class="descname">items</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/labeled_list.html#LabeledList.items"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.LabeledList.items" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return iterator over (label, value) pairs.
+Do not modify the list while active.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.common.LabeledList.set">
+<code class="descname">set</code><span class="sig-paren">(</span><em>idx</em>, <em>val</em>, <em>label=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/labeled_list.html#LabeledList.set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.LabeledList.set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign to the given index, always setting its label to <code class="xref any docutils literal"><span class="pre">label</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rain.common.LabeledList.set_label">
+<code class="descname">set_label</code><span class="sig-paren">(</span><em>idx</em>, <em>label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/labeled_list.html#LabeledList.set_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.common.LabeledList.set_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set label for given index.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="labeled-list">
+<h3>Labeled list<a class="headerlink" href="#labeled-list" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">rain.common.</code><code class="descname">LabeledList</code><span class="sig-paren">(</span><em>items=None</em>, <em>labels=None</em>, <em>pairs=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/labeled_list.html#LabeledList"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>List data structure with additional optional unique labels for items.
+Supports all list operations except <code class="xref any docutils literal"><span class="pre">sort</span></code> (in general
+<code class="xref any docutils literal"><span class="pre">collections.MutableSequence</span></code>).</p>
+<p>Indexing <code class="xref any docutils literal"><span class="pre">l[x]</span></code> accepts either an integer, slice or a label.
+Modifying the sequence using <code class="xref any docutils literal"><span class="pre">l[x]=42</span></code> clears the label.
+Use <code class="xref any docutils literal"><span class="pre">l.set(x,</span> <span class="pre">42,</span> <span class="pre">label='answer')</span></code> or <code class="xref any docutils literal"><span class="pre">l.set_label(x,</span> <span class="pre">'answer')</span></code>.</p>
+<p>Labels may be any hashable objects except <code class="xref any docutils literal"><span class="pre">None</span></code> (which represents no
+label) or <code class="xref any docutils literal"><span class="pre">int</span></code> or <code class="xref any docutils literal"><span class="pre">slice</span></code> (which are used for array indexing).
+The labels must be unique.</p>
+<dl class="method">
+<dt>
+<code class="descname">get_label</code><span class="sig-paren">(</span><em>idx</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/labeled_list.html#LabeledList.get_label"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Return the label for given index.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">items</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/labeled_list.html#LabeledList.items"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Return iterator over (label, value) pairs.
+Do not modify the list while active.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">set</code><span class="sig-paren">(</span><em>idx</em>, <em>val</em>, <em>label=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/labeled_list.html#LabeledList.set"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Assign to the given index, always setting its label to <code class="xref any docutils literal"><span class="pre">label</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">set_label</code><span class="sig-paren">(</span><em>idx</em>, <em>label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/common/labeled_list.html#LabeledList.set_label"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Set label for given index.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="remote-python-tasks">
+<span id="sec-remote"></span><h2>Remote Python tasks<a class="headerlink" href="#remote-python-tasks" title="Permalink to this headline">¶</a></h2>
+<p>API for creating routines to be run at the governors.
+Created by the decorating with <a class="reference internal" href="#rain.client.remote" title="rain.client.remote"><code class="xref any py py-func docutils literal"><span class="pre">remote</span></code></a> (preferred) or
+by <a class="reference internal" href="#rain.client.Remote" title="rain.client.Remote"><code class="xref any py py-class docutils literal"><span class="pre">Remote</span></code></a>.</p>
+<p>Whe <strong>specifying</strong> the remote task in the client code, the relevant classes are
+<a class="reference internal" href="#rain.client.Remote" title="rain.client.Remote"><code class="xref any py py-class docutils literal"><span class="pre">Remote</span></code></a>, <a class="reference internal" href="#rain.client.Input" title="rain.client.Input"><code class="xref any py py-class docutils literal"><span class="pre">Input</span></code></a>, <a class="reference internal" href="#rain.client.Output" title="rain.client.Output"><code class="xref any py py-class docutils literal"><span class="pre">Output</span></code></a>, <a class="reference internal" href="#rain.client.RainException" title="rain.client.RainException"><code class="xref any py py-class docutils literal"><span class="pre">RainException</span></code></a>, <a class="reference internal" href="#rain.client.RainWarning" title="rain.client.RainWarning"><code class="xref any py py-class docutils literal"><span class="pre">RainWarning</span></code></a>, <a class="reference internal" href="#rain.common.LabeledList" title="rain.common.LabeledList"><code class="xref any py py-class docutils literal"><span class="pre">LabeledList</span></code></a>
+and the decorateor <a class="reference internal" href="#rain.client.remote" title="rain.client.remote"><code class="xref any py py-func docutils literal"><span class="pre">remote</span></code></a>.</p>
+<p><strong>Inside</strong> the running remote task, only
+<a class="reference internal" href="#rain.client.RainException" title="rain.client.RainException"><code class="xref any py py-class docutils literal"><span class="pre">RainException</span></code></a>, <a class="reference internal" href="#rain.client.RainWarning" title="rain.client.RainWarning"><code class="xref any py py-class docutils literal"><span class="pre">RainWarning</span></code></a>, <a class="reference internal" href="#rain.common.LabeledList" title="rain.common.LabeledList"><code class="xref any py py-class docutils literal"><span class="pre">LabeledList</span></code></a>, <a class="reference internal" href="#rain.common.DataInstance" title="rain.common.DataInstance"><code class="xref any py py-class docutils literal"><span class="pre">DataInstance</span></code></a> and <code class="xref any docutils literal"><span class="pre">Context</span></code>
+are relevant.</p>
+<p>The inputs of a <a class="reference internal" href="#rain.client.Remote" title="rain.client.Remote"><code class="xref any py py-class docutils literal"><span class="pre">Remote</span></code></a> task are arbitrary python objects
+containing a <a class="reference internal" href="#rain.common.DataInstance" title="rain.common.DataInstance"><code class="xref any py py-class docutils literal"><span class="pre">DataInstance</span></code></a> in place of every <a class="reference internal" href="#rain.client.DataObject" title="rain.client.DataObject"><code class="xref any py py-class docutils literal"><span class="pre">DataObject</span></code></a>,
+or loaded data object if <code class="xref any docutils literal"><span class="pre">autoload=True</span></code> or <code class="xref any docutils literal"><span class="pre">load=True</span></code> is
+set on the <a class="reference internal" href="#rain.client.Input" title="rain.client.Input"><code class="xref any py py-class docutils literal"><span class="pre">Input</span></code></a>.</p>
+<p>The remote should return a list, tuple or <a class="reference internal" href="#rain.common.LabeledList" title="rain.common.LabeledList"><code class="xref any py py-class docutils literal"><span class="pre">LabeledList</span></code></a> of
+<a class="reference internal" href="#rain.common.DataInstance" title="rain.common.DataInstance"><code class="xref any py py-class docutils literal"><span class="pre">DataInstance</span></code></a> (created by <code class="xref any docutils literal"><span class="pre">Context.blob()</span></code>), <code class="xref any docutils literal"><span class="pre">bytes</span></code> or <code class="xref any docutils literal"><span class="pre">string</span></code>.</p>
+<dl class="function">
+<dt id="rain.client.remote">
+<code class="descclassname">rain.client.</code><code class="descname">remote</code><span class="sig-paren">(</span><em>*</em>, <em>outputs=None</em>, <em>inputs=()</em>, <em>auto_load=None</em>, <em>auto_encode=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/pycode.html#remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.remote" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator for <a class="reference internal" href="#rain.client.Remote" title="rain.client.Remote"><code class="xref py py-class docutils literal"><span class="pre">Remote</span></code></a>, see the documentation there.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="rain.client.Remote">
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Remote</code><span class="sig-paren">(</span><em>fn</em>, <em>*</em>, <em>inputs=None</em>, <em>outputs=None</em>, <em>auto_load=False</em>, <em>auto_encode=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/pycode.html#Remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Remote" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="dev.html" class="btn btn-neutral float-right" title="Contributors’s Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="examples.html" class="btn btn-neutral" title="Examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

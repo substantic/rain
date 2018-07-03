@@ -1,0 +1,504 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Installation, Running &amp; Deployment &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="index.html"/>
+        <link rel="next" title="Examples" href="examples.html"/>
+        <link rel="prev" title="Writing Own Executors" href="executors.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html">User’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="executors.html">Writing Own Executors</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation, Running &amp; Deployment</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#binaries">Binaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#build-via-cargo">Build via cargo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#build-from-sources">Build from sources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#starting-infrastructure">Starting infrastructure</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#starting-local-governors">Starting local governors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#starting-remote-governors">Starting remote governors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#starting-governors-manually">Starting governors manually</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#arguments-for-program-rain">Arguments for program <em>rain</em></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#synopsis">Synopsis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#command-start">Command: start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#command-server">Command: server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#command-governor">Command: governor</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python_api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Contributors’s Guide</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Installation, Running &amp; Deployment</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/install.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="installation-running-deployment">
+<h1>Installation, Running &amp; Deployment<a class="headerlink" href="#installation-running-deployment" title="Permalink to this headline">¶</a></h1>
+<p>Rain Distributed Execution Framework consists is an all-in-one binary.
+Rain API is a pure Python package with a set of dependencies installable via pip.</p>
+<div class="section" id="binaries">
+<h2>Binaries<a class="headerlink" href="#binaries" title="Permalink to this headline">¶</a></h2>
+<p>Rain provides a binary distribution for Linux/x64. The binary is almost fully
+statically linked. The only dynamic dependancies are libc and sqlite3 (for logging
+purpose).</p>
+<p>Latest release can be found at <a class="reference external" href="https://github.com/substantic/rain/releases">https://github.com/substantic/rain/releases</a>.
+It can be downloaded and unpacked as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ wget https://github.com/substantic/rain/releases/download/v0.3.0/rain-v0.3.0-linux-x64.tar.xz
+$ tar xvf rain-v0.3.0-linux-x64.tar.xz
+</pre></div>
+</div>
+<p>Installation of Python API:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ pip3 install rain-python
+</pre></div>
+</div>
+</div>
+<div class="section" id="build-via-cargo">
+<h2>Build via cargo<a class="headerlink" href="#build-via-cargo" title="Permalink to this headline">¶</a></h2>
+<p>If you have installed Rust toolchain, you can use cargo to build
+Rust binaries and skip manual download:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ cargo install rain_server
+</pre></div>
+</div>
+<p>Note that you still have to install Python API through pip:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ pip3 install rain-python
+</pre></div>
+</div>
+</div>
+<div class="section" id="build-from-sources">
+<h2>Build from sources<a class="headerlink" href="#build-from-sources" title="Permalink to this headline">¶</a></h2>
+<p>For building from sources, you need Rust and SQLite3 (for logging) and Capnp
+compiler (for compiling protocol files) installed on your system.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span># Example for installation of dependencies on Ubuntu
+
+# Installation of latest Rust
+$ curl https://sh.rustup.rs -sSf | sh
+
+# Other dependencies
+$ sudo apt-get install capnproto libsqlite3-dev
+</pre></div>
+</div>
+<p>For building Rain, run the following commands:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ git clone https://github.com/substantic/rain
+$ cd rain
+$ cargo build --release
+</pre></div>
+</div>
+<p>After the installation, the final binary can be found <code class="docutils literal"><span class="pre">rain/target/relase/rain</span></code>.</p>
+<p>Installation of Python API:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ cd python
+$ python setup.py install
+</pre></div>
+</div>
+</div>
+<div class="section" id="starting-infrastructure">
+<span id="start-rain"></span><h2>Starting infrastructure<a class="headerlink" href="#starting-infrastructure" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="starting-local-governors">
+<h3>Starting local governors<a class="headerlink" href="#starting-local-governors" title="Permalink to this headline">¶</a></h3>
+<p>The most simple case is running starting server and one governor with all
+resources of the local machine. The following command do all work for you:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ rain start --simple
+</pre></div>
+</div>
+<p>If you want to start more local governors, you can use the following command.
+It starts two governors with 4 assigned cpus and one with 2 assigned cpus:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ rain start --local-wokers=[4,4,2]
+</pre></div>
+</div>
+</div>
+<div class="section" id="starting-remote-governors">
+<h3>Starting remote governors<a class="headerlink" href="#starting-remote-governors" title="Permalink to this headline">¶</a></h3>
+<p>If you have more machines that are reachable via SSH you can use the following
+command. We assume that file <code class="docutils literal"><span class="pre">my_hosts</span></code> contains addresses of hosts, one per
+line:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ rain start --governor-host-file=my_hosts
+</pre></div>
+</div>
+<p>Let us note, that current version assumes that assumes for each host that Rain
+is placed in the same directory as on machine from which command is invoked.</p>
+<p>If you are running Rain inside PBS scheduler (probably if you are using an HPC
+machine), then you can simple run:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ rain start --autoconf=pbs
+</pre></div>
+</div>
+<p>It executes governor on each node allocated by PBS scheduler.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>We recommended to reserve one CPU for server unless you have long runnig
+tasks. This reservation can be done through cgroups, or CPU pinning.</p>
+<p>Another option (with less isolation) is to use option <code class="docutils literal"><span class="pre">-S</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ rain start -S --governor-host-file=my_hosts
+</pre></div>
+</div>
+<p class="last">If a remote machine is actually localhost (and therefore runs Rain server)
+then <code class="docutils literal"><span class="pre">--cpus=-1</span></code> argument is used for the governor on that machine, i.e. the
+governor will consider one cpu less on that machine.</p>
+</div>
+</div>
+<div class="section" id="starting-governors-manually">
+<h3>Starting governors manually<a class="headerlink" href="#starting-governors-manually" title="Permalink to this headline">¶</a></h3>
+<p>If you need a special setup that is not covered by <code class="docutils literal"><span class="pre">rain</span> <span class="pre">start</span></code> you can
+simply start server and governors manually:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ rain server                    # Start server
+$ rain governor &lt;SERVER-ADDRESS&gt;   # Start governor
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="arguments-for-program-rain">
+<h2>Arguments for program <em>rain</em><a class="headerlink" href="#arguments-for-program-rain" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="synopsis">
+<h3>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">rain</span> <span class="n">start</span> <span class="o">--</span><span class="n">simple</span> <span class="p">[</span><span class="o">--</span><span class="n">listen</span><span class="o">=</span><span class="n">ADDRESS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">http</span><span class="o">-</span><span class="n">listen</span><span class="o">=</span><span class="n">ADDRESS</span><span class="p">]</span>
+         <span class="p">[</span><span class="o">-</span><span class="n">S</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">runprefix</span><span class="o">=</span><span class="n">CMD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">logdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">workdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span>
+         <span class="p">[</span><span class="o">--</span><span class="n">governor</span><span class="o">-</span><span class="n">config</span><span class="o">=</span><span class="n">PATH</span><span class="p">]</span>
+<span class="n">rain</span> <span class="n">start</span> <span class="o">--</span><span class="n">autoconf</span><span class="o">=</span><span class="n">CONF</span> <span class="p">[</span><span class="o">--</span><span class="n">listen</span><span class="o">=</span><span class="n">ADDRESS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">http</span><span class="o">-</span><span class="n">listen</span><span class="o">=</span><span class="n">ADDRESS</span><span class="p">]</span>
+         <span class="p">[</span><span class="o">-</span><span class="n">S</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">runprefix</span><span class="o">=</span><span class="n">CMD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">logdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">workdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span>
+         <span class="p">[</span><span class="o">--</span><span class="n">governor</span><span class="o">-</span><span class="n">config</span><span class="o">=</span><span class="n">PATH</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">remote</span><span class="o">-</span><span class="n">init</span><span class="o">=</span><span class="n">COMMANDS</span><span class="p">]</span>
+<span class="n">rain</span> <span class="n">start</span> <span class="o">--</span><span class="n">local</span><span class="o">-</span><span class="n">governors</span> <span class="p">[</span><span class="o">--</span><span class="n">listen</span><span class="o">=</span><span class="n">ADDRESS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">http</span><span class="o">-</span><span class="n">listen</span><span class="o">=</span><span class="n">ADDRESS</span><span class="p">]</span>
+         <span class="p">[</span><span class="o">-</span><span class="n">S</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">runprefix</span><span class="o">=</span><span class="n">CMD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">logdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">workdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span>
+         <span class="p">[</span><span class="o">--</span><span class="n">governor</span><span class="o">-</span><span class="n">config</span><span class="o">=</span><span class="n">PATH</span><span class="p">]</span>
+<span class="n">rain</span> <span class="n">start</span> <span class="o">--</span><span class="n">governor</span><span class="o">-</span><span class="n">host</span><span class="o">-</span><span class="n">file</span><span class="o">=</span><span class="n">FILE</span> <span class="p">[</span><span class="o">-</span><span class="n">S</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">listen</span><span class="o">=</span><span class="n">ADDRESS</span><span class="p">]</span>
+         <span class="p">[</span><span class="o">--</span><span class="n">http</span><span class="o">-</span><span class="n">listen</span><span class="o">=</span><span class="n">ADDRESS</span><span class="p">]</span>
+         <span class="p">[</span><span class="o">-</span><span class="n">S</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">runprefix</span><span class="o">=</span><span class="n">CMD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">logdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">workdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span>
+         <span class="p">[</span><span class="o">--</span><span class="n">governor</span><span class="o">-</span><span class="n">config</span><span class="o">=</span><span class="n">PATH</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">remote</span><span class="o">-</span><span class="n">init</span><span class="o">=</span><span class="n">COMMANDS</span><span class="p">]</span>
+
+<span class="n">rain</span> <span class="n">server</span> <span class="p">[</span><span class="o">--</span><span class="n">listen</span><span class="o">=</span><span class="n">LISTEN_ADDRESS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">http</span><span class="o">-</span><span class="n">listen</span><span class="o">=</span><span class="n">LISTEN_ADDRESS</span><span class="p">]</span>
+            <span class="p">[</span><span class="o">--</span><span class="n">logdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">ready</span><span class="o">-</span><span class="n">file</span><span class="o">=&lt;</span><span class="n">FILE</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="n">rain</span> <span class="n">governor</span> <span class="p">[</span><span class="o">--</span><span class="n">cpus</span><span class="o">=</span><span class="n">N</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">workdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">logdir</span><span class="o">=</span><span class="n">DIR</span><span class="p">]</span>
+            <span class="p">[</span><span class="o">--</span><span class="n">ready</span><span class="o">-</span><span class="n">file</span><span class="o">=</span><span class="n">FILE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">config</span><span class="o">=</span><span class="n">PATH</span><span class="p">]</span> <span class="n">SERVER_ADDRESS</span><span class="p">[:</span><span class="n">PORT</span><span class="p">]</span>
+<span class="n">rain</span> <span class="o">--</span><span class="n">version</span> <span class="o">|</span> <span class="o">-</span><span class="n">v</span>
+<span class="n">rain</span> <span class="o">--</span><span class="n">help</span> <span class="o">|</span> <span class="o">-</span><span class="n">h</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="command-start">
+<h3>Command: start<a class="headerlink" href="#command-start" title="Permalink to this headline">¶</a></h3>
+<p>Starts Rain infrastructure (server &amp; governors), makes sure that everything is
+ready and terminates.</p>
+<dl class="docutils">
+<dt><strong>–simple</strong></dt>
+<dd>Starts server and one local governor that gains all resources of the local
+machine.</dd>
+<dt><strong>–autoconf=CONF</strong></dt>
+<dd><p class="first">Automatic configuration from the environment. Possible options are:</p>
+<ul class="last simple">
+<li><em>pbs</em> - If executed in an PBS job, it starts server on current node and
+governor on each node.</li>
+</ul>
+</dd>
+<dt><strong>–local-governors=RESOURCES</strong></dt>
+<dd>Start local with a given number of cpus. E.g. –local-governors=[4,4,2]
+starts three governors: two with 4 cpus and one with 2 cpus.</dd>
+<dt><strong>–governor-config=PATH</strong></dt>
+<dd>Path to governor config. It is passed as –config argument for all governors.</dd>
+<dt><strong>–governor-host-file=FILE</strong></dt>
+<dd><p class="first">Starts local server and remote governors. FILE should be file containing
+name of hosts, one per line.</p>
+<p>The current version assumes the following of each host:</p>
+<ul class="last simple">
+<li>SSH server is running.</li>
+<li>Rain is installed in the same directory as on the machine
+from which that <code class="docutils literal"><span class="pre">rain</span> <span class="pre">start</span></code> is executed.</li>
+</ul>
+</dd>
+<dt><strong>-S</strong></dt>
+<dd><p class="first">Serves for reserving a CPU on server node. If remote governor
+detects that it is running on the same machine as server then it
+is executed with <code class="docutils literal"><span class="pre">--cpus=-1</span></code>.</p>
+<p class="last">The detection is based on checking if the server PID exists on the remote
+machine and program name is “rain”.</p>
+</dd>
+<dt><strong>–listen=(PORT|ADDRESS|ADDRESS:PORT)</strong></dt>
+<dd>Set listening address of server. Default is 0.0.0.0:7210.</dd>
+<dt><strong>–http-listen=(PORT|ADDRESS|ADDRESS:PORT)</strong></dt>
+<dd>Set listening address of server for HTTP (dashboard). Default is 0.0.0.0:8080.</dd>
+<dt><strong>–runprefix</strong></dt>
+<dd>Set a command before rain programs. It is designed to used to run
+analytical tools (e.g. –runprefix=”valgrind –tool=callgrind”)</dd>
+<dt><strong>–logdir=DIR</strong></dt>
+<dd>The option is unchanged propagated into the server and governors.</dd>
+<dt><strong>–workdir=DIR</strong></dt>
+<dd>The option is unchanged propagated into governors.</dd>
+<dt><strong>–remote-init=COMMAND</strong></dt>
+<dd>Commands executed on each remote connection. For example:
+<code class="docutils literal"><span class="pre">--remote-init=&quot;export</span> <span class="pre">PATH=$PATH:/path/bin&quot;</span></code>.</dd>
+</dl>
+</div>
+<div class="section" id="command-server">
+<h3>Command: server<a class="headerlink" href="#command-server" title="Permalink to this headline">¶</a></h3>
+<p>Runs Rain server.</p>
+<dl class="docutils">
+<dt><strong>–listen=(PORT|ADDRESS|ADDRESS:PORT)</strong></dt>
+<dd>Set listening address of server. Default is 0.0.0.0:7210.</dd>
+<dt><strong>–logdir=DIR</strong></dt>
+<dd>Set logging directory of server. Default is /tmp/rain/logs/server-&lt;HOSTNAME&gt;-PID.</dd>
+<dt><strong>–ready-file=FILE</strong></dt>
+<dd>Create file containing a single line “ready”, when the server is fully initialized
+and ready to accept connections.</dd>
+</dl>
+</div>
+<div class="section" id="command-governor">
+<h3>Command: governor<a class="headerlink" href="#command-governor" title="Permalink to this headline">¶</a></h3>
+<p>Runs Rain governor.</p>
+<dl class="docutils">
+<dt><strong>SERVER_ADDRESS[:PORT]</strong></dt>
+<dd>An address where a server listens. If the port is omitted than port 7210 is
+used.</dd>
+<dt><strong>–config=PATH</strong></dt>
+<dd>Set a path for a governor config.</dd>
+<dt><strong>–cpus=N</strong></dt>
+<dd><p class="first">Set a number of cpus available to the governor (default: ‘detect’)</p>
+<ul class="last simple">
+<li>If ‘detect’ is used then the all cores in the machine is used.</li>
+<li>If a positive number is used then value is used as the number of available
+cpus.</li>
+<li>If a negative number -X is used then the number of cores is detected and X
+is subtracted from this number, the resulting number is used as the number
+of available cpus.</li>
+</ul>
+</dd>
+<dt><strong>–listen=(PORT|ADDRESS|ADDRESS:PORT)</strong></dt>
+<dd>Set listening address of governor for governor-to-governor connections. When port is
+0 then a open random port is assigned. The default is 0.0.0.0:0.</dd>
+<dt><strong>–logdir=DIR</strong></dt>
+<dd>Set the logging directory for the governor. Default is
+<code class="docutils literal"><span class="pre">/tmp/rain/logs/governor-&lt;HOSTNAME&gt;-&lt;PID&gt;/logs</span></code>.</dd>
+<dt><strong>–ready-file=FILE</strong></dt>
+<dd>Creates the file containing a single line “ready”, when the governor is
+connected to server and ready to accept governor-to-governor connections.</dd>
+<dt><strong>–workdir=DIR</strong></dt>
+<dd><p class="first">Set the working directory where the governor stores intermediate results.
+The defautl is <code class="docutils literal"><span class="pre">/tmp/rain/work/governor-&lt;HOSTNAME&gt;-&lt;PID&gt;</span></code></p>
+<div class="last admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Rain assumes that working directory is placed on a fast device (ideally
+ramdisk). Avoid placing workdir on a network file system.</p>
+</div>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="examples.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="executors.html" class="btn btn-neutral" title="Writing Own Executors" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

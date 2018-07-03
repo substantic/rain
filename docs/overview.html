@@ -1,0 +1,430 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Overview &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="index.html"/>
+        <link rel="next" title="Quickstart" href="quickstart.html"/>
+        <link rel="prev" title="Welcome to Rain’s documentation!" href="index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-in-the-box">What is in the box</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#python-client">Python Client</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rain-core-infrastructure">Rain Core Infrastructure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#executors">Executors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#future-directions">Future directions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#better-dashboard">Better dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#better-scheduler">Better scheduler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#resiliency">Resiliency</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#resources">Resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stream-objects-support">Stream objects support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rest-client-interface">REST client interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#easier-deployment-in-cloud-settings">Easier Deployment in cloud settings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#what-we-do-not-want-to-do">What we do <em>NOT</em> want to do</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#visual-editor">Visual editor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#user-isolation-and-task-sandboxing">User isolation and task sandboxing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fair-user-scheduling-accounting-and-quotas">Fair user scheduling, accounting and quotas</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#comparison-with-similar-tools">Comparison with similar tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#roadmap">Roadmap</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html">User’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="executors.html">Writing Own Executors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation, Running &amp; Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python_api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Contributors’s Guide</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Overview</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/overview.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
+<p><strong>Rain</strong> is an open-source distributed computational framework for large-scale
+task-based pipelines.</p>
+<p>Rain aims to lower the entry barrier to the world of distributed computing and
+to do so efficiently and within any scale. Our intention is to develop a light
+yet robust distributed framework that features an intuitive <a class="reference external" href="https://www.python.org/">Python</a> API,
+straightforward installation and deployment with insightful monitoring on top.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Despite that this is an early release of Rain, it is a fully functional
+project that can be used out-of-the box. Being aware that there is still
+a lot that can be improved and added, we are looking for external
+users and collaborators to drive our future work, both enthusiasts, from the
+industry and the scientific community. Talk to us online at <a class="reference external" href="https://gitter.im/substantic/rain">Gitter</a> or via email
+and let us know what your project needs and use-cases, submit bugs or feature
+requests at <a class="reference external" href="https://github.com/substantic/rain">GitHub</a> or even contribute with pull requests.</p>
+</div>
+<ul class="simple">
+<li><strong>Dataflow programming.</strong> Computation in Rain is defined as a flow graph of
+tasks. Tasks may be built-in functions, Python code, or an external
+applications, short and light or long-running and heavy. The system is
+designed to integrate any code into a pipeline, respecting its resource
+requirements, and to handle very large task graphs (hundreds thousands tasks).</li>
+<li><strong>Easy to use.</strong> Rain was designed to be easy to deployed anywhere, ranging
+from a single node deployments to large-scale distributed systems and clouds
+ranging thousands of cores.</li>
+<li><strong>Rust core, Python API.</strong> Rain is written in <a class="reference external" href="https://www.rust-lang.org/en-US/">Rust</a> for safety and efficiency
+and has a high-level Python API to Rain core infrastructure, and even supports
+Python tasks out-of-the-box. Nevertheless, Rain core infrastructure provides
+a language-independent interface that does not prevent adding support for
+other languages in the future.</li>
+<li><strong>Tasks in Python/C++/Rust</strong> Rain provides a way to define user-defined tasks
+in Python, C++, and Rust.</li>
+<li><strong>Monitoring</strong> Rain is designed to support both online and postmortem
+monitoring.</li>
+</ul>
+<p>** <a class="reference internal" href="quickstart.html"><span class="doc">Get started now.</span></a> **</p>
+<div class="section" id="what-is-in-the-box">
+<h2>What is in the box<a class="headerlink" href="#what-is-in-the-box" title="Permalink to this headline">¶</a></h2>
+<p>Rain infrastructure composes of a central <strong>server</strong> component and <strong>governor</strong>
+components, that may run on different machines. A governor may spawn one or more
+<strong>executors</strong> that are local processes that provides execution of an external
+code. Rain is distributed with Python executor. Rain also provides libraries
+for C++ and Rust for writing own specialized executors.</p>
+<p>Users interacts with server via
+<strong>client</strong> applications. Rain is distributed with Python client API.</p>
+<div class="figure">
+<img alt="Connection between basic components of Rain" src="_images/arch.svg" /></div>
+<div class="section" id="python-client">
+<h3>Python Client<a class="headerlink" href="#python-client" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><ul class="simple">
+<li>Task-based programming model.</li>
+<li>High-level interface to Rain core infrastructure.</li>
+<li>Easy definition of various types of tasks and their inter-dependencies.</li>
+<li>Python3 module.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="rain-core-infrastructure">
+<h3>Rain Core Infrastructure<a class="headerlink" href="#rain-core-infrastructure" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><ul class="simple">
+<li>Basic scheduling heuristic respecting inter-task dependencies.</li>
+<li>Rust implementation enabling easy build, deployment, and reliable run.</li>
+<li>Distributed as all-in-one binary.</li>
+<li>Direct governor-to-governor communication.</li>
+<li>Basic dashboard for execution monitoring.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="executors">
+<h3>Executors<a class="headerlink" href="#executors" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><ul class="simple">
+<li>Possibility to define own tasks in Python, C++, and Rust</li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+<div class="section" id="future-directions">
+<h2>Future directions<a class="headerlink" href="#future-directions" title="Permalink to this headline">¶</a></h2>
+<p>There are many things to improve and even more new things to add. To work
+efficiently we need to prioritize, and for that we need your feedback and use
+cases. Which features would you like to see and put to good use? What kind of
+pipelines do you run?</p>
+<div class="section" id="better-dashboard">
+<h3>Better dashboard<a class="headerlink" href="#better-dashboard" title="Permalink to this headline">¶</a></h3>
+<p>Better interactive view on the current and past computation status, including
+post-mortem analysis. Which stats and views give you the most insight?</p>
+</div>
+<div class="section" id="better-scheduler">
+<h3>Better scheduler<a class="headerlink" href="#better-scheduler" title="Permalink to this headline">¶</a></h3>
+<p>While surprisingly efficient, the current scheduler is currently mostly based on
+heuristics and rules. We plan to replace it with an incremental global scheduler
+based on belief propagation.</p>
+</div>
+<div class="section" id="resiliency">
+<h3>Resiliency<a class="headerlink" href="#resiliency" title="Permalink to this headline">¶</a></h3>
+<p>The current version supports and propagates some failures (remote python task
+exceptions, external program errors) but other errors still cause server panic
+(e.g. governor node failure). The near-term goal is to have better failure modes
+for introspection and possibly recovery. The system is designed to allow
+building resiliency against task or governor failures via checkpoints in the task
+graph (keeping file copies). It is not clear how useful to our users this would
+be but it is on our radar.</p>
+</div>
+<div class="section" id="resources">
+<h3>Resources<a class="headerlink" href="#resources" title="Permalink to this headline">¶</a></h3>
+<p>Currently, the only resources supported are CPU cores. We are working on also
+supporting memory requirements, but other resources (GPUs, TPUs, disk space,
+…) should be possible with enough work and interest.</p>
+</div>
+<div class="section" id="stream-objects-support">
+<h3>Stream objects support<a class="headerlink" href="#stream-objects-support" title="Permalink to this headline">¶</a></h3>
+<p>Some tasks work in a streaming fashion and it would be inefficient to wait for
+their entire output before starting a consumer task. We plan to include
+streaming data objects but there are semantic and usage issues about resources,
+scheduling, multiple consumers and resiliency.</p>
+</div>
+<div class="section" id="rest-client-interface">
+<h3>REST client interface<a class="headerlink" href="#rest-client-interface" title="Permalink to this headline">¶</a></h3>
+<p>The capnp API is a bit heavy-handed for a client API. We plan to create a REST
+API for the client applications, simplifying API creation in new languages, and
+to unify it with the dashboard/status query API. External REST apis are
+convenient for many users and they do not seem to be a performance bottleneck.</p>
+</div>
+<div class="section" id="easier-deployment-in-cloud-settings">
+<h3>Easier Deployment in cloud settings<a class="headerlink" href="#easier-deployment-in-cloud-settings" title="Permalink to this headline">¶</a></h3>
+<p>The Rust binary is already one statically linked file and one python-only
+library, making distribution easy and running on PBS is already supported. We
+would like to add better support for cloud settings, e.g. AWS and Kubernetes.</p>
+</div>
+</div>
+<div class="section" id="what-we-do-not-want-to-do">
+<h2>What we do <em>NOT</em> want to do<a class="headerlink" href="#what-we-do-not-want-to-do" title="Permalink to this headline">¶</a></h2>
+<p>There are also some directions we do NOT intend to focus on in the scope of Rain.</p>
+<div class="section" id="visual-editor">
+<h3>Visual editor<a class="headerlink" href="#visual-editor" title="Permalink to this headline">¶</a></h3>
+<p>We do not plan to support visual creation and editing of pipelines. The scale of
+reasonably editable workflows is usually very small. We focus on clean and easy
+client APIs and great visualization.</p>
+</div>
+<div class="section" id="user-isolation-and-task-sandboxing">
+<h3>User isolation and task sandboxing<a class="headerlink" href="#user-isolation-and-task-sandboxing" title="Permalink to this headline">¶</a></h3>
+<p>We do not plan to limit malicious users or tasks from doing any harm. Use
+existing tools for task isolation. The system is lightweight enough to have one
+instance per user if necessary.</p>
+</div>
+<div class="section" id="fair-user-scheduling-accounting-and-quotas">
+<h3>Fair user scheduling, accounting and quotas<a class="headerlink" href="#fair-user-scheduling-accounting-and-quotas" title="Permalink to this headline">¶</a></h3>
+<p>When running multiple sessions, there is no intention to fairly schedule or
+prioritize them. The objective is only overall efficient resource usage.</p>
+</div>
+</div>
+<div class="section" id="comparison-with-similar-tools">
+<h2>Comparison with similar tools<a class="headerlink" href="#comparison-with-similar-tools" title="Permalink to this headline">¶</a></h2>
+<p>TODO</p>
+</div>
+<div class="section" id="roadmap">
+<h2>Roadmap<a class="headerlink" href="#roadmap" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="https://github.com/substantic/rain/issues/64">https://github.com/substantic/rain/issues/64</a></p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="quickstart.html" class="btn btn-neutral float-right" title="Quickstart" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="Welcome to Rain’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

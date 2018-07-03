@@ -1,0 +1,414 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>rain.client.pycode &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user.html">User’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../executors.html">Writing Own Executors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation, Running &amp; Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../python_api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev.html">Contributors’s Guide</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>rain.client.pycode</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for rain.client.pycode</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">base64</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+
+<span class="kn">import</span> <span class="nn">cloudpickle</span>
+
+<span class="kn">from</span> <span class="nn">..common</span> <span class="k">import</span> <span class="n">RainException</span><span class="p">,</span> <span class="n">RainWarning</span>
+<span class="kn">from</span> <span class="nn">.data</span> <span class="k">import</span> <span class="n">blob</span>
+<span class="kn">from</span> <span class="nn">.input</span> <span class="k">import</span> <span class="n">Input</span>
+<span class="kn">from</span> <span class="nn">.output</span> <span class="k">import</span> <span class="n">OutputSpec</span>
+<span class="kn">from</span> <span class="nn">.session</span> <span class="k">import</span> <span class="n">get_active_session</span>
+<span class="kn">from</span> <span class="nn">.task</span> <span class="k">import</span> <span class="n">Task</span>
+
+<span class="n">PICKLE_ARG_SIZE_LIMIT</span> <span class="o">=</span> <span class="mi">256</span> <span class="o">*</span> <span class="mi">1024</span>
+<span class="n">PICKLE_ARG_TIME_LIMIT</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+
+<span class="c1"># Base name of current argument and growing list of input data objects</span>
+<span class="c1"># while Py task arguments are pickled.</span>
+<span class="c1"># `[arg_base_name, counter, inputs_list, input_prototype]`</span>
+<span class="n">_global_pickle_inputs</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">_pickle_inputs_context</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">input_prototype</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Context manager to store current argument name and growing input</span>
+<span class="sd">    objects list while Py task arguments are unpickled. Internal, not</span>
+<span class="sd">    thread safe, not reentrant.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_global_pickle_inputs</span>
+    <span class="k">assert</span> <span class="n">_global_pickle_inputs</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="n">_global_pickle_inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">input_prototype</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">_global_pickle_inputs</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<span class="k">def</span> <span class="nf">_checked_cloudpickle</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Perform cloudpickle.dumps and issue a warning if the result is</span>
+<span class="sd">    unexpectedly big (PICKLE_ARG_SIZE_LIMIT) or it takes too</span>
+<span class="sd">    long (PICKLE_ARG_TIME_LIMIT).&quot;&quot;&quot;</span>
+    <span class="n">t0</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cloudpickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">PICKLE_ARG_SIZE_LIMIT</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">RainWarning</span><span class="p">(</span><span class="s2">&quot;Pickled object </span><span class="si">{}</span><span class="s2"> length </span><span class="si">{}</span><span class="s2"> &gt; PICKLE_ARG_SIZE_LIMIT=</span><span class="si">{}</span><span class="s2">. &quot;</span>
+                          <span class="s2">&quot;Consider using a blob() for the data.&quot;</span>
+                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span> <span class="ow">or</span> <span class="s1">&#39;&lt;unknown&gt;&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="p">),</span> <span class="n">PICKLE_ARG_SIZE_LIMIT</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">clock</span><span class="p">()</span> <span class="o">-</span> <span class="n">t0</span> <span class="o">&gt;</span> <span class="n">PICKLE_ARG_TIME_LIMIT</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">RainWarning</span><span class="p">(</span><span class="s2">&quot;Pickling object </span><span class="si">{}</span><span class="s2"> took </span><span class="si">{}</span><span class="s2"> s &gt; PICKLE_ARG_TIME_LIMIT=</span><span class="si">{}</span><span class="s2">. &quot;</span>
+                          <span class="s2">&quot;Consider using a blob() for the data.&quot;</span>
+                          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span> <span class="ow">or</span> <span class="s1">&#39;&lt;unknown&gt;&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="p">),</span> <span class="n">PICKLE_ARG_TIME_LIMIT</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+
+<span class="k">def</span> <span class="nf">_checked_cloudpickle_to_string</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Same as _changed_pickle but encodes result to base64 string&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">base64</span><span class="o">.</span><span class="n">b64encode</span><span class="p">(</span><span class="n">_checked_cloudpickle</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="remote"><a class="viewcode-back" href="../../../python_api.html#rain.client.remote">[docs]</a><span class="k">def</span> <span class="nf">remote</span><span class="p">(</span><span class="o">*</span><span class="p">,</span>
+           <span class="n">outputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+           <span class="n">inputs</span><span class="o">=</span><span class="p">(),</span>
+           <span class="n">auto_load</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+           <span class="n">auto_encode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+           <span class="n">cpus</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="s2">&quot;Decorator for :py:class:`Remote`, see the documentation there.&quot;</span>
+    <span class="k">def</span> <span class="nf">make_remote</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isfunction</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">RainException</span><span class="p">(</span>
+                <span class="s2">&quot;remote() arg </span><span class="si">{!r}</span><span class="s2"> is not a function&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fn</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">Remote</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span>
+                      <span class="n">outputs</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span>
+                      <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+                      <span class="n">auto_load</span><span class="o">=</span><span class="n">auto_load</span><span class="p">,</span>
+                      <span class="n">auto_encode</span><span class="o">=</span><span class="n">auto_encode</span><span class="p">,</span>
+                      <span class="n">cpus</span><span class="o">=</span><span class="n">cpus</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">make_remote</span></div>
+
+
+<div class="viewcode-block" id="Remote"><a class="viewcode-back" href="../../../python_api.html#rain.client.Remote">[docs]</a><span class="k">class</span> <span class="nc">Remote</span><span class="p">:</span>
+    <span class="c1"># The function to run remotely</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># OutputSpec for output data objects</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Dict of named argument Input specs, including args and kwargs</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                 <span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">outputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">auto_load</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">auto_encode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">cpus</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fn</span> <span class="o">=</span> <span class="n">fn</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="o">.</span><span class="vm">__code__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpus</span> <span class="o">=</span> <span class="n">cpus</span>
+
+        <span class="k">if</span> <span class="s1">&#39;return&#39;</span> <span class="ow">in</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__annotations__</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">outputs</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">fn</span><span class="o">.</span><span class="vm">__annotations__</span><span class="p">[</span><span class="s1">&#39;return&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">outputs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="n">OutputSpec</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="n">outputs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="o">.</span><span class="n">outputs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">encode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">o</span><span class="o">.</span><span class="n">encode</span> <span class="o">=</span> <span class="n">auto_encode</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">code</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="o">.</span><span class="vm">__annotations__</span>
+                <span class="n">inp</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="o">.</span><span class="vm">__annotations__</span><span class="p">:</span>
+                <span class="n">inp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="o">.</span><span class="vm">__annotations__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">inp</span> <span class="o">=</span> <span class="n">Input</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">Input</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">inp</span><span class="o">.</span><span class="n">load</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">inp</span><span class="o">.</span><span class="n">load</span> <span class="o">=</span> <span class="n">auto_load</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">inp</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># TODO(gavento): Use Input()s arguments</span>
+        <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">session</span> <span class="o">=</span> <span class="n">get_active_session</span><span class="p">()</span>
+
+        <span class="c1"># cache the code in a static blob</span>
+        <span class="n">fn_blob</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">_static_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fn_blob</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">_checked_cloudpickle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+            <span class="n">fn_blob</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;cloudpickle&quot;</span><span class="p">)</span>
+            <span class="n">fn_blob</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">_static_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">]</span> <span class="o">=</span> <span class="n">fn_blob</span>
+
+        <span class="n">input_objs</span> <span class="o">=</span> <span class="p">[</span><span class="n">fn_blob</span><span class="p">]</span>
+
+        <span class="c1"># Check the parameter compatibility for fn</span>
+        <span class="c1"># Note that the first arg is the context</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="p">)</span>
+        <span class="n">sig</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fn</span><span class="o">.</span><span class="vm">__code__</span>
+
+        <span class="c1"># Pickle positional args</span>
+        <span class="n">pickled_args</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">argval</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">code</span><span class="o">.</span><span class="n">co_argcount</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">code</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">input_proto</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">args_name</span> <span class="o">=</span> <span class="n">code</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">[</span><span class="n">code</span><span class="o">.</span><span class="n">co_argcount</span> <span class="o">+</span>
+                                             <span class="n">code</span><span class="o">.</span><span class="n">co_kwonlyargcount</span><span class="p">]</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">[</span><span class="si">{}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args_name</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">code</span><span class="o">.</span><span class="n">co_argcount</span><span class="p">)</span>
+                <span class="n">input_proto</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">args_name</span><span class="p">]</span>
+            <span class="c1"># Within this session state, the DataObjects are seialized as</span>
+            <span class="c1"># executor.unpickle_input_object call</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_proto</span><span class="p">,</span> <span class="n">Input</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">_pickle_inputs_context</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">input_objs</span><span class="p">,</span> <span class="n">input_proto</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_checked_cloudpickle_to_string</span><span class="p">(</span><span class="n">argval</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">pickled_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+        <span class="c1"># Pickle keyword args</span>
+        <span class="n">pickled_kwargs</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">argval</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">input_proto</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="n">code</span><span class="o">.</span><span class="n">co_varnames</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="c1"># Within this session state, the DataObjects are seialized as</span>
+            <span class="c1"># executor.unpickle_input_object call</span>
+            <span class="k">with</span> <span class="n">_pickle_inputs_context</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">input_objs</span><span class="p">,</span> <span class="n">input_proto</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_checked_cloudpickle_to_string</span><span class="p">(</span><span class="n">argval</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">pickled_kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span>
+
+        <span class="c1"># create list of Output objects and DO instances</span>
+        <span class="n">output_objs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
+            <span class="n">output</span><span class="o">=</span><span class="n">output</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+
+        <span class="n">task_config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="n">pickled_args</span><span class="p">,</span>
+            <span class="s1">&#39;kwargs&#39;</span><span class="p">:</span> <span class="n">pickled_kwargs</span><span class="p">,</span>
+            <span class="s1">&#39;encode_outputs&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="o">.</span><span class="n">encode</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">Task</span><span class="p">(</span><span class="n">input_objs</span><span class="p">,</span> <span class="n">output_objs</span><span class="p">,</span> <span class="n">task_type</span><span class="o">=</span><span class="s2">&quot;py/&quot;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">task_config</span><span class="p">,</span> <span class="n">cpus</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cpus</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

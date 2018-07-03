@@ -1,0 +1,444 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>rain.client.task &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user.html">User’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../executors.html">Writing Own Executors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation, Running &amp; Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../python_api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev.html">Contributors’s Guide</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>rain.client.task</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for rain.client.task</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">.session</span> <span class="k">import</span> <span class="n">get_active_session</span>
+<span class="kn">from</span> <span class="nn">.data</span> <span class="k">import</span> <span class="n">DataObject</span><span class="p">,</span> <span class="n">to_dataobj</span>
+<span class="kn">from</span> <span class="nn">.output</span> <span class="k">import</span> <span class="n">OutputBase</span>
+<span class="kn">from</span> <span class="nn">..common</span> <span class="k">import</span> <span class="n">RainException</span><span class="p">,</span> <span class="n">ID</span><span class="p">,</span> <span class="n">LabeledList</span>
+<span class="kn">from</span> <span class="nn">..common.attributes</span> <span class="k">import</span> <span class="n">TaskSpec</span><span class="p">,</span> <span class="n">TaskSpecInput</span>
+
+<span class="kn">import</span> <span class="nn">traceback</span>
+
+
+<span class="n">_task_type_register</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<span class="k">class</span> <span class="nc">TaskMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A metaclass to register all subclasses of Task in `_task_type_register`.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">clsdict</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">_task_type_register</span>
+        <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">meta</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">clsdict</span><span class="p">)</span>
+        <span class="n">task_type</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">TASK_TYPE</span>
+        <span class="k">if</span> <span class="n">task_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_task_type_register</span><span class="p">[</span><span class="n">task_type</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+        <span class="k">return</span> <span class="bp">cls</span>
+
+
+<div class="viewcode-block" id="Task"><a class="viewcode-back" href="../../../python_api.html#rain.client.Task">[docs]</a><span class="k">class</span> <span class="nc">Task</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">TaskMeta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A task instance in the task graph.</span>
+
+<span class="sd">    `__init__` creates a single task instance, inserts it into `Session`</span>
+<span class="sd">    and assigns it an `ID`. Creates output `DataObject` instances based</span>
+<span class="sd">    on `outputs` given.</span>
+
+<span class="sd">    `Task` is commonly created by functions in `rain.client.tasks`, or task builders</span>
+<span class="sd">    created by `Remote` or `Program`. Always belongs to a `Session` and has a valid `ID`.</span>
+<span class="sd">    You may wish to call it explicitely (or subclass it) when creating your own task-types.</span>
+
+<span class="sd">    Particular task types are not realized via subclasses but</span>
+<span class="sd">    with string `task_type` attribute. (Subclassing may be introduced later.)</span>
+
+<span class="sd">    The task state is *not* automatically updated by the server. The state and</span>
+<span class="sd">    attributes are updated on `Task.update()`, `Task.fetch()` and `Task.wait()`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        task_type (`str`): Task-type name known to rain governors.</span>
+<span class="sd">        config: Any task-specific config.</span>
+<span class="sd">        inputs (`LabeledList` or sequence): Sequence of `Input` or `DataObject`.</span>
+<span class="sd">        outputs (`LabeledList` or sequence): Specification of `Output`\ s for the task.</span>
+<span class="sd">        session (`Session` or `None`): Session to create the task in.</span>
+<span class="sd">            If not specified, the current `Session` is used.</span>
+<span class="sd">        cpus (`int`): Number of cpus.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        id (`ID`): Auto-assigned task ID.</span>
+<span class="sd">        inputs (`LabeledList[DataObject]`): Input objects.</span>
+<span class="sd">        outputs (`LabeledList[DataObject]`): Output objects created by the task.</span>
+<span class="sd">        output (`DataObject`): Shortcut for `outputs[0]`. Raises Exception on multiple outputs.</span>
+<span class="sd">        spec (`TaskSpec`): Task specification data.</span>
+<span class="sd">        info (`TaskInfo`): Task state information on last update.</span>
+<span class="sd">        state (`TaskState` enum): Task state on last update.</span>
+<span class="sd">        stack (str): Text description of stack when task was created, used for debug messages</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TASK_TYPE</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># State of object</span>
+    <span class="c1"># None = Not submitted</span>
+    <span class="n">_state</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_stack</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">inputs</span><span class="p">,</span>
+                 <span class="n">outputs</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span>
+                 <span class="n">config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">task_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">cpus</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">user_spec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span> <span class="o">=</span> <span class="n">TaskSpec</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_info</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">session</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">session</span> <span class="o">=</span> <span class="n">get_active_session</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_session</span> <span class="o">=</span> <span class="n">session</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">_register_task</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">ID</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">task_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">task_type</span> <span class="o">=</span> <span class="n">task_type</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">TASK_TYPE</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Provide </span><span class="si">{}</span><span class="s2">.TASK_TYPE or task_type=... information.&quot;</span>
+                    <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">task_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TASK_TYPE</span>
+
+        <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+
+        <span class="k">if</span> <span class="n">cpus</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">resources</span><span class="p">[</span><span class="s1">&#39;cpus&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cpus</span>
+
+        <span class="k">def</span> <span class="nf">to_data_object</span><span class="p">(</span><span class="n">o</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">DataObject</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">o</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">OutputBase</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">o</span><span class="o">.</span><span class="n">create_data_object</span><span class="p">(</span><span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">DataObject</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">o</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Only `OutputBase`, `DataObject` and `str` allowed as outputs.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">outputs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">DataObject</span><span class="p">(</span><span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">outputs</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">to_data_object</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_outputs</span> <span class="o">=</span> <span class="n">LabeledList</span><span class="p">(</span><span class="n">pairs</span><span class="o">=</span><span class="p">((</span><span class="n">output</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+                                           <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">o</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outputs</span><span class="p">]</span>
+
+        <span class="n">input_pairs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="nb">input</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">label</span><span class="p">,</span> <span class="n">inp</span> <span class="o">=</span> <span class="nb">input</span>
+                <span class="n">input_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">label</span><span class="p">,</span> <span class="n">to_dataobj</span><span class="p">(</span><span class="n">inp</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">input_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_dataobj</span><span class="p">(</span><span class="nb">input</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span> <span class="o">=</span> <span class="n">LabeledList</span><span class="p">(</span><span class="n">pairs</span><span class="o">=</span><span class="n">input_pairs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">TaskSpecInput</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">i</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">lab</span><span class="p">)</span> <span class="k">for</span> <span class="n">lab</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+
+        <span class="n">stack</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">extract_stack</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+        <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>  <span class="c1"># Last entry is not usefull, it is actually line above</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stack</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_list</span><span class="p">(</span><span class="n">stack</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Getter for Task ID.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Getter for Task state on last update.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">spec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Getter for Task specification. Read only!&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Getter for Task info on last update (`None` when never updated). Read only!&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_info</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">task_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Getter for task_type identifier.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spec</span><span class="o">.</span><span class="n">task_type</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Getter for inputs LabeledList. Read only!&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Getter for outputs LabeledList. Read only!&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outputs</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Getter for the only output of the task. Fails if `len(self.outputs)!=1`.&quot;&quot;&quot;</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RainException</span><span class="p">(</span><span class="s2">&quot;Task </span><span class="si">{!r}</span><span class="s2"> has no unique output (outputs=</span><span class="si">{}</span><span class="s2">)&quot;</span>
+                                <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">count</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Task.keep_outputs"><a class="viewcode-back" href="../../../python_api.html#rain.client.Task.keep_outputs">[docs]</a>    <span class="k">def</span> <span class="nf">keep_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Keep all output objects of the task.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Task.unkeep_outputs"><a class="viewcode-back" href="../../../python_api.html#rain.client.Task.unkeep_outputs">[docs]</a>    <span class="k">def</span> <span class="nf">unkeep_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unkeep all output objects of the task.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">unkeep</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Task.fetch_outputs"><a class="viewcode-back" href="../../../python_api.html#rain.client.Task.fetch_outputs">[docs]</a>    <span class="k">def</span> <span class="nf">fetch_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fetch all outputs of the task.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            [`DataInstance`]: Fetched output data.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">output</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span> <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="Task.wait"><a class="viewcode-back" href="../../../python_api.html#rain.client.Task.wait">[docs]</a>    <span class="k">def</span> <span class="nf">wait</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Wait for the task to complete. See `Session.wait()`.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_session</span><span class="o">.</span><span class="n">wait</span><span class="p">((</span><span class="bp">self</span><span class="p">,))</span></div>
+
+<div class="viewcode-block" id="Task.update"><a class="viewcode-back" href="../../../python_api.html#rain.client.Task.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Update task state and attributes. See `Session.update()`.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_session</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="bp">self</span><span class="p">,))</span></div>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">, inputs </span><span class="si">{}</span><span class="s2">, outputs </span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">task_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Speciaization to replace with executor.unpickle_input_object</span>
+<span class="sd">        in Python task args while (cloud)pickling. Raises RainError when</span>
+<span class="sd">        using task with `len(outputs) != 1` as a data object.&quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">pycode</span>
+        <span class="k">if</span> <span class="n">pycode</span><span class="o">.</span><span class="n">_global_pickle_inputs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># call normal __reduce__</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__reduce__</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">__reduce__</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,331 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Contributors’s Guide &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="index.html"/>
+        <link rel="prev" title="Python API" href="python_api.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html">User’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="executors.html">Writing Own Executors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation, Running &amp; Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python_api.html">Python API</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Contributors’s Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#scripts">Scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#python-tests">Python tests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#dashboard">Dashboard</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#development">Development</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#deployment">Deployment</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Contributors’s Guide</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/dev.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="contributors-s-guide">
+<h1>Contributors’s Guide<a class="headerlink" href="#contributors-s-guide" title="Permalink to this headline">¶</a></h1>
+<p>We welcome contributions of any kind. Do not hesitate to open an GitHub issue or
+contant us via email; this part of documentation is quite sparse.</p>
+<div class="section" id="scripts">
+<h2>Scripts<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><code class="xref any docutils literal"><span class="pre">utils/checks/stylecheck.sh</span></code> – Runs code style checks (flake8 &amp; dry cargo fmt)</li>
+<li><code class="xref any docutils literal"><span class="pre">utils/checks/fullcheck.sh</span></code> – Runs stylecheck.sh + all available tests</li>
+<li><code class="xref any docutils literal"><span class="pre">utils/dist/make_release.py</span></code> – Compiles release binary of Rain, creates Python package and
+publishes release on GitHub</li>
+</ul>
+</div>
+<div class="section" id="testing">
+<h2>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h2>
+<p>Rain contains two sets of tests:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Unittests (in Rust)</li>
+<li>Integration tests (in Python)</li>
+</ul>
+</div></blockquote>
+<div class="section" id="python-tests">
+<h3>Python tests<a class="headerlink" href="#python-tests" title="Permalink to this headline">¶</a></h3>
+<p>Python tests are placed in <code class="xref any docutils literal"><span class="pre">/rain/tests/pytests</span></code>.</p>
+<p>To execute them simply run <code class="xref any docutils literal"><span class="pre">py.test-3</span></code> in the root directory of Rain. The logs
+are stored in <code class="xref any docutils literal"><span class="pre">rain/tests/pytests/work</span></code>.</p>
+<p>Important notes:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Make sure you are running Python 3 py.test.</li>
+<li>Working directory <code class="xref any docutils literal"><span class="pre">rain/tests/pytests/work</span></code> is fully cleaned before every
+test! Therefore, if you want to see logs, make sure that no other test is
+executed after the test you want to see. See options <code class="xref any docutils literal"><span class="pre">-x</span></code> and <code class="xref any docutils literal"><span class="pre">-k</span></code> of
+py.test-3</li>
+<li>By default, Python tests run with rain binary located in
+<code class="xref any docutils literal"><span class="pre">rain/target/debug/</span></code> directory. This path can be modified using
+RAIN_TEST_BIN environment variable.</li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+<div class="section" id="dashboard">
+<h2>Dashboard<a class="headerlink" href="#dashboard" title="Permalink to this headline">¶</a></h2>
+<p>Rain Dashboard is implement in JavaScript over NodeJs. However, we do not want
+to have Node.js as a hard dependency when Rain is built from sources. Therefore,
+compiled form of Dashboard is included in Rain git repository. Neverthless, if
+you want to work on Dashboard, you need to install Node.js.</p>
+<div class="section" id="installation">
+<h3>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h3>
+<p>(We assume that you have already installed Node.js.)</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">dashboard</span>
+<span class="n">npm</span> <span class="n">install</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="development">
+<h3>Development<a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h3>
+<p>For development, just run:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">npm</span> <span class="n">start</span>
+</pre></div>
+</div>
+<p>It starts on Rain dashboard on port 3000. Now you can just edit dashboard
+sources, <strong>without</strong> recompiling Rain binary. Dashboard in the development mode
+assumes, that http rain server is running at localhost:8080. If you need, you
+can change the address in <code class="docutils literal"><span class="pre">dashboard/src/utils/fetch.js</span></code>, but do not commit
+this change, please.</p>
+</div>
+<div class="section" id="deployment">
+<h3>Deployment<a class="headerlink" href="#deployment" title="Permalink to this headline">¶</a></h3>
+<p>All Dashboard resources (including JS source codes) are included into Rain
+binary. When Rain is compiled, files in <code class="docutils literal"><span class="pre">dashboard/dist</span></code> are read. To generate
+<code class="docutils literal"><span class="pre">dist</span></code> directory from actual dashboard sources, you need to run:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">dashboard</span>
+<span class="n">sh</span> <span class="n">make_dist</span><span class="o">.</span><span class="n">sh</span>
+</pre></div>
+</div>
+<p>Then you need rebuild Rain (e.g. <code class="docutils literal"><span class="pre">cargo</span> <span class="pre">build</span></code>). When you finish work on
+dashboard, do not forget to include files in <code class="docutils literal"><span class="pre">dist</span></code> into repository.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="python_api.html" class="btn btn-neutral" title="Python API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

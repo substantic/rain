@@ -1,0 +1,339 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Examples &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="index.html"/>
+        <link rel="next" title="Python API" href="python_api.html"/>
+        <link rel="prev" title="Installation, Running &amp; Deployment" href="install.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html">User’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="executors.html">Writing Own Executors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation, Running &amp; Deployment</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#distributed-cross-validation-with-libsvm">Distributed cross-validation with libsvm</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="python_api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Contributors’s Guide</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Examples</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/examples.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="distributed-cross-validation-with-libsvm">
+<h2>Distributed cross-validation with libsvm<a class="headerlink" href="#distributed-cross-validation-with-libsvm" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># =======================================================</span>
+<span class="c1"># This example creates a simple cross-validation pipeline</span>
+<span class="c1"># for libsvm tools over IRIS data set</span>
+<span class="c1">#</span>
+<span class="c1"># Requirements:</span>
+<span class="c1"># 1) Installed svm-train and svm-predict</span>
+<span class="c1">#    (libsvm-tools package on Debian)</span>
+<span class="c1"># 2) IRIS data set in CSV format, e.g.:</span>
+<span class="c1">#    https://raw.githubusercontent.com/pandas-dev/pandas/master/pandas/tests/data/iris.csv</span>
+<span class="c1"># =======================================================</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">Program</span><span class="p">,</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">remote</span>
+
+<span class="n">THIS_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+<span class="n">DATA_FILE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">THIS_DIR</span><span class="p">,</span> <span class="s2">&quot;iris.csv&quot;</span><span class="p">)</span>
+<span class="n">CHUNKS</span> <span class="o">=</span> <span class="mi">3</span>
+
+
+<span class="c1"># Convert .csv to libsvm format</span>
+<span class="nd">@remote</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">convert_to_libsvm_format</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get_str</span><span class="p">()</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)]</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>  <span class="c1"># Skip header</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">))</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> 1:</span><span class="si">{}</span><span class="s2"> 2:</span><span class="si">{}</span><span class="s2"> 3:</span><span class="si">{}</span><span class="s2"> 4:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">labels</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">4</span><span class="p">]),</span>
+        <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">line</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">line</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+
+    <span class="c1"># Program: SVM train</span>
+    <span class="c1"># svm-train has following usage: svm-train &lt;trainset&gt; &lt;model&gt;</span>
+    <span class="c1"># It reads &lt;trainset&gt; and creates file &lt;model&gt; with trained model</span>
+    <span class="n">train</span> <span class="o">=</span> <span class="n">Program</span><span class="p">((</span><span class="s2">&quot;svm-train&quot;</span><span class="p">,</span> <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">),</span> <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;output&quot;</span><span class="p">)))</span>
+
+    <span class="c1"># Porgram: SVM predict</span>
+    <span class="c1"># svm-predict has following usage: svm-predict &lt;testdata&gt; &lt;model&gt; &lt;prediction&gt;</span>
+    <span class="c1"># It reads files &lt;testdata&gt; and &lt;model&gt; and creates file with prediction and</span>
+    <span class="c1"># prints accuracy on standard output</span>
+    <span class="n">predict</span> <span class="o">=</span> <span class="n">Program</span><span class="p">((</span><span class="s2">&quot;svm-predict&quot;</span><span class="p">,</span> <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;testdata&quot;</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">),</span> <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;prediction&quot;</span><span class="p">)),</span>
+                    <span class="n">stdout</span><span class="o">=</span><span class="n">Output</span><span class="p">(</span><span class="s2">&quot;accuracy&quot;</span><span class="p">))</span>
+
+    <span class="c1"># Connect to rain server</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+
+        <span class="c1"># Load data - this is already task, so load is performed on governor</span>
+        <span class="n">input_data</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Load</span><span class="p">(</span><span class="n">DATA_FILE</span><span class="p">)</span>
+
+        <span class="c1"># Convert data - note that the function is marked @remote</span>
+        <span class="c1"># so it is not executed now, but on a governor</span>
+        <span class="n">converted_data</span> <span class="o">=</span> <span class="n">convert_to_libsvm_format</span><span class="p">(</span><span class="n">input_data</span><span class="p">)</span>
+
+        <span class="c1"># Using unix command &quot;sort&quot; to shuffle dataset</span>
+        <span class="n">randomized_data</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">((</span><span class="s2">&quot;sort&quot;</span><span class="p">,</span> <span class="s2">&quot;--random-sort&quot;</span><span class="p">,</span> <span class="n">converted_data</span><span class="p">),</span> <span class="n">stdout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Create chunks via unix command &quot;split&quot;</span>
+        <span class="n">chunks</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">((</span><span class="s2">&quot;split&quot;</span><span class="p">,</span> <span class="s2">&quot;-d&quot;</span><span class="p">,</span> <span class="s2">&quot;-n&quot;</span><span class="p">,</span> <span class="s2">&quot;l/</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">CHUNKS</span><span class="p">),</span> <span class="n">randomized_data</span><span class="p">),</span>
+                            <span class="n">output_files</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;x</span><span class="si">{:02}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">CHUNKS</span><span class="p">)])</span><span class="o">.</span><span class="n">outputs</span>
+                            <span class="c1"># Note that we are taking &quot;outputs&quot; of the task here ==&gt; ^^^^^^^^</span>
+
+        <span class="c1"># Make folds</span>
+        <span class="n">train_sets</span> <span class="o">=</span> <span class="p">[</span><span class="n">tasks</span><span class="o">.</span><span class="n">Concat</span><span class="p">(</span><span class="n">chunks</span><span class="p">[:</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">chunks</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">:])</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">chunks</span><span class="p">)]</span>
+
+        <span class="c1"># Train models</span>
+        <span class="n">models</span> <span class="o">=</span> <span class="p">[</span><span class="n">train</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">train_set</span><span class="p">)</span> <span class="k">for</span> <span class="n">train_set</span> <span class="ow">in</span> <span class="n">train_sets</span><span class="p">]</span>
+
+        <span class="c1"># Compute predictions</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="p">[</span><span class="n">predict</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">testdata</span><span class="o">=</span><span class="n">data</span><span class="p">)</span> <span class="k">for</span> <span class="n">model</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="n">chunks</span><span class="p">)]</span>
+
+        <span class="c1"># Set &quot;keep&quot; flag for &quot;accuracy&quot; output on predictions</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">predictions</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>
+
+        <span class="c1"># Submit and wait until everything is not completed</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">wait_all</span><span class="p">()</span>
+
+        <span class="c1"># Print predictions</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">predictions</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span><span class="o">.</span><span class="n">get_str</span><span class="p">())</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="python_api.html" class="btn btn-neutral float-right" title="Python API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="install.html" class="btn btn-neutral" title="Installation, Running &amp; Deployment" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

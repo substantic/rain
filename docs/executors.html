@@ -1,0 +1,415 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Writing Own Executors &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="index.html"/>
+        <link rel="next" title="Installation, Running &amp; Deployment" href="install.html"/>
+        <link rel="prev" title="User’s Guide" href="user.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user.html">User’s Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Writing Own Executors</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#rust-tasklib">Rust tasklib</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#c-tasklib">C++ tasklib</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#getting-started">Getting started</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#building">Building</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#registration-in-governor">Registration in governor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#client-api">Client API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation, Running &amp; Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python_api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Contributors’s Guide</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Writing Own Executors</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/executors.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="writing-own-executors">
+<h1>Writing Own Executors<a class="headerlink" href="#writing-own-executors" title="Permalink to this headline">¶</a></h1>
+<div class="figure">
+<img alt="Connection between basic components of Rain" src="_images/arch.svg" /></div>
+<p>This section covers how to write a new executor, i.e. how to create a program
+that introduces new tasks type to Rain. A governor spawns and stops executors
+as needed according tasks that are assigned to it. Each tasks always specifies
+what kind of executor it needs.</p>
+<p>There are generally two types of executors: <strong>Universal executors</strong> and
+<strong>Specialized executors</strong>. The universal one allows to execute an arbitrary code
+and specialized offers a fix of tasks that they provide.</p>
+<p>The current version of Rain supports universal executor for Python. This is how
+<code class="xref any docutils literal"><span class="pre">&#64;remote()</span></code> decorator works. It serializes a decorated function into a data
+object and creates a task that needs Python executor that executes it.</p>
+<p>For languages where code cannot be simply transferred in a portable way, Rain
+offers <strong>tasklibs</strong>, a libraries for writing specialized executors. The current
+version provides tasklibs for C++ and Rust. A tasklib allows to create a
+stand-alone program that know how to communicate with governor and provides a
+set of functions.</p>
+<p>This sections shows how to write new tasks using tasklibs for C++ and Rust and
+how to create run this tasks from client.</p>
+<p>Note: Governor itself also provides some of basic task types, that are provided
+through a virtual executor called <strong>buildin</strong>. You may see this “executor” in
+dashboard.</p>
+<div class="section" id="rust-tasklib">
+<h2>Rust tasklib<a class="headerlink" href="#rust-tasklib" title="Permalink to this headline">¶</a></h2>
+<p>The documentation for writing executor in Rust can be found at
+<a class="reference external" href="https://docs.rs/rain_task/">https://docs.rs/rain_task/</a>. Registration of an executor into a governor and
+using client API are same for all executors (<a class="reference internal" href="#register-exec"><span class="std std-ref">Registration in governor</span></a> and
+<a class="reference internal" href="#task-api"><span class="std std-ref">Client API</span></a>).</p>
+</div>
+<div class="section" id="c-tasklib">
+<h2>C++ tasklib<a class="headerlink" href="#c-tasklib" title="Permalink to this headline">¶</a></h2>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">C++ tasklib is not fully finished. It allows to write basic task types, but
+some of more advanced features (e.g. working with attributes) are not
+implemented yet.</p>
+</div>
+<div class="section" id="getting-started">
+<h3>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h3>
+<p>The following code shows how to create an executor named “example1” that
+provides one task type “hello”. This task takes one blob as the input,
+and returns one blob as the output.</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;tasklib/executor.h&gt;</span><span class="cp"></span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+  <span class="c1">// Create executor, the argument is the name of the executor</span>
+  <span class="n">tasklib</span><span class="o">::</span><span class="n">Executor</span> <span class="n">executor</span><span class="p">(</span><span class="s">&quot;example1&quot;</span><span class="p">);</span>
+
+  <span class="c1">// Register task &quot;hello&quot;</span>
+  <span class="n">executor</span><span class="p">.</span><span class="n">add_task</span><span class="p">(</span><span class="s">&quot;hello&quot;</span><span class="p">,</span> <span class="p">[](</span><span class="n">tasklib</span><span class="o">::</span><span class="n">Context</span> <span class="o">&amp;</span><span class="n">ctx</span><span class="p">,</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">inputs</span><span class="p">,</span> <span class="k">auto</span> <span class="o">&amp;</span><span class="n">outputs</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="c1">// Check that we been called exactly with 1 argument.</span>
+      <span class="c1">// If not, the error message is set to context</span>
+      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">ctx</span><span class="p">.</span><span class="n">check_n_args</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="p">{</span>
+          <span class="k">return</span><span class="p">;</span>
+      <span class="p">}</span>
+
+      <span class="c1">// This is body of our task, in our case, it reads the input data object</span>
+      <span class="c1">// inserts &quot;Hello&quot; before the input and appends &quot;!&quot;</span>
+      <span class="k">auto</span><span class="o">&amp;</span> <span class="n">input1</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">str</span> <span class="o">=</span> <span class="s">&quot;Hello &quot;</span> <span class="o">+</span> <span class="n">input1</span><span class="o">-&gt;</span><span class="n">read_as_string</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;!&quot;</span><span class="p">;</span>
+
+      <span class="c1">// Create new data instance and set it as one (and only) result</span>
+      <span class="c1">// of the task</span>
+      <span class="n">outputs</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">tasklib</span><span class="o">::</span><span class="n">MemDataInstance</span><span class="o">&gt;</span><span class="p">(</span><span class="n">str</span><span class="p">));</span>
+  <span class="p">});</span>
+
+  <span class="c1">// Connect to governor and serve registered tasks</span>
+  <span class="c1">// This function is never finished.</span>
+  <span class="n">executor</span><span class="p">.</span><span class="n">start</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="building">
+<h3>Building<a class="headerlink" href="#building" title="Permalink to this headline">¶</a></h3>
+<p>To compile the example we need to creating following file structure:</p>
+<ul class="simple">
+<li>myexecutor<ul>
+<li>myexecutor.cpp  – Source code of our example</li>
+<li>CMakeFile.txt – CMake configuration file. The content is below.</li>
+<li>tasklib – Copy of tasklib from Rain repository (located in <code class="docutils literal"><span class="pre">rain/cpp/tasklib</span></code>)</li>
+</ul>
+</li>
+</ul>
+<p>Content of <code class="docutils literal"><span class="pre">CMakeFile.txt</span></code> is following:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span>cmake_minimum_required(VERSION 3.1)
+project(myexecutor)
+
+add_subdirectory(tasklib)
+
+add_executable(myexecutor
+              myexecutor.cpp)
+
+target_include_directories(myexecutor PUBLIC ${CBOR_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries (myexecutor tasklib ${CBOR_LIBRARIES} pthread)
+</pre></div>
+</div>
+<p>Now, we can build the executor as follows:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span>$ cd myexecutor
+$ mkdir _build
+$ cd _build
+$ cmake ..
+$ make
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="registration-in-governor">
+<span id="register-exec"></span><h2>Registration in governor<a class="headerlink" href="#registration-in-governor" title="Permalink to this headline">¶</a></h2>
+<p>When you write your own executors, you have to registrate them in the governor.
+For this purpose, you have to create a configuration file for governor.</p>
+<p>As an example, let us assume that we want to register called “example1”.</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">executors</span><span class="p">.</span><span class="n">example1</span><span class="p">]</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="s">&quot;/path/to/executor/binary&quot;</span>
+</pre></div>
+</div>
+<p>The configuration is in TOML format. If we save it as <code class="docutils literal"><span class="pre">/path/to/config.toml</span></code>
+we can provide the path to the governor by starting as follows:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">rain</span> <span class="n">governor</span> <span class="o">&lt;</span><span class="n">SERVER_ADDRESS</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">config</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">config</span><span class="p">.</span><span class="n">toml</span>
+</pre></div>
+</div>
+<p>or if you are using “rain start”:</p>
+<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">rain</span> <span class="n">start</span> <span class="o">--</span><span class="n">simple</span> <span class="o">--</span><span class="n">governor</span><span class="o">-</span><span class="n">config</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">config</span>
+</pre></div>
+</div>
+<p>More about starting Rain can be found at <a class="reference internal" href="install.html#start-rain"><span class="std std-ref">Starting infrastructure</span></a>.</p>
+</div>
+<div class="section" id="client-api">
+<span id="task-api"></span><h2>Client API<a class="headerlink" href="#client-api" title="Permalink to this headline">¶</a></h2>
+<p>This section describes how to call own tasks from Python API.</p>
+<p>Each task contains a string value called <code class="docutils literal"><span class="pre">task_type</span></code> that specifies executor
+and function. It has format <code class="docutils literal"><span class="pre">&lt;EXECUTOR&gt;/&lt;FUNCTION&gt;</span></code>. So far we have created
+(and registered) own executor called <code class="docutils literal"><span class="pre">example1</span></code> that provides task <code class="docutils literal"><span class="pre">hello</span></code>.
+The task type is <a href="#id1"><span class="problematic" id="id2">``</span></a>example1/hello`.</p>
+<p>The followig code creates a class <code class="docutils literal"><span class="pre">Hello</span></code> that serves for calling our task:</p>
+<div class="highlight-py"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="kn">import</span> <span class="n">Task</span>
+
+
+<span class="k">class</span> <span class="nc">Hello</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Task takes one blob as input and puts b&quot;Hello &quot; before</span>
+<span class="sd">        and &quot;!&quot; after the input. &quot;&quot;&quot;</span>
+
+    <span class="n">TASK_TYPE</span> <span class="o">=</span> <span class="s2">&quot;example1/hello&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+         <span class="c1"># Define task with one input and one output,</span>
+         <span class="c1"># Outputs may be a (labelled) list of data objects or a number.</span>
+         <span class="c1"># If a number is used than it creates the specified number of blob outputs</span>
+         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">obj</span><span class="p">,),</span> <span class="n">outputs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This class can be used to create task in task graph in the same way as tasks
+from module <code class="docutils literal"><span class="pre">rain.client.tasks</span></code>, e.g.:</p>
+<div class="highlight-py"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;Hello world&quot;</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">Hello</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span><span class="o">.</span><span class="n">get_bytes</span><span class="p">())</span>  <span class="c1"># prints b&quot;Hello WORLD!&quot;</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="install.html" class="btn btn-neutral float-right" title="Installation, Running &amp; Deployment" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="user.html" class="btn btn-neutral" title="User’s Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

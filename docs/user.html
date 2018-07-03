@@ -1,0 +1,1330 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>User’s Guide &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="index.html"/>
+        <link rel="next" title="Writing Own Executors" href="executors.html"/>
+        <link rel="prev" title="Quickstart" href="quickstart.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">User’s Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basic-terms">Basic terms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#task-definition-and-submission">Task definition and submission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fetching-data-objects">Fetching data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#inter-task-dependencies">Inter-task dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#more-outputs">More outputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#object-data-types">Object data types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#object-content-types">Object content types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#constant-data-objects">Constant data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#built-in-tasks">Built-in tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-external-programs">Running external programs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#task-tasks-execute">Task <code class="docutils literal"><span class="pre">tasks.Execute</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#outputs">Outputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inputs">Inputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#factory-program">Factory <code class="docutils literal"><span class="pre">Program</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#python-tasks">Python tasks</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#decorator-remote">Decorator <code class="docutils literal"><span class="pre">&#64;remote</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Inputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Outputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#debug-stream">Debug stream</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#type-hints">Type hints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parallelism">Parallelism</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#resources">Resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#attributes-spec-and-info">Attributes ‘spec’ and ‘info’</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#error-debugn-and-user">Error, debugn and user</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#task-spec-and-info">Task spec and info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-object-spec-and-info">Data object spec and info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python-api">Python API</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#waiting-for-object-s-and-task-s">Waiting for object(s) and task(s)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#directories">Directories</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mapping-data-objects-onto-filesystem">Mapping data objects onto filesystem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sessions">Sessions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#active-session">Active session</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#closing-session">Closing session</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multiple-submits">Multiple submits</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="executors.html">Writing Own Executors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation, Running &amp; Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python_api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dev.html">Contributors’s Guide</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>User’s Guide</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/user.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="user-s-guide">
+<h1>User’s Guide<a class="headerlink" href="#user-s-guide" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="basic-terms">
+<h2>Basic terms<a class="headerlink" href="#basic-terms" title="Permalink to this headline">¶</a></h2>
+<p><strong>Task</strong> is a basic unit of work in Rain, it reads inputs and produces outputs.
+Tasks are executed on computational nodes (computers where Rain governors are
+running). Tasks can be external programs, python functions, and basic built-in
+operations.</p>
+<p><strong>Data objects</strong> are objects that are read and created by tasks. Data objects
+are immutable, once they are created they cannot be modified. They are generic
+data blobs or directories with accompanying metadata. It is upto tasks to
+interpret the data object content.</p>
+</div>
+<div class="section" id="task-definition-and-submission">
+<h2>Task definition and submission<a class="headerlink" href="#task-definition-and-submission" title="Permalink to this headline">¶</a></h2>
+<p>Rain represents your computation as a graph of tasks and data objects. Tasks are
+not eagerly executed during the graph construction. Instead, the actual
+execution is managed by Rain infrastructure after an explicit submission. This
+leads to a programming model in which you first only <strong>define</strong> a graph and then
+<strong>execute</strong> it.</p>
+<p>Let us consider the following example, where two constant objects are created
+and merged together:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">blob</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>  <span class="c1"># Create a connection to the server</span>
+                                    <span class="c1"># running at localhost:7210</span>
+
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>  <span class="c1"># Creates a session</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;Hello &quot;</span><span class="p">)</span>    <span class="c1"># Create a definition of data object in the current session</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;world!&quot;</span><span class="p">)</span>    <span class="c1"># Create a definition of data object in the current session</span>
+    <span class="n">tasks</span><span class="o">.</span><span class="n">Concat</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">])</span>  <span class="c1"># Create a task definition in the current session</span>
+                          <span class="c1"># that concatenates input data objects</span>
+
+    <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>      <span class="c1"># Send the created graph into the server, where the computation</span>
+                          <span class="c1"># is performed.</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">wait_all</span><span class="p">()</span>    <span class="c1"># Wait until all submitted tasks are completed</span>
+</pre></div>
+</div>
+<p>The graph composed in the session looks as follows:</p>
+<div class="figure">
+<img alt="Example of task graph" src="_images/helloworld.svg" /></div>
+<p>When the graph is constructed, all created objects and tasks are put into the
+active session. In many cases, it is sufficient just to create one session for
+whole program lifetime, with one submit at the end. However, it is possible to
+create more sessions or built a graph gradually with more submits. More details
+are covered in Section <a class="reference internal" href="#sessions"><span class="std std-ref">Sessions</span></a>.</p>
+</div>
+<div class="section" id="fetching-data-objects">
+<h2>Fetching data objects<a class="headerlink" href="#fetching-data-objects" title="Permalink to this headline">¶</a></h2>
+<p>Data objects produced by tasks are not transferred back to the client
+automatically. If needed, this can be done using the <code class="docutils literal"><span class="pre">fetch()</span></code> method. It
+returns <a class="reference internal" href="python_api.html#rain.common.DataInstance" title="rain.common.DataInstance"><code class="xref py py-class docutils literal"><span class="pre">rain.common.DataInstance</span></code></a> that wraps data together with some
+additional information. To get raw bytes from <a class="reference internal" href="python_api.html#rain.common.DataInstance" title="rain.common.DataInstance"><code class="xref py py-class docutils literal"><span class="pre">rain.common.DataInstance</span></code></a>
+you can call method <code class="docutils literal"><span class="pre">get_bytes()</span></code>.</p>
+<p>In the following example, we download the result back to the Python client
+code. Expression <code class="docutils literal"><span class="pre">t.output</span></code> refers to the data object that is the output
+of task <code class="docutils literal"><span class="pre">t</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">blob</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;Hello &quot;</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;world!&quot;</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Concat</span><span class="p">((</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>            <span class="c1"># Tell server to keep result of task</span>
+
+    <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>           <span class="c1"># Submit task graph</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span>  <span class="c1"># Download result from the server</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">get_bytes</span><span class="p">())</span>  <span class="c1"># Prints b&#39;Hello world!&#39;</span>
+</pre></div>
+</div>
+<p>By default, Rain automatically removes data objects that are no longer needed
+for further computation. Method <code class="docutils literal"><span class="pre">keep()</span></code> sets a flag to a given data object
+that instructs the server to keep the object until the client does not
+explicitly frees it. An object can be freed when the session is closed or when
+<code class="docutils literal"><span class="pre">unkeep()</span></code> method is called and object is no longer need by computation.
+Method <code class="docutils literal"><span class="pre">keep()</span></code> may be called only before the submit. Method <code class="docutils literal"><span class="pre">unkeep()</span></code> may
+be called on any “kept” object any time; the server is informed immediately, no
+submit is needed.</p>
+<p>If method <code class="docutils literal"><span class="pre">fetch()</span></code> is called and the object has not been finished yet, the
+method blocks until the object is not finished. Note that this is the reason,
+why we did not use <code class="docutils literal"><span class="pre">wait_all()</span></code> in this example.</p>
+</div>
+<div class="section" id="inter-task-dependencies">
+<h2>Inter-task dependencies<a class="headerlink" href="#inter-task-dependencies" title="Permalink to this headline">¶</a></h2>
+<p>Naturally, an output of a task may be used as an input for another task. This
+is demonstrated by the following example. In the example, we use
+<code class="docutils literal"><span class="pre">tasks.Sleep(O,</span> <span class="pre">T)</span></code> that creates a task taking an arbitrary data object <code class="docutils literal"><span class="pre">O</span></code>
+and waits for <code class="docutils literal"><span class="pre">T</span></code> seconds and then returns <code class="docutils literal"><span class="pre">O</span></code> as its output. Being aware
+that such task is not very useful in practice, we find it useful as an
+intuitive example to demostrate the concept of task chaining:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">blob</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;Hello &quot;</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;world!&quot;</span><span class="p">)</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Sleep</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>   <span class="c1"># Wait for one second and then returns &#39;b&#39;</span>
+    <span class="n">t2</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Concat</span><span class="p">((</span><span class="n">a</span><span class="p">,</span> <span class="n">t1</span><span class="o">.</span><span class="n">output</span><span class="p">))</span>
+    <span class="n">t2</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>
+
+    <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>           <span class="c1"># Submit task graph</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">t2</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span>  <span class="c1">#  It will wait around 1 second</span>
+                                <span class="c1">#  and then returns b&#39;Hello world&#39;</span>
+</pre></div>
+</div>
+<p>If a task produces only a single output, we can ommit <code class="docutils literal"><span class="pre">.output</span></code> and directly
+use the task as an input for another task. In our example, we can define <code class="docutils literal"><span class="pre">t2</span></code>
+as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">t2</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Concat</span><span class="p">((</span><span class="n">a</span><span class="p">,</span> <span class="n">t1</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>This shortened notation is used in the rest of the text.</p>
+</div>
+<div class="section" id="more-outputs">
+<h2>More outputs<a class="headerlink" href="#more-outputs" title="Permalink to this headline">¶</a></h2>
+<p>A task may generally create zero, one, or more outputs. All outputs are
+accessible via attribute <code class="docutils literal"><span class="pre">outputs</span></code>. That contains an instance of
+<a class="reference internal" href="python_api.html#rain.common.LabeledList" title="rain.common.LabeledList"><code class="xref py py-class docutils literal"><span class="pre">rain.common.LabeledList</span></code></a>. It is an extension of a standard list
+(indexed from zero), that also allows to be accessed via string labels.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># The following task creates two outputs labeled &quot;output1&quot; and &quot;output2&quot; with</span>
+<span class="c1"># an equivalent of &#39;cat data | tee output1 &gt; output2&#39;.</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">([</span><span class="s2">&quot;tee&quot;</span><span class="p">,</span> <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;output1&quot;</span><span class="p">)],</span> <span class="n">stdout</span><span class="o">=</span><span class="s2">&quot;output2&quot;</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+
+<span class="n">t</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;output1&quot;</span><span class="p">]</span>  <span class="c1"># Access to output &quot;output1&quot;</span>
+<span class="n">t</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="s2">&quot;output2&quot;</span><span class="p">]</span>  <span class="c1"># Access to output &quot;output2&quot;</span>
+
+<span class="c1"># There is also some helper functions:</span>
+<span class="c1"># Keep all outputs (equivalent to: for o in t.outputs: o.keep())</span>
+<span class="n">t</span><span class="o">.</span><span class="n">keep_outputs</span><span class="p">()</span>
+
+<span class="c1"># After submit</span>
+<span class="c1"># Fetch all outputs (equivalent to: [o.fetch() for o in t.outputs])</span>
+<span class="n">t</span><span class="o">.</span><span class="n">fetch_outputs</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If a task has more than one output or zero outputs, then accessing attribute
+<code class="docutils literal"><span class="pre">.output</span></code> throws an exception. Attribute <code class="docutils literal"><span class="pre">.outputs</span></code> is always availble
+independently on the number of outputs.</p>
+</div>
+<div class="section" id="object-data-types">
+<h2>Object data types<a class="headerlink" href="#object-data-types" title="Permalink to this headline">¶</a></h2>
+<p>Every data object represents either a single binary data blob or a directory.
+Since these two object <em>data types</em> behave very differently, they are
+distinguished and checked already when constructing the computation graph.
+The <em>data type</em> may be one of:</p>
+<ul class="simple">
+<li>‘blob’ - Binary data block. May have a <a class="reference internal" href="#content-type"><span class="std std-ref">Object content types</span></a> specified.</li>
+<li>‘dir’ - Directory structure, see section <a class="reference internal" href="#directories"><span class="std std-ref">Directories</span></a>.</li>
+</ul>
+<p>We consider developing other data object “modes”, e.g. streams.</p>
+</div>
+<div class="section" id="object-content-types">
+<span id="content-type"></span><h2>Object content types<a class="headerlink" href="#object-content-types" title="Permalink to this headline">¶</a></h2>
+<p>Binary data objecs represent different type of data in different formats.
+The Rain infrastructure treats all data objects as raw binary blobs,
+and it is up to tasks to interpret them. Content type is a string identifier
+of the format of the data in tasks and clients. Python code also recognize
+some of content types and allows to deserialize them directly.</p>
+<p>Currently recognized content types are:</p>
+<blockquote>
+<div><ul class="simple">
+<li>‘’ - Raw binary data, unknown or unspecified content type</li>
+<li>‘pickle’ - Serialized Python object</li>
+<li>‘cloudpickle’ - Serialized Python object via Cloudpickle</li>
+<li>‘json’ - Object serialized into JSON</li>
+<li>‘cbor’ - Object serialized into CBOR</li>
+<li>‘arrow’ - Object serialized with Apache Arrow</li>
+<li>‘text’ - UTF-8 string.</li>
+<li>‘text-&lt;ENCODING&gt;’ - Text with specified encoding</li>
+<li>‘mime/&lt;MIME&gt;’ - Content type defined as MIME type</li>
+<li>‘user/&lt;TYPE&gt;’ - User defined type, &lt;TYPE&gt; may be arbitrary string</li>
+</ul>
+</div></blockquote>
+<p>An object may have two different content-types: First, a type is specified
+when constructing the task graph. Second, the type may be set by the task
+executor dynamically (e.g. depending on some input data).
+If present, the latter is taken to be the actual content type and must
+be a sub-type of the former.
+Any type is considered a subtype of the unspecified type.</p>
+</div>
+<div class="section" id="constant-data-objects">
+<h2>Constant data objects<a class="headerlink" href="#constant-data-objects" title="Permalink to this headline">¶</a></h2>
+<p>Function <a class="reference internal" href="python_api.html#rain.client.blob" title="rain.client.blob"><code class="xref py py-func docutils literal"><span class="pre">rain.client.blob()</span></code></a> serves for a creation of a constant data
+object. The content of the data object is uploaded to the server together with
+the task graph.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">blob</span><span class="p">,</span> <span class="n">pickled</span>
+<span class="n">blob</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;Raw data&quot;</span><span class="p">)</span>  <span class="c1"># Creates a data object with a defined content</span>
+<span class="n">blob</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;Raw data&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;input data&quot;</span><span class="p">)</span>  <span class="c1"># Data with a non-default label</span>
+                                       <span class="c1"># (Default label is &#39;const&#39;)</span>
+<span class="n">blob</span><span class="p">(</span><span class="s2">&quot;String data&quot;</span><span class="p">)</span>  <span class="c1"># Creates a data object from a string, the content type</span>
+                     <span class="c1"># is set to &#39;text&#39;</span>
+<span class="n">blob</span><span class="p">(</span><span class="s2">&quot;[1, 2, 3, 4]&quot;</span><span class="p">,</span> <span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">)</span>  <span class="c1"># Data with a specified content type</span>
+<span class="n">blob</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">encode</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">)</span>  <span class="c1"># Serialize python object to JSON and set</span>
+                                   <span class="c1"># content type to &quot;json&quot;</span>
+<span class="n">blob</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">encode</span><span class="o">=</span><span class="s2">&quot;pickle&quot;</span><span class="p">)</span>  <span class="c1"># Serialize python object by pickle</span>
+                                     <span class="c1"># content type to &quot;pickle&quot;</span>
+<span class="n">pickled</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>  <span class="c1"># Short-cut for blob(..., encode=&quot;pickle&quot;)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="built-in-tasks">
+<h2>Built-in tasks<a class="headerlink" href="#built-in-tasks" title="Permalink to this headline">¶</a></h2>
+<p>The following tasks are supported directly by the Rain governor:</p>
+<dl class="docutils">
+<dt><em>Concat</em> (<a class="reference internal" href="python_api.html#rain.client.tasks.Concat" title="rain.client.tasks.Concat"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.Concat</span></code></a>)</dt>
+<dd>Concatencates inputs into one resulting blob.</dd>
+<dt><em>Load</em>, <em>LoadDir</em> (<a class="reference internal" href="python_api.html#rain.client.tasks.Load" title="rain.client.tasks.Load"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.Load</span></code></a>, <a class="reference internal" href="python_api.html#rain.client.tasks.LoadDir" title="rain.client.tasks.LoadDir"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.LoadDir</span></code></a>)</dt>
+<dd>Creates data object from an external file or direftory.
+(Note: The current version does not support tracking external resources;
+therefore, this operation “internalizes” the file, i.e. it makes a copy
+of it into the working directory.)</dd>
+<dt><em>Store</em> (<a class="reference internal" href="python_api.html#rain.client.tasks.Store" title="rain.client.tasks.Store"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.Store</span></code></a>)</dt>
+<dd>Saves data object to a filesystem.
+The data are saved into local file system of the governor on which the
+task is executed. This task is usually used for saving files to
+a distributed file system, hence it does not matter which governor
+performs the task.</dd>
+<dt><em>Sleep</em> (<a class="reference internal" href="python_api.html#rain.client.tasks.Sleep" title="rain.client.tasks.Sleep"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.Sleep</span></code></a>)</dt>
+<dd>Task that forwards its input as its
+output after a specified delay. Mostly for testing and benchmarking.</dd>
+<dt><em>Execute</em> (<a class="reference internal" href="python_api.html#rain.client.tasks.SliceDirectory" title="rain.client.tasks.SliceDirectory"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.SliceDirectory</span></code></a>)</dt>
+<dd>Run an external program with given inputs, parameters and resources.
+See <a class="reference internal" href="python_api.html#rain.client.Program" title="rain.client.Program"><code class="xref py py-class docutils literal"><span class="pre">rain.client.Program</span></code></a> if you execute a program repeatedly
+with different data.</dd>
+<dt><em>MakeDirectory</em> (<a class="reference internal" href="python_api.html#rain.client.tasks.MakeDirectory" title="rain.client.tasks.MakeDirectory"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.MakeDirectory</span></code></a>)</dt>
+<dd>Tasks that creates a directory combining the inputs under given paths.</dd>
+<dt><em>SliceDirectory</em> (<a class="reference internal" href="python_api.html#rain.client.tasks.SliceDirectory" title="rain.client.tasks.SliceDirectory"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.SliceDirectory</span></code></a>)</dt>
+<dd>Tasks that extracts a file or subdirectory from a directory object.</dd>
+</dl>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># This example demonstrates usage of four built-in tasks</span>
+<span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">Client</span><span class="p">,</span> <span class="n">blob</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+
+    <span class="c1"># Create tasks opening an external file</span>
+    <span class="n">data1</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Load</span><span class="p">(</span><span class="s2">&quot;/path/to/data&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Create a constant object</span>
+    <span class="n">data2</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;constant data&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Merge two objects</span>
+    <span class="n">merge</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Concat</span><span class="p">((</span><span class="n">data1</span><span class="p">,</span> <span class="n">data2</span><span class="p">))</span>
+
+    <span class="c1"># Sleep for 1s</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Sleep</span><span class="p">(</span><span class="n">merge</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="c1"># Write result into file</span>
+    <span class="n">tasks</span><span class="o">.</span><span class="n">Store</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s2">&quot;/path/to/result&quot;</span><span class="p">)</span>
+
+    <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">wait_all</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>(Examples for the directory-related tasks are in section <a class="reference internal" href="#directories"><span class="std std-ref">Directories</span></a>)</p>
+</div>
+<div class="section" id="running-external-programs">
+<h2>Running external programs<a class="headerlink" href="#running-external-programs" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="task-tasks-execute">
+<h3>Task <code class="docutils literal"><span class="pre">tasks.Execute</span></code><a class="headerlink" href="#task-tasks-execute" title="Permalink to this headline">¶</a></h3>
+<p>The whole functionality is built around built-in task
+<a class="reference internal" href="python_api.html#rain.client.tasks.Execute" title="rain.client.tasks.Execute"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.Execute</span></code></a>. When a program is executed through
+<a class="reference internal" href="python_api.html#rain.client.tasks.Execute" title="rain.client.tasks.Execute"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.Execute</span></code></a>, then a new temporary directory is created.
+This directory will be removed at the end of program execution. The current
+working directory of the program is set to this directory.</p>
+<p>The idea is that this directory is program’s sandbox where input data objects
+are mapped and files created in this directory may be moved out as new data
+objects when computation completes. Therefore, in contrast with many other
+workflow systems, programs in rain should not be called with absolute paths in
+arguments but use relative paths (to stay in its working directory).
+Governors try to avoid unnecessary data object replication in the cases when
+a data object is used by multiple tasks that run on the same governor.</p>
+<p>If the executed program terminates with a non-zero code, then tasks fails and
+content of standard error output is written into the error message.</p>
+<p>The simple example looks as follow:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;sleep 1&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This creates a task with no inputs and no outputs executing program “sleep”
+with argument “1”. Arguments are parsed in shell-like manner.
+Arguments can be also specified explicitly as a list:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">((</span><span class="s2">&quot;sleep&quot;</span><span class="p">,</span>  <span class="s2">&quot;1&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Command may be also interpreted by shell, if the argument <code class="docutils literal"><span class="pre">shell=True</span></code> is
+provided:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;sleep 1 &amp;&amp; sleep 1&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="outputs">
+<h3>Outputs<a class="headerlink" href="#outputs" title="Permalink to this headline">¶</a></h3>
+<p>Files created during task execution or task standard output can be used as the
+output of <a class="reference internal" href="python_api.html#rain.client.tasks.Execute" title="rain.client.tasks.Execute"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.Execute</span></code></a>. The following example calls program
+<code class="docutils literal"><span class="pre">wget</span></code> that downloads web page at <a class="reference external" href="https://github.com/">https://github.com/</a> and saves it as
+<code class="xref any docutils literal"><span class="pre">index.html</span></code>. The created file is forwarded as the output of the task.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">Output</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;wget https://github.com/&quot;</span><span class="p">,</span>
+                       <span class="n">output_paths</span><span class="o">=</span><span class="p">[</span><span class="n">Output</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;index.html&quot;</span><span class="p">)])</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>
+
+    <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span><span class="o">.</span><span class="n">get_bytes</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The class <a class="reference internal" href="python_api.html#rain.client.Output" title="rain.client.Output"><code class="xref py py-class docutils literal"><span class="pre">rain.client.Output</span></code></a> allows to configure the outputs.
+The first argument is the label of the output. The argument <code class="docutils literal"><span class="pre">path</span></code> sets the
+path to the file used as output.
+It is a relative path w.r.t. the working directory of the
+task. If the path is not defined, then label is used as path; e.g.
+<code class="docutils literal"><span class="pre">Output(&quot;my_output&quot;)</span></code> is equivalent to <code class="docutils literal"><span class="pre">Output(&quot;my_output&quot;,</span>
+<span class="pre">path=&quot;my_output&quot;)</span></code>. The Output instance can be also used for specification of
+additional attributes such content type or size hint. Please see the class
+documentation for more details.</p>
+<p>If we do not want to configure the output, it is possible to use just a string
+instead of instance of <code class="docutils literal"><span class="pre">Output</span></code>. It creates the output with the same label
+and path as the given string.
+Therefore we can create the previous task as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">t</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;wget https://github.com/&quot;</span><span class="p">,</span> <span class="n">output_paths</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;index.html&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The only difference is that label of the output is now “index.html” (not “index”
+as in the previous case).</p>
+<p>Of course, more than one output may be specified. Program <code class="docutils literal"><span class="pre">wget</span></code> allows to
+redirect its log to a file through <code class="docutils literal"><span class="pre">--output-file</span></code> option:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">t</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;wget https://github.com/ --output-file log&quot;</span><span class="p">,</span>
+                  <span class="n">outputs_paths</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;index.html&quot;</span><span class="p">,</span> <span class="s2">&quot;log&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>This creates a task with two outputs with labels “index.html” and “log”.
+The outputs are available using standard syntax, e.g. <code class="docutils literal"><span class="pre">t.outputs[&quot;log&quot;]</span></code>.</p>
+<p>Outputs can be also passed directly as program arguments.
+This is a shortcut for two actions: passing the output path as an argument
+and putting output into <code class="docutils literal"><span class="pre">output_paths</span></code>.
+The example above can be written as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">t</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">([</span><span class="s2">&quot;wget&quot;</span><span class="p">,</span> <span class="s2">&quot;https://github.com/&quot;</span><span class="p">,</span> <span class="s2">&quot;--output-file&quot;</span><span class="p">,</span> <span class="n">Output</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)],</span>
+                  <span class="n">output_paths</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;index.html&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The argument <code class="docutils literal"><span class="pre">stdout</span></code> allows to use program’s standard output:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Creates output from stdout labelled &quot;stdout&quot;</span>
+<span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;ls /&quot;</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># Creates output from stdout with label &quot;my_label&quot;</span>
+<span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;ls /&quot;</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="s2">&quot;my_label&quot;</span><span class="p">)</span>
+
+<span class="c1"># Creates output through Output object, argument &#39;path&#39; is not allowed</span>
+<span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;ls /&quot;</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">Output</span><span class="p">(</span><span class="s2">&quot;my_label&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="inputs">
+<h3>Inputs<a class="headerlink" href="#inputs" title="Permalink to this headline">¶</a></h3>
+<p>Data objects can be mapped into the working directory of
+<a class="reference internal" href="python_api.html#module-rain.client.tasks" title="rain.client.tasks"><code class="xref py py-func docutils literal"><span class="pre">rain.client.tasks()</span></code></a>. The simplest case is to use a data object directly as
+arguments for a program. In such case, the data object is mapped into randomly
+named file and the name is placed into program arguments. Note that files are by
+default mapped only for reading (and proctected by setting file permissions).
+More options of mapping is described in <a class="reference internal" href="#fs-mappings"><span class="std std-ref">Mapping data objects onto filesystem</span></a>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">blob</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;It is</span><span class="se">\n</span><span class="s2">rainy day</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Maps &#39;data&#39; into file XXX where is a random name and executes</span>
+    <span class="c1"># &quot;grep rain XXX&quot;</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">([</span><span class="s2">&quot;grep&quot;</span><span class="p">,</span> <span class="s2">&quot;rain&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">],</span> <span class="n">stdout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>
+
+    <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span><span class="o">.</span><span class="n">get_bytes</span><span class="p">())</span>  <span class="c1"># Prints b&quot;rainy day&quot;</span>
+</pre></div>
+</div>
+<p>For additional settings and file name control, there is
+<a class="reference internal" href="python_api.html#rain.client.Input" title="rain.client.Input"><code class="xref py py-class docutils literal"><span class="pre">rain.client.Input</span></code></a>, that is a counter-part for
+<a class="reference internal" href="python_api.html#rain.client.Output" title="rain.client.Output"><code class="xref py py-class docutils literal"><span class="pre">rain.client.Output</span></code></a>. It can be used as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">Input</span>
+
+<span class="o">...</span>
+
+<span class="c1"># It executes a program &quot;a-program&quot; with arguments &quot;argument1&quot; and &quot;myfile&quot;</span>
+<span class="c1"># and while it maps dataobject in variable &#39;data&#39; into file &#39;myfile&#39;</span>
+<span class="n">my_data</span> <span class="o">=</span> <span class="o">...</span> <span class="c1"># A data object</span>
+<span class="n">task</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">([</span><span class="s2">&quot;a-program&quot;</span><span class="p">,</span> <span class="s2">&quot;argument1&quot;</span><span class="p">,</span>
+                      <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;my_label&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;myfile&quot;</span><span class="p">,</span> <span class="n">dataobj</span><span class="o">=</span><span class="n">my_data</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>The argument <code class="docutils literal"><span class="pre">input_paths</span></code> of <a class="reference internal" href="python_api.html#rain.client.tasks.Execute" title="rain.client.tasks.Execute"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.Execute</span></code></a> serves to map
+a data object into file without putting its filename into the program
+arguments:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># It executes a program &quot;a-program&quot; with arguments &quot;argument1&quot;</span>
+<span class="c1"># and while it maps dataobject in variable &#39;data&#39; into file &#39;myfile&#39;</span>
+<span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">([</span><span class="s2">&quot;a-program&quot;</span><span class="p">,</span> <span class="s2">&quot;argument1&quot;</span><span class="p">],</span>
+              <span class="n">input_paths</span><span class="o">=</span><span class="p">[</span><span class="n">Input</span><span class="p">(</span><span class="s2">&quot;my_label&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;myfile&quot;</span><span class="p">,</span> <span class="n">dataobj</span><span class="o">=</span><span class="n">my_data</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>The argument <code class="docutils literal"><span class="pre">stdin</span></code> serves to map a data object on the standard input of the
+program:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Executes a program &quot;a-program&quot; with argument &quot;argument1&quot; while mapping</span>
+<span class="c1"># a data object on the standard input</span>
+<span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">([</span><span class="s2">&quot;a-program&quot;</span><span class="p">,</span> <span class="s2">&quot;argument1&quot;</span><span class="p">],</span> <span class="n">stdin</span><span class="o">=</span><span class="n">my_data</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="factory-program">
+<h3>Factory <code class="docutils literal"><span class="pre">Program</span></code><a class="headerlink" href="#factory-program" title="Permalink to this headline">¶</a></h3>
+<p>In many cases, we need to call the same program with the same argument set.
+Class <a class="reference internal" href="python_api.html#rain.client.Program" title="rain.client.Program"><code class="xref py py-class docutils literal"><span class="pre">rain.client.Program</span></code></a> serves as a factory for
+<a class="reference internal" href="python_api.html#rain.client.tasks.Execute" title="rain.client.tasks.Execute"><code class="xref py py-class docutils literal"><span class="pre">rain.client.tasks.Execute</span></code></a> for this purpose. An instance of <code class="docutils literal"><span class="pre">Program</span></code>
+can be called as a function that takes data objects; the call creates a task in
+the active session.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">blob</span><span class="p">,</span> <span class="n">Program</span><span class="p">,</span> <span class="n">Input</span>
+
+<span class="n">rain_grep</span> <span class="o">=</span> <span class="n">Program</span><span class="p">([</span><span class="s2">&quot;grep&quot;</span><span class="p">,</span> <span class="s2">&quot;rain&quot;</span><span class="p">,</span> <span class="n">Input</span><span class="p">(</span><span class="s2">&quot;my_input&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s2">&quot;my_file&quot;</span><span class="p">)],</span> <span class="n">stdout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;It is</span><span class="se">\n</span><span class="s2">rainy day</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Creates a task that executes &quot;grep rain my_file&quot; where dataobject in variable</span>
+    <span class="c1"># &#39;data&#39; is mapped into &lt;FILE&gt;</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">rain_grep</span><span class="p">(</span><span class="n">my_input</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">Program</span></code> accepts the same arguments as <code class="docutils literal"><span class="pre">execute</span></code>, including
+<code class="docutils literal"><span class="pre">input_paths</span></code>, <code class="docutils literal"><span class="pre">output_paths</span></code>, <code class="docutils literal"><span class="pre">stdin</span></code>, and <code class="docutils literal"><span class="pre">stdout</span></code>. The only
+difference is that in all places where data object could be used, <code class="docutils literal"><span class="pre">Input</span></code>
+instance (without <code class="docutils literal"><span class="pre">dataobj</span></code> argument) has to be used, since <code class="docutils literal"><span class="pre">Program</span></code>
+defines “pattern” indepedently on a particular session.</p>
+</div>
+</div>
+<div class="section" id="python-tasks">
+<h2>Python tasks<a class="headerlink" href="#python-tasks" title="Permalink to this headline">¶</a></h2>
+<p>In addition to built-in tasks, Rain allows to run additional types of tasks via
+executors. Rain is shipped with Python executor, that allows to execute
+arbitrary Python code.</p>
+<div class="section" id="decorator-remote">
+<h3>Decorator <code class="docutils literal"><span class="pre">&#64;remote</span></code><a class="headerlink" href="#decorator-remote" title="Permalink to this headline">¶</a></h3>
+<p>Decorator <a class="reference internal" href="python_api.html#rain.client.remote" title="rain.client.remote"><code class="xref py py-func docutils literal"><span class="pre">rain.client.remote()</span></code></a> turns a python function into a
+Rain task. Let us consider the following example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">remote</span>
+
+<span class="nd">@remote</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">hello</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;Hello world!&quot;</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">hello</span><span class="p">()</span>                <span class="c1"># Create a task</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>              <span class="c1"># Prints b&#39;Hello world!&#39;</span>
+</pre></div>
+</div>
+<p>The decorator changes the behavior of the decorated function in a way that
+calling it no longer executes it in the client but creates a task that executes
+the function in a python executor. Governor starts and manages executors as
+necessary, there is no need of any action from the user.</p>
+<p>The decorated function should accept at least one argument. As the first
+argument, the context of the execution is passed to the function. Context
+enables some actions within the task. It is a convention to name this argument
+as <code class="docutils literal"><span class="pre">ctx</span></code>.</p>
+</div>
+<div class="section" id="id1">
+<h3>Inputs<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>Decorated function may take more parameters than <code class="docutils literal"><span class="pre">ctx</span></code>; these parameters
+define inputs of the task. By default, they can be arbitrary Python objects and
+they are serialized via <code class="docutils literal"><span class="pre">cloudpickle</span></code>. If the decorated function is called
+with a data object, it is invokend with <a class="reference internal" href="python_api.html#rain.common.DataInstance" title="rain.common.DataInstance"><code class="xref py py-class docutils literal"><span class="pre">rain.common.DataInstance</span></code></a> that
+contains data defined by the object:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">remote</span><span class="p">,</span> <span class="n">blob</span>
+
+<span class="nd">@remote</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">hello</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">data1</span><span class="p">,</span> <span class="n">data2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">data1</span> <span class="o">+</span> <span class="n">data2</span><span class="o">.</span><span class="n">get_bytes</span><span class="p">()</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
+
+    <span class="c1"># Create data object</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;Rain!&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Creates a task calling function &#39;hello&#39; in governor</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">hello</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;Hello &quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+    <span class="n">t</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">wait_all</span><span class="p">()</span>
+
+    <span class="c1"># Prints b&#39;Hello Rain!&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">fetch</span><span class="p">()</span><span class="o">.</span><span class="n">get_bytes</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>In remotely executed Python code, Rain data objects are replaced with actual
+data instances. All occurences of data objects are replaced, even those
+encapsulated in own data structures:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">MyClass</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">my_data</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">my_data</span> <span class="o">=</span> <span class="n">my_data</span>
+
+
+ <span class="nd">@remote</span><span class="p">()</span>
+ <span class="k">def</span> <span class="nf">my_call</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+     <span class="c1"># If we assume a call of this function as below,</span>
+     <span class="c1"># we obtain an instance of MyClass where attribute &#39;my_data&#39;</span>
+     <span class="c1"># is list of instances of DataInstance</span>
+     <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span>
+
+ <span class="o">...</span>
+
+ <span class="n">my_instance</span> <span class="o">=</span> <span class="n">MyClass</span><span class="p">([</span><span class="n">blob</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;data1&quot;</span><span class="p">),</span> <span class="n">blob</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;data2&quot;</span><span class="p">),</span> <span class="n">blob</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;data3&quot;</span><span class="p">)])</span>
+ <span class="n">task</span> <span class="o">=</span> <span class="n">my_call</span><span class="p">(</span><span class="n">my_instance</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">It is possible to pass also generators as arguments to remote functions, and
+it works as expected. However, Rain has to include all data objects occuring
+in related expressions as task dependencies. Therefore, you may create more
+dependencies then expected. To avoid this problems, we recommend to evaluate
+generators before passing to remote functions, especiialy if it is a
+filtering kind of generator.</p>
+</div>
+<p>All metadata of data objects (including content type) are passed to the data
+instances occuring in remote functions. Therefore, it is possible to call
+method <code class="docutils literal"><span class="pre">load()</span></code> on data instances to deserialize objects according to
+their content types:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@remote</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">fn1</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="c1"># Load according content type. Throws an error if content type is not provided</span>
+    <span class="n">loaded_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+    <span class="o">...</span>
+
+<span class="c1"># Automatically call load() on specific argument</span>
+<span class="nd">@remote</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">Input</span><span class="p">(</span><span class="n">load</span><span class="o">=</span><span class="kc">True</span><span class="p">)})</span>
+<span class="k">def</span> <span class="nf">fn2</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="o">....</span>
+
+<span class="c1"># Automatically call load() on all arguments</span>
+<span class="nd">@remote</span><span class="p">(</span><span class="n">auto_load</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">fn3</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="o">....</span>
+
+<span class="c1"># Example of calling:</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">blob</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">],</span> <span class="n">encode</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">)</span>
+<span class="n">fn1</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The second case uses <a class="reference internal" href="python_api.html#rain.client.Input" title="rain.client.Input"><code class="xref py py-class docutils literal"><span class="pre">rain.client.Input</span></code></a> to configure individual
+parameters. It can be also used for additional configurations, like data-object
+size hints for Rain scheduler, or content type specification:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># The following function asks for a dataobject with content type &quot;json&quot; as</span>
+<span class="c1"># its argument. If the function is called the following happens:</span>
+<span class="c1"># 1) If the input dataobject has content type &quot;json&quot;, it is passed as it is</span>
+<span class="c1"># 2) If the input dataobject has no content type (None), then content type &quot;json&quot;</span>
+     <span class="ow">is</span> <span class="nb">set</span> <span class="k">as</span> <span class="n">the</span> <span class="nb">object</span> <span class="n">content</span> <span class="nb">type</span>
+<span class="c1"># 3) If the input dataobject has content type different from &quot;json&quot;, the task fails</span>
+
+<span class="nd">@remote</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">Input</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">)})</span>
+<span class="k">def</span> <span class="nf">fn1</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id2">
+<h3>Outputs<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>By default, it is expected that a remote function returns one data object. It
+may return an instance of <code class="docutils literal"><span class="pre">bytes</span></code> or <code class="docutils literal"><span class="pre">str</span></code> that will be used as content of
+the resulting data object. If an instance of bytes is returned then the content
+type of resulting object is <code class="docutils literal"><span class="pre">None</span></code>, if a string is returned then the content
+type is set to “text”. A remote function may also return a data instance, when
+you want to set additional attributes of data object. More outputs may be
+configured via <code class="docutils literal"><span class="pre">outputs</span></code> attribute of remote:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@remote</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">fn1</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+    <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;Returning bytes&quot;</span>
+
+<span class="nd">@remote</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">fn2</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;Returning string&quot;</span>
+
+<span class="c1"># Configuring more unlabaled outputs</span>
+<span class="nd">@remote</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">fn3</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+    <span class="p">(</span><span class="sa">b</span><span class="s2">&quot;data1&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;data2&quot;</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;data3&quot;</span><span class="p">)</span>
+
+<span class="c1"># No output</span>
+<span class="nd">@remote</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">fn4</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+     <span class="k">pass</span>
+
+<span class="c1"># Configuring labeled outputs</span>
+<span class="nd">@remote</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;label1&quot;</span><span class="p">,</span> <span class="s2">&quot;label2&quot;</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">fn5</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;label1&quot;</span><span class="p">:</span> <span class="sa">b</span><span class="s2">&quot;data1&quot;</span><span class="p">,</span> <span class="s2">&quot;label2&quot;</span><span class="p">:</span> <span class="sa">b</span><span class="s2">&quot;data2&quot;</span><span class="p">}</span>
+
+<span class="c1"># Set content types of resulting objects</span>
+<span class="nd">@remote</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">),</span> <span class="n">Output</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">fn6</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="s2">&quot;[1, 2, 3]&quot;</span><span class="p">,</span> <span class="s2">&quot;{&#39;x&#39;: 123}&quot;</span><span class="p">)</span>
+
+<span class="c1"># Automatically encode resulting objects</span>
+<span class="nd">@remote</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="n">encode</span><span class="o">=</span><span class="s2">&quot;pickle&quot;</span><span class="p">),</span> <span class="n">Output</span><span class="p">(</span><span class="n">encode</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">fn7</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="mi">123</span><span class="p">})</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="debug-stream">
+<h3>Debug stream<a class="headerlink" href="#debug-stream" title="Permalink to this headline">¶</a></h3>
+<p>Method <code class="docutils literal"><span class="pre">debug</span></code> on the context allows to write messages into debug stream that
+can be found in task attribute “debug” and it is also part of an error message
+when the task fails.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@remote</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">remote_fn</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mi">11</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">10</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Variable a = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+    <span class="n">ctx</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Variable b = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Error occured!&quot;</span><span class="p">)</span>
+
+<span class="c1"># When this task is executed, you get the following error message:</span>
+<span class="c1">#</span>
+<span class="c1"># Exception: Error occured!</span>
+<span class="c1">#</span>
+<span class="c1"># Debug:</span>
+<span class="c1"># Variable a = 11</span>
+<span class="c1"># Variable b = 21</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="type-hints">
+<h3>Type hints<a class="headerlink" href="#type-hints" title="Permalink to this headline">¶</a></h3>
+<p>If you are using sufficiently new Python (&gt;=3.5), you can use type hints
+to define outputs and inputs, e.g.:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@remote</span>
+<span class="k">def</span> <span class="nf">test1</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">a</span> <span class="p">:</span> <span class="n">Input</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">Output</span><span class="p">(</span><span class="n">encode</span><span class="o">=</span><span class="s1">&#39;pickle&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;test_pickle&#39;</span><span class="p">);</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="parallelism">
+<h3>Parallelism<a class="headerlink" href="#parallelism" title="Permalink to this headline">¶</a></h3>
+<p>When more Python tasks are mapped onto the same computational node, a governor
+spawns own Python executor for each task. Therefore all tasks runs in their own
+processes and you do not have care about GIL.</p>
+</div>
+</div>
+<div class="section" id="resources">
+<h2>Resources<a class="headerlink" href="#resources" title="Permalink to this headline">¶</a></h2>
+<p>In the current version, the only resource that can be configured is the number
+of cpus. This following example shows how to request a a specific number of
+cpus for a task:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Reserve 4 CPUs for execution of a program</span>
+<span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;a-parallel-program&quot;</span><span class="p">,</span> <span class="n">cpus</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+<span class="c1"># Resere 4 CPUs for a Python task</span>
+<span class="nd">@remote</span><span class="p">(</span><span class="n">cpus</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">myfunction</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="attributes-spec-and-info">
+<h2>Attributes ‘spec’ and ‘info’<a class="headerlink" href="#attributes-spec-and-info" title="Permalink to this headline">¶</a></h2>
+<p>Most of the information about the tasks and data objects falls into
+two categories:</p>
+<ul class="simple">
+<li>The user-created specification data (<em>spec</em>).</li>
+<li>The information about the task execution and object computation (<em>info</em>).</li>
+</ul>
+<p>These are stored and transmitted separately. Once the objects and tasks
+are submitted, the spec is immutable. The info is initially empty
+and is set by the governor (and in part by the task executor). When
+a task or object is finished, info is also immutable.</p>
+<p>The data is transmitted as JSON, attributes with values <code class="docutils literal"><span class="pre">None</span></code>,
+empty strings and empty lists may be omitted when encoding.</p>
+<p>A client may ask for info attributes of any task/object as long as session
+is open; “keep” flag is not necessary. Attributes are not updated
+automatically, <code class="docutils literal"><span class="pre">fetch()</span></code> or <code class="docutils literal"><span class="pre">update()</span></code> has to be called to update
+attributes.</p>
+<div class="section" id="error-debugn-and-user">
+<h3>Error, debugn and user<a class="headerlink" href="#error-debugn-and-user" title="Permalink to this headline">¶</a></h3>
+<p>The task info and object info share <code class="docutils literal"><span class="pre">error</span></code> attribute. When non-empty,
+the task is assumed to have failed. You may specify <code class="docutils literal"><span class="pre">error</span></code>
+of an object to indicate the error more precisely, but it usually
+indicates a failure of the generating task.
+Note that empty <code class="docutils literal"><span class="pre">error</span></code> is assumedto mean success even if explicitly present.</p>
+<p>The <code class="docutils literal"><span class="pre">debug</span></code> attribute is intended for any log messages from Rain or the user,
+especially for internal and external debugging. General node progress is
+normally not logged here as it is contained in the Rain event log.
+This is the only attribute that is not immutable once set and may be appended
+to.</p>
+<p>Both task and object info and spec have a <code class="docutils literal"><span class="pre">user</span></code> dictionary intended
+for any JSON-serializable data for any purpose. The keys prefixed with <code class="docutils literal"><span class="pre">_</span></code>
+are used internally in testing and development.</p>
+</div>
+<div class="section" id="task-spec-and-info">
+<h3>Task spec and info<a class="headerlink" href="#task-spec-and-info" title="Permalink to this headline">¶</a></h3>
+<p>Task spec ( ::<code class="xref any docutils literal"><span class="pre">rain.common.attributes.TaskSpec</span></code> in Python)
+has the following attributes:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">id</span></code> - Task ID tuple, type <a class="reference internal" href="python_api.html#rain.common.ID" title="rain.common.ID"><code class="xref py py-class docutils literal"><span class="pre">rain.common.ID</span></code></a>.</li>
+<li><code class="docutils literal"><span class="pre">task_type</span></code> - The task-type identificator (e.g. “executor/method”).</li>
+<li><code class="docutils literal"><span class="pre">config</span></code> - Any task-type specific configuration data, JSON-serializable.</li>
+<li><code class="docutils literal"><span class="pre">inputs</span></code> - A list of input object IDs and labels as
+::<code class="xref any docutils literal"><span class="pre">rain.common.attributes.TaskSpecInput</span></code>
+* <code class="docutils literal"><span class="pre">id</span></code> - Input object ID.
+* <code class="docutils literal"><span class="pre">label</span></code> - Optional label.</li>
+<li><code class="docutils literal"><span class="pre">outputs</span></code> - List of output object IDs.</li>
+<li><code class="docutils literal"><span class="pre">resources</span></code> - Dictionary with resource specification.</li>
+<li><code class="docutils literal"><span class="pre">user</span></code> - Arbitrary user json-serializable attributes.</li>
+</ul>
+<p>Task info (::<code class="xref any docutils literal"><span class="pre">rain.common.attributes.TaskInfo</span></code> in Python)
+has the following attributes:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">error</span></code> - Error message. Non-empty error indicates failure.</li>
+<li><code class="docutils literal"><span class="pre">start_time</span></code> - Time the task was started.</li>
+<li><code class="docutils literal"><span class="pre">duration</span></code> - Real-time duration in seconds (floating-point number).</li>
+<li><code class="docutils literal"><span class="pre">governor</span></code> - The ID of the governor that executed this task.</li>
+<li><code class="docutils literal"><span class="pre">debug</span></code> - Debugging log, usually empty.</li>
+<li><code class="docutils literal"><span class="pre">user</span></code> - Arbitrary json-serializable objects.</li>
+</ul>
+</div>
+<div class="section" id="data-object-spec-and-info">
+<h3>Data object spec and info<a class="headerlink" href="#data-object-spec-and-info" title="Permalink to this headline">¶</a></h3>
+<p>Data object spec (::<code class="xref any docutils literal"><span class="pre">rain.common.attributes.ObjectSpec</span></code> in Python)
+has the following attributes:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">id</span></code> - Object ID tuple, type <a class="reference internal" href="python_api.html#rain.common.ID" title="rain.common.ID"><code class="xref py py-class docutils literal"><span class="pre">rain.common.ID</span></code></a>.</li>
+<li><code class="docutils literal"><span class="pre">label</span></code> - Label (role) of this output at the generating task.</li>
+<li><code class="docutils literal"><span class="pre">content_type</span></code> - Specified content type name, see <a class="reference internal" href="#content-type">content type</a>.</li>
+<li><code class="docutils literal"><span class="pre">data_type</span></code> - Object data type, <code class="docutils literal"><span class="pre">&quot;blob&quot;</span></code> or <code class="docutils literal"><span class="pre">&quot;dir&quot;</span></code>.</li>
+<li><code class="docutils literal"><span class="pre">user</span></code> - Arbitrary user json-serializable attributes.</li>
+</ul>
+<p>Data object info (::<code class="xref any docutils literal"><span class="pre">rain.common.attributes.ObjectInfo</span></code> in Python)
+has the following attributes:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">error</span></code> - Error message. Non-empty error indicates failure.</li>
+<li><code class="docutils literal"><span class="pre">size</span></code> - Final size in bytes (approximate for directories).</li>
+<li><code class="docutils literal"><span class="pre">content_type</span></code> - Content type after execution. Note that this must
+be a sub-type of <code class="docutils literal"><span class="pre">spec.content_type</span></code>.</li>
+<li><code class="docutils literal"><span class="pre">debug</span></code> - Debugging log, usually empty.</li>
+<li><code class="docutils literal"><span class="pre">user</span></code> - Arbitrary json-serializable objects.</li>
+</ul>
+</div>
+<div class="section" id="python-api">
+<h3>Python API<a class="headerlink" href="#python-api" title="Permalink to this headline">¶</a></h3>
+<p>In the client, the attributes are available as <code class="docutils literal"><span class="pre">spec</span></code> and <code class="docutils literal"><span class="pre">info</span></code> on
+<a class="reference internal" href="python_api.html#rain.client.Task" title="rain.client.Task"><code class="xref py py-class docutils literal"><span class="pre">rain.client.Task</span></code></a> and <a class="reference internal" href="python_api.html#rain.client.DataObject" title="rain.client.DataObject"><code class="xref py py-class docutils literal"><span class="pre">rain.client.DataObject</span></code></a>.</p>
+<p>An example of fetching and querying the attributes at the client:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;sleep 1&quot;</span><span class="p">)</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+
+    <span class="n">s</span><span class="o">.</span><span class="n">wait_all</span><span class="p">()</span>
+
+    <span class="c1"># Download recent attributes</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+    <span class="c1"># Print name of governor where task was executed</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">governor</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the python executor and remote tasks, the object attributes are
+available on the input <a class="reference internal" href="python_api.html#rain.common.DataInstance" title="rain.common.DataInstance"><code class="xref py py-class docutils literal"><span class="pre">rain.common.DataInstance</span></code></a>, the
+task attributes on the execution context (::<code class="xref any docutils literal"><span class="pre">rain.executor.context.Context</span></code>).</p>
+<p>An example of remote attribute manipulation:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@remote</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">attr_demo</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+   <span class="c1"># read user defined attributes</span>
+   <span class="n">foo</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">user</span><span class="p">[</span><span class="s2">&quot;foo&quot;</span><span class="p">]</span>
+
+   <span class="c1"># setup new &quot;user_info&quot; attribute</span>
+   <span class="n">ctx</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">user</span><span class="p">[</span><span class="s2">&quot;bar&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">foo</span><span class="p">]</span>
+
+   <span class="c1"># Write some debug log</span>
+   <span class="n">ctx</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Running at governor&quot;</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">governor</span><span class="p">)</span>
+   <span class="k">return</span> <span class="sa">b</span><span class="s2">&quot;Result&quot;</span>
+
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">attr_demo</span><span class="p">()</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">user</span><span class="p">[</span><span class="s2">&quot;foo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">42</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">wait_all</span><span class="p">()</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+    <span class="c1"># prints: [1, 2, 42]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">user</span><span class="p">[</span><span class="s2">&quot;bar&quot;</span><span class="p">])</span>
+
+    <span class="c1"># prints the debug log</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">info</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="waiting-for-object-s-and-task-s">
+<h2>Waiting for object(s) and task(s)<a class="headerlink" href="#waiting-for-object-s-and-task-s" title="Permalink to this headline">¶</a></h2>
+<p>Waiting for a completion of a single task/object is done using the <code class="docutils literal"><span class="pre">wait()</span></code>
+method directly on awaited task or data object. Multiple tasks/objects can be
+awaited at once using the <code class="docutils literal"><span class="pre">wait</span></code> method with a set of tasks/obejcts on
+session:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;Hello world&quot;</span><span class="p">)</span>
+    <span class="n">t1</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Sleep</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">t2</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Sleep</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+
+    <span class="n">t1</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>  <span class="c1"># This blocks until t1 is finished, independently of t2</span>
+    <span class="n">t2</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>  <span class="c1"># Waits until a data object is not finished</span>
+
+    <span class="c1"># The same as two lines above, but since we are doing it at once, it is</span>
+    <span class="c1"># slightly more efficient</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">wait</span><span class="p">([</span><span class="n">t1</span><span class="p">,</span> <span class="n">t2</span><span class="o">.</span><span class="n">output</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Note that in the case of <code class="docutils literal"><span class="pre">wait()</span></code> (in contrast with <code class="docutils literal"><span class="pre">fetch()</span></code>), object
+does not have to be marked as “kept”.</p>
+</div>
+</div>
+<div class="section" id="directories">
+<span id="id3"></span><h2>Directories<a class="headerlink" href="#directories" title="Permalink to this headline">¶</a></h2>
+<p>Rain allows to use directories in the similar way to blobs. Rain allows to
+create directory data objects that can be passed to <code class="docutils literal"><span class="pre">tasks.Execute()</span></code>, remote
+python code, and other places without any differences. There are only two
+specific features:</p>
+<blockquote>
+<div><ul class="simple">
+<li>If a directory dataobject is mapped to a file system it is mapped as directory
+(not as a file as in the case of blobs).</li>
+<li>If a directory is viewed as raw bytes (e.g. method <code class="docutils literal"><span class="pre">get_bytes</span></code> on data
+instance), tar file is returned.</li>
+</ul>
+</div></blockquote>
+<p>A data type of an object (blob/directory) is a part of the
+task graph and has to be determinated during its construction. To specify it in
+places where <code class="docutils literal"><span class="pre">Input</span></code> and <code class="docutils literal"><span class="pre">Output</span></code> classes are used, there are classes
+<a class="reference internal" href="python_api.html#rain.client.InputDir" title="rain.client.InputDir"><code class="xref py py-class docutils literal"><span class="pre">rain.client.InputDir</span></code></a> and <a class="reference internal" href="python_api.html#rain.client.OutputDir" title="rain.client.OutputDir"><code class="xref py py-class docutils literal"><span class="pre">rain.client.OutputDir</span></code></a>.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain</span> <span class="k">import</span>
+
+<span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">blob</span><span class="p">,</span> <span class="n">OutputDir</span><span class="p">,</span> <span class="n">directory</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+
+    <span class="c1"># Creates a directory object from client&#39;s local file system</span>
+    <span class="c1"># Recursively collects all files and directories in /path/to/dir</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">directory</span><span class="p">(</span><span class="s2">&quot;/path/to/dir&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Create blob data objects</span>
+    <span class="n">data1</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;12345&quot;</span><span class="p">)</span>
+    <span class="n">data2</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;67890&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Task that creates a directory from data objects</span>
+    <span class="n">d2</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">MakeDirectory</span><span class="p">(</span><span class="n">tasks</span><span class="o">.</span><span class="n">make_directory</span><span class="p">([</span>
+         <span class="p">(</span><span class="s2">&quot;myfile.txt&quot;</span><span class="p">,</span> <span class="n">data1</span><span class="p">),</span>  <span class="c1"># Map &#39;data1&#39; as file &#39;myfile.txt&#39; into directory</span>
+         <span class="p">(</span><span class="s2">&quot;adir&quot;</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span>  <span class="c1"># Map directory &#39;d&#39; as subdir named &#39;adir&#39;</span>
+         <span class="p">(</span><span class="s2">&quot;a/deep/path/x&quot;</span><span class="p">,</span> <span class="n">data2</span><span class="p">),</span>  <span class="c1"># Map &#39;data2&#39; as a file &#39;x&#39;; all subdirs on path is created</span>
+    <span class="p">])</span>
+
+    <span class="c1"># Task taking a file from a directory data object</span>
+    <span class="n">d3</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">SliceDirectory</span><span class="p">(</span><span class="n">d2</span><span class="p">,</span> <span class="s2">&quot;a/deep/path/x&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Task taking a directory from a directory data object</span>
+    <span class="c1"># This is indicated by  &#39;/&#39; at the end of the path.</span>
+    <span class="n">d3</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">SliceDirectory</span><span class="p">(</span><span class="n">d2</span><span class="p">,</span> <span class="s2">&quot;a/deep/&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Taking directory as outpout of task.execute</span>
+    <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;git clone https://github.com/substantic/rain&quot;</span><span class="p">,</span>
+                  <span class="n">output_paths</span><span class="o">=</span><span class="p">[</span><span class="n">OutputDir</span><span class="p">(</span><span class="s2">&quot;rain&quot;</span><span class="p">)])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="mapping-data-objects-onto-filesystem">
+<span id="fs-mappings"></span><h2>Mapping data objects onto filesystem<a class="headerlink" href="#mapping-data-objects-onto-filesystem" title="Permalink to this headline">¶</a></h2>
+<p>Rain knows two methods of maping a data objects onto filesystem.</p>
+<ul class="simple">
+<li><strong>write</strong> - creates a fresh copy of data objects is created on filesystem that
+can be freely modified. Changes of the file is <em>not</em> propagated back to data
+object.</li>
+<li><strong>link</strong> - symlink to the internal storage of governor. The user can only read
+this data. This method may silently fall back to ‘write’ when governor has no file
+system representation of the object.</li>
+</ul>
+<p>Task <a class="reference internal" href="python_api.html#rain.client.tasks.Execute" title="rain.client.tasks.Execute"><code class="xref py py-func docutils literal"><span class="pre">rain.client.tasks.Execute()</span></code></a> maps files by <strong>link</strong> method.
+It can be changed by <code class="docutils literal"><span class="pre">write</span></code> argument of <code class="docutils literal"><span class="pre">Input</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Let &#39;obj&#39; contains a data object</span>
+
+<span class="c1"># THIS IS INVALID! You cannot modified linked objects</span>
+<span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;echo &#39;New line&#39; &gt;&gt; myfile&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">input_paths</span><span class="o">=</span><span class="p">[</span><span class="n">Input</span><span class="p">(</span><span class="s2">&quot;myfile&quot;</span><span class="p">,</span> <span class="n">dataobj</span><span class="o">=</span><span class="n">obj</span><span class="p">)])</span>
+
+<span class="c1"># This is ok. Writable copy of &#39;obj&#39; is created.</span>
+<span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">(</span><span class="s2">&quot;echo &#39;New line&#39; &gt;&gt; myfile&quot;</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">input_paths</span><span class="o">=</span><span class="p">[</span><span class="n">Input</span><span class="p">(</span><span class="s2">&quot;myfile&quot;</span><span class="p">,</span> <span class="n">dataobj</span><span class="o">=</span><span class="n">obj</span><span class="p">,</span> <span class="n">write</span><span class="o">=</span><span class="kc">True</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>Data instance has methods <code class="docutils literal"><span class="pre">write(path)</span></code> and <code class="docutils literal"><span class="pre">link(path)</span></code> that performs the
+mapping to a given path. They can be used on both in executor and in client.
+Let us note that in the current version <strong>link</strong> in the client always falls back
+to <strong>write</strong>. Example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@remote</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">my_remote_function</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">input1</span><span class="p">):</span>
+    <span class="n">input1</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;myfile&quot;</span><span class="p">)</span>  <span class="c1"># Writes data into &#39;myfile&#39; that can be edited</span>
+                            <span class="c1"># without change of the original object</span>
+    <span class="n">input1</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="s2">&quot;myfile2&quot;</span><span class="p">)</span>  <span class="c1"># Creates a read-only file system representation</span>
+                            <span class="c1"># of data object</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Read-only property in linking method is forced by setting up file rights.
+Therefore, as far you do not change permissions of files/directories, you are
+proctected against accidental modifications of data objects. If you change
+permissions or content of linked data objects, the behavior is undefined. Let
+us remind that Rain is designed only for execution of trusted codes.
+Obviously this kind of isolation is <strong>not</strong> a protection against malicious
+users.</p>
+</div>
+</div>
+<div class="section" id="sessions">
+<span id="id4"></span><h2>Sessions<a class="headerlink" href="#sessions" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="overview">
+<h3>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h3>
+<p>The client allows to create one or more sessions. Sessions are the environment
+scopes where application create task graphs and submit them into the server.
+Sessions follows the following rules:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Each client may manage multiple sessions. Tasks and data object in different
+sessions are independent and they may be executed simultaneously.</li>
+<li>If a client disconnects, all sessions created by the client are terminated,
+i.e. running tasks are stopped and data objects are removed.
+(Persistent sessions are not supported in the current version)</li>
+<li>If any task in a session fails, the session is labeled as failed, and all
+running tasks in the session are stopped. Any access to tasks/objects in the
+session will throw an exception containing error that caused the problem.
+Destroying the session is the only operation that does not throw the exception.
+Other sessions are not affected.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="active-session">
+<h3>Active session<a class="headerlink" href="#active-session" title="Permalink to this headline">¶</a></h3>
+<p>Rain client maintains a global stack of sessions and <code class="docutils literal"><span class="pre">with</span></code> block moves a
+session on the top of the stack and removes it from the stack when the block
+ends. The session on the top of the stack is called <em>active</em> session. The
+following example demonstrates when a session is active:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">blob</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+
+<span class="c1"># no session is active</span>
+<span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">a</span><span class="p">:</span>
+
+    <span class="c1"># &#39;a&#39; is active</span>
+
+    <span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">b</span><span class="p">:</span>
+        <span class="c1"># &#39;b&#39; is active</span>
+        <span class="k">pass</span>
+
+    <span class="c1"># &#39;b&#39; is closed and &#39;a&#39; is active again</span>
+
+<span class="c1"># &#39;a&#39; is closed and no session is active</span>
+</pre></div>
+</div>
+<p>Tasks and data objects are always created within the scope of active session.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Which session is active is always a local information that only influences
+tasks and data objects creation. This information is not propagated to the
+server. Submitted tasks are running regardless the session is active or not.</p>
+</div>
+</div>
+<div class="section" id="closing-session">
+<h3>Closing session<a class="headerlink" href="#closing-session" title="Permalink to this headline">¶</a></h3>
+<p>Session may be closed manually by calling method <code class="docutils literal"><span class="pre">close()</span></code>, dropping the
+client connection or leaving <code class="docutils literal"><span class="pre">with</span></code> block. To suppress the last named
+behavior you can use the <code class="docutils literal"><span class="pre">bind_only()</span></code> method as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">session</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">session</span><span class="o">.</span><span class="n">bind_only</span><span class="p">():</span>
+    <span class="c1"># &#39;session&#39; is active</span>
+    <span class="k">pass</span>
+
+<span class="c1"># &#39;session&#39; is not active here; however it is NOT closed</span>
+</pre></div>
+</div>
+<p>Once a session is closed, it is pernamently removed from the session stack and
+cannot be reused again.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The server holds tasks’ and objects’ metadata (e.g. performance information) as
+long as a session is alive. If you use a long living client with many sessions,
+sessions should be closed as soon as they are not needed.</p>
+</div>
+</div>
+<div class="section" id="multiple-submits">
+<h3>Multiple submits<a class="headerlink" href="#multiple-submits" title="Permalink to this headline">¶</a></h3>
+<p>The task graph does not have to be submmited at once; multiple submmits may
+occur during the lifetime of a session. Data objects from previous submits
+may be used while constructing a new new submit, the only condition is that
+they have to be marked as “kept” explicitly.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+   <span class="n">a</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;Hello world&quot;</span><span class="p">)</span>
+   <span class="n">t1</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Sleep</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+   <span class="n">t1</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">keep</span><span class="p">()</span>
+
+   <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>  <span class="c1"># First submit</span>
+
+   <span class="n">t2</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Sleep</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+   <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>  <span class="c1"># Second submit</span>
+   <span class="n">session</span><span class="o">.</span><span class="n">wait_all</span><span class="p">()</span>  <span class="c1"># Wait until everything is finished</span>
+
+   <span class="n">t3</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Sleep</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+   <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>  <span class="c1"># Third submit</span>
+   <span class="n">session</span><span class="o">.</span><span class="n">wait_all</span><span class="p">()</span>  <span class="c1"># Wait again until everything is finished</span>
+</pre></div>
+</div>
+<p>Let us remind that method <code class="docutils literal"><span class="pre">wait_all()</span></code> waits until all currently running task
+are finished, regardless in which submit they arrived to the server.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="executors.html" class="btn btn-neutral float-right" title="Writing Own Executors" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="quickstart.html" class="btn btn-neutral" title="Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

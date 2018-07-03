@@ -1,0 +1,437 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>rain.client.tasks &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user.html">User’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../executors.html">Writing Own Executors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation, Running &amp; Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../python_api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev.html">Contributors’s Guide</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>rain.client.tasks</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for rain.client.tasks</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">.task</span> <span class="k">import</span> <span class="n">Task</span>
+<span class="kn">from</span> <span class="nn">.data</span> <span class="k">import</span> <span class="n">to_dataobj</span>
+<span class="kn">from</span> <span class="nn">.input</span> <span class="k">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">InputBase</span>
+<span class="kn">from</span> <span class="nn">.output</span> <span class="k">import</span> <span class="n">Output</span><span class="p">,</span> <span class="n">OutputBase</span><span class="p">,</span> <span class="n">OutputDir</span>
+<span class="kn">from</span> <span class="nn">.data</span> <span class="k">import</span> <span class="n">DataObject</span>
+<span class="kn">from</span> <span class="nn">..common.data_type</span> <span class="k">import</span> <span class="n">DataType</span>
+<span class="kn">from</span> <span class="nn">..common.utils</span> <span class="k">import</span> <span class="n">short_str</span>
+
+<span class="kn">import</span> <span class="nn">shlex</span>
+
+
+<div class="viewcode-block" id="Concat"><a class="viewcode-back" href="../../../python_api.html#rain.client.tasks.Concat">[docs]</a><span class="k">class</span> <span class="nc">Concat</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a task concatenating the given data objects.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TASK_TYPE</span> <span class="o">=</span> <span class="s2">&quot;buildin/concat&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Sleep"><a class="viewcode-back" href="../../../python_api.html#rain.client.tasks.Sleep">[docs]</a><span class="k">class</span> <span class="nc">Sleep</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Task that forwards argument &#39;dataobj&#39; after &#39;timeout&#39; seconds.</span>
+<span class="sd">    The type of resulting data object is the same as type of input data object</span>
+<span class="sd">    This task serves for testing purposes.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input (`DataObject`): The object to pass through.</span>
+<span class="sd">        timeout (`float`): Number of seconds to wait, converted to whole miliseconds.</span>
+<span class="sd">        cpus (`int`): Number of CPUs to reserve, for testing purposes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TASK_TYPE</span> <span class="o">=</span> <span class="s2">&quot;buildin/sleep&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">timeout</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cpus</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="nb">input</span> <span class="o">=</span> <span class="n">to_dataobj</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+        <span class="n">otype</span> <span class="o">=</span> <span class="n">Output</span> <span class="k">if</span> <span class="nb">input</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">data_type</span> <span class="o">==</span> <span class="n">DataType</span><span class="o">.</span><span class="n">BLOB</span> <span class="k">else</span> <span class="n">OutputDir</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">otype</span><span class="p">(</span><span class="n">content_type</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">content_type</span><span class="p">)</span>
+        <span class="c1"># , size_hint=input.spec.size_hint) TODO: Add size_hint</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">((</span><span class="nb">input</span><span class="p">,),</span> <span class="p">(</span><span class="n">output</span><span class="p">,),</span> <span class="n">config</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">timeout</span><span class="p">),</span> <span class="n">cpus</span><span class="o">=</span><span class="n">cpus</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Load"><a class="viewcode-back" href="../../../python_api.html#rain.client.tasks.Load">[docs]</a><span class="k">class</span> <span class="nc">Load</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load and output a file at the given path (at the worker).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TASK_TYPE</span> <span class="o">=</span> <span class="s2">&quot;buildin/open&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">output</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">Output</span><span class="p">()</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">expect_blob</span><span class="p">()</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([],</span> <span class="p">(</span><span class="n">output</span><span class="p">,),</span> <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">path</span><span class="p">},</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LoadDir"><a class="viewcode-back" href="../../../python_api.html#rain.client.tasks.LoadDir">[docs]</a><span class="k">class</span> <span class="nc">LoadDir</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load and output a directory at the given path (at the worker).</span>
+
+<span class="sd">    TODO: Implement</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TASK_TYPE</span> <span class="o">=</span> <span class="s2">&quot;buildin/open_dir&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">output</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">OutputDir</span><span class="p">()</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">expect_dir</span><span class="p">()</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">([],</span> <span class="n">OutputDir</span><span class="p">(),</span> <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">path</span><span class="p">},</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Store"><a class="viewcode-back" href="../../../python_api.html#rain.client.tasks.Store">[docs]</a><span class="k">class</span> <span class="nc">Store</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Store the given object (blob or directory) at the given path (at the worker).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TASK_TYPE</span> <span class="o">=</span> <span class="s2">&quot;buildin/export&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">((</span><span class="nb">input</span><span class="p">,</span> <span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">path</span><span class="p">},</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MakeDirectory"><a class="viewcode-back" href="../../../python_api.html#rain.client.tasks.MakeDirectory">[docs]</a><span class="k">class</span> <span class="nc">MakeDirectory</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a directory from other objects (blobs or other directories).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        paths_objects: An iterable of pairs `(path, obj)` or a dictionary `{path: obj}`</span>
+<span class="sd">            where `path` is the new relative path. Paths of some of the more directory</span>
+<span class="sd">            object may be `&#39;&#39;` or `&#39;.&#39;` to use them as the base directory.</span>
+
+<span class="sd">    TODO: Specify behavior on overlapping subdirs/contents.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TASK_TYPE</span> <span class="o">=</span> <span class="s2">&quot;buildin/make_directory&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths_objects</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">paths_objects</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">paths_objects</span> <span class="o">=</span> <span class="n">paths_objects</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">paths_objects</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">paths_objects</span><span class="p">)</span>
+            <span class="n">paths</span><span class="p">,</span> <span class="n">inputs</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">paths_objects</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;MakeDirectory needs an iterable of pairs &quot;</span>
+                            <span class="s2">&quot;`(path, obj)` or a dictionary `{path: obj}`&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="p">(</span><span class="n">OutputDir</span><span class="p">(),),</span> <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;paths&quot;</span><span class="p">:</span> <span class="n">paths</span><span class="p">},</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SliceDirectory"><a class="viewcode-back" href="../../../python_api.html#rain.client.tasks.SliceDirectory">[docs]</a><span class="k">class</span> <span class="nc">SliceDirectory</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extract a file from a directory.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input (`DataObject`): A directory object to slice.</span>
+<span class="sd">        path (`[str]`): An iterable of paths. If the path ends with a slash `&#39;/&#39;`, the output</span>
+<span class="sd">            is a directory object, otherwise a file object is creates.</span>
+<span class="sd">        output (`Output` or `OutputDir`): An optional output specification.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TASK_TYPE</span> <span class="o">=</span> <span class="s2">&quot;buildin/slice_directory&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">session</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">input</span> <span class="o">=</span> <span class="n">to_dataobj</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+        <span class="nb">input</span><span class="o">.</span><span class="n">expect_dir</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">output</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">OutputDir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">Output</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">expect_dir</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output</span><span class="o">.</span><span class="n">expect_blob</span><span class="p">()</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">((</span><span class="nb">input</span><span class="p">,),</span> <span class="p">(</span><span class="n">output</span><span class="p">,),</span> <span class="n">config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">path</span><span class="p">},</span> <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Execute"><a class="viewcode-back" href="../../../python_api.html#rain.client.tasks.Execute">[docs]</a><span class="k">class</span> <span class="nc">Execute</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A task executing a single external program with rich argument support.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">TASK_TYPE</span> <span class="o">=</span> <span class="s2">&quot;buildin/run&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span>
+                 <span class="n">stdout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">stdin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">input_paths</span><span class="o">=</span><span class="p">(),</span>
+                 <span class="n">output_paths</span><span class="o">=</span><span class="p">(),</span>
+                 <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">cpus</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+
+        <span class="n">ins</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">outs</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">stdout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">stdout</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">stdout</span> <span class="o">=</span> <span class="s2">&quot;stdout&quot;</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="n">OutputBase</span><span class="o">.</span><span class="n">_for_program</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;stdout&quot;</span><span class="p">,</span> <span class="n">execute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># &#39;+out&#39; is the file name of where stdout is redirected</span>
+            <span class="n">stdout</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;+out&quot;</span>
+            <span class="n">outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">stdin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># &#39;+in&#39; is the file name of where stdin is redirected</span>
+            <span class="n">stdin</span> <span class="o">=</span> <span class="n">InputBase</span><span class="o">.</span><span class="n">_for_program</span><span class="p">(</span><span class="n">stdin</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;stdin&quot;</span><span class="p">,</span> <span class="n">execute</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">stdin</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;+in&quot;</span>
+            <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stdin</span><span class="p">)</span>
+
+        <span class="n">ins</span> <span class="o">+=</span> <span class="p">[</span><span class="n">InputBase</span><span class="o">.</span><span class="n">_for_program</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">execute</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">label_as_path</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">input_paths</span><span class="p">]</span>
+        <span class="n">outs</span> <span class="o">+=</span> <span class="p">[</span><span class="n">OutputBase</span><span class="o">.</span><span class="n">_for_program</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">execute</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">label_as_path</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                 <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">output_paths</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="n">proc_args</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+            <span class="n">argname</span> <span class="o">=</span> <span class="s2">&quot;arg</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">proc_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">InputBase</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">DataObject</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">Task</span><span class="p">):</span>
+                <span class="n">arg</span> <span class="o">=</span> <span class="n">Input</span><span class="o">.</span><span class="n">_for_program</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">execute</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">argname</span><span class="p">)</span>
+                <span class="n">ins</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="n">proc_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">OutputBase</span><span class="p">):</span>
+                <span class="n">arg</span> <span class="o">=</span> <span class="n">OutputBase</span><span class="o">.</span><span class="n">_for_program</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">execute</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">argname</span><span class="p">)</span>
+                <span class="n">outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="n">proc_args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Argument </span><span class="si">{!r}</span><span class="s2"> is invalid&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">arg</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">shell</span><span class="p">:</span>
+            <span class="n">proc_args</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;/bin/sh&quot;</span><span class="p">,</span> <span class="s2">&quot;-c&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">proc_args</span><span class="p">))</span>
+<span class="c1">#           proc_args = (&quot;/bin/sh&quot;, &quot;-c&quot;, &quot; &quot;.join(shlex.quote(a) for a in proc_args))</span>
+
+        <span class="n">task_inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">dataobj</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">ins</span><span class="p">]</span>
+        <span class="n">task_outputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">output</span><span class="o">.</span><span class="n">create_data_object</span><span class="p">()</span> <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">outs</span><span class="p">]</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;args&quot;</span><span class="p">:</span> <span class="n">proc_args</span><span class="p">,</span>
+            <span class="s2">&quot;in_paths&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;write&quot;</span><span class="p">:</span> <span class="n">obj</span><span class="o">.</span><span class="n">write</span><span class="p">}</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">ins</span><span class="p">],</span>
+            <span class="s2">&quot;out_paths&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">obj</span><span class="o">.</span><span class="n">path</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">outs</span><span class="p">]}</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">task_inputs</span><span class="p">,</span> <span class="n">task_outputs</span><span class="p">,</span> <span class="n">cpus</span><span class="o">=</span><span class="n">cpus</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2">, inputs </span><span class="si">{}</span><span class="s2">, outputs </span><span class="si">{}</span><span class="s2">, cmd </span><span class="si">{!r}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="n">short_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;args&quot;</span><span class="p">]))</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

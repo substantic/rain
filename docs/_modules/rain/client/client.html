@@ -1,0 +1,495 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>rain.client.client &mdash; Rain 0.3.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Rain 0.3.0 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Rain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.3.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../user.html">User’s Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../executors.html">Writing Own Executors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation, Running &amp; Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../python_api.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev.html">Contributors’s Guide</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Rain</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>rain.client.client</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for rain.client.client</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">capnp</span>
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">rpc</span>
+<span class="kn">from</span> <span class="nn">..common</span> <span class="k">import</span> <span class="n">RainException</span><span class="p">,</span> <span class="n">SessionException</span><span class="p">,</span> <span class="n">TaskException</span>
+<span class="kn">from</span> <span class="nn">..common.attributes</span> <span class="k">import</span> <span class="n">ObjectInfo</span><span class="p">,</span> <span class="n">TaskInfo</span>
+<span class="kn">from</span> <span class="nn">..common.data_instance</span> <span class="k">import</span> <span class="n">DataInstance</span>
+<span class="kn">from</span> <span class="nn">..common.ids</span> <span class="k">import</span> <span class="n">governor_id_from_capnp</span><span class="p">,</span> <span class="n">id_from_capnp</span><span class="p">,</span> <span class="n">id_to_capnp</span>
+<span class="kn">from</span> <span class="nn">.data</span> <span class="k">import</span> <span class="n">DataObject</span>
+<span class="kn">from</span> <span class="nn">.session</span> <span class="k">import</span> <span class="n">Session</span>
+<span class="kn">from</span> <span class="nn">.task</span> <span class="k">import</span> <span class="n">Task</span>
+
+<span class="n">CLIENT_PROTOCOL_VERSION</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">FETCH_SIZE</span> <span class="o">=</span> <span class="mi">8</span> <span class="o">&lt;&lt;</span> <span class="mi">20</span>  <span class="c1"># 8MB</span>
+
+
+<span class="k">def</span> <span class="nf">check_result</span><span class="p">(</span><span class="n">sessions</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">which</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;ok&quot;</span><span class="p">:</span>
+        <span class="k">return</span>  <span class="c1"># Do nothing</span>
+    <span class="k">elif</span> <span class="n">result</span><span class="o">.</span><span class="n">which</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;error&quot;</span><span class="p">:</span>
+        <span class="n">task_id</span> <span class="o">=</span> <span class="n">id_from_capnp</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">task_id</span><span class="o">.</span><span class="n">session_id</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="n">SessionException</span>
+            <span class="n">task</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">cls</span> <span class="o">=</span> <span class="n">TaskException</span>
+
+            <span class="k">for</span> <span class="n">session</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">session</span><span class="o">.</span><span class="n">session_id</span> <span class="o">==</span> <span class="n">task_id</span><span class="o">.</span><span class="n">session_id</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown session </span><span class="si">{}</span><span class="s2"> failed. Internal error&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">session</span><span class="o">.</span><span class="n">_submitted_tasks</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">task_id</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown task </span><span class="si">{}</span><span class="s2"> failed. Internal error&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">))</span>
+
+            <span class="n">message</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Task </span><span class="si">{}</span><span class="s2"> failed&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task</span><span class="p">))</span>
+
+        <span class="n">message</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Message: &quot;</span> <span class="o">+</span> <span class="n">result</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">task</span><span class="p">:</span>
+            <span class="n">message</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Task created at:</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">task</span><span class="o">.</span><span class="n">_stack</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="n">message</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Debug:</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">result</span><span class="o">.</span><span class="n">error</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="bp">cls</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Invalid result: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="Client"><a class="viewcode-back" href="../../../python_api.html#rain.client.Client">[docs]</a><span class="k">class</span> <span class="nc">Client</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A client connection object. Can hold multiple</span>
+<span class="sd">    :py:class:`Session`\ s.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">,</span> <span class="n">port</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rpc_client</span> <span class="o">=</span> <span class="n">capnp</span><span class="o">.</span><span class="n">TwoPartyClient</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">port</span><span class="p">))</span>
+
+        <span class="n">bootstrap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rpc_client</span><span class="o">.</span><span class="n">bootstrap</span><span class="p">()</span><span class="o">.</span><span class="n">cast_as</span><span class="p">(</span>
+            <span class="n">rpc</span><span class="o">.</span><span class="n">server</span><span class="o">.</span><span class="n">ServerBootstrap</span><span class="p">)</span>
+        <span class="n">registration</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="o">.</span><span class="n">registerAsClient</span><span class="p">(</span><span class="n">CLIENT_PROTOCOL_VERSION</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_service</span> <span class="o">=</span> <span class="n">registration</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span><span class="o">.</span><span class="n">service</span>
+
+<div class="viewcode-block" id="Client.new_session"><a class="viewcode-back" href="../../../python_api.html#rain.client.Client.new_session">[docs]</a>    <span class="k">def</span> <span class="nf">new_session</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a new session.</span>
+
+<span class="sd">        Note the session is destroyed server-side when the client disconnects.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            :class:`Session`: A new session</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">newSession</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span><span class="o">.</span><span class="n">sessionId</span>
+        <span class="k">return</span> <span class="n">Session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Client.get_server_info"><a class="viewcode-back" href="../../../python_api.html#rain.client.Client.get_server_info">[docs]</a>    <span class="k">def</span> <span class="nf">get_server_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns basic server info. Unstable.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dict: A JSON-like dictionary.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">getServerInfo</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;governors&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;governor_id&quot;</span><span class="p">:</span> <span class="n">governor_id_from_capnp</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">governorId</span><span class="p">),</span>
+                           <span class="s2">&quot;tasks&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">id_from_capnp</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">w</span><span class="o">.</span><span class="n">tasks</span><span class="p">],</span>
+                           <span class="s2">&quot;objects&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">id_from_capnp</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">w</span><span class="o">.</span><span class="n">objects</span><span class="p">],</span>
+                           <span class="s2">&quot;objects_to_delete&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">id_from_capnp</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">w</span><span class="o">.</span><span class="n">objectsToDelete</span><span class="p">],</span>
+                           <span class="s2">&quot;resources&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;cpus&quot;</span><span class="p">:</span> <span class="n">w</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">nCpus</span><span class="p">}}</span>
+                          <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">info</span><span class="o">.</span><span class="n">governors</span><span class="p">]</span>
+        <span class="p">}</span></div>
+
+    <span class="k">def</span> <span class="nf">_submit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">dataobjs</span><span class="p">):</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">submit_request</span><span class="p">()</span>
+
+        <span class="c1"># Serialize tasks        print(tasks, dataobjs)</span>
+
+        <span class="n">req</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s2">&quot;tasks&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)):</span>
+            <span class="n">req</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">spec</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">tasks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">_to_json</span><span class="p">())</span>
+
+        <span class="c1"># Serialize objects</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s2">&quot;objects&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">)):</span>
+            <span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_to_capnp</span><span class="p">(</span><span class="n">req</span><span class="o">.</span><span class="n">objects</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="n">req</span><span class="o">.</span><span class="n">send</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_fetch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataobj</span><span class="p">):</span>
+        <span class="s2">&quot;Fetch the object data and update its state.&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">dataobj</span><span class="o">.</span><span class="n">_keep</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RainException</span><span class="p">(</span>
+                <span class="s2">&quot;Can&#39;t fetch object </span><span class="si">{}</span><span class="s2"> without keep flag.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dataobj</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">dataobj</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RainException</span><span class="p">(</span>
+                <span class="s2">&quot;Object </span><span class="si">{}</span><span class="s2"> is not submitted.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dataobj</span><span class="p">))</span>
+
+        <span class="n">req</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">fetch_request</span><span class="p">()</span>
+        <span class="n">id_to_capnp</span><span class="p">(</span><span class="n">dataobj</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">FETCH_SIZE</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">includeInfo</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">send</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">check_result</span><span class="p">((</span><span class="n">dataobj</span><span class="o">.</span><span class="n">_session</span><span class="p">,),</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+
+        <span class="n">dataobj</span><span class="o">.</span><span class="n">_info</span> <span class="o">=</span> <span class="n">ObjectInfo</span><span class="o">.</span><span class="n">_from_json</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">info</span><span class="p">))</span>
+
+        <span class="n">size</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">transportSize</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
+
+        <span class="k">while</span> <span class="n">offset</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">:</span>
+            <span class="n">req</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">fetch_request</span><span class="p">()</span>
+            <span class="n">id_to_capnp</span><span class="p">(</span><span class="n">dataobj</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+            <span class="n">req</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span>
+            <span class="n">req</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">FETCH_SIZE</span>
+            <span class="n">req</span><span class="o">.</span><span class="n">includeInfo</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">send</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+            <span class="n">check_result</span><span class="p">((</span><span class="n">dataobj</span><span class="o">.</span><span class="n">_session</span><span class="p">,),</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">offset</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">rawdata</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">DataInstance</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">rawdata</span><span class="p">,</span>
+                            <span class="n">data_object</span><span class="o">=</span><span class="n">dataobj</span><span class="p">,</span>
+                            <span class="n">data_type</span><span class="o">=</span><span class="n">dataobj</span><span class="o">.</span><span class="n">spec</span><span class="o">.</span><span class="n">data_type</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_wait</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">dataobjs</span><span class="p">):</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">wait_request</span><span class="p">()</span>
+
+        <span class="n">req</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s2">&quot;taskIds&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">))</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)):</span>
+            <span class="n">task</span> <span class="o">=</span> <span class="n">tasks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">RainException</span><span class="p">(</span><span class="s2">&quot;Task </span><span class="si">{}</span><span class="s2"> is not submitted&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task</span><span class="p">))</span>
+            <span class="n">id_to_capnp</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">taskIds</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">sessions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">_session</span><span class="p">)</span>
+
+        <span class="n">req</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s2">&quot;objectIds&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">)):</span>
+            <span class="n">id_to_capnp</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">objectIds</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">sessions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_session</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">send</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">check_result</span><span class="p">(</span><span class="n">sessions</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_close_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">closeSession</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_wait_some</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">dataobjs</span><span class="p">):</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">waitSome_request</span><span class="p">()</span>
+
+        <span class="n">tasks_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s2">&quot;taskIds&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)):</span>
+            <span class="n">tasks_dict</span><span class="p">[</span><span class="n">tasks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">tasks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">id_to_capnp</span><span class="p">(</span><span class="n">tasks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">taskIds</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="n">dataobjs_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s2">&quot;objectIds&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">)):</span>
+            <span class="n">dataobjs_dict</span><span class="p">[</span><span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">id_to_capnp</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">objectIds</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="n">finished</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">send</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">finished_tasks</span> <span class="o">=</span> <span class="p">[</span><span class="n">tasks_dict</span><span class="p">[</span><span class="n">f_task</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+                          <span class="k">for</span> <span class="n">f_task</span> <span class="ow">in</span> <span class="n">finished</span><span class="o">.</span><span class="n">finishedTasks</span><span class="p">]</span>
+        <span class="n">finished_dataobjs</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataobjs_dict</span><span class="p">[</span><span class="n">f_dataobj</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+                             <span class="k">for</span> <span class="n">f_dataobj</span> <span class="ow">in</span> <span class="n">finished</span><span class="o">.</span><span class="n">finishedObjects</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">finished_tasks</span><span class="p">,</span> <span class="n">finished_dataobjs</span>
+
+    <span class="k">def</span> <span class="nf">_wait_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">wait_request</span><span class="p">()</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s2">&quot;taskIds&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">taskIds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">rpc</span><span class="o">.</span><span class="n">common</span><span class="o">.</span><span class="n">allTasksId</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">taskIds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sessionId</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">session_id</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">send</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">check_result</span><span class="p">((</span><span class="n">session</span><span class="p">,),</span> <span class="n">result</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_unkeep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataobjs</span><span class="p">):</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">unkeep_request</span><span class="p">()</span>
+
+        <span class="n">req</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s2">&quot;objectIds&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">)):</span>
+            <span class="n">id_to_capnp</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">objectIds</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">send</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">check_result</span><span class="p">([</span><span class="n">o</span><span class="o">.</span><span class="n">_session</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">dataobjs</span><span class="p">],</span> <span class="n">result</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
+        <span class="n">tasks</span><span class="p">,</span> <span class="n">dataobjects</span> <span class="o">=</span> <span class="n">split_items</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_state</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">dataobjects</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">dataobjs</span><span class="p">):</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">getState_request</span><span class="p">()</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s2">&quot;taskIds&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)):</span>
+            <span class="n">id_to_capnp</span><span class="p">(</span><span class="n">tasks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">taskIds</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">sessions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tasks</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_session</span><span class="p">)</span>
+
+        <span class="n">dataobjs_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">req</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="s2">&quot;objectIds&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">)):</span>
+            <span class="n">dataobjs_dict</span><span class="p">[</span><span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">id_to_capnp</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">objectIds</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">sessions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dataobjs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">_session</span><span class="p">)</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">send</span><span class="p">()</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">check_result</span><span class="p">(</span><span class="n">sessions</span><span class="p">,</span> <span class="n">results</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">task_update</span><span class="p">,</span> <span class="n">task</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">tasks</span><span class="p">,</span> <span class="n">tasks</span><span class="p">):</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">task_update</span><span class="o">.</span><span class="n">state</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">_info</span> <span class="o">=</span> <span class="n">TaskInfo</span><span class="o">.</span><span class="n">_from_json</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">task_update</span><span class="o">.</span><span class="n">info</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">object_update</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">objects</span><span class="p">:</span>
+            <span class="n">dataobj</span> <span class="o">=</span> <span class="n">dataobjs_dict</span><span class="p">[</span><span class="n">object_update</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+            <span class="n">dataobj</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">object_update</span><span class="o">.</span><span class="n">state</span>
+            <span class="n">dataobj</span><span class="o">.</span><span class="n">_info</span> <span class="o">=</span> <span class="n">ObjectInfo</span><span class="o">.</span><span class="n">_from_json</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">object_update</span><span class="o">.</span><span class="n">info</span><span class="p">))</span></div>
+
+
+<span class="k">def</span> <span class="nf">split_items</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Split items into &#39;tasks&#39; and &#39;dataobjects&#39;</span>
+<span class="sd">    Throws an error if an item is not task nor object&quot;&quot;&quot;</span>
+    <span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">dataobjects</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Task</span><span class="p">):</span>
+            <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">DataObject</span><span class="p">):</span>
+            <span class="n">dataobjects</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RainException</span><span class="p">(</span>
+                <span class="s2">&quot;&#39;</span><span class="si">{}</span><span class="s2">&#39; is not tasks nor dataobject&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">dataobjects</span>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Stanislav Bohm, Vojtech Cima, Tomas Gavenciak.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.3.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
