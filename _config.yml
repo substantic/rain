@@ -1,3 +1,8 @@
 theme: jekyll-theme-tactile
 title: Rain
 description:
+include:
+  - "_images"
+  - "_modules"
+  - "_sources"
+  - "_static"
