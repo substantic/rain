@@ -26,7 +26,7 @@ def main():
         rmtree(target_path, ignore_errors=True)
         copytree(os.path.join(RAIN_ROOT, "docs/guide-build/html"), target_path)
 
-        if repo.is_dirty():
+        if repo.is_dirty(untracked_files=True):
             repo.git.add(target_path)
             repo.git.commit(message="Update")
             repo.git.push()

@@ -9,5 +9,4 @@ an intuitive Python API, straightforward installation and deployment with
 insightful monitoring on top.
 
 *This is the Rain server and governor binary backage. See the project
-[GitHub repo](https://github.com/substantic/rain)
-or the [docs](http://rain.readthedocs.io/) for more information.*
+[GitHub repo](https://github.com/substantic/rain).*

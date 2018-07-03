@@ -9,8 +9,7 @@ an intuitive Python API, straightforward installation and deployment with
 insightful monitoring on top.
 
 *This is the Rain library for writing your own Rain tasks in Rust. See the project
-[GitHub repo](https://github.com/substantic/rain)
-or the [docs](http://rain.readthedocs.io/) for more information on the project itself.*
+[GitHub repo](https://github.com/substantic/rain).*
 
 ## Implementing your tasks
 

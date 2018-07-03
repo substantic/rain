@@ -1,4 +1,4 @@
-[![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Documentation Status](http://readthedocs.org/projects/rain/badge/?version=latest)](http://rain.readthedocs.io/en/latest/?badge=latest) [![Build Status](https://travis-ci.org/substantic/rain.svg?branch=master)](https://travis-ci.org/substantic/rain)
+[![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)[![Build Status](https://travis-ci.org/substantic/rain.svg?branch=master)](https://travis-ci.org/substantic/rain)
 
 
 # Rain
@@ -45,7 +45,7 @@ insightful monitoring on top.
 
 ## Documentation
 
-[Overview](http://rain.readthedocs.io/en/latest/overview.html) &bull; [Quickstart](http://rain.readthedocs.io/en/latest/quickstart.html) &bull; [User guide](http://rain.readthedocs.io/en/latest/user.html) &bull; [Python API](http://rain.readthedocs.io/en/latest/python_api.html) &bull; [Examples](http://rain.readthedocs.io/en/latest/examples.html)
+[Overview](http://substantic.github.io/rain/docs/overview.html) &bull; [Quickstart](http://substantic.github.io/rain/docs/quickstart.html) &bull; [User guide](http://substantic.github.io/rain/docs/user.html) &bull; [Python API](http://substantic.github.io/rain/docs/python_api.html) &bull; [Examples](http://substantic.github.io/rain/docs/examples.html)
 
 ## Quick start
 
@@ -95,4 +95,4 @@ $ pip3 install rain-python
 $ rain start --simple
 ```
 
-[Read the docs](http://rain.readthedocs.io/en/latest/examples.html) for more examples.
+[Read the docs](http://substantic.github.io/rain/docs/examples.html) for more examples.

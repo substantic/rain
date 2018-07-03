@@ -3,7 +3,7 @@ name = "rain_server"
 version = "0.3.0"
 
 description = "Distributed computational framework for large-scale task-based pipelines. Server and governor binaries."
-documentation = "https://rain.readthedocs.io/"
+documentation = "https://substantic.github.io/rain/docs"
 homepage = "https://github.com/substantic/rain"
 repository = "https://github.com/substantic/rain/"
 readme = "README.md"
