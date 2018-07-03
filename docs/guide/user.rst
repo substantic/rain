@@ -91,8 +91,10 @@ By default, Rain automatically removes data objects that are no longer needed
 for further computation. Method ``keep()`` sets a flag to a given data object
 that instructs the server to keep the object until the client does not
 explicitly frees it. An object can be freed when the session is closed or when
-``unkeep()`` method is called. Method ``keep()`` may be called only before the
-submit. Method ``unkeep()`` may be called on any "kept" object any time.
+``unkeep()`` method is called and object is no longer need by computation.
+Method ``keep()`` may be called only before the submit. Method ``unkeep()`` may
+be called on any "kept" object any time; the server is informed immediately, no
+submit is needed.
 
 If method ``fetch()`` is called and the object has not been finished yet, the
 method blocks until the object is not finished. Note that this is the reason,
@@ -378,8 +380,8 @@ Therefore we can create the previous task as follows::
 
   t = tasks.Execute("wget https://github.com/", output_paths=["index.html"])
 
-The only difference is that label of the output is now "index.html" (not
-"index").
+The only difference is that label of the output is now "index.html" (not "index"
+as in the previous case).
 
 Of course, more than one output may be specified. Program ``wget`` allows to
 redirect its log to a file through ``--output-file`` option::
@@ -414,12 +416,11 @@ Inputs
 ------
 
 Data objects can be mapped into the working directory of
-:func:`rain.client.tasks`. The simplest case is to use a data object directly
-as arguments for a program. In such case, the data object is mapped into
-randomly named file and the name is placed into program arguments.
-Note that files are by default mapped only for reading (and proctected by
-setting file permissions). More options of mapping is described in
-:ref:`fs_mappings`.
+:func:`rain.client.tasks`. The simplest case is to use a data object directly as
+arguments for a program. In such case, the data object is mapped into randomly
+named file and the name is placed into program arguments. Note that files are by
+default mapped only for reading (and proctected by setting file permissions).
+More options of mapping is described in :ref:`fs_mappings`.
 
 ::
 
@@ -506,6 +507,7 @@ Python tasks
 In addition to built-in tasks, Rain allows to run additional types of tasks via
 executors. Rain is shipped with Python executor, that allows to execute
 arbitrary Python code.
+
 
 Decorator ``@remote``
 ---------------------
@@ -721,6 +723,15 @@ to define outputs and inputs, e.g.::
     @remote
     def test1(ctx, a : Input(content_type="json")) -> Output(encode='pickle', label='test_pickle');
         pass
+
+
+Parallelism
+-----------
+
+When more Python tasks are mapped onto the same computational node, a governor
+spawns own Python executor for each task. Therefore all tasks runs in their own
+processes and you do not have care about GIL.
+
 
 
 Resources
