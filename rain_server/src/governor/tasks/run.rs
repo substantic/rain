@@ -2,7 +2,6 @@ use futures::Future;
 use rain_core::errors::*;
 use std::fs::File;
 use std::io::Read;
-use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use tokio_process::CommandExt;
@@ -54,22 +53,15 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
                 obj.data().link_to_path(&dir.path().join(&iconfig.path))?;
             }
             if iconfig.path == "+in" {
-                let in_id = File::open(dir.path().join("+in"))?.into_raw_fd();
-                in_io = unsafe { Stdio::from_raw_fd(in_id) };
+                in_io = Stdio::from(File::open(dir.path().join("+in"))?);
             }
         }
 
         // Create files for stdout/stderr
-        let out_id = File::create(dir.path().join("+out"))
-            .expect("File for stdout cannot be opened")
-            .into_raw_fd();
+        let out_io =
+            File::create(dir.path().join("+out")).expect("File for stdout cannot be opened");
         let stderr_path = dir.path().join("+err");
-        let err_id = File::create(&stderr_path)
-            .expect("File for stderr cannot be opened")
-            .into_raw_fd();
-
-        let out_io = unsafe { Stdio::from_raw_fd(out_id) };
-        let err_io = unsafe { Stdio::from_raw_fd(err_id) };
+        let err_io = File::create(&stderr_path).expect("File for stderr cannot be opened");
 
         debug!("Starting command: {}", name);
 

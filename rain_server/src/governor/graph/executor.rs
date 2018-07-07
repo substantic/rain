@@ -2,9 +2,8 @@ use common::Sender;
 use rain_core::comm::{CallMsg, DropCachedMsg, GovernorToExecutorMessage, ResultMsg};
 use rain_core::{errors::*, sys::*, types::*};
 use std::fs::File;
-use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 use governor::graph::Task;
 use wrapped::WrappedRcRefCell;
@@ -131,23 +130,16 @@ pub fn executor_command(
     info!("Executor stderr log: {:?}", log_path_err);
 
     // --- Open log files ---
-    let log_path_out_id = File::create(log_path_out)
-        .expect("Executor log cannot be opened")
-        .into_raw_fd();
-    let log_path_err_id = File::create(log_path_err)
-        .expect("Executor log cannot be opened")
-        .into_raw_fd();
-
-    let log_path_out_pipe = unsafe { Stdio::from_raw_fd(log_path_out_id) };
-    let log_path_err_pipe = unsafe { Stdio::from_raw_fd(log_path_err_id) };
+    let log_path_out = File::create(log_path_out).expect("Executor log cannot be opened");
+    let log_path_err = File::create(log_path_err).expect("Executor log cannot be opened");
 
     // --- Start process ---
     let mut command = Command::new(program_name);
 
     command
         .args(program_args)
-        .stdout(log_path_out_pipe)
-        .stderr(log_path_err_pipe)
+        .stdout(log_path_out)
+        .stderr(log_path_err)
         .env("RAIN_EXECUTOR_SOCKET", socket_path)
         .env("RAIN_EXECUTOR_ID", executor_id.to_string())
         .current_dir(executor_dir.path());
