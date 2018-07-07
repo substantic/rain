@@ -1,5 +1,5 @@
 use std::path::Path;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Command};
 
 use rain_core::errors::Result;
 
