@@ -1,4 +1,3 @@
-use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 
@@ -30,16 +29,12 @@ impl Process {
         ready: Readiness,
         command: &mut Command,
     ) -> Result<Self> {
-        let log_path_out_id =
-            ::std::fs::File::create(log_dir.join(&format!("{}.out", name)))?.into_raw_fd();
-        let log_path_err_id =
-            ::std::fs::File::create(log_dir.join(&format!("{}.err", name)))?.into_raw_fd();
-
-        let log_path_out_pipe = unsafe { Stdio::from_raw_fd(log_path_out_id) };
-        let log_path_err_pipe = unsafe { Stdio::from_raw_fd(log_path_err_id) };
-
-        command.stdout(log_path_out_pipe);
-        command.stderr(log_path_err_pipe);
+        command.stdout(::std::fs::File::create(
+            log_dir.join(&format!("{}.out", name)),
+        )?);
+        command.stderr(::std::fs::File::create(
+            log_dir.join(&format!("{}.err", name)),
+        )?);
 
         Ok(Self {
             name: name.to_string(),
