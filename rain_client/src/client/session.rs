@@ -160,8 +160,9 @@ impl Session {
 }
 
 impl Drop for Session {
+    #![allow(unused_must_use)]
     fn drop(&mut self) {
-        self.comm.close_session(self.id).unwrap();
         debug!("Session {} destroyed", self.id);
+        self.comm.close_session(self.id);
     }
 }

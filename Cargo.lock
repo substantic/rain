@@ -570,13 +570,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rain_client_test"
-version = "0.3.0"
-dependencies = [
- "rain_client 0.3.0",
-]
-
-[[package]]
 name = "rain_core"
 version = "0.3.0"
 dependencies = [

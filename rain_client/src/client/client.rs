@@ -27,3 +27,47 @@ impl Client {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::super::localcluster::LocalCluster;
+    use super::super::tasks::CommonTasks;
+    use super::Client;
+    use super::Session;
+    use std::env;
+
+    #[allow(dead_code)]
+    struct TestContext {
+        cluster: LocalCluster,
+        client: Client,
+        session: Session,
+    }
+
+    fn ctx() -> TestContext {
+        let rain = env::var("RAIN_BINARY").unwrap();
+
+        let cluster = LocalCluster::new(&rain).unwrap();
+        let client = cluster.create_client().unwrap();
+        let session = client.new_session().unwrap();
+
+        TestContext {
+            cluster,
+            client,
+            session,
+        }
+    }
+
+    #[test]
+    fn concat() {
+        let mut ctx = ctx();
+        let a = ctx.session.blob(vec![1, 2, 3]);
+        let b = ctx.session.blob(vec![4, 5, 6]);
+        let c = ctx.session.concat(&[a, b]);
+        c.output().keep();
+        ctx.session.submit().unwrap();
+        ctx.session.wait(&[c.clone()], &[]).unwrap();
+        assert_eq!(
+            ctx.session.fetch(&c.output()).unwrap(),
+            vec![1, 2, 3, 4, 5, 6]
+        );
+    }
+}

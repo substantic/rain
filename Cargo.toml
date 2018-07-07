@@ -4,7 +4,6 @@ version = "0.3.0"
 
 members = [
     "rain_client",
-    "rain_client_test",
     "rain_core",
     "rain_server",
     "rain_task",

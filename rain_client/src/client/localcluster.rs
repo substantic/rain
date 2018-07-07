@@ -1,21 +1,19 @@
+use super::client::Client;
 use std::error::Error;
 use std::net::SocketAddr;
-use super::client::Client;
-use std::process::{Child, Command};
 use std::path::PathBuf;
-use std::{thread, time};
-use std::process::Stdio;
+use std::process::{Command, Stdio};
 
 pub struct LocalCluster {
     listen_addr: SocketAddr,
-    binary: PathBuf
+    binary: PathBuf,
 }
 
 impl LocalCluster {
     pub fn new(binary: &str) -> Result<Self, Box<Error>> {
         let mut cluster = LocalCluster {
             binary: PathBuf::from(binary),
-            listen_addr: SocketAddr::new("127.0.0.1".parse()?, 7210)
+            listen_addr: SocketAddr::new("127.0.0.1".parse()?, 7210),
         };
         cluster.start()?;
 
@@ -43,6 +41,7 @@ impl LocalCluster {
 }
 
 impl Drop for LocalCluster {
+    #![allow(unused_must_use)]
     fn drop(&mut self) {
         Client::new(self.listen_addr).unwrap().terminate_server();
     }
