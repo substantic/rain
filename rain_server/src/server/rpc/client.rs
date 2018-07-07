@@ -344,7 +344,7 @@ impl client_service::Server for ClientServiceImpl {
         if obj.state == DataObjectState::Removed {
             return Promise::err(::capnp::Error::failed(format!(
                 "create_reader on removed object {:?}",
-                object.get()
+                obj
             )));
         }
 
