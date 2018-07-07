@@ -1,8 +1,8 @@
 use bytes::BytesMut;
 use futures::{Future, Stream};
-use tokio_io::codec::length_delimited::{Builder, Framed};
 use tokio_io::AsyncRead;
 use tokio_io::AsyncWrite;
+use tokio_io::codec::length_delimited::{Builder, Framed};
 
 use rain_core::errors::{Error, Result};
 

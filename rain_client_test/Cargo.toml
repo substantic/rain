@@ -1,0 +1,10 @@
+[package]
+name = "rain_client_test"
+version = "0.3.0"
+authors = ["Jakub Beranek <jakub.beranek@vsb.cz>"]
+description = "A testing Rain client in Rust."
+license = "MIT"
+publish = false
+
+[dependencies]
+rain_client = "0.3.0"

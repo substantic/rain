@@ -1,0 +1,31 @@
+[package]
+name = "rain_client"
+version = "0.3.0"
+
+description = "Distributed computational framework for large-scale task-based pipelines. Client library in Rust."
+# documentation = "https://docs.rs/rain_task/" # default docs.rs
+homepage = "https://github.com/substantic/rain"
+repository = "https://github.com/substantic/rain/"
+readme = "README.md"
+authors = [
+    "Stanislav Bohm <spirali@kreatrix.org>",
+    "Tomas Gavenciak <gavento@ucw.cz>",
+    "Vojtech Cima <cima.vojtech@gmail.com>",
+    ]
+license = "MIT"
+
+exclude = ["testing/**/*"]
+
+[badges]
+travis-ci = { repository = "substantic/rain", branch = "master" }
+maintenance = { status = "actively-developed" }
+
+[dependencies]
+capnp-rpc = "0.8"
+error-chain = "0.11"
+futures = "0.1"
+log = "0.4"
+rain_core = "0.3.0"
+tokio-core = "0.1"
+serde = "1"
+serde_json = "1"

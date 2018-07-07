@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 use server::graph::{ClientRef, TaskRef};
 use server::graph::{DataObjectRef, DataObjectState};
 use server::state::StateRef;
+use std::process::exit;
 
 pub struct ClientServiceImpl {
     state: StateRef,

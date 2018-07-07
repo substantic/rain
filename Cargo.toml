@@ -3,6 +3,8 @@ version = "0.3.0"
 [workspace]
 
 members = [
+    "rain_client",
+    "rain_client_test",
     "rain_core",
     "rain_server",
     "rain_task",
@@ -10,5 +12,6 @@ members = [
 ]
 
 [patch.crates-io]
+rain_client = { path = "rain_client" }
 rain_core = { path = "rain_core" }
 rain_task = { path = "rain_task" }

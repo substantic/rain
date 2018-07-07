@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
-use futures::sync::{mpsc, oneshot};
 use futures::Future;
 use futures::Stream;
+use futures::sync::{mpsc, oneshot};
 use rusqlite::Connection;
 use serde_json;
 use std::path::PathBuf;

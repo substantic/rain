@@ -143,7 +143,7 @@ pub struct DropCachedMsg {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde::{de::DeserializeOwned, Serialize};
+    use serde::{Serialize, de::DeserializeOwned};
     use serde_cbor;
     use serde_json;
     use std::fmt::Debug;

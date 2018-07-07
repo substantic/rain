@@ -3,8 +3,8 @@ use futures::future::Future;
 use rain_core::{errors::*, types::*, utils::*};
 use std::sync::Arc;
 
-use governor::graph::DataObjectState;
 use governor::StateRef;
+use governor::graph::DataObjectState;
 use rain_core::governor_capnp::governor_control;
 
 pub struct GovernorControlImpl {

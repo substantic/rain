@@ -12,14 +12,14 @@ use std::time::{Duration, Instant};
 use common::Monitor;
 use common::{create_protocol_stream, new_rpc_system, Connection};
 
-use governor::data::transport::TransportView;
 use governor::data::Data;
+use governor::data::transport::TransportView;
 use governor::fs::workdir::WorkDir;
 use governor::graph::executor::get_log_tails;
 use governor::graph::{executor_command, DataObject, DataObjectRef, DataObjectState, ExecutorRef,
                       Graph, TaskRef, TaskState};
-use governor::rpc::executor::check_registration;
 use governor::rpc::GovernorControlImpl;
+use governor::rpc::executor::check_registration;
 use governor::tasks::TaskInstance;
 use wrapped::WrappedRcRefCell;
 

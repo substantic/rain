@@ -1,9 +1,9 @@
 use std::error::Error;
 use std::net::SocketAddr;
 
-use CLIENT_PROTOCOL_VERSION;
-use super::session::Session;
 use super::communicator::Communicator;
+use super::session::Session;
+use rain_core::CLIENT_PROTOCOL_VERSION;
 use std::rc::Rc;
 
 pub struct Client {
@@ -26,3 +26,4 @@ impl Client {
         self.comm.terminate_server()
     }
 }
+

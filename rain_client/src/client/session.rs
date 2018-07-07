@@ -1,15 +1,13 @@
 use super::communicator::Communicator;
 use client::dataobject::DataObject;
 use client::task::Task;
+use rain_core::common_capnp;
+use rain_core::types::{DataObjectId, DataType, ObjectSpec, Resources, SId, TaskId, TaskSpec,
+                       TaskSpecInput, UserAttrs};
+use serde_json;
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::error::Error;
-use client::task::TaskInput;
-use common::Attributes;
-use common::id::TaskId;
-use common::id::DataObjectId;
-use common::id::SId;
-use common::DataType;
-use std::cell::Cell;
 use std::rc::Rc;
 
 pub type DataObjectPtr = Rc<DataObject>;
@@ -45,14 +43,19 @@ impl Session {
     }
 
     pub fn unkeep(&mut self, objects: &[DataObjectPtr]) -> Result<(), Box<Error>> {
-        self.comm
-            .unkeep(&objects.iter().map(|o| o.id).collect::<Vec<DataObjectId>>())
+        self.comm.unkeep(&objects
+            .iter()
+            .map(|o| o.id())
+            .collect::<Vec<DataObjectId>>())
     }
 
     pub fn wait(&mut self, tasks: &[TaskPtr], objects: &[DataObjectPtr]) -> Result<(), Box<Error>> {
         self.comm.wait(
-            &tasks.iter().map(|t| t.id).collect::<Vec<TaskId>>(),
-            &objects.iter().map(|o| o.id).collect::<Vec<DataObjectId>>(),
+            &tasks.iter().map(|t| t.id()).collect::<Vec<TaskId>>(),
+            &objects
+                .iter()
+                .map(|o| o.id())
+                .collect::<Vec<DataObjectId>>(),
         )
     }
     pub fn wait_some(
@@ -60,13 +63,16 @@ impl Session {
         tasks: &[TaskPtr],
         objects: &[DataObjectPtr],
     ) -> Result<(Vec<TaskPtr>, Vec<DataObjectPtr>), Box<Error>> {
-        let task_map: HashMap<TaskId, &TaskPtr> = tasks.iter().map(|t| (t.id, t)).collect();
+        let task_map: HashMap<TaskId, &TaskPtr> = tasks.iter().map(|t| (t.id(), t)).collect();
         let object_map: HashMap<DataObjectId, &DataObjectPtr> =
-            objects.iter().map(|o| (o.id, o)).collect();
+            objects.iter().map(|o| (o.id(), o)).collect();
 
         let (task_ids, object_ids) = self.comm.wait_some(
-            &tasks.iter().map(|t| t.id).collect::<Vec<TaskId>>(),
-            &objects.iter().map(|o| o.id).collect::<Vec<DataObjectId>>(),
+            &tasks.iter().map(|t| t.id()).collect::<Vec<TaskId>>(),
+            &objects
+                .iter()
+                .map(|o| o.id())
+                .collect::<Vec<DataObjectId>>(),
         )?;
 
         Ok((
@@ -82,13 +88,13 @@ impl Session {
     }
     pub fn wait_all(&mut self) -> Result<(), Box<Error>> {
         self.comm.wait(
-            &vec![TaskId::new(self.id, ::common_capnp::ALL_TASKS_ID)],
+            &vec![TaskId::new(self.id, common_capnp::ALL_TASKS_ID)],
             &vec![],
         )
     }
 
-    pub fn fetch(&mut self, object: &DataObject) -> Result<Vec<u8>, Box<Error>> {
-        self.comm.fetch(object.id)
+    pub fn fetch(&mut self, o: &DataObjectPtr) -> Result<Vec<u8>, Box<Error>> {
+        self.comm.fetch(&o.id())
     }
 
     pub fn blob(&mut self, data: Vec<u8>) -> DataObjectPtr {
@@ -102,13 +108,17 @@ impl Session {
         DataObjectId::new(self.id, id)
     }
     pub(crate) fn create_object(&mut self, label: String, data: Option<Vec<u8>>) -> DataObjectPtr {
-        let object = DataObject {
+        let spec = ObjectSpec {
             id: self.create_object_id(),
-            keep: Cell::new(false),
             label,
-            data,
-            attributes: Attributes::new(),
             data_type: DataType::Blob,
+            content_type: "".to_owned(),
+            user: UserAttrs::new(),
+        };
+        let object = DataObject {
+            keep: Cell::new(false),
+            data,
+            spec,
         };
         let rc = Rc::new(object);
         self.data_objects.push(rc.clone());
@@ -124,26 +134,23 @@ impl Session {
     }
     pub fn create_task(
         &mut self,
-        command: String,
-        inputs: Vec<TaskInput>,
+        task_type: String,
+        inputs: Vec<TaskSpecInput>,
         outputs: Vec<DataObjectPtr>,
         config: HashMap<String, String>,
-        cpus: i32,
+        cpus: u32,
     ) -> TaskPtr {
-        let mut attributes = Attributes::new();
-        attributes.set("config", config).unwrap();
-
-        let mut resources: HashMap<String, i32> = HashMap::new();
-        resources.insert("cpus".to_owned(), cpus);
-        attributes.set("resources", resources).unwrap();
-
-        let task = Task {
+        let spec = TaskSpec {
             id: self.create_task_id(),
-            command,
             inputs,
-            outputs,
-            attributes,
+            task_type,
+            outputs: outputs.iter().map(|o| o.id()).collect(),
+            config: Some(serde_json::to_value(&config).unwrap()),
+            resources: Resources { cpus },
+            user: UserAttrs::new(),
         };
+
+        let task = Task { spec, outputs };
 
         let rc = Rc::new(task);
         self.tasks.push(rc.clone());

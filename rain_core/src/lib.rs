@@ -3,7 +3,7 @@
 //! This documentation is minimalistic but still hopefully useful.
 //! As an user, you may be interested in the
 //! [rain_task lirary documentation](https://docs.rs/rain_task/).
-//! 
+//!
 //! See `README.md` and the [project page](https://github.com/substantic/rain/)
 //! for general information.
 
@@ -30,6 +30,7 @@ extern crate serde_cbor;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate tokio_core;
+extern crate tokio_io;
 extern crate tokio_timer;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

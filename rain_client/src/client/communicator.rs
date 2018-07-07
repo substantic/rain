@@ -1,21 +1,21 @@
-use tokio_core::reactor::Core;
-use std::net::SocketAddr;
-use tokio_core::net::TcpStream;
-use std::error::Error;
-use common::rpc::new_rpc_system;
 use capnp_rpc::rpc_twoparty_capnp;
 use futures::Future;
+use rain_core::comm::new_rpc_system;
+use std::error::Error;
+use std::net::SocketAddr;
+use tokio_core::net::TcpStream;
+use tokio_core::reactor::Core;
 
 use super::task::Task;
-use common::id::{DataObjectId, TaskId};
-use common::convert::{FromCapnp, ToCapnp};
 use client::dataobject::DataObject;
-use std::cell::RefCell;
-use std::cell::RefMut;
+use rain_core::types::{DataObjectId, TaskId};
+use rain_core::utils::{FromCapnp, ToCapnp};
+use rain_core::{client_capnp, common_capnp, server_capnp};
+use std::cell::{RefCell, RefMut};
 
 pub struct Communicator {
     core: RefCell<Core>,
-    service: ::client_capnp::client_service::Client,
+    service: client_capnp::client_service::Client,
 }
 
 impl Communicator {
@@ -28,7 +28,7 @@ impl Communicator {
         debug!("Connection to server {} established", scheduler);
 
         let mut rpc = Box::new(new_rpc_system(stream, None));
-        let bootstrap: ::server_capnp::server_bootstrap::Client =
+        let bootstrap: server_capnp::server_bootstrap::Client =
             rpc.bootstrap(rpc_twoparty_capnp::Side::Server);
         handle.spawn(rpc.map_err(|err| panic!("RPC error: {}", err)));
 
@@ -116,18 +116,27 @@ impl Communicator {
         ))
     }
 
-    pub fn fetch(&self, object_id: DataObjectId) -> Result<Vec<u8>, Box<Error>> {
+    pub fn fetch(&self, object_id: &DataObjectId) -> Result<Vec<u8>, Box<Error>> {
         let mut req = self.service.fetch_request();
         object_id.to_capnp(&mut req.get().get_id().unwrap());
         req.get().set_size(1024);
 
         let response = self.comm().run(req.send().promise)?;
 
+        // TODO: handle error states
         let reader = response.get()?;
         match reader.get_status().which()? {
-            ::common_capnp::fetch_result::status::Ok(()) => {
+            common_capnp::fetch_result::status::Ok(()) => {
                 let data = reader.get_data()?;
                 Ok(Vec::from(data))
+            }
+            common_capnp::fetch_result::status::Removed(()) => {
+                print!("Removed");
+                Ok(vec![])
+            }
+            common_capnp::fetch_result::status::Error(err) => {
+                print!("Error: {:?}", err.unwrap().get_message());
+                Ok(vec![])
             }
             _ => bail!("Non-ok status"),
         }

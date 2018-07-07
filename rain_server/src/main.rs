@@ -12,6 +12,7 @@ extern crate chrono;
 #[macro_use]
 extern crate clap;
 extern crate env_logger;
+#[macro_use]
 extern crate error_chain;
 extern crate fs_extra;
 extern crate futures;
@@ -60,7 +61,6 @@ use std::process::exit;
 
 use rain_core::sys::{create_ready_file, get_hostname};
 use rain_core::{errors::*, utils::*};
-use clap::{App, Arg, ArgMatches, SubCommand};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_SERVER_PORT: u16 = 7210;
@@ -141,7 +141,6 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     }
 }
 
-<<<<<<< 7999023457517e7570c2373ab414486b9fe0163c:rain_server/src/main.rs
 fn default_working_directory() -> PathBuf {
     let pid = getpid();
     let hostname = get_hostname();
@@ -171,8 +170,6 @@ fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
     Ok(())
 }
 
-=======
->>>>>>> [api] add local cluster:src/bin.rs
 // TODO: Do some serious configuration file and unify configurations
 // Right now, it is just a quick hack for supporting executors
 
@@ -424,7 +421,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 }
 
 fn stop_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let default_address = format!("localhost:{}", DEFAULT_SERVER_PORT);
+    /*let default_address = format!("localhost:{}", DEFAULT_SERVER_PORT);
     let mut address = cmd_args
         .value_of("SERVER_ADDRESS")
         .unwrap_or(&default_address)
@@ -444,7 +441,7 @@ fn stop_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         exit(1);
     });
 
-    println!("Server at {} was successfully stopped", address);
+    println!("Server at {} was successfully stopped", address);*/
 }
 
 fn init_log() {
@@ -611,7 +608,7 @@ fn main() {
                     .takes_value(true)))
         .subcommand( // ---- STOP ----
             SubCommand::with_name("stop")
-                .about("Stop server and all workers connected to it")
+                .about("Stop server and all governors connected to it")
                 .arg(Arg::with_name("SERVER_ADDRESS")
                     .help("Address of the server (default = localhost:7210)")
                     .takes_value(true)))

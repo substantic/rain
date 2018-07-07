@@ -11,12 +11,6 @@ use std::process::Command;
 use start::common::Readiness;
 use start::process::Process;
 use start::ssh::RemoteProcess;
-use errors::Result;
-
-use nix::unistd::getpid;
-use std::io::BufReader;
-use std::io::BufRead;
-use std::fs::File;
 
 pub struct StarterConfig {
     /// Number of local governor that will be spawned
