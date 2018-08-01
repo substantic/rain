@@ -1,6 +1,7 @@
 .*
 target/
 **/*.rs.bk
+*.db
 .cache
 __pycache__
 tests/pytests/work

@@ -5,6 +5,7 @@ use rain_core::errors::Error;
 use rain_core::logging::{events, Event, EventId};
 use rain_core::types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SessionId, TaskId, TaskSpec};
 
+
 #[derive(Deserialize)]
 pub struct SearchItemInt {
     pub value: i64,
@@ -121,8 +122,11 @@ pub trait Logger {
         }));
     }
 
-    fn add_close_session_event(&mut self, session: SessionId) {
-        self.add_event(Event::SessionClose(events::SessionCloseEvent { session }));
+    fn add_closed_session_event(&mut self,
+                                session: SessionId,
+                                reason: events::SessionClosedReason,
+                                message: String) {
+        self.add_event(Event::SessionClosed(events::SessionClosedEvent { session, reason, message }));
     }
 
     fn get_events(

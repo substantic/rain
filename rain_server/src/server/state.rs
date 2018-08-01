@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
+use rain_core::logging::events;
 use futures::{Future, Stream};
 use hyper::server::Http;
 use rain_core::{errors::*, sys::*, types::*, utils::*};
@@ -179,8 +180,6 @@ impl State {
         }
         // Remove all finish hooks
         s.get_mut().finish_hooks.clear();
-
-        self.logger.add_close_session_event(session_id);
         Ok(())
     }
 
@@ -196,6 +195,10 @@ impl State {
         let has_error = session.get().error.is_some();
         if !has_error {
             self.clear_session(session)?;
+            self.logger.add_closed_session_event(
+                session.get_id(),
+                events::SessionClosedReason::ClientClose,
+                String::new());
         }
         // remove from graph
         self.graph.sessions.remove(&session.get_id()).unwrap();
@@ -222,9 +225,14 @@ impl State {
             cause
         );
         assert!(session.get_mut().error.is_none());
-        session.get_mut().error = Some(SessionError::new(cause, debug, task_id));
+        session.get_mut().error = Some(SessionError::new(cause.clone(), debug, task_id));
         // Remove all tasks + objects (with their finish hooks)
-        self.clear_session(session)
+        self.clear_session(session)?;
+        self.logger.add_closed_session_event(
+            session.get_id(),
+            events::SessionClosedReason::Error,
+            cause);
+        Ok(())
     }
 
     /// Add a new object, register it in the graph and the session.

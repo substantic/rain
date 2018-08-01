@@ -34,8 +34,24 @@ pub struct SessionNewEvent {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SessionCloseEvent {
+pub enum SessionClosedReason {
+    /// Client closed the session, the is the normal termination
+    ClientClose,
+    /// Sess ends with error
+    Error,
+    /// When server starts and reuses existing log,
+    /// it find open sessions and write this close reason
+    /// This means that the real closing time
+    /// of the session is not know and original server
+    /// probably crashed
+    ServerLost
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SessionClosedEvent {
     pub session: SessionId,
+    pub reason: SessionClosedReason,
+    pub message: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -101,7 +117,7 @@ pub enum Event {
     ClientRemoved(ClientRemovedEvent),
 
     SessionNew(SessionNewEvent),
-    SessionClose(SessionCloseEvent),
+    SessionClosed(SessionClosedEvent),
 
     ClientSubmit(ClientSubmitEvent),
     ClientUnkeep(ClientUnkeepEvent),
@@ -126,7 +142,7 @@ impl Event {
             &Event::ClientNew(_) => "ClientNew",
             &Event::ClientRemoved(_) => "ClientRemoved",
             &Event::SessionNew(_) => "SessionNew",
-            &Event::SessionClose(_) => "SessionClose",
+            &Event::SessionClosed(_) => "SessionClosed",
             &Event::ClientSubmit(_) => "ClientSubmit",
             &Event::ClientUnkeep(_) => "ClientUnkeep",
             &Event::TaskStarted(_) => "TaskStarted",
@@ -145,7 +161,7 @@ impl Event {
             &Event::TaskStarted(ref e) => Some(e.task.get_session_id()),
             &Event::TaskFailed(ref e) => Some(e.task.get_session_id()),
             &Event::SessionNew(ref e) => Some(e.session),
-            &Event::SessionClose(ref e) => Some(e.session),
+            &Event::SessionClosed(ref e) => Some(e.session),
             &Event::ClientSubmit(ref e) => {
                 // TODO: Quick hack, we expect that submit contains only tasks/obj from one session
                 e.tasks.get(0).map(|t| t.id.get_session_id())

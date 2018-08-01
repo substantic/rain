@@ -7,8 +7,9 @@ use serde_json;
 use std::path::PathBuf;
 
 use rain_core::errors::{Error, Result};
-use rain_core::logging::events;
+use rain_core::logging::{Event, events};
 use rain_core::types::SessionId;
+
 
 use super::logger::{Logger, QueryEvents, SearchCriteria};
 
@@ -48,6 +49,30 @@ fn save_events(conn: &mut Connection, events: Vec<EventWrapper>) -> Result<()> {
     }
     tx.commit()?;
     Ok(())
+}
+
+fn cleanup_old_sessions(mut conn: &mut Connection)
+{
+    let events : Vec<EventWrapper> = {
+        let mut q = conn.prepare("SELECT session FROM events WHERE event_type = 'SessionNew' AND session NOT IN (SELECT session FROM events WHERE event_type = 'SessionClosed');").unwrap();
+        let now = Utc::now();
+        let events = q.query_map(&[], |row| row.get(0))
+            .unwrap().map(|e| {
+                let session_id : SessionId = e.unwrap();
+                EventWrapper{ event: Event::SessionClosed(events::SessionClosedEvent {
+                                        session: session_id,
+                                        reason: events::SessionClosedReason::ServerLost,
+                                        message: String::new() }),
+                            timestamp: now }
+                            })
+            .collect();
+        events
+    };
+    if !events.is_empty() {
+        warn!("It seems that previous instance of server was killed with active sessions. We are now closing {} unclosed session(s). If old server is still running than it will cause troubles.",
+                events.len());
+        save_events(&mut conn, events).unwrap();
+    }
 }
 
 fn load_events(conn: &mut Connection, search_criteria: &SearchCriteria) -> Result<QueryEvents> {
@@ -131,6 +156,7 @@ impl SQLiteLogger {
 
         ::std::thread::spawn(move || {
             debug!("Logger thread started");
+            cleanup_old_sessions(&mut conn);
             let mut core = ::tokio_core::reactor::Core::new().unwrap();
             let future = rx.for_each(move |m| {
                 match m {
