@@ -5,7 +5,6 @@ export function parse_date(string) {
     if (is_firefox) {
         // Firefox cannot parse " UTC"
         string = string.slice(0, -4) + "Z";
-        console.log("DATE", string);
     }
     return new Date(string);
 }

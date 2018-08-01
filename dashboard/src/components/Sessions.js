@@ -14,7 +14,7 @@ let StatusBadge = (props) => {
   if (props.status === "Error") {
     style.color = "red";
   }
-  if (props.status == "Server lost") {
+  if (props.status === "Server lost") {
     style.color = "violet";
   }
   return <span style={style}>{props.status}</span>
@@ -28,36 +28,38 @@ class Sessions extends Component {
     this.unsubscribe = fetch_events({"event_types": [
         {value: "SessionNew", mode: "="},
         {value: "SessionClosed", mode: "="}
-    ]}, event => {
-        if (event.event.type === 'SessionNew')
-        {
-            let session = {
-                id: event.event.session,
-                client: event.event.client,
-                created: event.time,
-                finished: null,
-                status: "Open"
-            };
-            this.setState(update(this.state, {sessions: {$push: [session]}}));
-        }
-        else if (event.event.type === 'SessionClosed')
-        {
-            let status = "Closed";
-            if (event.event.reason === "Error") {
-              status = "Error";
+    ]}, events => {
+        let state = this.state;
+        for (let event of events) {
+          if (event.event.type === 'SessionNew')
+          {
+              let session = {
+                  id: event.event.session,
+                  client: event.event.client,
+                  created: event.time,
+                  finished: null,
+                  status: "Open"
+              };
+              state = update(state, {sessions: {$push: [session]}});
+          } else if (event.event.type === 'SessionClosed') {
+              let status = "Closed";
+              if (event.event.reason === "Error") {
+                status = "Error";
+              }
+              if (event.event.reason === "ServerLost") {
+                status = "Server lost";
+              }
+              const id = event.event.session;
+              state = {
+                  sessions: state.sessions.map(s => s.id === id ? {
+                      ...s,
+                      finished: event.time,
+                      status: status,
+                  } : s)
+              };
             }
-            if (event.event.reason == "ServerLost") {
-              status = "Server lost";
-            }
-            const id = event.event.session;
-            this.setState(state => ({
-                sessions: state.sessions.map(s => s.id === id ? {
-                    ...s,
-                    finished: event.time,
-                    status: status,
-                } : s)
-            }));
         }
+        this.setState(state);
     }, error => {
       this.setState(update(this.state, {error: {$set: error}}));
     });

@@ -34,24 +34,24 @@ class Session extends Component {
 
     setTimeout(() => this.do_effect = true, 500);
 
-    this.unsubscribe = fetch_events({"session": {value: +props.id, mode: "="}}, event => {
-      if (event.event.type === "ClientSubmit") {
-        this.processSubmit(event);
-        this.changeUnprocessed(event.time, event.event.tasks.length);
+    this.unsubscribe = fetch_events({"session": {value: +props.id, mode: "="}}, events => {
+      for (let event of events) {
+        if (event.event.type === "ClientSubmit") {
+          this.processSubmit(event);
+          this.changeUnprocessed(event.time, event.event.tasks.length);
+        }
+        if (event.event.type === "TaskFinished") {
+          this.processTaskFinished(event);
+          this.changeUnprocessed(event.time, -1);
+        }
+        if (event.event.type === "SessionNew") {
+          this.state.unprocessed.columns[1].push(0);
+          this.state.unprocessed.columns[0].push(parse_date(event.time));
+        }
       }
-      if (event.event.type === "TaskFinished") {
-        this.processTaskFinished(event);
-        this.changeUnprocessed(event.time, -1);
-      }
-      if (event.event.type === "SessionNew") {
-        this.state.unprocessed.columns[1].push(0);
-        this.state.unprocessed.columns[0].push(parse_date(event.time));
-      }
-
+      this.setState(update(this.state, {unprocessed: {version: {$set: this.state.unprocessed.version + 1}}}))
     }, error => {
       this.setState(update(this.state, {error: {$set: error}}));
-    }, () => {
-      this.setState(update(this.state, {unprocessed: {version: {$set: this.state.unprocessed.version + 1}}}));
     });
   }
 

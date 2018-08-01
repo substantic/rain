@@ -20,7 +20,7 @@ export function fetch_json_from_server(link, body, method) {
   })
 }
 
-export function fetch_events(search_criteria, callback, on_error, update) {
+export function fetch_events(search_criteria, callback, on_error) {
     let last_event_id = null;
 
     let _fetch_events = () => {
@@ -28,17 +28,14 @@ export function fetch_events(search_criteria, callback, on_error, update) {
             search_criteria.id = {value: last_event_id, mode: ">"}
         }
         fetch_json_from_server("events", search_criteria).then(response => {
-            for(let event of response) {
-                callback(event)
+            if (response.length > 0) {
+                callback(response);
             }
             if (response.length > 0) {
                 let id = response[response.length - 1].id;
                 if (id > last_event_id) {
                     last_event_id = id;
                 }
-            }
-            if (response.length !== 0 && update) {
-                update();
             }
         }).catch(error => {
             console.log(error);
