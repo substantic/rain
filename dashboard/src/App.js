@@ -5,6 +5,7 @@ import './App.css';
 import Sessions from './components/Sessions.js';
 import Workers from './components/Workers.js';
 import Session from './components/Session.js';
+import SessionGraph from './components/SessionGraph.js';
 import { Route, BrowserRouter, Switch, Link } from 'react-router-dom';
 
 
@@ -39,6 +40,7 @@ class App extends Component {
 
           <div className="container">
           <Switch>
+          <Route path="/session/:id/graph" render={props => <SessionGraph id={props.match.params.id}/>} />
           <Route path="/session/:id" render={props => <Session id={props.match.params.id}/>} />
           <Route path="/workers" render={() => <Workers/>}/>
           <Route path="/sessions" render={() => <Sessions/>}/>

@@ -6,6 +6,10 @@ import Chart from './Chart';
 import { fetch_events } from '../utils/fetch';
 import { parse_date } from '../utils/date';
 import Error from './Error.js';
+import {Table, Progress} from 'reactstrap';
+import { StatusBadge } from './utils';
+import { Link } from 'react-router-dom';
+
 
 const UNFIN_FILL = "#ACA793";
 const UNFIN_STROKE = "#484537";
@@ -17,134 +21,88 @@ class Session extends Component {
 
   constructor(props) {
     super(props)
-    this.state = {
-      task_nodes: new Map(),
-      obj_nodes: new Map(),
-      unprocessed: {
-        version: 0,
-        x: "x",
-        columns: [
-          ["x"],
-          ["# of unprocessed tasks"]
-        ]
-      }
-    }
-    this.time = ["x"]
-    this.do_effect = false;
-
-    setTimeout(() => this.do_effect = true, 500);
-
+    this.state = {session: null,
+                  submit_count: 0,
+                  tasks_count: 0,
+                  tasks_finished: 0,
+                  objs_count: 0,
+                  objs_finished: 0}
     this.unsubscribe = fetch_events({"session": {value: +props.id, mode: "="}}, events => {
+      let state = this.state;
       for (let event of events) {
-        if (event.event.type === "ClientSubmit") {
-          this.processSubmit(event);
-          this.changeUnprocessed(event.time, event.event.tasks.length);
+        if (event.event.type === 'TaskFinished') {
+          state = update(state,
+            {tasks_finished: {$set: state.tasks_finished += 1}});
         }
-        if (event.event.type === "TaskFinished") {
-          this.processTaskFinished(event);
-          this.changeUnprocessed(event.time, -1);
-        }
-        if (event.event.type === "SessionNew") {
-          this.state.unprocessed.columns[1].push(0);
-          this.state.unprocessed.columns[0].push(parse_date(event.time));
+        if (event.event.type === 'ClientSubmit') {
+          state = update(state,
+            {submit_count: {$set: state.submit_count += 1},
+             tasks_count: {$set: state.tasks_count += event.event.tasks.length},
+             objs_count: {$set: state.objs_count += event.event.dataobjs.length}});
+        } else if (event.event.type === 'SessionNew')
+        {
+            let session = {
+                client: event.event.client,
+                created: event.time,
+                finished: null,
+                status: "Open",
+                message: "",
+            };
+            state = update(state, {session: {$set: session}});
+        } else if (event.event.type === "SessionClosed") {
+          let status = "Closed";
+          if (event.event.reason === "Error") {
+            status = "Error";
+          }
+          if (event.event.reason === "ServerLost") {
+            status = "Server lost";
+          }
+          state = update(state,
+            {session: {status: {$set: status},
+                       message: {$set: event.event.message}}});
+          this.unsubscribe();
         }
       }
-      this.setState(update(this.state, {unprocessed: {version: {$set: this.state.unprocessed.version + 1}}}))
+      this.setState(state);
+      //this.setState(update(this.state, {unprocessed: {version: {$set: this.state.unprocessed.version + 1}}}))
     }, error => {
       this.setState(update(this.state, {error: {$set: error}}));
     });
-  }
-
-  changeUnprocessed(time, change) {
-    let u = this.state.unprocessed;
-    u.columns[1].push(u.columns[1][u.columns[1].length - 1] + change);
-    u.columns[0].push(parse_date(time));
   }
 
   componentWillUnmount() {
     this.unsubscribe();
   }
 
-  processTaskFinished(event) {
-    let update = {
-      fill: FIN_FILL,
-      stroke: FIN_STROKE
-    };
-    let id = event.event.task[1];
-    this.graph.updateNode("t" + id, update, this.do_effect);
-    for (let output of this.state.task_nodes.get(id).outputs) {
-        this.graph.updateNode(output.id, update, this.do_effect);
-    }
-  }
-
-  processSubmit(event) {
-
-    let task_nodes = new Map(this.state.task_nodes);
-    let obj_nodes = new Map(this.state.obj_nodes);
-    let nodes = [];
-
-    for (let obj of event.event.dataobjs) {
-      let id = "o" + obj.id[1];
-      let node = {
-        "id": id,
-        "type": "box",
-        "fill": UNFIN_FILL,
-        "stroke": UNFIN_STROKE,
-        inputs: [],
-        outputs: [],
-      };
-      nodes.push(node);
-      obj_nodes.set(obj.id[1], node);
-    }
-
-    for (let task of event.event.tasks) {
-      let inputs = task.inputs.map(i => obj_nodes.get(i.id[1]));
-      let outputs = task.outputs.map(o => obj_nodes.get(o[1]));
-
-      let node = {
-        "id": "t" + task.id[1],
-        "type": "circle",
-        "label": task.task_type,
-        "fill": UNFIN_FILL,
-        "stroke": UNFIN_STROKE,
-        inputs: inputs,
-        outputs: outputs,
-      };
-
-      for (let o of inputs) {
-        o.outputs.push(node);
-      }
-
-      for (let o of outputs) {
-        o.inputs.push(node);
-      }
-
-      nodes.push(node);
-      task_nodes.set(task.id[1], node);
-    }
-
-    for (let o of obj_nodes.values()) {
-        if (o.inputs.length === 0) {
-          o.fill = FIN_FILL;
-          o.stroke = FIN_STROKE;
-        }
-    }
-
-    this.graph.addNodes(nodes);
-    this.setState({
-      task_nodes: task_nodes,
-      obj_nodes: obj_nodes,
-    })
-  }
-
-
   render() {
+    let state = this.state;
+    let session = state.session;
+    let task_progress = 100 * (state.tasks_finished / state.tasks_count);
+    //let obj_progress = 100 * (state.objs_finished / state.objs_count);
     return (
         <div>
           <Error error={this.state.error}/>
           <h1>Session {this.props.id}</h1>
-          <Chart data={this.state.unprocessed}/>
-          <AcyclicGraph ref={(graph) => this.graph = graph} />
+          { session &&
+            <Table bordered>
+              {/*<thead>
+              <tr><th>Key</th><th>Value</th><th>Client</th><th>Created</th><th>Finished</th></tr>
+              </thead>*/}
+              <tbody>
+                <tr><td>Status</td><td><StatusBadge status={session.status}/>
+                                        <p className="text-left text-monospace">{session.message}</p></td></tr>
+                <tr><td>Submits</td><td>{state.submit_count}</td></tr>
+                <tr><td>Tasks</td><td>
+                  <div className="text-center">{state.tasks_finished}/{state.tasks_count} ({task_progress.toFixed(1)}%)</div>
+                  <Progress value={task_progress}/></td></tr>
+                  <tr><td>Data Objects</td>
+                  <td>{state.objs_count}</td></tr>
+                <tr><td>Client</td><td>{session.client}</td></tr>
+
+              </tbody>
+            </Table>
+          }
+          <Link to={"/session/" + this.props.id + "/graph"}>Session Graph</Link>
         </div>
     );
   }

@@ -5,20 +5,8 @@ import update from 'react-addons-update';
 
 import { fetch_events } from '../utils/fetch';
 import Error from './Error.js';
+import {StatusBadge} from './utils.js';
 
-let StatusBadge = (props) => {
-  let style = {}
-  if (props.status === "Open") {
-    style.color = "green";
-  }
-  if (props.status === "Error") {
-    style.color = "red";
-  }
-  if (props.status === "Server lost") {
-    style.color = "violet";
-  }
-  return <span style={style}>{props.status}</span>
-}
 
 class Sessions extends Component {
 
