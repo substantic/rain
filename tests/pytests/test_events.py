@@ -12,7 +12,7 @@ def test_event_filter(test_env):
 
     data = {
         "event_types": [
-            {"value": "SessionClose", "mode": "="},
+            {"value": "SessionClosed", "mode": "="},
             {"value": "SessionNew", "mode": "="}]
     }
 
@@ -25,4 +25,4 @@ def test_event_filter(test_env):
 
     by_id = sorted(events, key=lambda ev: ev['id'])
     assert by_id[0]['event']['type'] == 'SessionNew'
-    assert by_id[1]['event']['type'] == 'SessionClose'
+    assert by_id[1]['event']['type'] == 'SessionClosed'
