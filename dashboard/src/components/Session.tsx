@@ -9,6 +9,7 @@ import { StatusBadge } from "./utils";
 interface Props {
   id: string;
 }
+
 interface State {
   error: string;
   session: any;
@@ -59,7 +60,8 @@ class Session extends Component<Props, State> {
               created: event.time,
               finished: null as any,
               status: "Open",
-              message: ""
+              message: "",
+              spec: event.event.spec
             };
             state = { ...state, session };
           } else if (event.event.type === "SessionClosed") {
@@ -99,45 +101,52 @@ class Session extends Component<Props, State> {
     return (
       <div>
         <Error error={this.state.error} />
-        <h1>Session {this.props.id}</h1>
         {session && (
-          <Table bordered>
-            {/*<thead>
+          <div>
+            <h1>
+              Session '{state.session.spec.name}' ({this.props.id})
+            </h1>
+
+            <Table bordered>
+              {/*<thead>
               <tr><th>Key</th><th>Value</th><th>Client</th><th>Created</th><th>Finished</th></tr>
               </thead>*/}
-            <tbody>
-              <tr>
-                <td>Status</td>
-                <td>
-                  <StatusBadge status={session.status} />
-                  <p className="text-left text-monospace">{session.message}</p>
-                </td>
-              </tr>
-              <tr>
-                <td>Submits</td>
-                <td>{state.submitCount}</td>
-              </tr>
-              <tr>
-                <td>Tasks</td>
-                <td>
-                  <div className="text-center">
-                    {state.tasksFinished}/{state.tasksCount} (
-                    {taskProgress.toFixed(1)}
-                    %)
-                  </div>
-                  <Progress value={taskProgress} />
-                </td>
-              </tr>
-              <tr>
-                <td>Data Objects</td>
-                <td>{state.objsCount}</td>
-              </tr>
-              <tr>
-                <td>Client</td>
-                <td>{session.client}</td>
-              </tr>
-            </tbody>
-          </Table>
+              <tbody>
+                <tr>
+                  <td>Status</td>
+                  <td>
+                    <StatusBadge status={session.status} />
+                    <p className="text-left text-monospace">
+                      {session.message}
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Submits</td>
+                  <td>{state.submitCount}</td>
+                </tr>
+                <tr>
+                  <td>Tasks</td>
+                  <td>
+                    <div className="text-center">
+                      {state.tasksFinished}/{state.tasksCount} (
+                      {taskProgress.toFixed(1)}
+                      %)
+                    </div>
+                    <Progress value={taskProgress} />
+                  </td>
+                </tr>
+                <tr>
+                  <td>Data Objects</td>
+                  <td>{state.objsCount}</td>
+                </tr>
+                <tr>
+                  <td>Client</td>
+                  <td>{session.client}</td>
+                </tr>
+              </tbody>
+            </Table>
+          </div>
         )}
         <Link to={"/session/" + this.props.id + "/graph"}>Session Graph</Link>
       </div>

@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { Link } from "react-router-dom";
 import { Table } from "reactstrap";
-import { EventWrapper } from "../lib/event";
+import { EventWrapper, SessionSpec } from "../lib/event";
 import { fetchEvents } from "../utils/fetch";
 import Error from "./Error";
 import { StatusBadge } from "./utils";
@@ -12,6 +12,7 @@ interface Session {
   created: string;
   finished: any;
   status: string;
+  spec: SessionSpec;
 }
 
 interface State {
@@ -45,7 +46,8 @@ class Sessions extends Component<{}, State> {
               client: event.event.client,
               created: event.time,
               finished: null as any,
-              status: "Open"
+              status: "Open",
+              spec: event.event.spec
             };
             state = { ...state, sessions: [...state.sessions, session] };
           } else if (event.event.type === "SessionClosed") {
@@ -93,7 +95,8 @@ class Sessions extends Component<{}, State> {
         <Table>
           <thead>
             <tr>
-              <th>Session</th>
+              <th>Id</th>
+              <th>Name</th>
               <th>Status</th>
               <th>Client</th>
               <th>Created</th>
@@ -105,8 +108,9 @@ class Sessions extends Component<{}, State> {
               this.state.sessions.map(s => {
                 return (
                   <tr key={s.id}>
+                    <td>{s.id}</td>
                     <td>
-                      <Link to={"session/" + s.id}>Session {s.id}</Link>
+                      <Link to={"session/" + s.id}>{s.spec.name}</Link>
                     </td>
                     <td>
                       <StatusBadge status={s.status} />
