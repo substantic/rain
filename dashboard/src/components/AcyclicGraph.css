@@ -1,31 +1,29 @@
-
-
 .node {
-    stroke-width: 2px;
+  stroke-width: 2px;
 }
 
 .fin {
-    fill: #00CCFF;
-    stroke: #0088AA;
+  fill: #00ccff;
+  stroke: #0088aa;
 }
 
 .unfin {
-    fill: gray;
-    stroke: #0088AA;
+  fill: gray;
+  stroke: #0088aa;
 }
 
 .link {
-    fill: none;
-    stroke: #888888;
-    stroke-width: 0.5px;
+  fill: none;
+  stroke: #888888;
+  stroke-width: 0.5px;
 }
 
 .ntext {
-    stroke: none;
-    font-size: 14px;
+  stroke: none;
+  font-size: 14px;
 }
 
 .ntext2 {
-    stroke: none;
-    font-size: 12px;
+  stroke: none;
+  font-size: 12px;
 }

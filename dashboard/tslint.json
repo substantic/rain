@@ -1,0 +1,21 @@
+{
+  "extends": ["tslint:recommended", "tslint-react", "tslint-config-prettier"],
+  "rules": {
+    "no-console": false,
+    "interface-name": false,
+    "member-access": false,
+    "curly": [true, "ignore-same-line"],
+    "object-literal-sort-keys": false,
+    "no-empty": [true, "allow-empty-functions"],
+    "jsx-boolean-value": false
+  },
+  "jsRules": {
+    "no-console": false,
+    "interface-name": false,
+    "member-access": false,
+    "curly": [true, "ignore-same-line"]
+  },
+  "linterOptions": {
+    "exclude": ["config/**/*.js", "node_modules/**/*.ts"]
+  }
+}

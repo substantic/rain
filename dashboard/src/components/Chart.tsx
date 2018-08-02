@@ -1,16 +1,21 @@
-import React, { Component } from 'react';
-import * as c3  from 'c3';
-import 'c3/c3.css';
+import c3, { ChartAPI } from "c3";
+import "c3/c3.css";
+import React, { Component } from "react";
 
+interface Props {
+  data: any;
+}
 
-class Chart extends Component {
+export default class Chart extends Component<Props> {
+  private chart: ChartAPI;
+  private element: HTMLElement;
 
   componentDidMount() {
     this.chart = c3.generate({
       bindto: this.element,
       size: {
         width: 600,
-        height: 150,
+        height: 150
       },
       axis: {
         x: {
@@ -23,16 +28,11 @@ class Chart extends Component {
       point: {
         show: false
       },
-      data: this.props.data,
-    })
+      data: this.props.data
+    });
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
-    //return this.props.data.version !== nextProps.data.version;
-    return true;
-  }
-
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate() {
     this.chart.load(this.props.data);
   }
 
@@ -41,8 +41,6 @@ class Chart extends Component {
   }
 
   render() {
-    return(<div ref={(r)=>this.element=r}></div>)
+    return <div ref={r => (this.element = r)} />;
   }
 }
-
-export default Chart;
