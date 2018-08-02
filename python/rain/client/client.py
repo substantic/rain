@@ -10,7 +10,7 @@ from .data import DataObject
 from .session import Session
 from .task import Task
 
-CLIENT_PROTOCOL_VERSION = 0
+CLIENT_PROTOCOL_VERSION = 1
 FETCH_SIZE = 8 << 20  # 8MB
 
 
@@ -68,7 +68,7 @@ class Client:
         registration = bootstrap.registerAsClient(CLIENT_PROTOCOL_VERSION)
         self._service = registration.wait().service
 
-    def new_session(self):
+    def new_session(self, name="Unnamed Session"):
         """
         Creates a new session.
 
@@ -77,7 +77,8 @@ class Client:
         Returns:
             :class:`Session`: A new session
         """
-        session_id = self._service.newSession().wait().sessionId
+        spec = json.dumps({"name": str(name)})
+        session_id = self._service.newSession(spec).wait().sessionId
         return Session(self, session_id)
 
     def get_server_info(self):

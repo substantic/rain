@@ -56,6 +56,10 @@ whole program lifetime, with one submit at the end. However, it is possible to
 create more sessions or built a graph gradually with more submits. More details
 are covered in Section :ref:`sessions`.
 
+You can also give a name to a session, by putting argument to ``new_session``
+method. E.g.: ``client.new_session(name="My session")``.
+The name may help you distinguish sessions in the dashboard.
+
 
 Fetching data objects
 =====================

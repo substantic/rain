@@ -139,11 +139,11 @@ impl State {
     }
 
     /// Create a new session fr a client, register it in the graph.
-    pub fn add_session(&mut self, client: &ClientRef) -> Result<SessionRef> {
-        let s = SessionRef::new(self.graph.new_session_id(), client);
+    pub fn add_session(&mut self, client: &ClientRef, spec: SessionSpec) -> Result<SessionRef> {
+        let s = SessionRef::new(self.graph.new_session_id(), client, spec.clone());
         self.graph.sessions.insert(s.get_id(), s.clone());
         self.logger
-            .add_new_session_event(s.get_id(), client.get().id);
+            .add_new_session_event(s.get_id(), client.get().id, spec);
         Ok(s)
     }
 

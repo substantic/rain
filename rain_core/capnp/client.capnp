@@ -27,7 +27,7 @@ interface ClientService {
     getServerInfo @0 () -> ServerInfo;
     # Get information about server
 
-    newSession @1 () -> (sessionId: SessionId);
+    newSession @1 (spec: Text) -> (sessionId: SessionId);
     # Ask for a new session
 
     closeSession @2 (sessionId :SessionId) -> ();

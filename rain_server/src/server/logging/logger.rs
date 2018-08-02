@@ -3,7 +3,7 @@ use futures::Future;
 
 use rain_core::errors::Error;
 use rain_core::logging::{events, Event, EventId};
-use rain_core::types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SessionId, TaskId, TaskSpec};
+use rain_core::types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SessionId, TaskId, TaskSpec, SessionSpec};
 
 
 #[derive(Deserialize)]
@@ -115,10 +115,11 @@ pub trait Logger {
         }));
     }
 
-    fn add_new_session_event(&mut self, session: SessionId, client: ClientId) {
+    fn add_new_session_event(&mut self, session: SessionId, client: ClientId, spec: SessionSpec) {
         self.add_event(Event::SessionNew(events::SessionNewEvent {
             session,
             client,
+            spec,
         }));
     }
 

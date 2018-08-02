@@ -52,8 +52,8 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         let params = pry!(params.get());
 
         if params.get_version() != CLIENT_PROTOCOL_VERSION {
-            error!("Client protocol mismatch");
-            return Promise::err(capnp::Error::failed(format!("Protocol mismatch")));
+            error!("Client protocol mismatch, expected {}, got {}", CLIENT_PROTOCOL_VERSION, params.get_version());
+            return Promise::err(capnp::Error::failed(format!("Client protocol mismatch, expected {}, got {}", CLIENT_PROTOCOL_VERSION, params.get_version())));
         }
 
         self.registered = true;

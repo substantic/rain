@@ -75,11 +75,13 @@ impl client_service::Server for ClientServiceImpl {
 
     fn new_session(
         &mut self,
-        _: client_service::NewSessionParams,
+        params: client_service::NewSessionParams,
         mut results: client_service::NewSessionResults,
     ) -> Promise<(), ::capnp::Error> {
+        let params = pry!(params.get());
         let mut s = self.state.get_mut();
-        let session = pry!(s.add_session(&self.client));
+        let spec = ::serde_json::from_str(pry!(params.get_spec())).unwrap();
+        let session = pry!(s.add_session(&self.client, spec));
         results.get().set_session_id(session.get_id());
         debug!("Client asked for a new session, got {:?}", session.get_id());
         Promise::ok(())

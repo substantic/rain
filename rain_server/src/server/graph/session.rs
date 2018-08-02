@@ -5,6 +5,7 @@ use std::fmt;
 use super::{ClientRef, DataObjectRef, DataObjectState, TaskRef, TaskState};
 use wrapped::WrappedRcRefCell;
 
+
 #[derive(Debug)]
 pub struct Session {
     /// Unique ID
@@ -29,6 +30,8 @@ pub struct Session {
 
     /// Hooks executed when all tasks are finished.
     pub(in super::super) finish_hooks: Vec<FinishHook>,
+
+    pub(in super::super) spec: SessionSpec,
 }
 
 pub type SessionRef = WrappedRcRefCell<Session>;
@@ -71,9 +74,10 @@ impl Session {
 
 impl SessionRef {
     /// Create new session object and link it to the owning client.
-    pub fn new(id: SessionId, client: &ClientRef) -> Self {
+    pub fn new(id: SessionId, client: &ClientRef, spec: SessionSpec) -> Self {
         let s = SessionRef::wrap(Session {
             id: id,
+            spec,
             tasks: Default::default(),
             objects: Default::default(),
             client: client.clone(),

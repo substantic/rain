@@ -3,7 +3,7 @@
 //! This documentation is minimalistic but still hopefully useful.
 //! As an user, you may be interested in the
 //! [rain_task lirary documentation](https://docs.rs/rain_task/).
-//! 
+//!
 //! See `README.md` and the [project page](https://github.com/substantic/rain/)
 //! for general information.
 
@@ -34,7 +34,7 @@ extern crate tokio_timer;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const GOVERNOR_PROTOCOL_VERSION: i32 = 0;
-pub const CLIENT_PROTOCOL_VERSION: i32 = 0;
+pub const CLIENT_PROTOCOL_VERSION: i32 = 1;
 pub const EXECUTOR_PROTOCOL_VERSION: i32 = 0;
 
 pub mod comm;

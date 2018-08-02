@@ -73,3 +73,14 @@ pub struct ObjectSpec {
     #[serde(default)]
     pub user: UserAttrs,
 }
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SessionSpec {
+    pub name: String,
+
+    #[serde(skip_serializing_if = "HashMap::is_empty")]
+    #[serde(default)]
+    pub user: UserAttrs,
+}

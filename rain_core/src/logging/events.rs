@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SId, SessionId, TaskId, TaskSpec};
+use types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SId, SessionId, TaskId, TaskSpec, SessionSpec};
 
 pub type EventId = i64;
 
@@ -31,6 +31,7 @@ pub struct ClientRemovedEvent {
 pub struct SessionNewEvent {
     pub session: SessionId,
     pub client: ClientId,
+    pub spec: SessionSpec,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
