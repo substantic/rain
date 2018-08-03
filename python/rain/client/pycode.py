@@ -136,7 +136,9 @@ class Remote:
             session = get_active_session()
 
         if name is None:
-            name = self.default_name
+            task_name = self.default_name
+        else:
+            task_name = name
 
         # cache the code in a static blob
         fn_blob = session._static_data.get(self.fn)
@@ -198,4 +200,4 @@ class Remote:
                     config=task_config,
                     cpus=self.cpus,
                     session=session,
-                    name=name)
+                    name=task_name)

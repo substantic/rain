@@ -17,3 +17,13 @@ export const StatusBadge = (props: Props) => {
   }
   return <span style={style}>{props.status}</span>;
 };
+
+export function niceTime(s: number) {
+  if (s < 0.5) {
+    return (s * 1000).toFixed(0) + "ms";
+  }
+  if (s < 90) {
+    return s.toFixed(1) + "s";
+  }
+  return (s / 60).toFixed(0) + "min";
+}

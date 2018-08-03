@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SId, SessionId, TaskId, TaskSpec, SessionSpec};
+use types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SId, SessionId, TaskId, TaskSpec, SessionSpec, TaskInfo};
 
 pub type EventId = i64;
 
@@ -69,12 +69,13 @@ pub struct ClientUnkeepEvent {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TaskStartedEvent {
     pub task: TaskId,
-    pub governor: GovernorId,
+    pub info: TaskInfo,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TaskFinishedEvent {
     pub task: TaskId,
+    pub info: TaskInfo,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -93,13 +94,6 @@ pub struct MonitoringEvent {
     pub cpu_usage: Vec<CpuUsage>,            // Cpu usage in percent
     pub mem_usage: MemUsage,                 // Memory usage in bytes
     pub net_stat: HashMap<String, Vec<u64>>, // Network IO
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TaskFailedEvent {
-    pub task: TaskId,
-    pub governor: GovernorId,
-    pub error_msg: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -129,7 +123,6 @@ pub enum Event {
 
     Monitoring(MonitoringEvent),
 
-    TaskFailed(TaskFailedEvent),
     ClientInvalidRequest(ClientInvalidRequestEvent),
 
     Dummy(i32),
@@ -148,7 +141,6 @@ impl Event {
             &Event::ClientUnkeep(_) => "ClientUnkeep",
             &Event::TaskStarted(_) => "TaskStarted",
             &Event::TaskFinished(_) => "TaskFinished",
-            &Event::TaskFailed(_) => "TaskFailed",
             &Event::DataObjectFinished(_) => "ObjectFinished",
             &Event::Monitoring(_) => "Monitoring",
             &Event::ClientInvalidRequest(_) => "InvalidRequest",
@@ -160,7 +152,6 @@ impl Event {
         match self {
             &Event::TaskFinished(ref e) => Some(e.task.get_session_id()),
             &Event::TaskStarted(ref e) => Some(e.task.get_session_id()),
-            &Event::TaskFailed(ref e) => Some(e.task.get_session_id()),
             &Event::SessionNew(ref e) => Some(e.session),
             &Event::SessionClosed(ref e) => Some(e.session),
             &Event::ClientSubmit(ref e) => {

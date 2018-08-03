@@ -802,14 +802,14 @@ impl State {
                         let mut t = tref.get_mut();
                         t.session.get_mut().task_finished();
                         t.state = state;
-                        t.info = info;
+                        t.info = info.clone();
                         t.scheduled = None;
                         t.assigned = None;
                         let mut w = governor.get_mut();
                         w.scheduled_tasks.remove(&tref);
                         w.assigned_tasks.remove(&tref);
                         w.active_resources -= t.spec.resources.cpus();
-                        self.logger.add_task_finished_event(t.id());
+                        self.logger.add_task_finished_event(t.id(), info);
                     }
                     tref.get_mut().trigger_finish_hooks();
                     self.update_task_assignment(&tref);
@@ -832,9 +832,9 @@ impl State {
                     let mut t = tref.get_mut();
                     assert_eq!(t.state, TaskState::Assigned);
                     t.state = state;
-                    t.info = info;
+                    t.info = info.clone();
                     self.logger
-                        .add_task_started_event(t.id(), governor.get_id());
+                        .add_task_started_event(t.id(), info);
                 }
                 TaskState::Failed => {
                     debug!(
@@ -843,7 +843,8 @@ impl State {
                         governor,
                         info
                     );
-                    let error_message = if info.error.len() > 0 {
+                    let has_error = info.error.len() > 0;
+                    let error_message = if has_error {
                         info.error.clone()
                     } else {
                         "Task failed, but no error attribute was set".to_string()
@@ -852,15 +853,14 @@ impl State {
                     ignore_check_again = true;
                     self.underload_governors.insert(governor.clone());
                     tref.get_mut().state = state;
-                    tref.get_mut().info = info;
+                    tref.get_mut().info = info.clone();
                     let session = tref.get().session.clone();
                     let task_id = tref.get().spec.id;
                     self.fail_session(&session, error_message.clone(), debug_message, task_id)
                         .unwrap();
-                    self.logger.add_task_failed_event(
+                    self.logger.add_task_finished_event(
                         tref.get().id(),
-                        governor.get_id(),
-                        error_message,
+                        info
                     );
                 }
                 _ => panic!(

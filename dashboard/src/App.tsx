@@ -11,6 +11,7 @@ import "./App.css";
 import Session from "./components/Session";
 import SessionGraph from "./components/SessionGraph";
 import Sessions from "./components/Sessions";
+import TaskList from "./components/TaskList";
 import Workers from "./components/Workers";
 
 interface State {
@@ -36,7 +37,7 @@ export default class App extends Component<{}, State> {
       <div className="App">
         <BrowserRouter>
           <div>
-            <Navbar>
+            <Navbar color="light">
               <Nav>
                 <NavItem>
                   <NavLink tag={Link} to="/sessions">
@@ -49,10 +50,14 @@ export default class App extends Component<{}, State> {
                   </NavLink>
                 </NavItem>
               </Nav>
-              <NavbarBrand>Rain</NavbarBrand>
+              <NavbarBrand>Rain Dashboard</NavbarBrand>
             </Navbar>
             <div className="container">
               <Switch>
+                <Route
+                  path="/session/:id/tasklist"
+                  render={this.renderTaskList}
+                />
                 <Route
                   path="/session/:id/graph"
                   render={this.renderSessionGraph}
@@ -68,6 +73,10 @@ export default class App extends Component<{}, State> {
       </div>
     );
   }
+
+  renderTaskList = (props: RouteComponentProps<{ id: string }>) => {
+    return <TaskList id={props.match.params.id} />;
+  };
 
   renderSession = (props: RouteComponentProps<{ id: string }>) => {
     return <Session id={props.match.params.id} />;

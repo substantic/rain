@@ -3,7 +3,7 @@ use futures::Future;
 
 use rain_core::errors::Error;
 use rain_core::logging::{events, Event, EventId};
-use rain_core::types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SessionId, TaskId, TaskSpec, SessionSpec};
+use rain_core::types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SessionId, TaskId, TaskSpec, SessionSpec, TaskInfo};
 
 
 #[derive(Deserialize)]
@@ -72,23 +72,15 @@ pub trait Logger {
         self.add_event(Event::ClientUnkeep(events::ClientUnkeepEvent { dataobjs }));
     }
 
-    fn add_task_started_event(&mut self, task: TaskId, governor: GovernorId) {
+    fn add_task_started_event(&mut self, task: TaskId, info: TaskInfo) {
         self.add_event(Event::TaskStarted(events::TaskStartedEvent {
             task,
-            governor,
+            info,
         }));
     }
 
-    fn add_task_finished_event(&mut self, task: TaskId) {
-        self.add_event(Event::TaskFinished(events::TaskFinishedEvent { task }));
-    }
-
-    fn add_task_failed_event(&mut self, task: TaskId, governor: GovernorId, error_msg: String) {
-        self.add_event(Event::TaskFailed(events::TaskFailedEvent {
-            task,
-            governor,
-            error_msg,
-        }));
+    fn add_task_finished_event(&mut self, task: TaskId, info: TaskInfo) {
+        self.add_event(Event::TaskFinished(events::TaskFinishedEvent { task, info }));
     }
 
     fn add_dataobject_finished_event(

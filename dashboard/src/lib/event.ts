@@ -7,6 +7,11 @@ export interface EventWrapper {
   time: string;
 }
 
+export interface TaskInfo {
+  duration?: number;
+  error?: string;
+}
+
 export interface Event {
   type: string;
   reason: string;
@@ -18,5 +23,9 @@ export interface Event {
   governor: string;
   cpu_usage: number[];
   mem_usage: number;
-  spec: SessionSpec;
+
+  spec?: SessionSpec;
+  info?: TaskInfo;
+
+  task?: number[];
 }

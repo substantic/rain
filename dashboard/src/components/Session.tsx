@@ -1,9 +1,10 @@
 import React, { Component } from "react";
-import { Link } from "react-router-dom";
 import { Progress, Table } from "reactstrap";
+import { parseDate } from "../utils/date";
 import { fetchEvents } from "../utils/fetch";
 import Error from "./Error";
-import { StatusBadge } from "./utils";
+import { SessionBar } from "./SessionBar";
+import { niceTime, StatusBadge } from "./utils";
 
 interface Props {
   id: string;
@@ -68,6 +69,7 @@ class Session extends Component<Props, State> {
             if (event.event.reason === "ServerLost") {
               status = "Server lost";
             }
+            state.session.finished = event.time;
             state.session.status = status;
             state.session.message = event.event.message;
             state.tasksRunning = 0;
@@ -90,6 +92,13 @@ class Session extends Component<Props, State> {
     const state = this.state;
     const session = state.session;
     const taskProgress = 100 * (state.tasksFinished / state.tasksCount);
+    const end =
+      session && session.finished
+        ? parseDate(session.finished).getTime()
+        : new Date().getTime();
+    const duration =
+      session && (end - parseDate(session.created).getTime()) / 1000;
+
     return (
       <div>
         <Error error={this.state.error} />
@@ -98,6 +107,8 @@ class Session extends Component<Props, State> {
             <h1>
               Session '{state.session.spec.name}' ({this.props.id})
             </h1>
+
+            <SessionBar id={this.props.id} />
 
             <Table bordered>
               {/*<thead>
@@ -152,11 +163,14 @@ class Session extends Component<Props, State> {
                   <td>Client</td>
                   <td>{session.client}</td>
                 </tr>
+                <tr>
+                  <td>Duration</td>
+                  <td>{niceTime(duration)}</td>
+                </tr>
               </tbody>
             </Table>
           </div>
         )}
-        <Link to={"/session/" + this.props.id + "/graph"}>Session Graph</Link>
       </div>
     );
   }

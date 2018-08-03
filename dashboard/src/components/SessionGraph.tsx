@@ -6,6 +6,7 @@ import { fetchEvents } from "../utils/fetch";
 import AcyclicGraph from "./AcyclicGraph";
 import Chart from "./Chart";
 import Error from "./Error";
+import { SessionBar } from "./SessionBar";
 
 const UNFIN_FILL = "#ACA793";
 const UNFIN_STROKE = "#484537";
@@ -108,6 +109,7 @@ class SessionGraph extends Component<Props, State> {
   }
 
   processSubmit(event: any) {
+    console.log("EVENT", event);
     const taskNodes = new Map(this.state.taskNodes);
     const objNodes = new Map(this.state.objNodes);
     const nodes = [];
@@ -127,8 +129,21 @@ class SessionGraph extends Component<Props, State> {
     }
 
     for (const task of event.event.tasks) {
-      const inputs = task.inputs.map((i: any) => objNodes.get(i.id[1]));
-      const outputs = task.outputs.map((o: any) => objNodes.get(o[1]));
+      let inputs;
+
+      if (task.inputs) {
+        inputs = task.inputs.map((i: any) => objNodes.get(i.id[1]));
+      } else {
+        inputs = [];
+      }
+
+      let outputs;
+
+      if (task.outputs) {
+        outputs = task.outputs.map((o: any) => objNodes.get(o[1]));
+      } else {
+        outputs = [];
+      }
 
       const node = {
         id: "t" + task.id[1],
@@ -171,6 +186,7 @@ class SessionGraph extends Component<Props, State> {
       <div>
         <Error error={this.state.error} />
         <h1>Session {this.props.id}</h1>
+        <SessionBar id={this.props.id} />
         <Chart data={this.state.unprocessed} />
         <AcyclicGraph ref={(graph: AcyclicGraph) => (this.graph = graph)} />
       </div>

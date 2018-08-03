@@ -1,5 +1,6 @@
 {
   "extends": ["tslint:recommended", "tslint-react", "tslint-config-prettier"],
+  "defaultSeverity": "warning",
   "rules": {
     "no-console": false,
     "interface-name": false,
@@ -7,7 +8,8 @@
     "curly": [true, "ignore-same-line"],
     "object-literal-sort-keys": false,
     "no-empty": [true, "allow-empty-functions"],
-    "jsx-boolean-value": false
+    "jsx-boolean-value": false,
+    "no-empty-interface": false
   },
   "jsRules": {
     "no-console": false,

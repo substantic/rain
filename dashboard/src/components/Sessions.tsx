@@ -2,9 +2,10 @@ import React, { Component } from "react";
 import { Link } from "react-router-dom";
 import { Table } from "reactstrap";
 import { EventWrapper, SessionSpec } from "../lib/event";
+import { parseDate } from "../utils/date";
 import { fetchEvents } from "../utils/fetch";
 import Error from "./Error";
-import { StatusBadge } from "./utils";
+import { niceTime, StatusBadge } from "./utils";
 
 interface Session {
   id: string;
@@ -100,12 +101,16 @@ class Sessions extends Component<{}, State> {
               <th>Status</th>
               <th>Client</th>
               <th>Created</th>
-              <th>Finished</th>
+              <th>Duration</th>
             </tr>
           </thead>
           <tbody>
             {this.state.sessions &&
               this.state.sessions.map(s => {
+                const end = s.finished
+                  ? parseDate(s.finished).getTime()
+                  : new Date().getTime();
+                const duration = (end - parseDate(s.created).getTime()) / 1000;
                 return (
                   <tr key={s.id}>
                     <td>{s.id}</td>
@@ -117,7 +122,7 @@ class Sessions extends Component<{}, State> {
                     </td>
                     <td>{s.client}</td>
                     <td>{s.created}</td>
-                    <td>{s.finished && s.finished}</td>
+                    <td>{niceTime(duration)}</td>
                   </tr>
                 );
               })}
