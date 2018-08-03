@@ -71,7 +71,9 @@ class Task(metaclass=TaskMeta):
                  session=None,
                  task_type=None,
                  cpus=1,
+                 name=None,
                  user_spec=None):
+
         self._spec = TaskSpec()
         self._info = None
 
@@ -92,6 +94,9 @@ class Task(metaclass=TaskMeta):
 
         if config is not None:
             self._spec.config = config
+
+        if name is not None:
+            self._spec.name = name
 
         if cpus is not None:
             self._spec.resources['cpus'] = cpus
@@ -130,10 +135,15 @@ class Task(metaclass=TaskMeta):
         stack.pop()  # Last entry is not usefull, it is actually line above
         self._stack = "".join(traceback.format_list(stack))
 
+
     @property
     def id(self):
         """Getter for Task ID."""
         return self._spec.id
+
+    @property
+    def name(self):
+        return self._spec.name
 
     @property
     def state(self):

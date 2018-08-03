@@ -114,6 +114,7 @@ class TaskSpec(AttributeBase):
             list),
         "outputs": (list, list, lambda: {}),
         "resources": (dict, dict, lambda: {}),
+        "name": (str, str, lambda: None),
         "user": (dict, dict, dict),
     }
 

@@ -64,6 +64,7 @@ def remote(*,
            inputs=(),
            auto_load=None,
            auto_encode=None,
+           name=None,
            cpus=1):
     "Decorator for :py:class:`Remote`, see the documentation there."
     def make_remote(fn):
@@ -75,6 +76,7 @@ def remote(*,
                       inputs=inputs,
                       auto_load=auto_load,
                       auto_encode=auto_encode,
+                      name=name,
                       cpus=cpus)
     return make_remote
 
@@ -93,10 +95,16 @@ class Remote:
                  outputs=None,
                  auto_load=False,
                  auto_encode=None,
+                 name=None,
                  cpus=1):
         self.fn = fn
         code = self.fn.__code__
         self.cpus = cpus
+
+        if name is None:
+            self.default_name = fn.__name__
+        else:
+            self.default_name = name
 
         if 'return' in fn.__annotations__:
             assert outputs is None
@@ -122,10 +130,13 @@ class Remote:
                 inp.load = auto_load
             self.inputs[name] = inp
 
-    def __call__(self, *args, output=None, outputs=None, session=None, **kwargs):
+    def __call__(self, *args, output=None, outputs=None, name=None, session=None, **kwargs):
         # TODO(gavento): Use Input()s arguments
         if session is None:
             session = get_active_session()
+
+        if name is None:
+            name = self.default_name
 
         # cache the code in a static blob
         fn_blob = session._static_data.get(self.fn)
@@ -181,4 +192,10 @@ class Remote:
             'encode_outputs': self.outputs.encode,
         }
 
-        return Task(input_objs, output_objs, task_type="py/", config=task_config, cpus=self.cpus)
+        return Task(input_objs,
+                    output_objs,
+                    task_type="py/",
+                    config=task_config,
+                    cpus=self.cpus,
+                    session=session,
+                    name=name)

@@ -9,7 +9,7 @@ def test_sleep1(test_env):
     test_env.start(1)
     with test_env.client.new_session() as s:
         b = blob("abc123456")
-        t1 = tasks.Sleep(b, 0.3)
+        t1 = tasks.Sleep(b, 0.3, name="MySleep")
         t1.output.keep()
         s.submit()
         test_env.assert_duration(0.2, 0.4, lambda: t1.wait())
@@ -22,7 +22,7 @@ def test_sleep2(test_env):
     """Sleep followed by fetch (without explicit wait)"""
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.Sleep(blob("abc123456"), 0.3)
+        t1 = tasks.Sleep(blob("abc123456"), 0.3, name="MyTask")
         t1.output.keep()
         s.submit()
         result = test_env.assert_duration(0.028, 0.45,
@@ -45,7 +45,7 @@ def test_concat2(test_env):
     """Merge empty list of blobs"""
     test_env.start(1)
     with test_env.client.new_session() as s:
-        t1 = tasks.Concat(())
+        t1 = tasks.Concat((), name="EmptyConcat")
         t1.output.keep()
         s.submit()
         assert t1.output.fetch().get_bytes() == b""
@@ -72,7 +72,7 @@ def test_chain_concat(test_env):
         t2 = tasks.Concat((t1, blob("c")))
         t3 = tasks.Concat((t2, blob("d")))
         t4 = tasks.Concat((t3, blob("e")))
-        t5 = tasks.Concat((t4, blob("f")))
+        t5 = tasks.Concat((t4, blob("f")), name="t5")
         t5.output.keep()
         s.submit()
         assert t5.output.fetch().get_bytes() == b"abcdef"

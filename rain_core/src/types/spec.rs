@@ -36,6 +36,10 @@ pub struct TaskSpec {
     #[serde(default)]
     pub resources: Resources,
 
+    #[serde(skip_serializing_if = "String::is_empty")]
+    #[serde(default)]
+    pub name: String,
+
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     #[serde(default)]
     pub user: UserAttrs,

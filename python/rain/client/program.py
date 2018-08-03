@@ -20,7 +20,10 @@ class Program:
                  stdout=None, stdin=None,
                  input_paths=(), output_paths=(),
                  shell=False,
+                 name=None,
                  cpus=1):
+
+        self.default_name = name
 
         if stdin is not None:
             self.stdin = Input._for_program(stdin, label="stdin")
@@ -59,7 +62,7 @@ class Program:
     def __repr__(self):
         return "<Program {}>".format(self.args)
 
-    def __call__(self, **kw):
+    def __call__(self, *, name=None, **kw):
         def apply_data(obj):
             if isinstance(obj, Input):
                 new = copy(obj)
@@ -68,10 +71,14 @@ class Program:
             else:
                 return obj
 
+        if name is None:
+            name = self.default_name
+
         return Execute([apply_data(obj) for obj in self.args],
                        stdout=self.stdout,
                        stdin=apply_data(self.stdin),
                        input_paths=[apply_data(obj) for obj in self.input_paths],
                        output_paths=[obj for obj in self.output_paths],
                        shell=self.shell,
-                       cpus=self.cpus)
+                       cpus=self.cpus,
+                       name=name)

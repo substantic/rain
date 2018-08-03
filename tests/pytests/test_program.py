@@ -380,3 +380,18 @@ def test_program_empty_output(test_env):
         task.output.keep()
         s.submit()
         assert task.output.fetch().get_bytes() == b""
+
+
+def test_program_name(fake_session):
+    p1 = Program(["/bin/ls"], name="program1")
+    p2 = Program(["/bin/ls"])
+
+    with fake_session:
+        t1 = p1()
+        assert t1.name == "program1"
+        t2 = p1(name="xxx")
+        assert t2.name == "xxx"
+        t3 = p2()
+        assert t3.name is None
+        t4 = p2(name="yyy")
+        assert t4.name == "yyy"

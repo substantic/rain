@@ -15,8 +15,8 @@ class Concat(Task):
     """
     TASK_TYPE = "buildin/concat"
 
-    def __init__(self, inputs, session=None):
-        super().__init__(inputs, 1, session=session)
+    def __init__(self, inputs, *, name=None, session=None):
+        super().__init__(inputs, 1, name=name, session=session)
 
 
 class Sleep(Task):
@@ -32,12 +32,13 @@ class Sleep(Task):
     """
     TASK_TYPE = "buildin/sleep"
 
-    def __init__(self, input, timeout, *, session=None, cpus=1):
+    def __init__(self, input, timeout, *, name=None, session=None, cpus=1):
         input = to_dataobj(input)
         otype = Output if input.spec.data_type == DataType.BLOB else OutputDir
         output = otype(content_type=input.content_type)
         # , size_hint=input.spec.size_hint) TODO: Add size_hint
-        super().__init__((input,), (output,), config=float(timeout), cpus=cpus, session=session)
+        super().__init__(
+            (input,), (output,), config=float(timeout), name=name, cpus=cpus, session=session)
 
 
 class Load(Task):
@@ -46,12 +47,12 @@ class Load(Task):
     """
     TASK_TYPE = "buildin/open"
 
-    def __init__(self, path, output=None, *, session=None):
+    def __init__(self, path, output=None, *, name=None, session=None):
         if output is None:
             output = Output()
         output.expect_blob()
 
-        super().__init__([], (output,), config={"path": path}, session=session)
+        super().__init__([], (output,), config={"path": path}, name=name, session=session)
 
 
 class LoadDir(Task):
@@ -62,12 +63,12 @@ class LoadDir(Task):
     """
     TASK_TYPE = "buildin/open_dir"
 
-    def __init__(self, path, output=None, *, session=None):
+    def __init__(self, path, output=None, *, name=None, session=None):
         if output is None:
             output = OutputDir()
         output.expect_dir()
 
-        super().__init__([], OutputDir(), config={"path": path}, session=session)
+        super().__init__([], OutputDir(), config={"path": path}, name=name, session=session)
 
 
 class Store(Task):
@@ -76,8 +77,8 @@ class Store(Task):
     """
     TASK_TYPE = "buildin/export"
 
-    def __init__(self, input, path, *, session=None):
-        super().__init__((input, ), 0, config={"path": path}, session=session)
+    def __init__(self, input, path, *, name=None, session=None):
+        super().__init__((input, ), 0, config={"path": path}, name=name, session=session)
 
 
 class MakeDirectory(Task):
@@ -93,7 +94,7 @@ class MakeDirectory(Task):
     """
     TASK_TYPE = "buildin/make_directory"
 
-    def __init__(self, paths_objects, *, session=None):
+    def __init__(self, paths_objects, *, name=None, session=None):
         if isinstance(paths_objects, dict):
             paths_objects = paths_objects.items()
         try:
@@ -103,7 +104,8 @@ class MakeDirectory(Task):
             raise TypeError("MakeDirectory needs an iterable of pairs "
                             "`(path, obj)` or a dictionary `{path: obj}`") from e
 
-        super().__init__(inputs, outputs=(OutputDir(),), config={"paths": paths}, session=session)
+        super().__init__(
+            inputs, outputs=(OutputDir(),), config={"paths": paths}, name=name, session=session)
 
 
 class SliceDirectory(Task):
@@ -117,7 +119,7 @@ class SliceDirectory(Task):
     """
     TASK_TYPE = "buildin/slice_directory"
 
-    def __init__(self, input, path, output=None, *, session=None):
+    def __init__(self, input, path, output=None, *, name=None, session=None):
         input = to_dataobj(input)
         input.expect_dir()
         if output is None:
@@ -130,7 +132,7 @@ class SliceDirectory(Task):
         else:
             output.expect_blob()
 
-        super().__init__((input,), (output,), config={"path": path}, session=session)
+        super().__init__((input,), (output,), config={"path": path}, name=name, session=session)
 
 
 class Execute(Task):
@@ -145,6 +147,9 @@ class Execute(Task):
                  input_paths=(),
                  output_paths=(),
                  shell=False,
+                 *,
+                 name=None,
+                 session=None,
                  cpus=1):
 
         ins = []
@@ -199,7 +204,8 @@ class Execute(Task):
             "in_paths": [{"path": obj.path, "write": obj.write} for obj in ins],
             "out_paths": [obj.path for obj in outs]}
 
-        super().__init__(task_inputs, task_outputs, cpus=cpus, config=config)
+        super().__init__(
+            task_inputs, task_outputs, cpus=cpus, config=config, name=name, session=session)
 
     def __repr__(self):
         return "<{} {}, inputs {}, outputs {}, cmd {!r}>".format(

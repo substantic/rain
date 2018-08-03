@@ -787,3 +787,25 @@ def test_python_dir(test_env):
         with open(os.path.join(test_env.work_dir, "rdir2", "b", "g.txt")) as f:
             assert f.read() == "Hello 3"
         assert os.path.isdir("rdir2/test3")
+
+
+def test_python_remote_name(fake_session):
+
+    @remote(name="my1")
+    def f1(ctx):
+        pass
+
+    @remote()
+    def f2(ctx):
+        pass
+
+
+    with fake_session:
+        t1 = f1()
+        assert t1.name == "my1"
+        t2 = f1(name="xxx")
+        assert t2.name == "xxx"
+        t3 = f2()
+        assert t3.name == "f2"
+        t4 = f2(name="yyy")
+        assert t4.name == "yyy"
