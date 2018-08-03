@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import update from "react-addons-update";
 import { Link } from "react-router-dom";
 import { Progress, Table } from "reactstrap";
 import { fetchEvents } from "../utils/fetch";
@@ -15,6 +14,7 @@ interface State {
   session: any;
   submitCount: number;
   tasksCount: number;
+  tasksRunning: number;
   tasksFinished: number;
   objsCount: number;
   objsFinished: number;
@@ -26,6 +26,7 @@ class Session extends Component<Props, State> {
     session: null,
     submitCount: 0,
     tasksCount: 0,
+    tasksRunning: 0,
     tasksFinished: 0,
     objsCount: 0,
     objsFinished: 0
@@ -37,24 +38,19 @@ class Session extends Component<Props, State> {
     this.unsubscribe = fetchEvents(
       { session: { value: +props.id, mode: "=" } },
       events => {
-        let state = this.state;
+        let state = { ...this.state };
         for (const event of events) {
-          if (event.event.type === "TaskFinished") {
-            state = update(state, {
-              tasks_finished: { $set: (state.tasksFinished += 1) }
-            });
-          }
-          if (event.event.type === "ClientSubmit") {
-            state = update(state, {
-              submit_count: { $set: (state.submitCount += 1) },
-              tasks_count: {
-                $set: (state.tasksCount += event.event.tasks.length)
-              },
-              objs_count: {
-                $set: (state.objsCount += event.event.dataobjs.length)
-              }
-            });
-          } else if (event.event.type === "SessionNew") {
+          const type = event.event.type;
+          if (type === "TaskFinished") {
+            state.tasksRunning -= 1;
+            state.tasksFinished += 1;
+          } else if (type === "TaskStarted") {
+            state.tasksRunning += 1;
+          } else if (type === "ClientSubmit") {
+            state.submitCount = state.submitCount += 1;
+            state.tasksCount += event.event.tasks.length;
+            state.objsCount += event.event.dataobjs.length;
+          } else if (type === "SessionNew") {
             const session = {
               client: event.event.client,
               created: event.time,
@@ -64,7 +60,7 @@ class Session extends Component<Props, State> {
               spec: event.event.spec
             };
             state = { ...state, session };
-          } else if (event.event.type === "SessionClosed") {
+          } else if (type === "SessionClosed") {
             let status = "Closed";
             if (event.event.reason === "Error") {
               status = "Error";
@@ -72,17 +68,13 @@ class Session extends Component<Props, State> {
             if (event.event.reason === "ServerLost") {
               status = "Server lost";
             }
-            state = update(state, {
-              session: {
-                status: { $set: status },
-                message: { $set: event.event.message }
-              }
-            });
+            state.session.status = status;
+            state.session.message = event.event.message;
+            state.tasksRunning = 0;
             this.unsubscribe();
           }
         }
         this.setState(state);
-        // this.setState(update(this.state, {unprocessed: {version: {$set: this.state.unprocessed.version + 1}}}))
       },
       error => {
         this.setState(() => ({ error }));
@@ -133,7 +125,23 @@ class Session extends Component<Props, State> {
                       {taskProgress.toFixed(1)}
                       %)
                     </div>
-                    <Progress value={taskProgress} />
+                    <Progress multi>
+                      <Progress
+                        bar
+                        value={state.tasksFinished}
+                        max={state.tasksCount}
+                      />
+                      <Progress
+                        bar
+                        animated
+                        color="warning"
+                        value={state.tasksRunning}
+                        max={state.tasksCount}
+                      />
+                    </Progress>
+                    {state.tasksRunning > 0 && (
+                      <div> {state.tasksRunning} running</div>
+                    )}
                   </td>
                 </tr>
                 <tr>
