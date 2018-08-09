@@ -239,6 +239,19 @@ the task graph.
    pickled([1, 2, 3, 4])  # Short-cut for blob(..., encode="pickle")
 
 
+Task names
+==========
+
+You may specify a name for each task for a debugging purpose. Tasks are groupped
+by names in Task inspector in Dashboard. Names may be structured hierarchically
+where the separator of a group is "/". More tasks may have same name. For
+example::
+
+    t1 = tasks.Concat(objects1 name="my-plain-name")
+    t2 = tasks.Execute(["train", "xyz"], name="main_tasks/training/train1")
+    t3 = tasks.Execute(["train", "abc"], name="main_tasks/training/train1")
+
+
 Built-in tasks
 ==============
 
