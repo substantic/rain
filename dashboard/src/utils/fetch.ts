@@ -37,7 +37,7 @@ export function fetchEvents(
 ) {
   let lastEventId: number = null;
 
-  const fetch = () => {
+  const fetchHelper = () => {
     if (lastEventId) {
       searchCriteria.id = { value: lastEventId, mode: ">" };
     }
@@ -59,8 +59,8 @@ export function fetchEvents(
       });
   };
 
-  fetch();
-  let timer = setInterval(fetch, 1000);
+  fetchHelper();
+  let timer = setInterval(fetchHelper, 1000);
 
   return () => {
     if (timer) {
