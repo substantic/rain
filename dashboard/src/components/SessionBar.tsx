@@ -8,7 +8,7 @@ export let SessionBar = (props: { id: string }) => {
       {" | "}
       <Link to={"/session/" + props.id + "/tasklist"}>Task inspector</Link>
       {" | "}
-      <Link to={"/session/" + props.id + "/graph"}>Task Graph</Link>
+      <Link to={"/session/" + props.id + "/graph"}>Task graph</Link>
     </div>
   );
 };
