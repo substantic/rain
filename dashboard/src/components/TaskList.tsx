@@ -411,7 +411,7 @@ class TaskList extends Component<Props, State> {
   processSubmit(tasks: any[]) {
     const root = this.state.root;
     for (const task of tasks) {
-      const tokens = task.name.split("/");
+      const tokens = (task.name || "").split("/");
       if (tokens.length > 1 && tokens[0] === "") {
         tokens.shift();
       }
