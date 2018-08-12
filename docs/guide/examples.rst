@@ -45,36 +45,41 @@ Distributed cross-validation with libsvm
         # Program: SVM train
         # svm-train has following usage: svm-train <trainset> <model>
         # It reads <trainset> and creates file <model> with trained model
-        train = Program(("svm-train", Input("data"), Output("output")))
+        train = Program(("svm-train", Input("data"), Output("output")), name="train")
 
         # Porgram: SVM predict
         # svm-predict has following usage: svm-predict <testdata> <model> <prediction>
         # It reads files <testdata> and <model> and creates file with prediction and
         # prints accuracy on standard output
         predict = Program(("svm-predict", Input("testdata"), Input("model"), Output("prediction")),
-                        stdout=Output("accuracy"))
+                        stdout=Output("accuracy"), name="predict")
 
         # Connect to rain server
         client = Client("localhost", 7210)
-        with client.new_session() as session:
+        with client.new_session("SVM test") as session:
 
             # Load data - this is already task, so load is performed on governor
-            input_data = tasks.Load(DATA_FILE)
+            input_data = tasks.Load(DATA_FILE, name="prepare/load")
 
             # Convert data - note that the function is marked @remote
             # so it is not executed now, but on a governor
-            converted_data = convert_to_libsvm_format(input_data)
+            converted_data = convert_to_libsvm_format(input_data,
+                                                    name="prepare/convert")
 
             # Using unix command "sort" to shuffle dataset
-            randomized_data = tasks.Execute(("sort", "--random-sort", converted_data), stdout=True)
+            randomized_data = tasks.Execute(("sort", "--random-sort", converted_data),
+                                            stdout=True, name="prepare/randomize")
 
             # Create chunks via unix command "split"
             chunks = tasks.Execute(("split", "-d", "-n", "l/{}".format(CHUNKS), randomized_data),
-                                output_files=["x{:02}".format(i) for i in range(CHUNKS)]).outputs
-                                # Note that we are taking "outputs" of the task here ==> ^^^^^^^^
+                                output_paths=["x{:02}".format(i) for i in range(CHUNKS)],
+                                name="prepare/split").outputs
+            #                                           ^^^^^^^^ Note that we are taking "outputs"
+            #                                           |||||||| of the task here
 
             # Make folds
-            train_sets = [tasks.Concat(chunks[:i] + chunks[i+1:]) for i, c in enumerate(chunks)]
+            train_sets = [tasks.Concat(chunks[:i] + chunks[i+1:], name="prepare/concat")
+                        for i, c in enumerate(chunks)]
 
             # Train models
             models = [train(data=train_set) for train_set in train_sets]
