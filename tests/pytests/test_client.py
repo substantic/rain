@@ -84,6 +84,24 @@ def test_active_session_bind_only(test_env):
         session.get_active_session()
 
 
+def test_session_default(test_env):
+    test_env.start(0)
+
+    client = test_env.client
+    s = client.new_session(default=True)
+    assert session.get_active_session() == s
+
+    s2 = client.new_session()
+    with s2:
+        assert session.get_active_session() == s2
+
+    assert session.get_active_session() == s
+    s.close()
+
+    with pytest.raises(Exception):
+        session.get_active_session()
+
+
 def test_new_session_id(test_env):
     test_env.start(0)
     client = test_env.client

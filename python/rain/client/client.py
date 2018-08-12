@@ -68,7 +68,7 @@ class Client:
         registration = bootstrap.registerAsClient(CLIENT_PROTOCOL_VERSION)
         self._service = registration.wait().service
 
-    def new_session(self, name="Unnamed Session"):
+    def new_session(self, name="Unnamed Session", default=False):
         """
         Creates a new session.
 
@@ -79,7 +79,8 @@ class Client:
         """
         spec = json.dumps({"name": str(name)})
         session_id = self._service.newSession(spec).wait().sessionId
-        return Session(self, session_id)
+        return Session(self, session_id, default)
+
 
     def get_server_info(self):
         """

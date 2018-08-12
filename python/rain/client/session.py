@@ -17,6 +17,7 @@ from ..common import RainException, ID
 from . import graph
 
 _global_sessions = []
+_default_session = None
 
 # TODO: Check attribute "active" before making remote calls
 
@@ -67,7 +68,7 @@ class Session:
     the `Session` exists.
     """
 
-    def __init__(self, client, session_id):
+    def __init__(self, client, session_id, default=False):
         self.active = True  # True if a session is live in server
         self.client = client
         self.session_id = session_id
@@ -87,6 +88,9 @@ class Session:
         # It is not directly available to user
         # It is used to store e.g. for serialized Python objects
         self._static_data = {}
+
+        if default:
+            self.set_as_default()
 
     @property
     def task_count(self):
@@ -119,6 +123,10 @@ class Session:
         self._submitted_dataobjs = []
         self._submitted_dataobjs = []
         self.active = False
+
+        global _default_session
+        if _default_session == self:
+            _default_session = None
 
     def bind_only(self):
         """
@@ -257,6 +265,10 @@ class Session:
         """Update the status and metadata of given tasks and objects."""
         self.client.update(items)
 
+    def set_as_default(self):
+        global _default_session
+        _default_session = self
+
     def make_graph(self, show_ids=True):
         """Create a graph of tasks and objects that were *not yet* submitted."""
 
@@ -315,6 +327,9 @@ class Session:
 def get_active_session():
     """Internal helper to get innermost active `Session`."""
     if not _global_sessions:
-        raise RainException("No active session")
+        if _default_session:
+            return _default_session
+        else:
+            raise RainException("No active session")
     else:
         return _global_sessions[-1]
