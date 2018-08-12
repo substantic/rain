@@ -102,6 +102,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#object-data-types">Object data types</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#object-content-types">Object content types</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#constant-data-objects">Constant data objects</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#task-names">Task names</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#built-in-tasks">Built-in tasks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-external-programs">Running external programs</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#task-tasks-execute">Task <code class="docutils literal"><span class="pre">tasks.Execute</span></code></a></li>
@@ -254,6 +255,9 @@ active session. In many cases, it is sufficient just to create one session for
 whole program lifetime, with one submit at the end. However, it is possible to
 create more sessions or built a graph gradually with more submits. More details
 are covered in Section <a class="reference internal" href="#sessions"><span class="std std-ref">Sessions</span></a>.</p>
+<p>You can also give a name to a session, by putting argument to <code class="docutils literal"><span class="pre">new_session</span></code>
+method. E.g.: <code class="docutils literal"><span class="pre">client.new_session(name=&quot;My</span> <span class="pre">session&quot;)</span></code>.
+The name may help you distinguish sessions in the dashboard.</p>
 </div>
 <div class="section" id="fetching-data-objects">
 <h2>Fetching data objects<a class="headerlink" href="#fetching-data-objects" title="Permalink to this headline">¶</a></h2>
@@ -410,6 +414,18 @@ the task graph.</p>
 <span class="n">blob</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">encode</span><span class="o">=</span><span class="s2">&quot;pickle&quot;</span><span class="p">)</span>  <span class="c1"># Serialize python object by pickle</span>
                                      <span class="c1"># content type to &quot;pickle&quot;</span>
 <span class="n">pickled</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>  <span class="c1"># Short-cut for blob(..., encode=&quot;pickle&quot;)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="task-names">
+<h2>Task names<a class="headerlink" href="#task-names" title="Permalink to this headline">¶</a></h2>
+<p>You may specify a name for each task for a debugging purpose. Tasks are groupped
+by names in Task inspector in Dashboard. Names may be structured hierarchically
+where the separator of a group is “/”. More tasks may have same name. For
+example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">t1</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Concat</span><span class="p">(</span><span class="n">objects1</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;my-plain-name&quot;</span><span class="p">)</span>
+<span class="n">t2</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">([</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;xyz&quot;</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;main_tasks/training/train1&quot;</span><span class="p">)</span>
+<span class="n">t3</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">Execute</span><span class="p">([</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;abc&quot;</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;main_tasks/training/train1&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

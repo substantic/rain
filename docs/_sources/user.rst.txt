@@ -56,6 +56,10 @@ whole program lifetime, with one submit at the end. However, it is possible to
 create more sessions or built a graph gradually with more submits. More details
 are covered in Section :ref:`sessions`.
 
+You can also give a name to a session, by putting argument to ``new_session``
+method. E.g.: ``client.new_session(name="My session")``.
+The name may help you distinguish sessions in the dashboard.
+
 
 Fetching data objects
 =====================
@@ -233,6 +237,19 @@ the task graph.
    blob([1, 2, 3, 4], encode="pickle")  # Serialize python object by pickle
                                         # content type to "pickle"
    pickled([1, 2, 3, 4])  # Short-cut for blob(..., encode="pickle")
+
+
+Task names
+==========
+
+You may specify a name for each task for a debugging purpose. Tasks are groupped
+by names in Task inspector in Dashboard. Names may be structured hierarchically
+where the separator of a group is "/". More tasks may have same name. For
+example::
+
+    t1 = tasks.Concat(objects1 name="my-plain-name")
+    t2 = tasks.Execute(["train", "xyz"], name="main_tasks/training/train1")
+    t3 = tasks.Execute(["train", "abc"], name="main_tasks/training/train1")
 
 
 Built-in tasks

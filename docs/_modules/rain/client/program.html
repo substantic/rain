@@ -184,7 +184,10 @@
                  <span class="n">stdout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">input_paths</span><span class="o">=</span><span class="p">(),</span> <span class="n">output_paths</span><span class="o">=</span><span class="p">(),</span>
                  <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">cpus</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_name</span> <span class="o">=</span> <span class="n">name</span>
 
         <span class="k">if</span> <span class="n">stdin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span> <span class="o">=</span> <span class="n">Input</span><span class="o">.</span><span class="n">_for_program</span><span class="p">(</span><span class="n">stdin</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;stdin&quot;</span><span class="p">)</span>
@@ -223,7 +226,7 @@
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">&quot;&lt;Program </span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
         <span class="k">def</span> <span class="nf">apply_data</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">Input</span><span class="p">):</span>
                 <span class="n">new</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
@@ -232,13 +235,17 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">obj</span>
 
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_name</span>
+
         <span class="k">return</span> <span class="n">Execute</span><span class="p">([</span><span class="n">apply_data</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">],</span>
                        <span class="n">stdout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span>
                        <span class="n">stdin</span><span class="o">=</span><span class="n">apply_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stdin</span><span class="p">),</span>
                        <span class="n">input_paths</span><span class="o">=</span><span class="p">[</span><span class="n">apply_data</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_paths</span><span class="p">],</span>
                        <span class="n">output_paths</span><span class="o">=</span><span class="p">[</span><span class="n">obj</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_paths</span><span class="p">],</span>
                        <span class="n">shell</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shell</span><span class="p">,</span>
-                       <span class="n">cpus</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cpus</span><span class="p">)</span></div>
+                       <span class="n">cpus</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cpus</span><span class="p">,</span>
+                       <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

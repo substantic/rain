@@ -235,7 +235,7 @@ data objects (input and output).</li>
 
 <dl class="method">
 <dt id="rain.client.Client.new_session">
-<code class="descname">new_session</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/client.html#Client.new_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Client.new_session" title="Permalink to this definition">¶</a></dt>
+<code class="descname">new_session</code><span class="sig-paren">(</span><em>name='Unnamed Session'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/client.html#Client.new_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Client.new_session" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a new session.</p>
 <p>Note the session is destroyed server-side when the client disconnects.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -476,7 +476,7 @@ In remote tasks only <a class="reference internal" href="user.html"><span class=
 <p>Tied to a <a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref any py py-class docutils literal"><span class="pre">Session</span></code></a>.</p>
 <dl class="class">
 <dt id="rain.client.Task">
-<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Task</code><span class="sig-paren">(</span><em>inputs</em>, <em>outputs</em>, <em>*</em>, <em>config=None</em>, <em>session=None</em>, <em>task_type=None</em>, <em>cpus=1</em>, <em>user_spec=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/task.html#Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Task" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Task</code><span class="sig-paren">(</span><em>inputs</em>, <em>outputs</em>, <em>*</em>, <em>config=None</em>, <em>session=None</em>, <em>task_type=None</em>, <em>cpus=1</em>, <em>name=None</em>, <em>user_spec=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/task.html#Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Task" title="Permalink to this definition">¶</a></dt>
 <dd><p>A task instance in the task graph.</p>
 <p><code class="xref any docutils literal"><span class="pre">__init__</span></code> creates a single task instance, inserts it into <a class="reference internal" href="#rain.client.Session" title="rain.client.Session"><code class="xref any py py-class docutils literal"><span class="pre">Session</span></code></a>
 and assigns it an <a class="reference internal" href="#rain.common.ID" title="rain.common.ID"><code class="xref any py py-class docutils literal"><span class="pre">ID</span></code></a>. Creates output <a class="reference internal" href="#rain.client.DataObject" title="rain.client.DataObject"><code class="xref any py py-class docutils literal"><span class="pre">DataObject</span></code></a> instances based
@@ -709,7 +709,7 @@ or in concrete task instantiation (as <code class="xref any docutils literal"><s
 <p>Native Rain tasks to be run at the governors.</p>
 <span class="target" id="module-rain.client.tasks"></span><dl class="class">
 <dt id="rain.client.tasks.Concat">
-<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Concat</code><span class="sig-paren">(</span><em>inputs</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Concat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Concat" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Concat</code><span class="sig-paren">(</span><em>inputs</em>, <em>*</em>, <em>name=None</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Concat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Concat" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a task concatenating the given data objects.</p>
 <dl class="attribute">
 <dt id="rain.client.tasks.Concat.TASK_TYPE">
@@ -720,7 +720,7 @@ or in concrete task instantiation (as <code class="xref any docutils literal"><s
 
 <dl class="class">
 <dt id="rain.client.tasks.Execute">
-<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Execute</code><span class="sig-paren">(</span><em>args</em>, <em>stdout=None</em>, <em>stdin=None</em>, <em>input_paths=()</em>, <em>output_paths=()</em>, <em>shell=False</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Execute" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Execute</code><span class="sig-paren">(</span><em>args</em>, <em>stdout=None</em>, <em>stdin=None</em>, <em>input_paths=()</em>, <em>output_paths=()</em>, <em>shell=False</em>, <em>*</em>, <em>name=None</em>, <em>session=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Execute" title="Permalink to this definition">¶</a></dt>
 <dd><p>A task executing a single external program with rich argument support.</p>
 <dl class="attribute">
 <dt id="rain.client.tasks.Execute.TASK_TYPE">
@@ -731,7 +731,7 @@ or in concrete task instantiation (as <code class="xref any docutils literal"><s
 
 <dl class="class">
 <dt id="rain.client.tasks.Load">
-<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Load</code><span class="sig-paren">(</span><em>path</em>, <em>output=None</em>, <em>*</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Load" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Load</code><span class="sig-paren">(</span><em>path</em>, <em>output=None</em>, <em>*</em>, <em>name=None</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Load" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load and output a file at the given path (at the worker).</p>
 <dl class="attribute">
 <dt id="rain.client.tasks.Load.TASK_TYPE">
@@ -742,7 +742,7 @@ or in concrete task instantiation (as <code class="xref any docutils literal"><s
 
 <dl class="class">
 <dt id="rain.client.tasks.LoadDir">
-<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">LoadDir</code><span class="sig-paren">(</span><em>path</em>, <em>output=None</em>, <em>*</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#LoadDir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.LoadDir" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">LoadDir</code><span class="sig-paren">(</span><em>path</em>, <em>output=None</em>, <em>*</em>, <em>name=None</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#LoadDir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.LoadDir" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load and output a directory at the given path (at the worker).</p>
 <p>TODO: Implement</p>
 <dl class="attribute">
@@ -754,7 +754,7 @@ or in concrete task instantiation (as <code class="xref any docutils literal"><s
 
 <dl class="class">
 <dt id="rain.client.tasks.MakeDirectory">
-<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">MakeDirectory</code><span class="sig-paren">(</span><em>paths_objects</em>, <em>*</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#MakeDirectory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.MakeDirectory" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">MakeDirectory</code><span class="sig-paren">(</span><em>paths_objects</em>, <em>*</em>, <em>name=None</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#MakeDirectory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.MakeDirectory" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a directory from other objects (blobs or other directories).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -776,7 +776,7 @@ object may be <code class="xref any docutils literal"><span class="pre">''</span
 
 <dl class="class">
 <dt id="rain.client.tasks.Sleep">
-<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Sleep</code><span class="sig-paren">(</span><em>input</em>, <em>timeout</em>, <em>*</em>, <em>session=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Sleep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Sleep" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Sleep</code><span class="sig-paren">(</span><em>input</em>, <em>timeout</em>, <em>*</em>, <em>name=None</em>, <em>session=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Sleep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Sleep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Task that forwards argument ‘dataobj’ after ‘timeout’ seconds.
 The type of resulting data object is the same as type of input data object
 This task serves for testing purposes.</p>
@@ -802,7 +802,7 @@ This task serves for testing purposes.</p>
 
 <dl class="class">
 <dt id="rain.client.tasks.SliceDirectory">
-<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">SliceDirectory</code><span class="sig-paren">(</span><em>input</em>, <em>path</em>, <em>output=None</em>, <em>*</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#SliceDirectory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.SliceDirectory" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">SliceDirectory</code><span class="sig-paren">(</span><em>input</em>, <em>path</em>, <em>output=None</em>, <em>*</em>, <em>name=None</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#SliceDirectory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.SliceDirectory" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extract a file from a directory.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -827,7 +827,7 @@ is a directory object, otherwise a file object is creates.</li>
 
 <dl class="class">
 <dt id="rain.client.tasks.Store">
-<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Store</code><span class="sig-paren">(</span><em>input</em>, <em>path</em>, <em>*</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Store"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Store" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.tasks.</code><code class="descname">Store</code><span class="sig-paren">(</span><em>input</em>, <em>path</em>, <em>*</em>, <em>name=None</em>, <em>session=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/tasks.html#Store"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.tasks.Store" title="Permalink to this definition">¶</a></dt>
 <dd><p>Store the given object (blob or directory) at the given path (at the worker).</p>
 <dl class="attribute">
 <dt id="rain.client.tasks.Store.TASK_TYPE">
@@ -838,7 +838,7 @@ is a directory object, otherwise a file object is creates.</li>
 
 <dl class="class">
 <dt id="rain.client.Program">
-<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Program</code><span class="sig-paren">(</span><em>args</em>, <em>stdout=None</em>, <em>stdin=None</em>, <em>input_paths=()</em>, <em>output_paths=()</em>, <em>shell=False</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/program.html#Program"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Program" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Program</code><span class="sig-paren">(</span><em>args</em>, <em>stdout=None</em>, <em>stdin=None</em>, <em>input_paths=()</em>, <em>output_paths=()</em>, <em>shell=False</em>, <em>name=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/program.html#Program"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Program" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -992,13 +992,13 @@ set on the <a class="reference internal" href="#rain.client.Input" title="rain.c
 <a class="reference internal" href="#rain.common.DataInstance" title="rain.common.DataInstance"><code class="xref any py py-class docutils literal"><span class="pre">DataInstance</span></code></a> (created by <code class="xref any docutils literal"><span class="pre">Context.blob()</span></code>), <code class="xref any docutils literal"><span class="pre">bytes</span></code> or <code class="xref any docutils literal"><span class="pre">string</span></code>.</p>
 <dl class="function">
 <dt id="rain.client.remote">
-<code class="descclassname">rain.client.</code><code class="descname">remote</code><span class="sig-paren">(</span><em>*</em>, <em>outputs=None</em>, <em>inputs=()</em>, <em>auto_load=None</em>, <em>auto_encode=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/pycode.html#remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.remote" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">rain.client.</code><code class="descname">remote</code><span class="sig-paren">(</span><em>*</em>, <em>outputs=None</em>, <em>inputs=()</em>, <em>auto_load=None</em>, <em>auto_encode=None</em>, <em>name=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/pycode.html#remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.remote" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decorator for <a class="reference internal" href="#rain.client.Remote" title="rain.client.Remote"><code class="xref py py-class docutils literal"><span class="pre">Remote</span></code></a>, see the documentation there.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="rain.client.Remote">
-<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Remote</code><span class="sig-paren">(</span><em>fn</em>, <em>*</em>, <em>inputs=None</em>, <em>outputs=None</em>, <em>auto_load=False</em>, <em>auto_encode=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/pycode.html#Remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Remote" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">rain.client.</code><code class="descname">Remote</code><span class="sig-paren">(</span><em>fn</em>, <em>*</em>, <em>inputs=None</em>, <em>outputs=None</em>, <em>auto_load=False</em>, <em>auto_encode=None</em>, <em>name=None</em>, <em>cpus=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rain/client/pycode.html#Remote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rain.client.Remote" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
