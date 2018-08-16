@@ -35,7 +35,7 @@ mod tests {
     use super::super::{ClientRef, DataObjectRef, GovernorRef, Graph, SessionRef, TaskRef};
     use rain_core::types::Resources;
     use rain_core::types::{DataObjectId, SId, TaskId};
-    use rain_core::types::{ObjectSpec, TaskSpec, TaskSpecInput};
+    use rain_core::types::{ObjectSpec, TaskSpec, TaskSpecInput, SessionSpec};
 
     fn create_test_graph(
         governors: usize,
@@ -57,7 +57,7 @@ mod tests {
         for ci in 0..clients {
             let c = ClientRef::new(format!("0.0.0.{}:42", ci + 1).parse().unwrap());
             for si in 0..sessions {
-                let s = SessionRef::new(si as i32, &c);
+                let s = SessionRef::new(si as i32, &c, SessionSpec { name: "test".to_string(), user: Default::default() });
                 let mut objs = Vec::new();
 
                 for oi in 0..objects {
@@ -94,6 +94,7 @@ mod tests {
                         inputs: inputs,
                         outputs: outputs,
                         task_type: "TType".to_string(),
+                        name: "".to_string(),
                         resources: Resources { cpus: 1 },
                         config: None,
                         user: Default::default(),
