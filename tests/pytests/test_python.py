@@ -799,7 +799,6 @@ def test_python_remote_name(fake_session):
     def f2(ctx):
         pass
 
-
     with fake_session:
         t1 = f1()
         assert t1.name == "my1"

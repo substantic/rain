@@ -135,7 +135,6 @@ class Task(metaclass=TaskMeta):
         stack.pop()  # Last entry is not usefull, it is actually line above
         self._stack = "".join(traceback.format_list(stack))
 
-
     @property
     def id(self):
         """Getter for Task ID."""

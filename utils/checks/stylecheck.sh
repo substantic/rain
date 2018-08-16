@@ -9,6 +9,6 @@ flake8 utils || exit 1
 
 # Rust style check
 # NOTE: Disabled until rustfmt stabilizes a bit more
-cargo fmt -- --write-mode=diff || exit 0 
+# cargo fmt -- --write-mode=diff || exit 1
 
 echo "Style is ok"

@@ -81,7 +81,6 @@ class Client:
         session_id = self._service.newSession(spec).wait().sessionId
         return Session(self, session_id, default)
 
-
     def get_server_info(self):
         """
         Returns basic server info. Unstable.
