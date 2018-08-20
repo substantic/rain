@@ -164,35 +164,6 @@ class DataInstance:
                 f = tarfile.open(fileobj=io.BytesIO(self._data))
                 f.extractall(path)
 
-    # def _to_capnp(self, builder):
-    #     "Internal serializer."
-    #     if self._object_id:
-    #         builder.storage.init("inGovernor")
-    #         id_to_capnp(self._object_id, builder.storage.inGovernor)
-    #     elif self._path:
-    #         builder.storage.path = self._path
-    #     else:
-    #         builder.storage.memory = self._data
-    #     attributes_to_capnp(self.attributes, builder.attributes)
-
-    # @classmethod
-    # def _from_capnp(cls, reader):
-    #     "Internal deserializer user ."
-    #     which = reader.storage.which()
-    #     data = None
-    #     path = None
-    #     if which == "memory":
-    #         data = reader.storage.memory
-    #     elif which == "path":
-    #         path = reader.storage.path
-    #     else:
-    #         raise Exception("Invalid storage type")
-    #     attributes = attributes_from_capnp(reader.attributes)
-    #     return cls(data=data,
-    #                path=path,
-    #                attributes=attributes,
-    #                data_type=DataType.from_capnp(reader.dataType))
-
     def __repr__(self):
         if self._data:
             return "<DataInstance {} {}>".format(format_size(len(self._data)), self.attributes)

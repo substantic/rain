@@ -1,4 +1,4 @@
 cbor
 cloudpickle
 pyarrow
-pycapnp
+websockets

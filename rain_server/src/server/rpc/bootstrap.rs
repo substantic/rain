@@ -5,10 +5,10 @@ use rain_core::server_capnp::server_bootstrap;
 use rain_core::{types::*, utils::*};
 use std::net::SocketAddr;
 
-use super::{ClientServiceImpl, GovernorUpstreamImpl};
+use super::GovernorUpstreamImpl;
 use server::state::StateRef;
 
-use rain_core::{CLIENT_PROTOCOL_VERSION, GOVERNOR_PROTOCOL_VERSION};
+use rain_core::GOVERNOR_PROTOCOL_VERSION;
 
 // ServerBootstrap is the entry point of RPC service.
 // It is created on the server and provided
@@ -25,7 +25,7 @@ impl ServerBootstrapImpl {
         ServerBootstrapImpl {
             state: state.clone(),
             registered: false,
-            address: address,
+            address,
         }
     }
 }
@@ -37,36 +37,6 @@ impl Drop for ServerBootstrapImpl {
 }
 
 impl server_bootstrap::Server for ServerBootstrapImpl {
-    fn register_as_client(
-        &mut self,
-        params: server_bootstrap::RegisterAsClientParams,
-        mut results: server_bootstrap::RegisterAsClientResults,
-    ) -> Promise<(), ::capnp::Error> {
-        if self.registered {
-            error!("Multiple registration from connection {}", self.address);
-            return Promise::err(capnp::Error::failed(format!(
-                "Connection already registered"
-            )));
-        }
-
-        let params = pry!(params.get());
-
-        if params.get_version() != CLIENT_PROTOCOL_VERSION {
-            error!("Client protocol mismatch, expected {}, got {}", CLIENT_PROTOCOL_VERSION, params.get_version());
-            return Promise::err(capnp::Error::failed(format!("Client protocol mismatch, expected {}, got {}", CLIENT_PROTOCOL_VERSION, params.get_version())));
-        }
-
-        self.registered = true;
-
-        let service = ::rain_core::client_capnp::client_service::ToClient::new(pry!(
-            ClientServiceImpl::new(&self.state, &self.address)
-        )).from_server::<::capnp_rpc::Server>();
-
-        info!("Connection {} registered as client", self.address);
-        results.get().set_service(service);
-        Promise::ok(())
-    }
-
     fn register_as_governor(
         &mut self,
         params: server_bootstrap::RegisterAsGovernorParams,

@@ -18,7 +18,9 @@ error_chain!{
         SessionErr(SessionError);
         Utf8Err(::std::str::Utf8Error);
         Json(::serde_json::Error);
+        Cbor(::serde_cbor::error::Error);
         Sqlite(::rusqlite::Error);
+        Websocket(::websocket::WebSocketError);
     }
 
     errors {
@@ -39,9 +41,9 @@ impl ::std::convert::From<Error> for ::capnp::Error {
 
 #[derive(Debug, Clone)]
 pub struct SessionError {
-    message: String,
-    debug: String,
-    task_id: TaskId,
+    pub message: String,
+    pub debug: String,
+    pub task_id: TaskId,
 }
 
 impl SessionError {

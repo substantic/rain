@@ -125,8 +125,8 @@ def test_submit(test_env):
         s.submit()
         assert s.task_count == 0
         assert s.dataobj_count == 0
-        assert t1.state == rpc.common.TaskState.notAssigned
-        assert t2.state == rpc.common.TaskState.notAssigned
+        assert t1.state == rpc.TaskState.NotAssigned
+        assert t2.state == rpc.TaskState.NotAssigned
 
 
 @pytest.mark.xfail(reason="wait_some not implemented")
@@ -139,8 +139,8 @@ def test_wait_some(test_env):
         t2 = tasks.Sleep(t1, 0.4)
         s.submit()
         finished = s.wait_some((t1,), ())
-        assert t1.state == rpc.common.TaskState.finished
-        assert t2.state == rpc.common.TaskState.notAssigned
+        assert t1.state == rpc.TaskState.Finished
+        assert t2.state == rpc.TaskState.NotAssigned
         assert len(finished) == 2
         assert len(finished[0]) == 1
         assert len(finished[1]) == 0
@@ -157,8 +157,8 @@ def test_wait_all(test_env):
         t2 = tasks.Sleep(t1, 0.5)
         s.submit()
         test_env.assert_duration(0.35, 0.65, lambda: s.wait_all())
-        assert t1.state == rpc.common.TaskState.finished
-        assert t2.state == rpc.common.TaskState.finished
+        assert t1.state == rpc.TaskState.Finished
+        assert t2.state == rpc.TaskState.Finished
         test_env.assert_max_duration(0.1, lambda: t2.wait())
 
 
@@ -297,9 +297,9 @@ def test_task_wait(test_env):
         t1 = tasks.Concat((blob("a"), blob("b")))
     assert t1.state is None
     s.submit()
-    assert t1.state == rpc.common.TaskState.notAssigned
+    assert t1.state == rpc.TaskState.NotAssigned
     t1.wait()
-    assert t1.state == rpc.common.TaskState.finished
+    assert t1.state == rpc.TaskState.Finished
 
 
 def test_fetch_removed_object_fails(test_env):
@@ -353,9 +353,9 @@ def test_dataobj_wait(test_env):
         o1 = t1.output
         assert t1.state is None
         s.submit()
-        assert o1.state == rpc.common.DataObjectState.unfinished
+        assert o1.state == rpc.DataObjectState.Unfinished
         o1.wait()
-        assert o1.state == rpc.common.DataObjectState.finished
+        assert o1.state == rpc.DataObjectState.Finished
 
 
 def test_fetch_outputs(test_env):

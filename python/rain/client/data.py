@@ -2,8 +2,6 @@ import io
 import json
 import tarfile
 
-import capnp
-
 from ..common import ID, DataType, RainException
 from ..common.attributes import ObjectSpec
 from ..common.content_type import (check_content_type, encode_value,
@@ -83,15 +81,13 @@ class DataObject:
         """Returns the value of self._keep"""
         return self._keep
 
-    def _to_capnp(self, out):
-        out.spec = json.dumps(self._spec._to_json())
-        out.keep = self._keep
-
-        if self._data is not None:
-            out.data = self._data
-            out.hasData = True
-        else:
-            out.hasData = False
+    def _to_json(self):
+        return {
+            "spec": json.dumps(self._spec._to_json()),
+            "keep": self._keep,
+            "has_data": self._data is not None,
+            "data": b'' if not self._data else self._data
+        }
 
     def wait(self):
         self._session.wait((self,))
@@ -115,12 +111,7 @@ class DataObject:
 
     def __del__(self):
         if self.state is not None and self._keep:
-            try:
-                self._session.client._unkeep((self,))
-            except capnp.lib.capnp.KjException:
-                # Ignore capnp exception, since this constructor may be
-                # called when connection is closed
-                pass
+            self._session.client._unkeep((self,))
 
     def __reduce__(self):
         """Speciaization to replace with executor.unpickle_input_object

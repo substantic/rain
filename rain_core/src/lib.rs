@@ -31,6 +31,7 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate tokio_core;
 extern crate tokio_timer;
+extern crate websocket;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const GOVERNOR_PROTOCOL_VERSION: i32 = 0;
@@ -48,10 +49,6 @@ pub use errors::{Error, ErrorKind, Result, ResultExt};
 
 pub mod server_capnp {
     include!(concat!(env!("OUT_DIR"), "/capnp/server_capnp.rs"));
-}
-
-pub mod client_capnp {
-    include!(concat!(env!("OUT_DIR"), "/capnp/client_capnp.rs"));
 }
 
 pub mod common_capnp {

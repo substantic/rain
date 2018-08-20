@@ -39,6 +39,7 @@ extern crate tokio_timer;
 extern crate tokio_uds;
 extern crate toml;
 extern crate walkdir;
+extern crate websocket;
 
 extern crate rain_core;
 
@@ -62,7 +63,8 @@ use rain_core::sys::{create_ready_file, get_hostname};
 use rain_core::{errors::*, utils::*};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-const DEFAULT_SERVER_PORT: u16 = 7210;
+const DEFAULT_SERVER_GOVERNOR_PORT: u16 = 7210;
+const DEFAULT_SERVER_CLIENT_PORT: u16 = 7211;
 const DEFAULT_GOVERNOR_PORT: u16 = 0;
 const DEFAULT_HTTP_SERVER_PORT: u16 = 8080;
 
@@ -81,13 +83,23 @@ fn parse_listen_arg(key: &str, args: &ArgMatches, default_port: u16) -> SocketAd
 }
 
 fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_SERVER_PORT);
+    let governor_listen_address = parse_listen_arg(
+        "GOVERNOR_LISTEN_ADDRESS",
+        cmd_args,
+        DEFAULT_SERVER_GOVERNOR_PORT,
+    );
+    let client_listen_address = parse_listen_arg(
+        "CLIENT_LISTEN_ADDRESS",
+        cmd_args,
+        DEFAULT_SERVER_CLIENT_PORT,
+    );
     let http_listen_address =
         parse_listen_arg("HTTP_LISTEN_ADDRESS", cmd_args, DEFAULT_HTTP_SERVER_PORT);
     let ready_file = cmd_args.value_of("READY_FILE");
 
     info!("Starting Rain {} server", VERSION);
-    info!("Listen address: {}", listen_address);
+    info!("Governor listen address: {}", governor_listen_address);
+    info!("Client listen address: {}", client_listen_address);
 
     let log_dir = cmd_args
         .value_of("LOG_DIR")
@@ -120,7 +132,8 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let state = server::state::StateRef::new(
         tokio_core.handle(),
-        listen_address,
+        governor_listen_address,
+        client_listen_address,
         http_listen_address,
         log_dir,
         test_mode,
@@ -199,7 +212,7 @@ fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let mut server_address = cmd_args.value_of("SERVER_ADDRESS").unwrap().to_string();
 
     if !server_address.contains(':') {
-        server_address = format!("{}:{}", server_address, DEFAULT_SERVER_PORT);
+        server_address = format!("{}:{}", server_address, DEFAULT_SERVER_GOVERNOR_PORT);
     }
 
     let server_addr = match server_address.to_socket_addrs() {
@@ -324,7 +337,16 @@ fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 }
 
 fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_SERVER_PORT);
+    let governor_listen_address = parse_listen_arg(
+        "GOVERNOR_LISTEN_ADDRESS",
+        cmd_args,
+        DEFAULT_SERVER_GOVERNOR_PORT,
+    );
+    let client_listen_address = parse_listen_arg(
+        "CLIENT_LISTEN_ADDRESS",
+        cmd_args,
+        DEFAULT_SERVER_CLIENT_PORT,
+    );
     let http_listen_address =
         parse_listen_arg("HTTP_LISTEN_ADDRESS", cmd_args, DEFAULT_HTTP_SERVER_PORT);
     let log_dir = cmd_args
@@ -375,7 +397,8 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let mut config = start::starter::StarterConfig::new(
         local_governors,
-        listen_address,
+        governor_listen_address,
+        client_listen_address,
         http_listen_address,
         &log_dir,
         cmd_args.value_of("REMOTE_INIT").unwrap_or("").to_string(),
@@ -467,10 +490,15 @@ fn main() {
         .subcommand( // ---- SERVER ----
             SubCommand::with_name("server")
                 .about("Rain server")
-                .arg(Arg::with_name("LISTEN_ADDRESS")
-                    .short("l")
-                    .long("--listen")
-                    .help("Listening port/address/address:port (default 0.0.0.0:7210)")
+                .arg(Arg::with_name("GOVERNOR_LISTEN_ADDRESS")
+                    .short("g")
+                    .long("--governor-listen")
+                    .help("Governor listening port/address/address:port (default 0.0.0.0:7210)")
+                    .takes_value(true))
+                .arg(Arg::with_name("CLIENT_LISTEN_ADDRESS")
+                    .short("c")
+                    .long("--client-listen")
+                    .help("Client listening port/address/address:port (default 0.0.0.0:7211)")
                     .takes_value(true))
                 .arg(Arg::with_name("HTTP_LISTEN_ADDRESS")
                     .long("--http-listen")
@@ -549,11 +577,15 @@ fn main() {
                 .arg(Arg::with_name("RCOS") // RCOS = Reserve CPUs on Server
                      .short("-S")
                      .help("Reserve a CPU on server machine"))
-                .arg(Arg::with_name("LISTEN_ADDRESS")
-                    .short("l")
-                    .value_name("ADDRESS")
-                    .long("--listen")
-                    .help("Server listening port/address/address:port (default = 0.0.0.0:auto)")
+                .arg(Arg::with_name("GOVERNOR_LISTEN_ADDRESS")
+                    .short("g")
+                    .long("--governor-listen")
+                    .help("Governor listening port/address/address:port (default 0.0.0.0:7210)")
+                    .takes_value(true))
+                .arg(Arg::with_name("CLIENT_LISTEN_ADDRESS")
+                    .short("c")
+                    .long("--client-listen")
+                    .help("Client listening port/address/address:port (default 0.0.0.0:7211)")
                     .takes_value(true))
                 .arg(Arg::with_name("HTTP_LISTEN_ADDRESS")
                     .long("--http-listen")
