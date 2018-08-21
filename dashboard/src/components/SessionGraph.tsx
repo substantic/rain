@@ -109,7 +109,6 @@ class SessionGraph extends Component<Props, State> {
   }
 
   processSubmit(event: any) {
-    console.log("EVENT", event);
     const taskNodes = new Map(this.state.taskNodes);
     const objNodes = new Map(this.state.objNodes);
     const nodes = [];
