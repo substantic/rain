@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import update from "react-addons-update";
 import { parseDate } from "../utils/date";
 import { fetchEvents } from "../utils/fetch";
 
@@ -22,7 +21,6 @@ interface State {
   taskNodes: Map<any, any>;
   objNodes: Map<any, any>;
   unprocessed: {
-    version: number;
     x: string;
     columns: Array<Array<string | number | Date>>;
   };
@@ -34,7 +32,6 @@ class SessionGraph extends Component<Props, State> {
     taskNodes: new Map(),
     objNodes: new Map(),
     unprocessed: {
-      version: 0,
       x: "x",
       columns: [["x"], ["# of unprocessed tasks"]]
     }
@@ -70,13 +67,7 @@ class SessionGraph extends Component<Props, State> {
             this.unsubscribe();
           }
         }
-        this.setState(
-          update(this.state, {
-            unprocessed: {
-              version: { $set: this.state.unprocessed.version + 1 }
-            }
-          })
-        );
+        this.setState(this.state);
       },
       error => {
         this.setState(() => ({ error }));
