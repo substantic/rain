@@ -16,8 +16,11 @@ pub struct StarterConfig {
     /// Number of local governor that will be spawned
     pub local_governors: Vec<Option<u32>>,
 
-    /// Listening address of server
-    pub server_listen_address: SocketAddr,
+    /// Listening governor address of server
+    pub server_governor_address: SocketAddr,
+
+    /// Listening client address of server
+    pub server_client_address: SocketAddr,
 
     /// Listening address of server for HTTP connections
     pub server_http_listen_address: SocketAddr,
@@ -41,7 +44,8 @@ pub struct StarterConfig {
 impl StarterConfig {
     pub fn new(
         local_governors: Vec<Option<u32>>,
-        server_listen_address: SocketAddr,
+        server_governor_address: SocketAddr,
+        server_client_address: SocketAddr,
         server_http_listen_address: SocketAddr,
         log_dir: &Path,
         remote_init: String,
@@ -50,7 +54,8 @@ impl StarterConfig {
     ) -> Self {
         Self {
             local_governors,
-            server_listen_address,
+            server_governor_address,
+            server_client_address,
             server_http_listen_address,
             log_dir: ::std::env::current_dir().unwrap().join(log_dir), // Make it absolute
             governor_host_file: None,
@@ -187,11 +192,15 @@ impl Starter {
     fn start_server(&mut self) -> Result<()> {
         let ready_file = self.create_tmp_filename("server-ready");
         let (program, program_args) = self.local_rain_command();
-        let server_address = format!("{}", self.config.server_listen_address);
+        let server_governor_address = format!("{}", self.config.server_governor_address);
+        let server_client_address = format!("{}", self.config.server_client_address);
         let server_http_address = format!("{}", self.config.server_http_listen_address);
         let http_port = self.config.server_http_listen_address.port();
 
-        info!("Starting local server ({})", server_address);
+        info!(
+            "Starting local server (governor: {}, client: {})",
+            server_governor_address, server_client_address
+        );
         let log_dir = self.config.log_dir.join("server");
         self.server_pid = {
             let process = self.spawn_process(
@@ -202,8 +211,10 @@ impl Starter {
                     .arg("server")
                     .arg("--logdir")
                     .arg(&log_dir)
-                    .arg("--listen")
-                    .arg(&server_address)
+                    .arg("--governor-listen")
+                    .arg(&server_governor_address)
+                    .arg("--client-listen")
+                    .arg(&server_client_address)
                     .arg("--http-listen")
                     .arg(&server_http_address)
                     .arg("--ready-file")
@@ -282,7 +293,11 @@ impl Starter {
         } else {
             get_hostname()
         };
-        format!("{}:{}", hostname, self.config.server_listen_address.port())
+        format!(
+            "{}:{}",
+            hostname,
+            self.config.server_governor_address.port()
+        )
     }
 
     fn start_local_governors(&mut self) -> Result<()> {
@@ -292,7 +307,8 @@ impl Starter {
         );
         let server_address = self.server_address(true);
         let (program, program_args) = self.local_rain_command();
-        let governors: Vec<_> = self.config
+        let governors: Vec<_> = self
+            .config
             .local_governors
             .iter()
             .cloned()

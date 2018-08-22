@@ -3,22 +3,24 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-use rain_core::logging::events;
 use futures::{Future, Stream};
 use hyper::server::Http;
+use rain_core::logging::events;
 use rain_core::{errors::*, sys::*, types::*, utils::*};
 use tokio_core::net::{TcpListener, TcpStream};
 use tokio_core::reactor::Handle;
 
 use common::new_rpc_system;
-use server::graph::{ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionRef,
-                    TaskRef, TaskState};
+use server::graph::{
+    ClientRef, DataObjectRef, DataObjectState, GovernorRef, Graph, SessionRef, TaskRef, TaskState,
+};
 use server::http::RequestHandler;
 use server::logging::logger::Logger;
 use server::logging::sqlite_logger::SQLiteLogger;
 use server::rpc::ServerBootstrapImpl;
 use server::scheduler::{ReactiveScheduler, UpdatedIn};
 use server::testmode;
+use server::ws::comm::ClientCommunicator;
 use wrapped::WrappedRcRefCell;
 
 const LOGGING_INTERVAL: u64 = 1; // Logging interval in seconds
@@ -53,8 +55,11 @@ pub struct State {
 
     pub logger: Box<Logger>,
 
-    /// Listening port and address.
-    listen_address: SocketAddr,
+    /// Governor listening port and address.
+    governor_listen_address: SocketAddr,
+
+    /// Client interface
+    client_comm: ClientCommunicator,
 
     /// Listening port for HTTP interface
     http_listen_address: SocketAddr,
@@ -198,7 +203,8 @@ impl State {
             self.logger.add_closed_session_event(
                 session.get_id(),
                 events::SessionClosedReason::ClientClose,
-                String::new());
+                String::new(),
+            );
         }
         // remove from graph
         self.graph.sessions.remove(&session.get_id()).unwrap();
@@ -231,7 +237,8 @@ impl State {
         self.logger.add_closed_session_event(
             session.get_id(),
             events::SessionClosedReason::Error,
-            cause);
+            cause,
+        );
         Ok(())
     }
 
@@ -436,7 +443,8 @@ impl State {
             let mut co = &mut new_objects.reborrow().get(0);
             let o = object.get();
             o.to_governor_capnp(&mut co);
-            let placement = o.located
+            let placement = o
+                .located
                 .iter()
                 .next()
                 .map(|w| w.get().id().clone())
@@ -480,7 +488,8 @@ impl State {
         wref.check_consistency_opt().unwrap(); // non-recoverable
 
         // Create request
-        let mut req = wref.get()
+        let mut req = wref
+            .get()
             .control
             .as_ref()
             .unwrap()
@@ -542,7 +551,8 @@ impl State {
                 let o = input.get_mut();
                 if !o.assigned.contains(&wref) {
                     // Just take first placement
-                    let placement = o.located
+                    let placement = o
+                        .located
                         .iter()
                         .next()
                         .map(|w| w.get().id().clone())
@@ -637,7 +647,8 @@ impl State {
         wref.get_mut().assigned_tasks.remove(task);
         self.update_task_assignment(task);
 
-        for oref in task.get()
+        for oref in task
+            .get()
             .outputs
             .iter()
             .map(|x| x.clone())
@@ -833,8 +844,7 @@ impl State {
                     assert_eq!(t.state, TaskState::Assigned);
                     t.state = state;
                     t.info = info.clone();
-                    self.logger
-                        .add_task_started_event(t.id(), info);
+                    self.logger.add_task_started_event(t.id(), info);
                 }
                 TaskState::Failed => {
                     debug!(
@@ -858,10 +868,7 @@ impl State {
                     let task_id = tref.get().spec.id;
                     self.fail_session(&session, error_message.clone(), debug_message, task_id)
                         .unwrap();
-                    self.logger.add_task_finished_event(
-                        tref.get().id(),
-                        info
-                    );
+                    self.logger.add_task_finished_event(tref.get().id(), info);
                 }
                 _ => panic!(
                     "Invalid governor {:?} task {:?} state update to {:?}",
@@ -952,7 +959,8 @@ impl State {
                 && !wref.get().scheduled_ready_tasks.is_empty()
             {
                 // TODO: Prioritize older members of w.scheduled_ready_tasks (order-preserving set)
-                let tref = wref.get()
+                let tref = wref
+                    .get()
                     .scheduled_ready_tasks
                     .iter()
                     .next()
@@ -1023,7 +1031,8 @@ pub type StateRef = WrappedRcRefCell<State>;
 impl StateRef {
     pub fn new(
         handle: Handle,
-        listen_address: SocketAddr,
+        governor_listen_address: SocketAddr,
+        client_listen_address: SocketAddr,
         http_listen_address: SocketAddr,
         log_dir: PathBuf,
         test_mode: bool,
@@ -1034,10 +1043,11 @@ impl StateRef {
 
         let s = Self::wrap(State {
             graph,
-            test_mode: test_mode,
-            listen_address: listen_address,
-            http_listen_address: http_listen_address,
-            handle: handle,
+            test_mode,
+            governor_listen_address,
+            client_comm: ClientCommunicator::new(client_listen_address),
+            http_listen_address,
+            handle,
             scheduler: Default::default(),
             underload_governors: Default::default(),
             updates: Default::default(),
@@ -1051,10 +1061,10 @@ impl StateRef {
     }
 
     pub fn start(&self) {
-        let listen_address = self.get().listen_address;
+        let governor_listen_address = self.get().governor_listen_address;
         let http_listen_address = self.get().http_listen_address;
         let handle = self.get().handle.clone();
-        let listener = TcpListener::bind(&listen_address, &handle).unwrap();
+        let listener = TcpListener::bind(&governor_listen_address, &handle).unwrap();
 
         let state = self.clone();
         let future = listener
@@ -1067,6 +1077,11 @@ impl StateRef {
                 panic!("Listening failed {:?}", e);
             });
         handle.spawn(future);
+
+        // ---- Start Client websocket server ----
+        self.get()
+            .client_comm
+            .start(self.get().handle.clone(), self.clone());
 
         // ---- Start HTTP server ----
         //let listener = TcpListener::bind(&http_listen_address, &handle).unwrap();

@@ -1,8 +1,6 @@
 import os
 import shutil
 
-import capnp
-
 
 def remove_dir_content(path):
     """Remove content of the directory but not the directory itself"""
@@ -25,9 +23,3 @@ def fresh_copy_dir(source_path, target_path):
             fresh_copy_dir(s, t)
         else:
             shutil.copyfile(s, t)
-
-
-def load_capnp(filename):
-    src_dir = os.path.dirname(__file__)
-    capnp.remove_import_hook()
-    return capnp.load(os.path.join(src_dir, "../capnp", filename))

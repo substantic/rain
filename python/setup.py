@@ -44,5 +44,4 @@ setup(name='rain-python',
       author_email='rain@substantic.net',
       license='MIT',
       packages=find_packages(),
-      package_data={'rain': ['capnp/*.capnp']},
       install_requires=requirements)

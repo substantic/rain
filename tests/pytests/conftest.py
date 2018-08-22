@@ -53,7 +53,8 @@ class Env:
 class TestEnv(Env):
 
     default_listen_port = "17010"
-    default_http_port = "17011"
+    default_client_port = "17011"
+    default_http_port = "17012"
     running_port = None
 
     def __init__(self):
@@ -78,6 +79,7 @@ class TestEnv(Env):
               n_cpus=1,
               listen_addr=None,
               listen_port=None,
+              client_port=None,
               http_port=None,
               governor_defs=None,
               delete_list_timeout=None,
@@ -124,7 +126,12 @@ class TestEnv(Env):
             else:
                 addr = self.default_listen_port
                 port = self.default_listen_port
-        self.running_port = port
+
+        if not client_port:
+            client_port = self.default_client_port
+        client_addr = "127.0.0.1:{}".format(client_port)
+
+        self.running_port = client_port
 
         if not http_port:
             http_port = self.default_http_port
@@ -142,7 +149,8 @@ class TestEnv(Env):
         args = (RAIN_BIN, "server",
                 "--ready-file", server_ready_file,
                 "--logdir", os.path.join(WORK_DIR, "server"),
-                "--listen", str(addr),
+                "--governor-listen", str(addr),
+                "--client-listen", str(client_addr),
                 "--http-listen", str(http_port))
         self.server = self.start_process("server", args, env=env)
         assert self.server is not None

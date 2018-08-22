@@ -1,6 +1,5 @@
 @0xb01bcb96f4bd00be;
 
-using import "client.capnp".ClientService;
 using import "governor.capnp".GovernorControl;
 using import "governor.capnp".GovernorUpstream;
 using import "common.capnp".SocketAddress;
@@ -8,10 +7,7 @@ using import "common.capnp".GovernorId;
 using import "common.capnp".Resources;
 
 interface ServerBootstrap {
-    registerAsClient @0 (version :Int32) -> (service :ClientService);
-    # Registers as a client, verifies the API version and returns the Client interface.
-
-    registerAsGovernor @1 (version :Int32,
+    registerAsGovernor @0 (version :Int32,
                          address :SocketAddress,
                          control: GovernorControl,
                          resources: Resources)
