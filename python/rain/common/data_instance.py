@@ -195,9 +195,9 @@ class DataInstance:
 
     def __repr__(self):
         if self._data:
-            return "<DataInstance {} {}>".format(format_size(len(self._data)), self.attributes)
+            return "<DataInstance size={}>".format(format_size(len(self._data)))
         else:
-            return "<DataInstance {!r} {}>".format(self._path, self.attributes)
+            return "<DataInstance path={!r}>".format(self._path)
 
     def _remove(self):
         assert self._path
