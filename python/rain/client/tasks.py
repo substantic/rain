@@ -191,7 +191,9 @@ class Execute(Task):
                 outs.append(arg)
                 proc_args.append(arg.path)
             else:
-                raise Exception("Argument {!r} is invalid".format(arg))
+                raise Exception(
+                    "{}. argument is invalid, it has to be string, Input, or Output, not {}"
+                    .format(i, type(a)))
 
         if shell:
             proc_args = ("/bin/sh", "-c", " ".join(proc_args))
