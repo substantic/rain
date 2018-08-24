@@ -41,6 +41,10 @@ cert = /path/to/client_exoscale.pem
 
 `python3 exoscale.py list-ips --help`
 
+### Secure copy (SCP)
+
+`python3 exoscale.py scp --help`
+
 ## Example
 
 ```

@@ -1,1 +1,3 @@
 cs>=2.1.5
+paramiko
+scp
