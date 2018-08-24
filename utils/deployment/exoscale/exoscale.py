@@ -6,6 +6,7 @@ import paramiko
 import base64
 import multiprocessing
 from collections import OrderedDict
+from scp import SCPClient
 
 
 def print_pretty(json_data):
@@ -89,6 +90,24 @@ def list_ips(args):
 def ssh(args):
     ip = list(get_nodes(args).values())[args.n]
     os.system("{} {}@{}".format(SSH_CMD, SSH_USERNAME, ip))
+
+
+def _scp(node, src, dst):
+    sess = create_ssh_session(node)
+    scp = SCPClient(sess.get_transport())
+    scp.put(src, recursive=True, remote_path=dst)
+
+
+def scp(args):
+    nodes = list(get_nodes(args).values())
+    if args.n is not None:
+        nodes = [nodes[args.n]]
+    processes = []
+    for n in nodes:
+        p = multiprocessing.Process(target=_scp, args=(n, args.src, args.dst))
+        p.start()
+        processes.append(p)
+    [p.join() for p in processes]
 
 
 def install_node(k, nodes, hosts, pub_key):
@@ -183,6 +202,13 @@ if __name__ == "__main__":
     parser_ssh.add_argument("n", help="Node index", type=int)
     parser_ssh.add_argument("--env", help="path to .env file", required=True)
     parser_ssh.set_defaults(func=ssh)
+
+    parser_scp = subparsers.add_parser("scp", help="Secure copy data")
+    parser_scp.add_argument("src", help="Source path")
+    parser_scp.add_argument("dst", help="Destination path")
+    parser_scp.add_argument("--env", help="path to .env file", required=True)
+    parser_scp.add_argument("--n", help="Node index", type=int)
+    parser_scp.set_defaults(func=scp)
 
     parser_install = subparsers.add_parser("install", help="install help")
     parser_install.add_argument("--env", help="path to .env file", required=True)
