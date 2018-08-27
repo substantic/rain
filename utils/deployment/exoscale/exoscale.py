@@ -42,6 +42,10 @@ def create_ssh_session(hostname):
 
 
 def create(args):
+    if os.path.exists(args.env):
+        print("Error: {} already exists. Destroy the environment "
+              "or create a new one using the --env switch".format(args.env))
+        exit(1)
     print("Creating...")
     vms = []
     for i in range(args.n):
@@ -54,13 +58,9 @@ def create(args):
             zoneId=ZONES[args.zone],
             userdata=base64.b64encode(INIT_SCRIPT.encode("utf-8")),
             keypair=args.keypair))
-    if args.env:
-        env_filename = args.env
-    else:
-        env_filename = "{}.env".format(args.name)
-    with open(env_filename, "w") as f:
+    with open(args.env, "w") as f:
         f.write(json.dumps(vms))
-    print("Created ({})".format(env_filename))
+    print("Created ({})".format(args.env))
 
 
 def destroy(args):
@@ -182,7 +182,7 @@ if __name__ == "__main__":
     parser_create = subparsers.add_parser("create", help="create help")
     parser_create.add_argument("-n", help="Number of virtual machines", type=int, default=1)
     parser_create.add_argument("--name", help="Virtual machine name prefix", default="default")
-    parser_create.add_argument("--env", help="Path to environment file")
+    parser_create.add_argument("--env", help="Path to environment file", default="default.env")
     parser_create.add_argument("--keypair", choices=SSH_KEY_PAIRS,
                                help="SSH key name", required=True)
     parser_create.add_argument("--offering", choices=OFFERINGS.keys(), default="small",
@@ -191,34 +191,34 @@ if __name__ == "__main__":
     parser_create.set_defaults(func=create)
 
     parser_destroy = subparsers.add_parser("destroy", help="destroy help")
-    parser_destroy.add_argument("--env", help="Path to .env file", required=True)
+    parser_destroy.add_argument("--env", help="Path to environment file", default="default.env")
     parser_destroy.set_defaults(func=destroy)
 
     parser_ips = subparsers.add_parser("list-nodes", help="list nodes")
-    parser_ips.add_argument("--env", help="Path to .env file", required=True)
+    parser_ips.add_argument("--env", help="Path to environment file", default="default.env")
     parser_ips.set_defaults(func=list_ips)
 
     parser_ssh = subparsers.add_parser("ssh", help="SSH into n-th node")
     parser_ssh.add_argument("n", help="Node index", type=int)
-    parser_ssh.add_argument("--env", help="path to .env file", required=True)
+    parser_ssh.add_argument("--env", help="path to environment file", default="default.env")
     parser_ssh.set_defaults(func=ssh)
 
     parser_scp = subparsers.add_parser("scp", help="Secure copy data")
     parser_scp.add_argument("src", help="Source path")
     parser_scp.add_argument("dst", help="Destination path")
-    parser_scp.add_argument("--env", help="path to .env file", required=True)
+    parser_scp.add_argument("--env", help="path to environment file", default="default.env")
     parser_scp.add_argument("--n", help="Node index", type=int)
     parser_scp.set_defaults(func=scp)
 
     parser_install = subparsers.add_parser("install", help="install help")
-    parser_install.add_argument("--env", help="path to .env file", required=True)
+    parser_install.add_argument("--env", help="path to environment file", default="default.env")
     parser_install.add_argument("--rain-download", help="rain release version")
     parser_install.add_argument("--rain-binary", help="path to Rain binary")
     parser_install.add_argument("--rain-wheel", help="path to Rain Python wheel")
     parser_install.set_defaults(func=install)
 
     parser_start = subparsers.add_parser("start", help="start help")
-    parser_start.add_argument("--env", help="path to .env file", required=True)
+    parser_start.add_argument("--env", help="path to environment file", default="default.env")
     parser_start.add_argument("-S", help="passes -S to rain start command")
     parser_start.set_defaults(func=start)
 
