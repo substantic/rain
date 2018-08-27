@@ -7,6 +7,7 @@ import base64
 import multiprocessing
 from collections import OrderedDict
 from scp import SCPClient
+import time
 
 
 def print_pretty(json_data):
@@ -28,6 +29,7 @@ INIT_SCRIPT = """
 runcmd:
     - apt-get update
     - apt-get install -y python3-pip
+    - touch /ready
 """ # noqa
 SSH_CMD = "ssh -o StrictHostKeyChecking=no"
 SSH_USERNAME = "ubuntu"
@@ -41,12 +43,30 @@ def create_ssh_session(hostname):
     return s
 
 
+def wait_ready(args):
+    print("Waiting for environment deployment")
+    print("This may take take a while")
+    time.sleep(30)
+    ips = get_nodes(args).values()
+    for ip in ips:
+        sess = create_ssh_session(ip)
+        while True:
+            try:
+                sftp = sess.open_sftp()
+                sftp.stat("/ready")
+                print("{} ready".format(ip))
+                break
+            except IOError:
+                time.sleep(2)
+                print("Hold on, almost there!".format(ip))
+
+
 def create(args):
     if os.path.exists(args.env):
         print("Error: {} already exists. Destroy the environment "
               "or create a new one using the --env switch".format(args.env))
         exit(1)
-    print("Creating...")
+    print("Creating {}...".format(args.env))
     vms = []
     for i in range(args.n):
         vms.append(cs.deployVirtualMachine(
@@ -60,17 +80,18 @@ def create(args):
             keypair=args.keypair))
     with open(args.env, "w") as f:
         f.write(json.dumps(vms))
-    print("Created ({})".format(args.env))
+    wait_ready(args)
+    print("{} created".format(args.env))
 
 
 def destroy(args):
-    print("Destroying...")
+    print("Destroying {}...".format(args.env))
     with open(args.env, "r") as f:
         vms = json.loads(f.read())
         for vm in vms:
             cs.destroyVirtualMachine(id=vm["id"])
     os.remove(args.env)
-    print("Destroyed")
+    print("{} destroyed".format(args.env))
 
 
 def get_nodes(args):
@@ -173,6 +194,7 @@ def install_node(k, nodes, hosts, pub_key):
 
 
 def install(args):
+    print("Installing Rain...")
     nodes = get_nodes(args)
     server_ip = list(nodes.values())[0]
     os.popen("{} {}@{} \"ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa\""
@@ -186,6 +208,7 @@ def install(args):
         p.start()
         processes.append(p)
     [p.join() for p in processes]
+    print("Rain installed")
 
 
 def start(args):
