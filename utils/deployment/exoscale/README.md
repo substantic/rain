@@ -45,6 +45,10 @@ cert = /path/to/client_exoscale.pem
 
 `python3 exoscale.py scp --help`
 
+### Execute command
+
+`python3 exoscale.py cmd --help`
+
 ## Example
 
 ```

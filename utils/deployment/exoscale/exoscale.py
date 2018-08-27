@@ -96,6 +96,7 @@ def _scp(node, src, dst):
     sess = create_ssh_session(node)
     scp = SCPClient(sess.get_transport())
     scp.put(src, recursive=True, remote_path=dst)
+    sess.close()
 
 
 def scp(args):
@@ -105,6 +106,26 @@ def scp(args):
     processes = []
     for n in nodes:
         p = multiprocessing.Process(target=_scp, args=(n, args.src, args.dst))
+        p.start()
+        processes.append(p)
+    [p.join() for p in processes]
+
+
+def _cmd(node, cmd):
+    sess = create_ssh_session(node)
+    stdin, stdout, stderr = sess.exec_command(cmd)
+    print(stderr.read())
+    print(stdout.read().decode("utf-8"))
+    sess.close()
+
+
+def cmd(args):
+    nodes = list(get_nodes(args).values())
+    if args.n is not None:
+        nodes = [nodes[args.n]]
+    processes = []
+    for n in nodes:
+        p = multiprocessing.Process(target=_cmd, args=(n, args.cmd))
         p.start()
         processes.append(p)
     [p.join() for p in processes]
@@ -209,6 +230,12 @@ if __name__ == "__main__":
     parser_scp.add_argument("--env", help="path to environment file", default="default.env")
     parser_scp.add_argument("--n", help="Node index", type=int)
     parser_scp.set_defaults(func=scp)
+
+    parser_cmd = subparsers.add_parser("cmd", help="Execute command")
+    parser_cmd.add_argument("cmd", help="Source path")
+    parser_cmd.add_argument("--env", help="path to environment file", default="default.env")
+    parser_cmd.add_argument("--n", help="Node index", type=int)
+    parser_cmd.set_defaults(func=cmd)
 
     parser_install = subparsers.add_parser("install", help="install help")
     parser_install.add_argument("--env", help="path to environment file", default="default.env")
