@@ -2,8 +2,22 @@
 
 ## [Unreleased]
 
+### New
+
 - Dashboard improvements (summary, task inspector)
 - Task naming for debugging purpose
+- Default sessions
+
+### Updates
+
+- Exoscale scripts updated
+- Default HTTP port changed to 7222
+
+### Fixes
+
+- Some fixes in error messages and debug outputs
+
+## 0.3.0
 
 ### New
 
