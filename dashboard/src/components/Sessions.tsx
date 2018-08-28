@@ -5,7 +5,7 @@ import { EventWrapper, SessionSpec } from "../lib/event";
 import { parseDate } from "../utils/date";
 import { fetchEvents } from "../utils/fetch";
 import Error from "./Error";
-import { niceTime, StatusBadge } from "./utils";
+import { niceTime, SessionStatusBadge } from "./utils";
 
 interface Session {
   id: string;
@@ -118,7 +118,7 @@ class Sessions extends Component<{}, State> {
                       <Link to={"session/" + s.id}>{s.spec.name}</Link>
                     </td>
                     <td>
-                      <StatusBadge status={s.status} />
+                      <SessionStatusBadge status={s.status} />
                     </td>
                     <td>{s.client}</td>
                     <td>{s.created}</td>

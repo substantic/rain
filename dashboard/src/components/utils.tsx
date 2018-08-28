@@ -4,7 +4,7 @@ interface Props {
   status: string;
 }
 
-export const StatusBadge = (props: Props) => {
+export const SessionStatusBadge = (props: Props) => {
   const style: { color?: string } = {};
   if (props.status === "Open") {
     style.color = "green";
@@ -14,6 +14,17 @@ export const StatusBadge = (props: Props) => {
   }
   if (props.status === "Server lost") {
     style.color = "violet";
+  }
+  return <span style={style}>{props.status}</span>;
+};
+
+export const TaskStatusBadge = (props: Props) => {
+  const style: { color?: string } = {};
+  if (props.status === "running") {
+    style.color = "green";
+  }
+  if (props.status === "error") {
+    style.color = "red";
   }
   return <span style={style}>{props.status}</span>;
 };

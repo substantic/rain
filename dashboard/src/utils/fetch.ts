@@ -3,8 +3,8 @@ import { EventWrapper } from "../lib/event";
 let SERVER_URL = "/";
 
 if (window.location.href.startsWith("http://localhost:3000")) {
-  console.log("DEV mode detected, connecting to http://localhost:8080/");
-  SERVER_URL = "http://localhost:8080/";
+  console.log("DEV mode detected, connecting to http://localhost:7222/");
+  SERVER_URL = "http://localhost:7222/";
 }
 
 export function fetchFromServer(

@@ -209,7 +209,7 @@ ready and terminates.
   Set listening address of server. Default is 0.0.0.0:7210.
 
 **--http-listen=(PORT|ADDRESS|ADDRESS:PORT)**
-  Set listening address of server for HTTP (dashboard). Default is 0.0.0.0:8080.
+  Set listening address of server for HTTP (dashboard). Default is 0.0.0.0:7222.
 
 **--runprefix**
   Set a command before rain programs. It is designed to used to run

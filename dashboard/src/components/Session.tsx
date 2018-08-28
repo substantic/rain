@@ -4,7 +4,7 @@ import { parseDate } from "../utils/date";
 import { fetchEvents } from "../utils/fetch";
 import Error from "./Error";
 import { SessionBar } from "./SessionBar";
-import { niceTime, StatusBadge } from "./utils";
+import { niceTime, SessionStatusBadge } from "./utils";
 
 interface Props {
   id: string;
@@ -118,7 +118,7 @@ class Session extends Component<Props, State> {
                 <tr>
                   <td>Status</td>
                   <td>
-                    <StatusBadge status={session.status} />
+                    <SessionStatusBadge status={session.status} />
                     <p className="text-left text-monospace">
                       {session.message}
                     </p>

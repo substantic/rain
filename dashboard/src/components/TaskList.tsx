@@ -6,7 +6,7 @@ import Error from "./Error";
 import { FaCaretDown, FaCaretRight } from "react-icons/fa";
 import { parseDate } from "../utils/date";
 import { SessionBar } from "./SessionBar";
-import { niceTime } from "./utils";
+import { niceTime, TaskStatusBadge } from "./utils";
 
 const bgColors = ["white", "#EEE", "#D2D2D2"];
 
@@ -117,10 +117,12 @@ const TaskRow = (props: {
           onClick={toggle}
         >
           {node.open ? <FaCaretDown /> : <FaCaretRight />}
-          Task {node.name} {node.spec && node.spec.id[1]}
+          Task {node.spec && node.spec.id[1]} {node.name}
         </span>
       </td>
-      <td>{node.status}</td>
+      <td>
+        <TaskStatusBadge status={node.status} />
+      </td>
       <td>{duration && niceTime(duration)}</td>
       {duration ? (
         <td
