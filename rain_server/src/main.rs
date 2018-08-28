@@ -64,7 +64,7 @@ use rain_core::{errors::*, utils::*};
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_SERVER_PORT: u16 = 7210;
 const DEFAULT_GOVERNOR_PORT: u16 = 0;
-const DEFAULT_HTTP_SERVER_PORT: u16 = 8080;
+const DEFAULT_HTTP_SERVER_PORT: u16 = 7222;
 
 fn parse_listen_arg(key: &str, args: &ArgMatches, default_port: u16) -> SocketAddr {
     if !args.is_present(key) {
@@ -470,12 +470,12 @@ fn main() {
                 .arg(Arg::with_name("LISTEN_ADDRESS")
                     .short("l")
                     .long("--listen")
-                    .help("Listening port/address/address:port (default 0.0.0.0:7210)")
+                    .help(format!("Listening port/address/address:port (default 0.0.0.0:{})", DEFAULT_SERVER_PORT).as_str())
                     .takes_value(true))
                 .arg(Arg::with_name("HTTP_LISTEN_ADDRESS")
                     .long("--http-listen")
                     .value_name("ADDRESS")
-                    .help("Listening HTTP port/address/address:port (default = 0.0.0.0:8080)")
+                    .help(format!("Listening HTTP port/address/address:port (default = 0.0.0.0:{})", DEFAULT_HTTP_SERVER_PORT).as_str())
                     .takes_value(true))
                 .arg(Arg::with_name("LOG_DIR")
                     .long("--logdir")
@@ -489,7 +489,7 @@ fn main() {
             SubCommand::with_name("governor")
                 .about("Rain governor")
                 .arg(Arg::with_name("SERVER_ADDRESS")
-                    .help("Listening address: port/address/address:port (default 0.0.0.0:7210)")
+                    .help(format!("Listening address: port/address/address:port (default 0.0.0.0:{})", DEFAULT_SERVER_PORT).as_str())
                     .required(true))
                 .arg(Arg::with_name("LISTEN_ADDRESS")
                     .short("l")
@@ -558,7 +558,7 @@ fn main() {
                 .arg(Arg::with_name("HTTP_LISTEN_ADDRESS")
                     .long("--http-listen")
                     .value_name("ADDRESS")
-                    .help("Server listening HTTP port/address/address:port (default = 0.0.0.0:8080)")
+                    .help(format!("Server listening HTTP port/address/address:port (default = 0.0.0.0:{})", DEFAULT_HTTP_SERVER_PORT).as_str())
                     .takes_value(true))
                 .arg(Arg::with_name("GOVERNOR_CONFIG")
                     .long("--governor-config")
