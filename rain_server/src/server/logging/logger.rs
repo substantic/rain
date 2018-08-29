@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use futures::Future;
 
 use rain_core::errors::Error;
-use rain_core::logging::{events, Event, EventId};
+use rain_core::logging::{events, Event, EventId, DummyEvent};
 use rain_core::types::{ClientId, DataObjectId, GovernorId, ObjectSpec, SessionId, TaskId, TaskSpec, SessionSpec, TaskInfo};
 
 
@@ -97,7 +97,7 @@ pub trait Logger {
     }
 
     fn add_dummy_event(&mut self) {
-        self.add_event(Event::Dummy(1));
+        self.add_event(Event::Dummy(DummyEvent {dummy_value: 1}));
     }
 
     fn add_client_submit_event(&mut self, tasks: Vec<TaskSpec>, dataobjs: Vec<ObjectSpec>) {

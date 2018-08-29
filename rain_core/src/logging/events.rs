@@ -103,6 +103,11 @@ pub struct ClientInvalidRequestEvent {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DummyEvent {
+    pub dummy_value: i32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum Event {
     GovernorNew(GovernorNewEvent),
@@ -125,7 +130,7 @@ pub enum Event {
 
     ClientInvalidRequest(ClientInvalidRequestEvent),
 
-    Dummy(i32),
+    Dummy(DummyEvent),
 }
 
 impl Event {
