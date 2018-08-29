@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## 0.4.0
+
 ### New
 
 - Dashboard improvements (summary, task inspector)

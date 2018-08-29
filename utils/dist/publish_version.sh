@@ -62,7 +62,7 @@ update "^   \\$ tar xvf rain-v$OLDPAT-linux-x64.tar.xz" "   $ tar xvf rain-v$VER
 git add docs/guide/install.rst
 
 echo "Updating utils/deployment/exoscale/README.md"
-update "^python3 exoscale.py install --env default.env --rain-download $OLDPAT" "python3 exoscale.py install --env default.env --rain-download $VER" utils/deployment/exoscale/README.md
+update "^python3 exoscale.py install --rain-download $OLDPAT" "python3 exoscale.py install --rain-download $VER" utils/deployment/exoscale/README.md
 git add utils/deployment/exoscale/README.md
 
 ( grep -r "$OLDPAT" docs/guide/ || grep -r "$OLDPAT" README.md || grep -r "$OLDPAT" utils/deployment/ ) && {

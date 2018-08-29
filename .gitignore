@@ -15,3 +15,9 @@ dashboard/node_modules
 /rain_task/testing/
 _build
 /python/build
+*.out
+*.err
+cpp/build*
+python/dist
+python/*-info
+utils/dist/build
