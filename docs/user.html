@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>User’s Guide &mdash; Rain 0.3.0 documentation</title>
+  <title>User’s Guide &mdash; Rain 0.4.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Rain 0.3.0 documentation" href="index.html"/>
+    <link rel="top" title="Rain 0.4.0 documentation" href="index.html"/>
         <link rel="next" title="Writing Own Executors" href="executors.html"/>
         <link rel="prev" title="Quickstart" href="quickstart.html"/> 
 
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                0.3.0
+                0.4.0
               </div>
             
           
@@ -96,6 +96,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">User’s Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#basic-terms">Basic terms</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#task-definition-and-submission">Task definition and submission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sessions-in-interactive-mode">Sessions in interactive mode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#fetching-data-objects">Fetching data objects</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#inter-task-dependencies">Inter-task dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#more-outputs">More outputs</a></li>
@@ -258,6 +259,26 @@ are covered in Section <a class="reference internal" href="#sessions"><span clas
 <p>You can also give a name to a session, by putting argument to <code class="docutils literal"><span class="pre">new_session</span></code>
 method. E.g.: <code class="docutils literal"><span class="pre">client.new_session(name=&quot;My</span> <span class="pre">session&quot;)</span></code>.
 The name may help you distinguish sessions in the dashboard.</p>
+</div>
+<div class="section" id="sessions-in-interactive-mode">
+<h2>Sessions in interactive mode<a class="headerlink" href="#sessions-in-interactive-mode" title="Permalink to this headline">¶</a></h2>
+<p>You can set a session as “default”; when no sessions is binded, this session is used.
+This is usefull for interactive mode, when you do not want to use with <code class="docutils literal"><span class="pre">with</span></code> blocks.
+The example above may be written as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">blob</span>
+
+<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
+
+<span class="n">session</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># Create a DEFAULT SESSION</span>
+
+<span class="n">a</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;Hello &quot;</span><span class="p">)</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;world!&quot;</span><span class="p">)</span>
+<span class="n">tasks</span><span class="o">.</span><span class="n">Concat</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">])</span>
+
+<span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+<span class="n">session</span><span class="o">.</span><span class="n">wait_all</span><span class="p">()</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="fetching-data-objects">
 <h2>Fetching data objects<a class="headerlink" href="#fetching-data-objects" title="Permalink to this headline">¶</a></h2>
@@ -1314,7 +1335,7 @@ are finished, regardless in which submit they arrived to the server.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.3.0',
+            VERSION:'0.4.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

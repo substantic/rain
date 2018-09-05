@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Installation, Running &amp; Deployment &mdash; Rain 0.3.0 documentation</title>
+  <title>Installation, Running &amp; Deployment &mdash; Rain 0.4.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Rain 0.3.0 documentation" href="index.html"/>
+    <link rel="top" title="Rain 0.4.0 documentation" href="index.html"/>
         <link rel="next" title="Examples" href="examples.html"/>
         <link rel="prev" title="Writing Own Executors" href="executors.html"/> 
 
@@ -66,7 +66,7 @@
             
             
               <div class="version">
-                0.3.0
+                0.4.0
               </div>
             
           
@@ -191,8 +191,8 @@ statically linked. The only dynamic dependancies are libc and sqlite3 (for loggi
 purpose).</p>
 <p>Latest release can be found at <a class="reference external" href="https://github.com/substantic/rain/releases">https://github.com/substantic/rain/releases</a>.
 It can be downloaded and unpacked as follows:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span>$ wget https://github.com/substantic/rain/releases/download/v0.3.0/rain-v0.3.0-linux-x64.tar.xz
-$ tar xvf rain-v0.3.0-linux-x64.tar.xz
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ wget https://github.com/substantic/rain/releases/download/v0.4.0/rain-v0.4.0-linux-x64.tar.xz
+$ tar xvf rain-v0.4.0-linux-x64.tar.xz
 </pre></div>
 </div>
 <p>Installation of Python API:</p>
@@ -359,7 +359,7 @@ machine and program name is “rain”.</p>
 <dt><strong>–listen=(PORT|ADDRESS|ADDRESS:PORT)</strong></dt>
 <dd>Set listening address of server. Default is 0.0.0.0:7210.</dd>
 <dt><strong>–http-listen=(PORT|ADDRESS|ADDRESS:PORT)</strong></dt>
-<dd>Set listening address of server for HTTP (dashboard). Default is 0.0.0.0:8080.</dd>
+<dd>Set listening address of server for HTTP (dashboard). Default is 0.0.0.0:7222.</dd>
 <dt><strong>–runprefix</strong></dt>
 <dd>Set a command before rain programs. It is designed to used to run
 analytical tools (e.g. –runprefix=”valgrind –tool=callgrind”)</dd>
@@ -472,7 +472,7 @@ ramdisk). Avoid placing workdir on a network file system.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.3.0',
+            VERSION:'0.4.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

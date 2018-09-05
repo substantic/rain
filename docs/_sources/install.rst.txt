@@ -18,8 +18,8 @@ It can be downloaded and unpacked as follows:
 
 ::
 
-   $ wget https://github.com/substantic/rain/releases/download/v0.3.0/rain-v0.3.0-linux-x64.tar.xz
-   $ tar xvf rain-v0.3.0-linux-x64.tar.xz
+   $ wget https://github.com/substantic/rain/releases/download/v0.4.0/rain-v0.4.0-linux-x64.tar.xz
+   $ tar xvf rain-v0.4.0-linux-x64.tar.xz
 
 Installation of Python API::
 
@@ -209,7 +209,7 @@ ready and terminates.
   Set listening address of server. Default is 0.0.0.0:7210.
 
 **--http-listen=(PORT|ADDRESS|ADDRESS:PORT)**
-  Set listening address of server for HTTP (dashboard). Default is 0.0.0.0:8080.
+  Set listening address of server for HTTP (dashboard). Default is 0.0.0.0:7222.
 
 **--runprefix**
   Set a command before rain programs. It is designed to used to run

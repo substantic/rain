@@ -61,6 +61,27 @@ method. E.g.: ``client.new_session(name="My session")``.
 The name may help you distinguish sessions in the dashboard.
 
 
+Sessions in interactive mode
+============================
+
+You can set a session as "default"; when no sessions is binded, this session is used.
+This is usefull for interactive mode, when you do not want to use with ``with`` blocks.
+The example above may be written as follows::
+
+  from rain.client import Client, tasks, blob
+
+  client = Client("localhost", 7210)
+
+  session = client.new_session(default=True)  # Create a DEFAULT SESSION
+
+  a = blob("Hello ")
+  b = blob("world!")
+  tasks.Concat([a, b])
+
+  session.submit()
+  session.wait_all()
+
+
 Fetching data objects
 =====================
 

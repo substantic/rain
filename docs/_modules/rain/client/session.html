@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>rain.client.session &mdash; Rain 0.3.0 documentation</title>
+  <title>rain.client.session &mdash; Rain 0.4.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="../../../genindex.html"/>
         <link rel="search" title="Search" href="../../../search.html"/>
-    <link rel="top" title="Rain 0.3.0 documentation" href="../../../index.html"/>
+    <link rel="top" title="Rain 0.4.0 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -65,7 +65,7 @@
             
             
               <div class="version">
-                0.3.0
+                0.4.0
               </div>
             
           
@@ -181,6 +181,7 @@
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">graph</span>
 
 <span class="n">_global_sessions</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">_default_session</span> <span class="o">=</span> <span class="kc">None</span>
 
 <span class="c1"># TODO: Check attribute &quot;active&quot; before making remote calls</span>
 
@@ -231,7 +232,7 @@
 <span class="sd">    the `Session` exists.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">,</span> <span class="n">session_id</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">,</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># True if a session is live in server</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">client</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="n">session_id</span>
@@ -251,6 +252,9 @@
         <span class="c1"># It is not directly available to user</span>
         <span class="c1"># It is used to store e.g. for serialized Python objects</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_static_data</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">default</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_as_default</span><span class="p">()</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">task_count</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -282,7 +286,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_dataobjs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_submitted_dataobjs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_submitted_dataobjs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">False</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">global</span> <span class="n">_default_session</span>
+        <span class="k">if</span> <span class="n">_default_session</span> <span class="o">==</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">_default_session</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="Session.bind_only"><a class="viewcode-back" href="../../../python_api.html#rain.client.Session.bind_only">[docs]</a>    <span class="k">def</span> <span class="nf">bind_only</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -421,6 +429,10 @@
         <span class="sd">&quot;&quot;&quot;Update the status and metadata of given tasks and objects.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">items</span><span class="p">)</span></div>
 
+    <span class="k">def</span> <span class="nf">set_as_default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">_default_session</span>
+        <span class="n">_default_session</span> <span class="o">=</span> <span class="bp">self</span>
+
 <div class="viewcode-block" id="Session.make_graph"><a class="viewcode-back" href="../../../python_api.html#rain.client.Session.make_graph">[docs]</a>    <span class="k">def</span> <span class="nf">make_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">show_ids</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Create a graph of tasks and objects that were *not yet* submitted.&quot;&quot;&quot;</span>
 
@@ -479,7 +491,10 @@
 <span class="k">def</span> <span class="nf">get_active_session</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Internal helper to get innermost active `Session`.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_global_sessions</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">RainException</span><span class="p">(</span><span class="s2">&quot;No active session&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_default_session</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_default_session</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">RainException</span><span class="p">(</span><span class="s2">&quot;No active session&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_global_sessions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 </pre></div>
@@ -518,7 +533,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.3.0',
+            VERSION:'0.4.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,

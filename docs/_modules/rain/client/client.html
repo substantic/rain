@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>rain.client.client &mdash; Rain 0.3.0 documentation</title>
+  <title>rain.client.client &mdash; Rain 0.4.0 documentation</title>
   
 
   
@@ -35,7 +35,7 @@
         <link rel="index" title="Index"
               href="../../../genindex.html"/>
         <link rel="search" title="Search" href="../../../search.html"/>
-    <link rel="top" title="Rain 0.3.0 documentation" href="../../../index.html"/>
+    <link rel="top" title="Rain 0.4.0 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -65,7 +65,7 @@
             
             
               <div class="version">
-                0.3.0
+                0.4.0
               </div>
             
           
@@ -232,7 +232,7 @@
         <span class="n">registration</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="o">.</span><span class="n">registerAsClient</span><span class="p">(</span><span class="n">CLIENT_PROTOCOL_VERSION</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_service</span> <span class="o">=</span> <span class="n">registration</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span><span class="o">.</span><span class="n">service</span>
 
-<div class="viewcode-block" id="Client.new_session"><a class="viewcode-back" href="../../../python_api.html#rain.client.Client.new_session">[docs]</a>    <span class="k">def</span> <span class="nf">new_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Unnamed Session&quot;</span><span class="p">):</span>
+<div class="viewcode-block" id="Client.new_session"><a class="viewcode-back" href="../../../python_api.html#rain.client.Client.new_session">[docs]</a>    <span class="k">def</span> <span class="nf">new_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Unnamed Session&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Creates a new session.</span>
 
@@ -243,7 +243,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">spec</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)})</span>
         <span class="n">session_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_service</span><span class="o">.</span><span class="n">newSession</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span><span class="o">.</span><span class="n">sessionId</span>
-        <span class="k">return</span> <span class="n">Session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">Session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Client.get_server_info"><a class="viewcode-back" href="../../../python_api.html#rain.client.Client.get_server_info">[docs]</a>    <span class="k">def</span> <span class="nf">get_server_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -464,7 +464,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.3.0',
+            VERSION:'0.4.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
