@@ -76,18 +76,18 @@ update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
 echo "Disabling [workspace]"
 mv Cargo.toml Cargo.toml.disabled
 
-echo "Testng non-updated packaging only"
-( cd rain_core && cargo package -q --allow-dirty )
-( cd rain_server && cargo package -q --allow-dirty )
-( cd rain_task && cargo package -q --allow-dirty )
-( cd rain_task_test && cargo package -q --allow-dirty )
+#echo "Testing rain-core packaging"
+#( cd rain_core && cargo package -q --allow-dirty )
+#( cd rain_server && cargo package -q --allow-dirty )
+#( cd rain_task && cargo package -q --allow-dirty )
+#( cd rain_task_test && cargo package -q --allow-dirty )
 
 echo "Updating rain_core"
 cd rain_core
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
 if [ "$GO" == "T" ]; then
     echo "Publishing ..."
-    cargo publish --allow-dirty -q
+    cargo publish --allow-dirty
 fi
 update '^rain_core *= *"'$OLDPAT'"$' 'rain_core = "'$VER'"' ../rain_server/Cargo.toml
 update '^rain_core *= *"'$OLDPAT'"$' 'rain_core = "'$VER'"' ../rain_task/Cargo.toml
@@ -97,8 +97,8 @@ echo "Updating rain_server"
 cd rain_server
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
 if [ "$GO" == "T" ]; then
-    echo "Publishing ..."
-    cargo publish --allow-dirty -q
+    echo "giPublishing ..."
+    cargo publish --allow-dirty
 fi
 cd ..
 
@@ -107,7 +107,7 @@ cd rain_task
 update '^version *= *"'$OLDPAT'"$' 'version = "'$VER'"' Cargo.toml
 if [ "$GO" == "T" ]; then
     echo "Publishing ..."
-    cargo publish --allow-dirty -q
+    cargo publish --allow-dirty
 fi
 update '^rain_task *= *"'$OLDPAT'"$' 'rain_task = "'$VER'"' ../rain_task_test/Cargo.toml
 cd ..
