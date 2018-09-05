@@ -18,8 +18,8 @@ It can be downloaded and unpacked as follows:
 
 ::
 
-   $ wget https://github.com/substantic/rain/releases/download/v0.3.0/rain-v0.3.0-linux-x64.tar.xz
-   $ tar xvf rain-v0.3.0-linux-x64.tar.xz
+   $ wget https://github.com/substantic/rain/releases/download/v0.4.0-pre/rain-v0.4.0-pre-linux-x64.tar.xz
+   $ tar xvf rain-v0.4.0-pre-linux-x64.tar.xz
 
 Installation of Python API::
 

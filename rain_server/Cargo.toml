@@ -1,6 +1,6 @@
 [package]
 name = "rain_server"
-version = "0.3.0"
+version = "0.4.0-pre"
 
 description = "Distributed computational framework for large-scale task-based pipelines. Server and governor binaries."
 documentation = "https://substantic.github.io/rain/docs"
@@ -38,7 +38,7 @@ log = "0.4"
 memmap = "0.6"
 nix = "0.11"
 num_cpus = "1"
-rain_core = "0.3.0"
+rain_core = "0.4.0-pre"
 serde = "1"
 serde_bytes = "0.10"
 serde_cbor = "0.8"

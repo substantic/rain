@@ -1,6 +1,5 @@
 [![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)[![Build Status](https://travis-ci.org/substantic/rain.svg?branch=master)](https://travis-ci.org/substantic/rain)
 
-
 # Rain
 
 <img align="right" width="35%" src="docs/imgs/logo.svg?sanitize=true">
@@ -49,26 +48,26 @@ insightful monitoring on top.
 
 ## Quick start
 
-* Download binary
+- Download binary
 
 ```
-$ wget https://github.com/substantic/rain/releases/download/v0.3.0/rain-v0.3.0-linux-x64.tar.xz
-$ tar xvf rain-v0.3.0-linux-x64.tar.xz
+$ wget https://github.com/substantic/rain/releases/download/v0.4.0-pre/rain-v0.4.0-pre-linux-x64.tar.xz
+$ tar xvf rain-v0.4.0-pre-linux-x64.tar.xz
 ```
 
-* Install Python API
+- Install Python API
 
 ```
 $ pip3 install rain-python
 ```
 
-* Start server & a single local governor
+- Start server & a single local governor
 
 ```
-$ ./rain-v0.3.0-linux-x86/rain start --simple
+$ ./rain-v0.4.0-pre-linux-x86/rain start --simple
 ```
 
-* Rain "Hello world" in Python
+- Rain "Hello world" in Python
 
 ```python
 from rain.client import Client, tasks, blob
