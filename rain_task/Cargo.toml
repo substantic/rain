@@ -1,6 +1,6 @@
 [package]
 name = "rain_task"
-version = "0.4.0-pre"
+version = "0.4.0"
 
 description = "Distributed computational framework for large-scale task-based pipelines. A custom task library in Rust."
 # documentation = "https://docs.rs/rain_task/" # default docs.rs
@@ -27,7 +27,7 @@ env_logger = "0.5"
 error-chain="0.11"
 log = "0.4"
 memmap = "0.6"
-rain_core = "0.4.0-pre"
+rain_core = "0.4.0"
 serde = "1.*"
 serde_cbor = "0.8"
 serde_derive = "1.*"
