@@ -46,19 +46,30 @@ def create_ssh_session(hostname):
 def wait_ready(args):
     print("Waiting for environment deployment")
     print("This may take take a while")
-    time.sleep(30)
+    time.sleep(5)
     ips = get_nodes(args).values()
+    while any(ip is None for ip in ips):
+        print("Waiting for IP address ...")
+        time.sleep(5)
+        ips = get_nodes(args).values()
+
     for ip in ips:
-        sess = create_ssh_session(ip)
         while True:
             try:
+                print("Trying to connect to {} ...".format(ip))
+                sess = create_ssh_session(ip)
                 sftp = sess.open_sftp()
+                break
+            except paramiko.ssh_exception.NoValidConnectionsError:
+                time.sleep(5)
+        while True:
+            try:
                 sftp.stat("/ready")
                 print("{} ready".format(ip))
                 break
             except IOError:
-                time.sleep(2)
-                print("Hold on, almost there!".format(ip))
+                time.sleep(5)
+                print("Waiting for startup of {}".format(ip))
 
 
 def create(args):
@@ -95,9 +106,10 @@ def destroy(args):
 
 
 def get_nodes(args):
+
     with open(args.env, "r") as f:
         ids = [vm["id"] for vm in json.loads(f.read())]
-        ips = OrderedDict((vm["name"], vm["nic"][0]["ipaddress"])
+        ips = OrderedDict((vm["name"], vm["nic"][0].get("ipaddress"))
                           for vm in cs.listVirtualMachines()["virtualmachine"]
                           if vm["id"] in ids)
     return ips
