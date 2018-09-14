@@ -1,6 +1,12 @@
+Examples & Tutorials
+********************
 
-Examples
-********
+External links
+==============
+
+  * Tensorflow MNIST & Rain
+     - Part 1 https://substantic.github.io/2018/09/05/hsearch1.html
+     - Part 2 https://substantic.github.io/2018/09/11/hsearch2.html
 
 
 Distributed cross-validation with libsvm
