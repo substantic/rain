@@ -24,26 +24,18 @@
 
   
 
-  
-  
-    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  
-
-  
-
-  
-        <link rel="index" title="Index"
-              href="genindex.html"/>
-        <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Rain 0.4.0 documentation" href="index.html"/>
-        <link rel="prev" title="Python API" href="python_api.html"/> 
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Python API" href="python_api.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
 
 </head>
 
-<body class="wy-body-for-nav" role="document">
+<body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
@@ -95,7 +87,7 @@
 <li class="toctree-l1"><a class="reference internal" href="user.html">User’s Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="executors.html">Writing Own Executors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation, Running &amp; Deployment</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples &amp; Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="python_api.html">Python API</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Contributors’s Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#scripts">Scripts</a></li>
@@ -122,7 +114,7 @@
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
       
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+      <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">Rain</a>
@@ -130,9 +122,10 @@
       </nav>
 
 
-      
       <div class="wy-nav-content">
+        
         <div class="rst-content">
+        
           
 
 
@@ -181,9 +174,9 @@ contant us via email; this part of documentation is quite sparse.</p>
 <div class="section" id="scripts">
 <h2>Scripts<a class="headerlink" href="#scripts" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><code class="xref any docutils literal"><span class="pre">utils/checks/stylecheck.sh</span></code> – Runs code style checks (flake8 &amp; dry cargo fmt)</li>
-<li><code class="xref any docutils literal"><span class="pre">utils/checks/fullcheck.sh</span></code> – Runs stylecheck.sh + all available tests</li>
-<li><code class="xref any docutils literal"><span class="pre">utils/dist/make_release.py</span></code> – Compiles release binary of Rain, creates Python package and
+<li><code class="xref any docutils literal notranslate"><span class="pre">utils/checks/stylecheck.sh</span></code> – Runs code style checks (flake8 &amp; dry cargo fmt)</li>
+<li><code class="xref any docutils literal notranslate"><span class="pre">utils/checks/fullcheck.sh</span></code> – Runs stylecheck.sh + all available tests</li>
+<li><code class="xref any docutils literal notranslate"><span class="pre">utils/dist/make_release.py</span></code> – Compiles release binary of Rain, creates Python package and
 publishes release on GitHub</li>
 </ul>
 </div>
@@ -198,19 +191,19 @@ publishes release on GitHub</li>
 </div></blockquote>
 <div class="section" id="python-tests">
 <h3>Python tests<a class="headerlink" href="#python-tests" title="Permalink to this headline">¶</a></h3>
-<p>Python tests are placed in <code class="xref any docutils literal"><span class="pre">/rain/tests/pytests</span></code>.</p>
-<p>To execute them simply run <code class="xref any docutils literal"><span class="pre">py.test-3</span></code> in the root directory of Rain. The logs
-are stored in <code class="xref any docutils literal"><span class="pre">rain/tests/pytests/work</span></code>.</p>
+<p>Python tests are placed in <code class="xref any docutils literal notranslate"><span class="pre">/rain/tests/pytests</span></code>.</p>
+<p>To execute them simply run <code class="xref any docutils literal notranslate"><span class="pre">py.test-3</span></code> in the root directory of Rain. The logs
+are stored in <code class="xref any docutils literal notranslate"><span class="pre">rain/tests/pytests/work</span></code>.</p>
 <p>Important notes:</p>
 <blockquote>
 <div><ul class="simple">
 <li>Make sure you are running Python 3 py.test.</li>
-<li>Working directory <code class="xref any docutils literal"><span class="pre">rain/tests/pytests/work</span></code> is fully cleaned before every
+<li>Working directory <code class="xref any docutils literal notranslate"><span class="pre">rain/tests/pytests/work</span></code> is fully cleaned before every
 test! Therefore, if you want to see logs, make sure that no other test is
-executed after the test you want to see. See options <code class="xref any docutils literal"><span class="pre">-x</span></code> and <code class="xref any docutils literal"><span class="pre">-k</span></code> of
+executed after the test you want to see. See options <code class="xref any docutils literal notranslate"><span class="pre">-x</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">-k</span></code> of
 py.test-3</li>
 <li>By default, Python tests run with rain binary located in
-<code class="xref any docutils literal"><span class="pre">rain/target/debug/</span></code> directory. This path can be modified using
+<code class="xref any docutils literal notranslate"><span class="pre">rain/target/debug/</span></code> directory. This path can be modified using
 RAIN_TEST_BIN environment variable.</li>
 </ul>
 </div></blockquote>
@@ -225,7 +218,7 @@ you want to work on Dashboard, you need to install Node.js.</p>
 <div class="section" id="installation">
 <h3>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h3>
 <p>(We assume that you have already installed Node.js.)</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">dashboard</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">dashboard</span>
 <span class="n">npm</span> <span class="n">install</span>
 </pre></div>
 </div>
@@ -233,35 +226,33 @@ you want to work on Dashboard, you need to install Node.js.</p>
 <div class="section" id="development">
 <h3>Development<a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h3>
 <p>For development, just run:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">npm</span> <span class="n">start</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">npm</span> <span class="n">start</span>
 </pre></div>
 </div>
 <p>It starts on Rain dashboard on port 3000. Now you can just edit dashboard
 sources, <strong>without</strong> recompiling Rain binary. Dashboard in the development mode
 assumes, that http rain server is running at localhost:8080. If you need, you
-can change the address in <code class="docutils literal"><span class="pre">dashboard/src/utils/fetch.js</span></code>, but do not commit
+can change the address in <code class="docutils literal notranslate"><span class="pre">dashboard/src/utils/fetch.js</span></code>, but do not commit
 this change, please.</p>
 </div>
 <div class="section" id="deployment">
 <h3>Deployment<a class="headerlink" href="#deployment" title="Permalink to this headline">¶</a></h3>
 <p>All Dashboard resources (including JS source codes) are included into Rain
-binary. When Rain is compiled, files in <code class="docutils literal"><span class="pre">dashboard/dist</span></code> are read. To generate
-<code class="docutils literal"><span class="pre">dist</span></code> directory from actual dashboard sources, you need to run:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">dashboard</span>
+binary. When Rain is compiled, files in <code class="docutils literal notranslate"><span class="pre">dashboard/dist</span></code> are read. To generate
+<code class="docutils literal notranslate"><span class="pre">dist</span></code> directory from actual dashboard sources, you need to run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">dashboard</span>
 <span class="n">sh</span> <span class="n">make_dist</span><span class="o">.</span><span class="n">sh</span>
 </pre></div>
 </div>
-<p>Then you need rebuild Rain (e.g. <code class="docutils literal"><span class="pre">cargo</span> <span class="pre">build</span></code>). When you finish work on
-dashboard, do not forget to include files in <code class="docutils literal"><span class="pre">dist</span></code> into repository.</p>
+<p>Then you need rebuild Rain (e.g. <code class="docutils literal notranslate"><span class="pre">cargo</span> <span class="pre">build</span></code>). When you finish work on
+dashboard, do not forget to include files in <code class="docutils literal notranslate"><span class="pre">dist</span></code> into repository.</p>
 </div>
 </div>
 </div>
 
 
            </div>
-           <div class="articleComments">
-            
-           </div>
+           
           </div>
           <footer>
   
@@ -281,7 +272,7 @@ dashboard, do not forget to include files in <code class="docutils literal"><spa
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -300,6 +291,7 @@ dashboard, do not forget to include files in <code class="docutils literal"><spa
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
             VERSION:'0.4.0',
+            LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
@@ -313,19 +305,13 @@ dashboard, do not forget to include files in <code class="docutils literal"><spa
 
   
 
-  
-  
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-  
+  <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
   <script type="text/javascript">
       jQuery(function () {
-          SphinxRtdTheme.StickyNav.enable();
+          SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-   
+  </script> 
 
 </body>
 </html>

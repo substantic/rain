@@ -24,27 +24,19 @@
 
   
 
-  
-  
-    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  
-
-  
-
-  
-        <link rel="index" title="Index"
-              href="genindex.html"/>
-        <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Rain 0.4.0 documentation" href="index.html"/>
-        <link rel="next" title="User’s Guide" href="user.html"/>
-        <link rel="prev" title="Overview" href="overview.html"/> 
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="User’s Guide" href="user.html" />
+    <link rel="prev" title="Overview" href="overview.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
 
 </head>
 
-<body class="wy-body-for-nav" role="document">
+<body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
@@ -100,7 +92,7 @@
 <li class="toctree-l1"><a class="reference internal" href="user.html">User’s Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="executors.html">Writing Own Executors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation, Running &amp; Deployment</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples &amp; Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="python_api.html">Python API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dev.html">Contributors’s Guide</a></li>
 </ul>
@@ -114,7 +106,7 @@
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
       
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+      <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">Rain</a>
@@ -122,9 +114,10 @@
       </nav>
 
 
-      
       <div class="wy-nav-content">
+        
         <div class="rst-content">
+        
           
 
 
@@ -190,14 +183,14 @@ governor(s)) can be started manually, in order to simplify this process, we
 provide “rain start” command to do it for you automatically. The following
 command starts server and one local governor. (Starting Rain infrastructure on
 distributed systems is described in <a class="reference internal" href="install.html#start-rain"><span class="std std-ref">Starting infrastructure</span></a>.):</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span>$ rain start --simple
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ rain start --simple
 </pre></div>
 </div>
 </li>
 <li><p class="first"><strong>Running “Hello World” example.</strong> The following Python program creates a task
 that joins two strings (This example is more explained in Section
 <span class="xref std std-ref">tasks-and-objs</span>.):</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">blob</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="k">import</span> <span class="n">Client</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">blob</span>
 
 <span class="c1"># Connect to server</span>
 <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">7210</span><span class="p">)</span>
@@ -228,9 +221,7 @@ that joins two strings (This example is more explained in Section
 
 
            </div>
-           <div class="articleComments">
-            
-           </div>
+           
           </div>
           <footer>
   
@@ -252,7 +243,7 @@ that joins two strings (This example is more explained in Section
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -271,6 +262,7 @@ that joins two strings (This example is more explained in Section
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
             VERSION:'0.4.0',
+            LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
@@ -284,19 +276,13 @@ that joins two strings (This example is more explained in Section
 
   
 
-  
-  
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-  
+  <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
   <script type="text/javascript">
       jQuery(function () {
-          SphinxRtdTheme.StickyNav.enable();
+          SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-   
+  </script> 
 
 </body>
 </html>

@@ -24,27 +24,19 @@
 
   
 
-  
-  
-    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  
-
-  
-
-  
-        <link rel="index" title="Index"
-              href="genindex.html"/>
-        <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Rain 0.4.0 documentation" href="index.html"/>
-        <link rel="next" title="Installation, Running &amp; Deployment" href="install.html"/>
-        <link rel="prev" title="User’s Guide" href="user.html"/> 
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation, Running &amp; Deployment" href="install.html" />
+    <link rel="prev" title="User’s Guide" href="user.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
 
 </head>
 
-<body class="wy-body-for-nav" role="document">
+<body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
@@ -106,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation, Running &amp; Deployment</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples &amp; Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="python_api.html">Python API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dev.html">Contributors’s Guide</a></li>
 </ul>
@@ -120,7 +112,7 @@
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
 
       
-      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+      <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">Rain</a>
@@ -128,9 +120,10 @@
       </nav>
 
 
-      
       <div class="wy-nav-content">
+        
         <div class="rst-content">
+        
           
 
 
@@ -184,7 +177,7 @@ what kind of executor it needs.</p>
 <strong>Specialized executors</strong>. The universal one allows to execute an arbitrary code
 and specialized offers a fix of tasks that they provide.</p>
 <p>The current version of Rain supports universal executor for Python. This is how
-<code class="xref any docutils literal"><span class="pre">&#64;remote()</span></code> decorator works. It serializes a decorated function into a data
+<code class="xref any docutils literal notranslate"><span class="pre">&#64;remote()</span></code> decorator works. It serializes a decorated function into a data
 object and creates a task that needs Python executor that executes it.</p>
 <p>For languages where code cannot be simply transferred in a portable way, Rain
 offers <strong>tasklibs</strong>, a libraries for writing specialized executors. The current
@@ -216,7 +209,7 @@ implemented yet.</p>
 <p>The following code shows how to create an executor named “example1” that
 provides one task type “hello”. This task takes one blob as the input,
 and returns one blob as the output.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;tasklib/executor.h&gt;</span><span class="cp"></span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span> <span class="cpf">&lt;tasklib/executor.h&gt;</span><span class="cp"></span>
 
 <span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
 <span class="p">{</span>
@@ -256,12 +249,12 @@ and returns one blob as the output.</p>
 <li>myexecutor<ul>
 <li>myexecutor.cpp  – Source code of our example</li>
 <li>CMakeFile.txt – CMake configuration file. The content is below.</li>
-<li>tasklib – Copy of tasklib from Rain repository (located in <code class="docutils literal"><span class="pre">rain/cpp/tasklib</span></code>)</li>
+<li>tasklib – Copy of tasklib from Rain repository (located in <code class="docutils literal notranslate"><span class="pre">rain/cpp/tasklib</span></code>)</li>
 </ul>
 </li>
 </ul>
-<p>Content of <code class="docutils literal"><span class="pre">CMakeFile.txt</span></code> is following:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span>cmake_minimum_required(VERSION 3.1)
+<p>Content of <code class="docutils literal notranslate"><span class="pre">CMakeFile.txt</span></code> is following:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>cmake_minimum_required(VERSION 3.1)
 project(myexecutor)
 
 add_subdirectory(tasklib)
@@ -274,7 +267,7 @@ target_link_libraries (myexecutor tasklib ${CBOR_LIBRARIES} pthread)
 </pre></div>
 </div>
 <p>Now, we can build the executor as follows:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span>$ cd myexecutor
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span>$ cd myexecutor
 $ mkdir _build
 $ cd _build
 $ cmake ..
@@ -288,17 +281,17 @@ $ make
 <p>When you write your own executors, you have to registrate them in the governor.
 For this purpose, you have to create a configuration file for governor.</p>
 <p>As an example, let us assume that we want to register called “example1”.</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">executors</span><span class="p">.</span><span class="n">example1</span><span class="p">]</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">executors</span><span class="p">.</span><span class="n">example1</span><span class="p">]</span>
     <span class="n">command</span> <span class="o">=</span> <span class="s">&quot;/path/to/executor/binary&quot;</span>
 </pre></div>
 </div>
-<p>The configuration is in TOML format. If we save it as <code class="docutils literal"><span class="pre">/path/to/config.toml</span></code>
+<p>The configuration is in TOML format. If we save it as <code class="docutils literal notranslate"><span class="pre">/path/to/config.toml</span></code>
 we can provide the path to the governor by starting as follows:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">rain</span> <span class="n">governor</span> <span class="o">&lt;</span><span class="n">SERVER_ADDRESS</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">config</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">config</span><span class="p">.</span><span class="n">toml</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">rain</span> <span class="n">governor</span> <span class="o">&lt;</span><span class="n">SERVER_ADDRESS</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">config</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">config</span><span class="p">.</span><span class="n">toml</span>
 </pre></div>
 </div>
 <p>or if you are using “rain start”:</p>
-<div class="highlight-c++"><div class="highlight"><pre><span></span><span class="n">rain</span> <span class="n">start</span> <span class="o">--</span><span class="n">simple</span> <span class="o">--</span><span class="n">governor</span><span class="o">-</span><span class="n">config</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">config</span>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">rain</span> <span class="n">start</span> <span class="o">--</span><span class="n">simple</span> <span class="o">--</span><span class="n">governor</span><span class="o">-</span><span class="n">config</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">config</span>
 </pre></div>
 </div>
 <p>More about starting Rain can be found at <a class="reference internal" href="install.html#start-rain"><span class="std std-ref">Starting infrastructure</span></a>.</p>
@@ -306,12 +299,12 @@ we can provide the path to the governor by starting as follows:</p>
 <div class="section" id="client-api">
 <span id="task-api"></span><h2>Client API<a class="headerlink" href="#client-api" title="Permalink to this headline">¶</a></h2>
 <p>This section describes how to call own tasks from Python API.</p>
-<p>Each task contains a string value called <code class="docutils literal"><span class="pre">task_type</span></code> that specifies executor
-and function. It has format <code class="docutils literal"><span class="pre">&lt;EXECUTOR&gt;/&lt;FUNCTION&gt;</span></code>. So far we have created
-(and registered) own executor called <code class="docutils literal"><span class="pre">example1</span></code> that provides task <code class="docutils literal"><span class="pre">hello</span></code>.
+<p>Each task contains a string value called <code class="docutils literal notranslate"><span class="pre">task_type</span></code> that specifies executor
+and function. It has format <code class="docutils literal notranslate"><span class="pre">&lt;EXECUTOR&gt;/&lt;FUNCTION&gt;</span></code>. So far we have created
+(and registered) own executor called <code class="docutils literal notranslate"><span class="pre">example1</span></code> that provides task <code class="docutils literal notranslate"><span class="pre">hello</span></code>.
 The task type is <a href="#id1"><span class="problematic" id="id2">``</span></a>example1/hello`.</p>
-<p>The followig code creates a class <code class="docutils literal"><span class="pre">Hello</span></code> that serves for calling our task:</p>
-<div class="highlight-py"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="kn">import</span> <span class="n">Task</span>
+<p>The followig code creates a class <code class="docutils literal notranslate"><span class="pre">Hello</span></code> that serves for calling our task:</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">rain.client</span> <span class="kn">import</span> <span class="n">Task</span>
 
 
 <span class="k">class</span> <span class="nc">Hello</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
@@ -328,8 +321,8 @@ The task type is <a href="#id1"><span class="problematic" id="id2">``</span></a>
 </pre></div>
 </div>
 <p>This class can be used to create task in task graph in the same way as tasks
-from module <code class="docutils literal"><span class="pre">rain.client.tasks</span></code>, e.g.:</p>
-<div class="highlight-py"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+from module <code class="docutils literal notranslate"><span class="pre">rain.client.tasks</span></code>, e.g.:</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">client</span><span class="o">.</span><span class="n">new_session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
     <span class="n">a</span> <span class="o">=</span> <span class="n">blob</span><span class="p">(</span><span class="s2">&quot;Hello world&quot;</span><span class="p">)</span>
     <span class="n">t</span> <span class="o">=</span> <span class="n">Hello</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
     <span class="n">session</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
@@ -341,9 +334,7 @@ from module <code class="docutils literal"><span class="pre">rain.client.tasks</
 
 
            </div>
-           <div class="articleComments">
-            
-           </div>
+           
           </div>
           <footer>
   
@@ -365,7 +356,7 @@ from module <code class="docutils literal"><span class="pre">rain.client.tasks</
 
     </p>
   </div>
-  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
 
@@ -384,6 +375,7 @@ from module <code class="docutils literal"><span class="pre">rain.client.tasks</
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
             VERSION:'0.4.0',
+            LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true,
@@ -397,19 +389,13 @@ from module <code class="docutils literal"><span class="pre">rain.client.tasks</
 
   
 
-  
-  
-    <script type="text/javascript" src="_static/js/theme.js"></script>
-  
+  <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
   <script type="text/javascript">
       jQuery(function () {
-          SphinxRtdTheme.StickyNav.enable();
+          SphinxRtdTheme.Navigation.enable(true);
       });
-  </script>
-   
+  </script> 
 
 </body>
 </html>
