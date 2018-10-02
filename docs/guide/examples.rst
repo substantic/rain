@@ -7,6 +7,7 @@ External links
   * Tensorflow MNIST & Rain
      - Part 1 https://substantic.github.io/2018/09/05/hsearch1.html
      - Part 2 https://substantic.github.io/2018/09/11/hsearch2.html
+     - Part 3 https://substantic.github.io/2018/09/28/hsearch3.html
 
 
 Distributed cross-validation with libsvm
@@ -108,3 +109,4 @@ Distributed cross-validation with libsvm
 
     if __name__ == "__main__":
         main()
+
