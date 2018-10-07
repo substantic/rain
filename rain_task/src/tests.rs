@@ -202,7 +202,8 @@ fn register_task() {
     register_task!(s, "task4", [I I O O], |_ctx, _in1, _in2, _out1, _out2| Ok(()));
     register_task!(s, "task5", [Is Os], task1);
     register_task!(s, "task6", [I O Is Os],
-        |_ctx, _i1: &DataInstance, _o1: &mut Output, _is: &[DataInstance], _os: &mut [Output]| Ok(()));
+        |_ctx, _i1: &DataInstance, _o1: &mut Output, _is: &[DataInstance],
+        _os: &mut [Output]| Ok(()));
 }
 
 fn task_cat(_ctx: &mut Context, inputs: &[DataInstance], outputs: &mut [Output]) -> TaskResult<()> {
@@ -264,25 +265,27 @@ fn run_cat_task() {
 fn run_long_cat() {
     let (mut s, handle) = setup(
         "run_long_cat",
-        vec![call_msg(
-            1,
-            "run_long_cat/cat",
-            vec![
-                data_spec(
-                    1,
-                    "in1",
-                    Some(DataLocation::Memory(
-                        [0u8; MEM_BACKED_LIMIT - 1].as_ref().into(),
-                    )),
-                ),
-                data_spec(
-                    2,
-                    "in2",
-                    Some(DataLocation::Memory([0u8; 2].as_ref().into())),
-                ),
-            ],
-            vec![data_spec(6, "out", None)],
-        )],
+        vec![
+            call_msg(
+                1,
+                "run_long_cat/cat",
+                vec![
+                    data_spec(
+                        1,
+                        "in1",
+                        Some(DataLocation::Memory(
+                            [0u8; MEM_BACKED_LIMIT - 1].as_ref().into(),
+                        )),
+                    ),
+                    data_spec(
+                        2,
+                        "in2",
+                        Some(DataLocation::Memory([0u8; 2].as_ref().into())),
+                    ),
+                ],
+                vec![data_spec(6, "out", None)],
+            ),
+        ],
     );
     s.register_task("cat", task_cat);
     s.run();
@@ -301,12 +304,14 @@ fn run_long_cat() {
 fn run_empty_cat() {
     let (mut s, handle) = setup(
         "run_empty_cat",
-        vec![call_msg(
-            1,
-            "run_empty_cat/cat",
-            vec![],
-            vec![data_spec(3, "out", None)],
-        )],
+        vec![
+            call_msg(
+                1,
+                "run_empty_cat/cat",
+                vec![],
+                vec![data_spec(3, "out", None)],
+            ),
+        ],
     );
     s.register_task("cat", task_cat);
     s.run();
@@ -322,16 +327,16 @@ fn run_empty_cat() {
 fn run_pass_cat() {
     let (mut s, handle) = setup(
         "run_pass_cat",
-        vec![call_msg(
-            2,
-            "run_pass_cat/cat",
-            vec![data_spec(
-                1,
-                "in",
-                Some(DataLocation::Memory("drip".into())),
-            )],
-            vec![data_spec(2, "out", None)],
-        )],
+        vec![
+            call_msg(
+                2,
+                "run_pass_cat/cat",
+                vec![
+                    data_spec(1, "in", Some(DataLocation::Memory("drip".into()))),
+                ],
+                vec![data_spec(2, "out", None)],
+            ),
+        ],
     );
     s.register_task("cat", task_cat);
     s.run();
@@ -347,12 +352,14 @@ fn run_pass_cat() {
 fn test_make_file_backed() {
     let (mut s, handle) = setup(
         "test_make_file_backed",
-        vec![call_msg(
-            2,
-            "test_make_file_backed/mfb",
-            vec![],
-            vec![data_spec(3, "out", None)],
-        )],
+        vec![
+            call_msg(
+                2,
+                "test_make_file_backed/mfb",
+                vec![],
+                vec![data_spec(3, "out", None)],
+            ),
+        ],
     );
     s.register_task("mfb", |_ctx, _ins, outs| {
         write!(outs[0], "Rainfall")?;
@@ -373,16 +380,16 @@ fn test_make_file_backed() {
 fn test_get_path_writing() {
     let (mut s, handle) = setup(
         "test_get_path_writing",
-        vec![call_msg(
-            2,
-            "test_get_path_writing/gp",
-            vec![data_spec(
-                1,
-                "in",
-                Some(DataLocation::Memory("drizzle".into())),
-            )],
-            vec![],
-        )],
+        vec![
+            call_msg(
+                2,
+                "test_get_path_writing/gp",
+                vec![
+                    data_spec(1, "in", Some(DataLocation::Memory("drizzle".into()))),
+                ],
+                vec![],
+            ),
+        ],
     );
     s.register_task("gp", |_ctx, ins, _outs| {
         let p = ins[0].get_path();
@@ -404,12 +411,14 @@ fn test_get_path_writing() {
 fn run_stage_file() {
     let (mut s, handle) = setup(
         "run_stage_file",
-        vec![call_msg(
-            2,
-            "run_stage_file/stage",
-            vec![],
-            vec![data_spec(2, "out", None)],
-        )],
+        vec![
+            call_msg(
+                2,
+                "run_stage_file/stage",
+                vec![],
+                vec![data_spec(2, "out", None)],
+            ),
+        ],
     );
     s.register_task("stage", |_ctx, _inp, outp| {
         let mut f = fs::File::create("testfile.txt").unwrap();
@@ -494,11 +503,13 @@ fn read_set_content_type() {
     let mut call = call_msg(
         2,
         "read_set_content_type/foo",
-        vec![data_spec(
-            2,
-            "out",
-            Some(DataLocation::Memory((b"content!" as &[u8]).into())),
-        )],
+        vec![
+            data_spec(
+                2,
+                "out",
+                Some(DataLocation::Memory((b"content!" as &[u8]).into())),
+            ),
+        ],
         vec![data_spec(3, "out", None)],
     );
     call.inputs[0].info = Some(ObjectInfo {

@@ -5,9 +5,9 @@ use std::path::Path;
 use std::sync::Arc;
 
 use super::{Graph, TaskRef};
+use governor::WorkDir;
 use governor::data::Data;
 use governor::graph::ExecutorRef;
-use governor::WorkDir;
 use wrapped::WrappedRcRefCell;
 
 #[derive(Debug)]

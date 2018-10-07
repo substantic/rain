@@ -3,8 +3,8 @@ use rain_core::{comm::*, errors::*, types::*};
 use std::path::Path;
 use std::sync::Arc;
 
-use governor::data::{Data, Storage};
 use governor::State;
+use governor::data::{Data, Storage};
 
 static PROTOCOL_VERSION: &'static str = "cbor-1";
 

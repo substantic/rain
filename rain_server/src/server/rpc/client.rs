@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 use server::graph::{ClientRef, TaskRef};
 use server::graph::{DataObjectRef, DataObjectState};
 use server::state::StateRef;
+use std::process::exit;
 
 pub struct ClientServiceImpl {
     state: StateRef,
@@ -285,7 +286,7 @@ impl client_service::Server for ClientServiceImpl {
             object_ids.len()
         );
         Promise::err(::capnp::Error::failed(
-            "wait_sone is not implemented yet".to_string(),
+            "wait_some is not implemented yet".to_string(),
         ))
     }
 
@@ -489,6 +490,16 @@ impl client_service::Server for ClientServiceImpl {
         }
 
         results.get_state().unwrap().set_ok(());
+        Promise::ok(())
+    }
+
+    #[allow(unreachable_code)]
+    fn terminate_server(
+        &mut self,
+        _params: client_service::TerminateServerParams,
+        _results: client_service::TerminateServerResults,
+    ) -> Promise<(), ::capnp::Error> {
+        exit(0);
         Promise::ok(())
     }
 }

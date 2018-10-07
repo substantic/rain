@@ -30,6 +30,7 @@ extern crate serde_cbor;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate tokio_core;
+extern crate tokio_io;
 extern crate tokio_timer;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

@@ -88,7 +88,8 @@ macro_rules! register_task_make_call {
 #[macro_export]
 macro_rules! register_task {
     ($executor: expr, $name: expr, [$($params: tt)*], $taskfn: expr) => ({
-        $executor.register_task($name, |ctx: &mut Context, ins: &[DataInstance], outs: &mut [Output]| -> TaskResult<()> {
+        $executor.register_task($name, |ctx: &mut Context, ins: &[DataInstance],
+        outs: &mut [Output]| -> TaskResult<()> {
             register_task_make_call!($taskfn, ins, outs, ($($params)*), (ctx))
         })
     });
