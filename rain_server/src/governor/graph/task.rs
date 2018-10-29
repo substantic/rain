@@ -1,6 +1,7 @@
 use rain_core::{errors::*, types::*, utils::*};
 use std::fmt;
 use std::sync::Arc;
+use error_chain::bail;
 
 use super::{DataObjectRef, Graph};
 use governor::data::Data;
@@ -46,7 +47,7 @@ impl Task {
         assert!(found);
         let is_ready = self.waiting_for.is_empty();
         if is_ready {
-            debug!("Task id={} is ready", self.spec.id);
+            log::debug!("Task id={} is ready", self.spec.id);
         }
         is_ready
     }
@@ -78,7 +79,7 @@ impl Task {
     }
 
     pub fn set_failed(&mut self, error_message: String) {
-        warn!("Task {} failed: {}", self.spec.id, error_message);
+        log::warn!("Task {} failed: {}", self.spec.id, error_message);
         assert_ne!(self.state, TaskState::Failed);
         self.state = TaskState::Failed;
         if self.info.error != "" {
@@ -99,7 +100,7 @@ impl TaskRef {
         outputs: Vec<DataObjectRef>,
     ) -> Self {
         let id = spec.id;
-        debug!("New task id={} type={}", id, spec.task_type);
+        log::debug!("New task id={} type={}", id, spec.task_type);
 
         let waiting_for: RcSet<_> = (&inputs)
             .iter()

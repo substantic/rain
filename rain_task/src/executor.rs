@@ -116,7 +116,7 @@ impl Executor {
         fs::create_dir(&self.staging_dir).expect("error creating staging dir");
         fs::create_dir(&self.tasks_dir).expect("error creating tasks dir");
         // Connect to socket
-        info!(
+        log::info!(
             "Connecting to governor at socket {:?} with ID {}",
             self.socket_path, self.executor_id
         );
@@ -152,7 +152,7 @@ impl Executor {
                 if (e.kind() == io::ErrorKind::ConnectionAborted)
                     || (e.kind() == io::ErrorKind::UnexpectedEof) =>
             {
-                info!("Connection closed, shutting down");
+                log::info!("Connection closed, shutting down");
             }
             other => other.expect("error in the message loop"),
         }
@@ -208,7 +208,7 @@ impl Executor {
                 // Check and handle in-task errors
                 env::set_current_dir(&self.working_dir).expect("error on chdir to work dir");
                 if let Err(ref e) = res {
-                    debug!("Method {:?} in {:?} failed: {}", task_method, task_dir, e);
+                    log::debug!("Method {:?} in {:?} failed: {}", task_method, task_dir, e);
                     context.fail(format!(
                         "error returned from call to {:?} (in {:?}):\n{}",
                         task_method, task_dir, e
@@ -223,7 +223,7 @@ impl Executor {
                             .expect("error removing the task direcotry after failure");
                     }
                 } else {
-                    debug!("Method {:?} finished successfully", task_method);
+                    log::debug!("Method {:?} finished successfully", task_method);
                     // cleanup of the task working dir
                     fs::remove_dir_all(task_dir)
                         .expect("error removing the finished task direcotry");

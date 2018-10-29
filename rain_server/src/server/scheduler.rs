@@ -88,7 +88,7 @@ impl ReactiveScheduler {
                     o.info.size.expect("missing info.size in finished object") * o.scheduled.len();
             }
             let neg_avg_size = -(total_size as i64) / n_governors;
-            //debug!("!!! {} AVG SIZE {}", t.id, -neg_avg_size);
+            //log::debug!("!!! {} AVG SIZE {}", t.id, -neg_avg_size);
 
             for (_, wref) in &graph.governors {
                 let w = wref.get();
@@ -135,7 +135,7 @@ impl ReactiveScheduler {
         for tref in &updated.new_tasks {
             let mut t = tref.get_mut();
             if t.state == TaskState::Ready {
-                debug!("Scheduler: New ready task {}", t.id());
+                log::debug!("Scheduler: New ready task {}", t.id());
                 let r = self.ready_tasks.insert(tref.clone());
                 assert!(r);
             }
@@ -144,13 +144,13 @@ impl ReactiveScheduler {
         for tref in &updated.tasks {
             let mut t = tref.get_mut();
             if t.state == TaskState::Ready {
-                debug!("Scheduler: New ready task {}", t.id());
+                log::debug!("Scheduler: New ready task {}", t.id());
                 let r = self.ready_tasks.insert(tref.clone());
                 assert!(r);
             }
         }
 
-        debug!("Scheduler started");
+        log::debug!("Scheduler started");
 
         while let Some((tref, wref)) = self.pick_best(graph) {
             {
@@ -166,7 +166,7 @@ impl ReactiveScheduler {
 
                 t.scheduled = Some(wref.clone());
 
-                debug!("Scheduler: {} -> {}", t.id(), w.id());
+                log::debug!("Scheduler: {} -> {}", t.id(), w.id());
                 for oref in &t.outputs {
                     w.scheduled_objects.insert(oref.clone());
                     oref.get_mut().scheduled.insert(wref.clone());
@@ -184,7 +184,7 @@ impl ReactiveScheduler {
         up_out
 
         /*if graph.governors.is_empty() {
-            warn!("Scheduler is running with empty governors -- not doing anything.");
+            log::warn!("Scheduler is running with empty governors -- not doing anything.");
             return up_out;
         }
 

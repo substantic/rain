@@ -68,7 +68,7 @@ impl Context {
         // Inputs and outputs are swapped out from the Context to hand over to the task.
         mem::swap(&mut outputs, &mut self.outputs);
         mem::swap(&mut inputs, &mut self.inputs);
-        debug!("Calling {:?} in {:?}", self.spec.task_type, self.work_dir);
+        log::debug!("Calling {:?} in {:?}", self.spec.task_type, self.work_dir);
         let res = f(self, &inputs, &mut outputs);
         mem::swap(&mut outputs, &mut self.outputs);
         mem::swap(&mut inputs, &mut self.inputs);
@@ -87,7 +87,7 @@ impl Context {
         if msg.is_empty() {
             msg = "(unspecified error)".into();
         }
-        debug!("Task {} failed: {}", self.spec.id, msg);
+        log::debug!("Task {} failed: {}", self.spec.id, msg);
         self.success = false;
         self.info.error = msg;
     }

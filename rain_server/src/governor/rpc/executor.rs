@@ -2,6 +2,7 @@ use bytes::BytesMut;
 use rain_core::{comm::*, errors::*, types::*};
 use std::path::Path;
 use std::sync::Arc;
+use error_chain::bail;
 
 use governor::data::{Data, Storage};
 use governor::State;
@@ -51,7 +52,7 @@ pub fn check_registration(
         Some(data) => {
             let message: ExecutorToGovernorMessage = ::serde_cbor::from_slice(&data).unwrap();
             if let ExecutorToGovernorMessage::Register(msg) = message {
-                debug!(
+                log::debug!(
                     "Executor id={} registered: protocol={} id={} type={}",
                     executor_id, msg.protocol, msg.executor_id, msg.executor_type
                 );

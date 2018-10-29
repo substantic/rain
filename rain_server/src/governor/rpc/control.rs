@@ -1,4 +1,5 @@
 use capnp::capability::Promise;
+use capnp_rpc::pry;
 use futures::future::Future;
 use rain_core::{errors::*, types::*, utils::*};
 use std::sync::Arc;
@@ -21,7 +22,7 @@ impl GovernorControlImpl {
 
 impl Drop for GovernorControlImpl {
     fn drop(&mut self) {
-        error!("Lost connection to the server");
+        log::error!("Lost connection to the server");
         // exit(1);
     }
 }
@@ -49,7 +50,7 @@ impl governor_control::Server for GovernorControlImpl {
         let mut state = self.state.get_mut();
         for cid in objects.iter() {
             let id = DataObjectId::from_capnp(&cid);
-            debug!("Unassigning object id={}", id);
+            log::debug!("Unassigning object id={}", id);
 
             let dataobject = pry!(state.object_by_id(id));
             let mut obj = dataobject.get_mut();
@@ -83,7 +84,7 @@ impl governor_control::Server for GovernorControlImpl {
         params: governor_control::AddNodesParams,
         mut _results: governor_control::AddNodesResults,
     ) -> Promise<(), ::capnp::Error> {
-        debug!("New tasks and objects");
+        log::debug!("New tasks and objects");
         let params = pry!(params.get());
         let new_tasks = pry!(params.get_new_tasks());
         let new_objects = pry!(params.get_new_objects());
@@ -111,7 +112,7 @@ impl governor_control::Server for GovernorControlImpl {
             let assigned = co.get_assigned();
             let dataobject = state.add_dataobject(spec, object_state, assigned);
 
-            debug!(
+            log::debug!(
                 "Received DataObject {:?}, is_remote: {}",
                 dataobject.get(),
                 is_remote
@@ -135,7 +136,7 @@ impl governor_control::Server for GovernorControlImpl {
                 .map(|id| state.object_by_id(*id).unwrap())
                 .collect();
             let task = state.add_task(spec, inputs, outputs);
-            debug!("Received Task {:?}", task.get());
+            log::debug!("Received Task {:?}", task.get());
         }
 
         // Start fetching remote objects
@@ -165,7 +166,7 @@ impl governor_control::Server for GovernorControlImpl {
                         }
                     })
                     .select(receiver.then(move |_| {
-                        debug!("Terminating fetching of data object id={}", object_id);
+                        log::debug!("Terminating fetching of data object id={}", object_id);
                         Ok(())
                     }))
                     .then(|_| Ok(())),

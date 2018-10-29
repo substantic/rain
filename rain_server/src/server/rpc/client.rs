@@ -1,4 +1,5 @@
 use capnp::capability::Promise;
+use capnp_rpc::pry;
 use futures::{future, Future};
 use rain_core::client_capnp::client_service;
 use rain_core::{errors::*, types::*, utils::*};
@@ -25,7 +26,7 @@ impl ClientServiceImpl {
 impl Drop for ClientServiceImpl {
     fn drop(&mut self) {
         let mut s = self.state.get_mut();
-        info!("Client {} disconnected", self.client.get_id());
+        log::info!("Client {} disconnected", self.client.get_id());
         s.remove_client(&self.client)
             .expect("client connection drop");
     }
@@ -37,7 +38,7 @@ impl client_service::Server for ClientServiceImpl {
         _: client_service::GetServerInfoParams,
         mut results: client_service::GetServerInfoResults,
     ) -> Promise<(), ::capnp::Error> {
-        debug!("Client asked for info");
+        log::debug!("Client asked for info");
         let s = self.state.get();
 
         let futures: Vec<_> = s.graph
@@ -83,7 +84,7 @@ impl client_service::Server for ClientServiceImpl {
         let spec = ::serde_json::from_str(pry!(params.get_spec())).unwrap();
         let session = pry!(s.add_session(&self.client, spec));
         results.get().set_session_id(session.get_id());
-        debug!("Client asked for a new session, got {:?}", session.get_id());
+        log::debug!("Client asked for a new session, got {:?}", session.get_id());
         Promise::ok(())
     }
 
@@ -108,13 +109,13 @@ impl client_service::Server for ClientServiceImpl {
         let params = pry!(params.get());
         let tasks = pry!(params.get_tasks());
         let objects = pry!(params.get_objects());
-        info!(
+        log::info!(
             "New task submission ({} tasks, {} data objects) from client {}",
             tasks.len(),
             objects.len(),
             self.client.get_id()
         );
-        debug!("Sessions: {:?}", s.graph.sessions);
+        log::debug!("Sessions: {:?}", s.graph.sessions);
         let mut created_tasks = Vec::<TaskRef>::new();
         let mut created_objects = Vec::<DataObjectRef>::new();
         // catch any insertion error and clean up later
@@ -146,8 +147,8 @@ impl client_service::Server for ClientServiceImpl {
                 let t = s.add_task(&session, spec, inputs, outputs)?;
                 created_tasks.push(t);
             }
-            debug!("New tasks: {:?}", created_tasks);
-            debug!("New objects: {:?}", created_objects);
+            log::debug!("New tasks: {:?}", created_tasks);
+            log::debug!("New objects: {:?}", created_objects);
             s.logger.add_client_submit_event(
                 created_tasks.iter().map(|t| t.get().spec.clone()).collect(),
                 created_objects
@@ -159,7 +160,7 @@ impl client_service::Server for ClientServiceImpl {
             s.verify_submit(&created_tasks, &created_objects)
         })();
         if res.is_err() {
-            debug!("Error: {:?}", res);
+            log::debug!("Error: {:?}", res);
             for t in created_tasks {
                 pry!(s.remove_task(&t));
             }
@@ -188,7 +189,7 @@ impl client_service::Server for ClientServiceImpl {
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
-        info!(
+        log::info!(
             "New wait request ({} tasks, {} data objects) from client",
             task_ids.len(),
             object_ids.len()
@@ -198,7 +199,7 @@ impl client_service::Server for ClientServiceImpl {
             && task_ids.get(0).get_id() == ::rain_core::common_capnp::ALL_TASKS_ID
         {
             let session_id = task_ids.get(0).get_session_id();
-            debug!("Waiting for all session session_id={}", session_id);
+            log::debug!("Waiting for all session session_id={}", session_id);
             let session = match s.session_by_id(session_id) {
                 Ok(s) => s,
                 Err(e) => return Promise::err(::capnp::Error::failed(e.description().to_string())),
@@ -249,7 +250,7 @@ impl client_service::Server for ClientServiceImpl {
             };
         }
 
-        debug!("{} waiting futures", task_futures.len());
+        log::debug!("{} waiting futures", task_futures.len());
 
         if task_futures.is_empty() {
             result.get().set_ok(());
@@ -279,7 +280,7 @@ impl client_service::Server for ClientServiceImpl {
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
-        info!(
+        log::info!(
             "New wait_some request ({} tasks, {} data objects) from client",
             task_ids.len(),
             object_ids.len()
@@ -297,7 +298,7 @@ impl client_service::Server for ClientServiceImpl {
         let mut s = self.state.get_mut();
         let params = pry!(params.get());
         let object_ids = pry!(params.get_object_ids());
-        debug!(
+        log::debug!(
             "New unkeep request ({} data objects) from client",
             object_ids.len()
         );
@@ -331,7 +332,7 @@ impl client_service::Server for ClientServiceImpl {
         let params = pry!(params.get());
         let id = DataObjectId::from_capnp(&pry!(params.get_id()));
 
-        debug!("Client fetch for object id={}", id);
+        log::debug!("Client fetch for object id={}", id);
 
         let object = match self.state.get().object_by_id_check_session(id) {
             Ok(t) => t,
@@ -399,7 +400,7 @@ impl client_service::Server for ClientServiceImpl {
                     }
                     let governor_ref = obj.located.iter().next().unwrap().clone();
                     let mut governor = governor_ref.get_mut();
-                    debug!("Redirecting client fetch id={} to {}", governor.id(), id);
+                    log::debug!("Redirecting client fetch id={} to {}", governor.id(), id);
                     future::Either::B(
                         governor
                             .wait_for_data_connection(&governor_ref, &state_ref)
@@ -433,7 +434,7 @@ impl client_service::Server for ClientServiceImpl {
         let params = pry!(params.get());
         let task_ids = pry!(params.get_task_ids());
         let object_ids = pry!(params.get_object_ids());
-        info!(
+        log::info!(
             "New get_state request ({} tasks, {} data objects) from client",
             task_ids.len(),
             object_ids.len()

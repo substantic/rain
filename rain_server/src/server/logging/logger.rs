@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use futures::Future;
+use serde_derive::Deserialize;
 
 use rain_core::errors::Error;
 use rain_core::logging::{events, Event, EventId, DummyEvent};

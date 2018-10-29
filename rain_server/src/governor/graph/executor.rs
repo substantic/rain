@@ -46,7 +46,7 @@ impl Executor {
     // Kill executor, if the process is already killed than nothing happens
     pub fn kill(&mut self) {
         if self.control.is_none() {
-            debug!("Killing already killed executor");
+            log::debug!("Killing already killed executor");
         }
         self.control = None;
     }
@@ -126,8 +126,8 @@ pub fn executor_command(
     program_args: &[String],
 ) -> Result<Command> {
     let (log_path_out, log_path_err) = log_dir.executor_log_paths(executor_id);
-    info!("Executor stdout log: {:?}", log_path_out);
-    info!("Executor stderr log: {:?}", log_path_err);
+    log::info!("Executor stdout log: {:?}", log_path_out);
+    log::info!("Executor stderr log: {:?}", log_path_err);
 
     // --- Open log files ---
     let log_path_out = File::create(log_path_out).expect("Executor log cannot be opened");

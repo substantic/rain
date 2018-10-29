@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate rain_task;
 extern crate env_logger;
 

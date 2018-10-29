@@ -93,7 +93,7 @@ fn make_text_response(data: String) -> Response {
         .with_header(AccessControlAllowOrigin::Any)
         .with_body(data)
     /*        Err(e) => {
-            warn!("Http request error: {}", e.description());
+            log::warn!("Http request error: {}", e.description());
             Response::new()
                 .with_status(StatusCode::InternalServerError)
                 .with_header(AccessControlAllowOrigin::Any)
@@ -127,7 +127,7 @@ impl Service for RequestHandler {
 
     fn call(&self, req: Request) -> Self::Future {
         let state_ref = self.state.clone();
-        debug!("HTTP request: {}", req.path());
+        log::debug!("HTTP request: {}", req.path());
         let path = req.path().to_string();
         Box::new(req.body().concat2().and_then(move |body| {
             let body = ::std::str::from_utf8(&body).unwrap();
@@ -149,7 +149,7 @@ impl Service for RequestHandler {
                     &include_bytes!("./../../dashboard/dist/index.html")[..],
                 ),
                 /*path =>  {
-                        warn!("Invalid HTTP request: {}", path);
+                        log::warn!("Invalid HTTP request: {}", path);
                         Response::new().with_status(StatusCode::NotFound)
                     }*/
             };

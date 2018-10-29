@@ -1,6 +1,7 @@
 /* Routines for usage in test_mode */
 
 use server::state::State;
+use serde_derive::Deserialize;
 
 #[derive(Deserialize)]
 struct TestingObjectSpec {
@@ -15,7 +16,7 @@ pub fn test_scheduler(state: &mut State) {
             let c: TestingObjectSpec = ::serde_json::from_value(value).unwrap();
             oref.get_mut().info.size = Some(c.size);
             for governor_id in c.governors {
-                debug!(
+                log::debug!(
                     "Forcing object id={} to governor={} with fake size={}",
                     oref.get().spec.id,
                     governor_id,

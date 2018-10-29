@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
+use error_chain::bail;
 
 use common::Monitor;
 use common::{create_protocol_stream, new_rpc_system, Connection};
@@ -24,7 +25,7 @@ use governor::tasks::TaskInstance;
 use wrapped::WrappedRcRefCell;
 
 use capnp::capability::Promise;
-use capnp_rpc::rpc_twoparty_capnp;
+use capnp_rpc::{pry, rpc_twoparty_capnp};
 use futures::Future;
 use futures::IntoFuture;
 use futures::Stream;
@@ -135,13 +136,13 @@ impl State {
 
         if let ::std::collections::hash_map::Entry::Occupied(mut e) = self.transport_views.entry(id)
         {
-            debug!("Getting transport view from cache id={}", id);
+            log::debug!("Getting transport view from cache id={}", id);
             let &mut (ref tw, ref mut timeout) = e.get_mut();
             *timeout = new_timeout;
             return Some(tw.clone());
         }
         self.graph.objects.get(&id).cloned().map(|obj_ref| {
-            debug!("Creating new transport view for object id={}", id);
+            log::debug!("Creating new transport view for object id={}", id);
             let transport_view = Rc::new(TransportView::from(self, obj_ref.get().data()).unwrap());
             self.transport_views
                 .insert(id, (transport_view.clone(), new_timeout));
@@ -172,10 +173,10 @@ impl State {
     pub fn object_is_finished(&mut self, dataobj: &DataObjectRef) {
         let mut dataobject = dataobj.get_mut();
         if dataobject.is_removed() {
-            debug!("Removed object finished id={}", dataobject.spec.id);
+            log::debug!("Removed object finished id={}", dataobject.spec.id);
             return;
         }
-        debug!("Object id={} is finished", dataobject.spec.id);
+        log::debug!("Object id={} is finished", dataobject.spec.id);
         self.updated_objects.insert(dataobj.clone());
 
         let mut new_ready = false;
@@ -195,7 +196,7 @@ impl State {
 
     /// Send status of updated elements (updated_tasks/updated_objects) and then clear this sets
     pub fn send_update(&mut self) {
-        debug!(
+        log::debug!(
             "Sending update objs={}, tasks={}",
             self.updated_objects.len(),
             self.updated_tasks.len()
@@ -286,7 +287,7 @@ impl State {
                 if let Some(args) = self.executor_args.get(executor_type) {
                     let executor_id = self.graph.make_id();
                     let executor_type = executor_type.to_string();
-                    info!(
+                    log::info!(
                         "Staring new executor type={} id={}",
                         executor_type, executor_id
                     );
@@ -301,7 +302,7 @@ impl State {
                             let result = UnixListener::bind("socket", &self.handle);
                             ::std::env::set_current_dir(backup).unwrap();
                             result
-                        }.map_err(|e| info!("Cannot create listening unix socket: {:?}", e))
+                        }.map_err(|e| log::info!("Cannot create listening unix socket: {:?}", e))
                             .unwrap();
 
                     let program_name = &args[0];
@@ -331,7 +332,7 @@ impl State {
                             ).into()
                         })
                         .and_then(move |status| {
-                            error!("Executor {} terminated with {}", executor_id, status);
+                            log::error!("Executor {} terminated with {}", executor_id, status);
                             let (out_log_name, err_log_name) =
                                 state_ref.get().log_dir().executor_log_paths(executor_id);
                             let logs = get_log_tails(&out_log_name, &err_log_name, 600);
@@ -344,7 +345,7 @@ impl State {
                         .into_future()
                         .map_err(|_| "Executor connection failed".into())
                         .and_then(move |(r, _)| {
-                            info!("Connection for executor id={}", executor_id);
+                            log::info!("Connection for executor id={}", executor_id);
                             let (raw_stream, _) = r.unwrap();
                             let stream = create_protocol_stream(raw_stream);
                             stream
@@ -397,9 +398,9 @@ impl State {
                             let future = comm_future.select(command_future).then(move |r| {
                                 match r {
                                     Ok(_) => {
-                                        debug!("Executor terminating");
+                                        log::debug!("Executor terminating");
                                     }
-                                    Err((e, _)) => error!("Executor failed: {}", e),
+                                    Err((e, _)) => log::error!("Executor failed: {}", e),
                                 };
                                 executor2.get_mut().pick_finish_sender(); // just picke sender and them it away
                                 let mut state = state_ref2.get_mut();
@@ -473,7 +474,7 @@ impl State {
     }
 
     pub fn remove_object(&mut self, object: &mut DataObject) {
-        debug!("Removing object {}", object.spec.id);
+        log::debug!("Removing object {}", object.spec.id);
         let id_list = [object.spec.id];
         for sw in ::std::mem::replace(&mut object.executor_cache, Default::default()) {
             sw.get().send_remove_cached_objects(&id_list);
@@ -485,7 +486,7 @@ impl State {
     // Call when object may be waiting for delete, but now is needed again
     pub fn mark_as_needed(&mut self, object_ref: &DataObjectRef) {
         if self.graph.delete_wait_list.remove(&object_ref).is_some() {
-            debug!(
+            log::debug!(
                 "Object id={} is retaken from cache",
                 object_ref.get().spec.id
             );
@@ -494,7 +495,7 @@ impl State {
 
     pub fn remove_dataobj_if_not_needed(&mut self, object: &mut DataObject) {
         if !object.assigned && object.consumers.is_empty() {
-            debug!("Object {:?} is not needed", object);
+            log::debug!("Object {:?} is not needed", object);
             assert!(!object.is_removed());
             if !object.is_finished() || self.graph.delete_wait_list.len() > 100
                 || self.delete_list_max_timeout == 0
@@ -524,7 +525,7 @@ impl State {
     /// Remove task from graph
     pub fn unregister_task(&mut self, task_ref: &TaskRef) {
         let task = task_ref.get_mut();
-        debug!("Unregistering task id = {}", task.spec.id);
+        log::debug!("Unregistering task id = {}", task.spec.id);
 
         let removed = self.graph.tasks.remove(&task.spec.id);
         assert!(removed.is_some());
@@ -542,7 +543,7 @@ impl State {
     /// Remove task from governor, if running it is forced to stop
     /// If task does not exists, call is silently ignored
     pub fn stop_task(&mut self, task_id: &TaskId) {
-        debug!("Stopping task {}", task_id);
+        log::debug!("Stopping task {}", task_id);
         if let Some(instance) = self.graph.running_tasks.get_mut(task_id) {
             instance.stop();
             return;
@@ -568,7 +569,7 @@ impl State {
         self.free_resources.remove(resources);
         assert!(self.free_slots > 0);
         self.free_slots -= 1;
-        debug!(
+        log::debug!(
             "{} cpus allocated, free now: {}",
             resources.cpus(),
             self.free_resources.cpus()
@@ -579,7 +580,7 @@ impl State {
         self.free_resources.add(resources);
         self.free_slots += 1;
         self.need_scheduling();
-        debug!(
+        log::debug!(
             "{} cpus disposed, free now: {}",
             resources.cpus(),
             self.free_resources.cpus()
@@ -629,7 +630,7 @@ impl State {
         Box::new(
             TcpStream::connect(&governor_id, &self.handle)
                 .map(move |stream| {
-                    debug!("Connection to governor {} established", governor_id);
+                    log::debug!("Connection to governor {} established", governor_id);
                     let mut rpc_system = new_rpc_system(stream, None);
                     let bootstrap: Rc<
                         ::rain_core::governor_capnp::governor_bootstrap::Client,
@@ -648,7 +649,7 @@ impl State {
 
     /// Send event to server
     pub fn send_event(&mut self, event: events::Event) {
-        debug!("Sending event to server");
+        log::debug!("Sending event to server");
         let now = ::chrono::Utc::now();
         let mut req = self.upstream.as_ref().unwrap().push_events_request();
         {
@@ -709,7 +710,7 @@ impl StateRef {
     fn on_connection(&self, stream: TcpStream, address: SocketAddr) {
         // Handle an incoming connection; spawn gate object for it
 
-        info!("New connection from {}", address);
+        log::info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
 
         let bootstrap = ::rain_core::governor_capnp::governor_bootstrap::ToClient::new(
@@ -727,7 +728,7 @@ impl StateRef {
         listen_address: SocketAddr,
         ready_file: Option<String>,
     ) {
-        info!("Connected to server; registering as governor");
+        log::info!("Connected to server; registering as governor");
         stream.set_nodelay(true).unwrap();
         let mut rpc_system = new_rpc_system(stream, None);
         let bootstrap: ::rain_core::server_capnp::server_bootstrap::Client =
@@ -756,7 +757,7 @@ impl StateRef {
                 let mut inner = state.get_mut();
                 inner.upstream = Some(upstream);
                 inner.governor_id = GovernorId::from_capnp(&governor_id);
-                debug!("Registration completed");
+                log::debug!("Registration completed");
 
                 // Create ready file - a file that is created when governor is connected & registered
                 if let Some(name) = ready_file {
@@ -773,7 +774,7 @@ impl StateRef {
         inner.handle.spawn(future);
         inner
             .handle
-            .spawn(rpc_system.map_err(|e| error!("RPC error: {:?}", e)));
+            .spawn(rpc_system.map_err(|e| log::error!("RPC error: {:?}", e)));
     }
 
     pub fn start(
@@ -789,7 +790,7 @@ impl StateRef {
         let port = listener.local_addr().unwrap().port();
         // Since listen port may be 0, we need to update the real port
         listen_address.set_port(port);
-        info!("Start listening on port={}", port);
+        log::info!("Start listening on port={}", port);
 
         let state = self.clone();
         let future = listener
@@ -810,13 +811,13 @@ impl StateRef {
         let interval = ::tokio_timer::Interval::new(now, Duration::from_secs(MONITORING_INTERVAL));
         let monitoring = interval
             .for_each(move |_| {
-                debug!("Monitoring wakeup");
+                log::debug!("Monitoring wakeup");
                 let mut s = state.get_mut();
                 let governor_id = s.governor_id;
 
                 // Check that we already know our address
                 if governor_id.ip().is_unspecified() {
-                    debug!("Monitoring skipped, registration is not completed yet");
+                    log::debug!("Monitoring skipped, registration is not completed yet");
                     return Ok(());
                 }
 
@@ -824,7 +825,7 @@ impl StateRef {
                 s.send_event(event);
                 Ok(())
             })
-            .map_err(|e| error!("Monitoring error {}", e));
+            .map_err(|e| log::error!("Monitoring error {}", e));
         handle.spawn(monitoring);
 
         // --- Start checking wait list ----
@@ -833,7 +834,7 @@ impl StateRef {
             ::tokio_timer::Interval::new(now, Duration::from_secs(DELETE_WAIT_LIST_INTERVAL));
         let check_list = interval
             .for_each(move |_| {
-                debug!("Checking wait list wakeup");
+                log::debug!("Checking wait list wakeup");
                 let mut s = state.get_mut();
                 if s.graph.delete_wait_list.is_empty() {
                     return Ok(());
@@ -871,14 +872,14 @@ impl StateRef {
         // --- Start connection to server ----
         let core1 = self.clone();
         let ready_file = ready_file.map(|f| f.to_string());
-        info!("Connecting to server addr={}", server_address);
+        log::info!("Connecting to server addr={}", server_address);
         let connect = TcpStream::connect(&server_address, &handle)
             .and_then(move |stream| {
                 core1.on_connected_to_server(stream, listen_address, ready_file);
                 Ok(())
             })
             .map_err(|e| {
-                error!("Connecting to server failed: {}", e);
+                log::error!("Connecting to server failed: {}", e);
                 exit(1);
             });
         handle.spawn(connect);

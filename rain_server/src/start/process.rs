@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::process::{Child, Command};
+use error_chain::bail;
 
 use rain_core::errors::Result;
 
@@ -53,8 +54,8 @@ impl Process {
                 use std::error::Error;
                 // This error is non fatal, so we just log an error and continue
                 match ::std::fs::remove_file(path) {
-                    Ok(_) => debug!("Ready file of killed process removed"),
-                    Err(e) => error!(
+                    Ok(_) => log::debug!("Ready file of killed process removed"),
+                    Err(e) => log::error!(
                         "Cannot remove ready file for killed process: {}",
                         e.description()
                     ),
@@ -92,7 +93,7 @@ impl Process {
             }
         };
 
-        info!("Process '{}' is ready", self.name);
+        log::info!("Process '{}' is ready", self.name);
         // Here we can get only when we changed the readiness status
         self.ready = Readiness::IsReady;
         Ok(true)

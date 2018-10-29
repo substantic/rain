@@ -1,5 +1,6 @@
 use capnp;
 use capnp::capability::Promise;
+use capnp_rpc::pry;
 use futures::Future;
 use rain_core::server_capnp::server_bootstrap;
 use rain_core::{types::*, utils::*};
@@ -32,7 +33,7 @@ impl ServerBootstrapImpl {
 
 impl Drop for ServerBootstrapImpl {
     fn drop(&mut self) {
-        debug!("ServerBootstrap dropped {}", self.address);
+        log::debug!("ServerBootstrap dropped {}", self.address);
     }
 }
 
@@ -43,7 +44,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         mut results: server_bootstrap::RegisterAsClientResults,
     ) -> Promise<(), ::capnp::Error> {
         if self.registered {
-            error!("Multiple registration from connection {}", self.address);
+            log::error!("Multiple registration from connection {}", self.address);
             return Promise::err(capnp::Error::failed(format!(
                 "Connection already registered"
             )));
@@ -52,7 +53,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         let params = pry!(params.get());
 
         if params.get_version() != CLIENT_PROTOCOL_VERSION {
-            error!("Client protocol mismatch, expected {}, got {}", CLIENT_PROTOCOL_VERSION, params.get_version());
+            log::error!("Client protocol mismatch, expected {}, got {}", CLIENT_PROTOCOL_VERSION, params.get_version());
             return Promise::err(capnp::Error::failed(format!("Client protocol mismatch, expected {}, got {}", CLIENT_PROTOCOL_VERSION, params.get_version())));
         }
 
@@ -62,7 +63,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
             ClientServiceImpl::new(&self.state, &self.address)
         )).from_server::<::capnp_rpc::Server>();
 
-        info!("Connection {} registered as client", self.address);
+        log::info!("Connection {} registered as client", self.address);
         results.get().set_service(service);
         Promise::ok(())
     }
@@ -73,7 +74,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         mut results: server_bootstrap::RegisterAsGovernorResults,
     ) -> Promise<(), ::capnp::Error> {
         if self.registered {
-            error!("Multiple registration from connection {}", self.address);
+            log::error!("Multiple registration from connection {}", self.address);
             return Promise::err(capnp::Error::failed(format!(
                 "Connection already registered"
             )));
@@ -82,7 +83,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
         let params = pry!(params.get());
 
         if params.get_version() != GOVERNOR_PROTOCOL_VERSION {
-            error!("Governor protocol mismatch");
+            log::error!("Governor protocol mismatch");
             return Promise::err(capnp::Error::failed(format!("Protocol mismatch")));
         }
 
@@ -99,7 +100,7 @@ impl server_bootstrap::Server for ServerBootstrapImpl {
 
         let resources = Resources::from_capnp(&pry!(params.get_resources()));
 
-        info!(
+        log::info!(
             "Connection {} registered as governor {} with {:?}",
             self.address, governor_id, resources
         );

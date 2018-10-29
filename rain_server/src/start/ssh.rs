@@ -3,6 +3,7 @@ use std::io::BufRead;
 use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use error_chain::bail;
 
 use rain_core::errors::Result;
 use start::common::Readiness;
@@ -144,7 +145,7 @@ touch {log_err:?} || (echo \"Error: Cannot create log file\"; exit 1)\n
         Ok(match stdout.trim() {
             "Ok" => is_ready,
             "Ready" => {
-                info!("Remote process {} is ready", self.name);
+                log::info!("Remote process {} is ready", self.name);
                 self.readiness = Readiness::IsReady;
                 true
             }

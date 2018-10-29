@@ -1,6 +1,7 @@
 use futures::unsync::oneshot;
 pub use rain_core::common_capnp::DataObjectState;
 use rain_core::{errors::*, types::*, utils::*};
+use error_chain::bail;
 
 use super::{GovernorRef, SessionRef, TaskRef, TaskState};
 use wrapped::WrappedRcRefCell;
@@ -60,14 +61,14 @@ impl DataObject {
 
     /// Inform observers that task is finished
     pub fn trigger_finish_hooks(&mut self) {
-        debug!("trigger_finish_hooks for {:?}", self);
+        log::debug!("trigger_finish_hooks for {:?}", self);
         for sender in ::std::mem::replace(&mut self.finish_hooks, Vec::new()) {
             //        for sender in self.finish_hooks, Vec::new()) {
             match sender.send(()) {
                 Ok(()) => { /* Do nothing */ }
                 Err(e) => {
                     /* Just log error, it is non fatal */
-                    debug!("Failed to inform about finishing dataobject: {:?}", e);
+                    log::debug!("Failed to inform about finishing dataobject: {:?}", e);
                 }
             }
         }

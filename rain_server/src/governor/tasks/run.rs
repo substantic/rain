@@ -5,6 +5,8 @@ use std::io::Read;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use tokio_process::CommandExt;
+use serde_derive::Deserialize;
+use error_chain::bail;
 
 use super::TaskResult;
 use governor::graph::TaskRef;
@@ -63,7 +65,7 @@ pub fn task_run(state: &mut State, task_ref: TaskRef) -> TaskResult {
         let stderr_path = dir.path().join("+err");
         let err_io = File::create(&stderr_path).expect("File for stderr cannot be opened");
 
-        debug!("Starting command: {}", name);
+        log::debug!("Starting command: {}", name);
 
         let future = Command::new(&name)
             .args(&config.args[1..])

@@ -6,18 +6,14 @@
 extern crate atty;
 extern crate bytes;
 extern crate capnp;
-#[macro_use]
 extern crate capnp_rpc;
 extern crate chrono;
-#[macro_use]
 extern crate clap;
 extern crate env_logger;
-#[macro_use]
 extern crate error_chain;
 extern crate fs_extra;
 extern crate futures;
 extern crate hyper;
-#[macro_use]
 extern crate log;
 extern crate memmap;
 extern crate nix;
@@ -25,7 +21,6 @@ extern crate num_cpus;
 extern crate rusqlite;
 extern crate serde_bytes;
 extern crate serde_cbor;
-#[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
 extern crate sys_info;
@@ -49,7 +44,7 @@ mod server;
 mod start;
 mod wrapped;
 
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{App, Arg, ArgMatches, SubCommand, value_t, value_t_or_exit};
 use nix::unistd::getpid;
 use std::collections::HashMap;
 use std::error::Error;
@@ -58,6 +53,8 @@ use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::process::exit;
+use serde_derive::Deserialize;
+use error_chain::bail;
 
 use rain_core::sys::{create_ready_file, get_hostname};
 use rain_core::{errors::*, utils::*};
@@ -87,8 +84,8 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         parse_listen_arg("HTTP_LISTEN_ADDRESS", cmd_args, DEFAULT_HTTP_SERVER_PORT);
     let ready_file = cmd_args.value_of("READY_FILE");
 
-    info!("Starting Rain {} server", VERSION);
-    info!("Listen address: {}", listen_address);
+    log::info!("Starting Rain {} server", VERSION);
+    log::info!("Listen address: {}", listen_address);
 
     let log_dir = cmd_args
         .value_of("LOG_DIR")
@@ -96,7 +93,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         .unwrap_or_else(|| default_logging_directory("server"));
 
     ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
-        error!("{}", e);
+        log::error!("{}", e);
         exit(1);
     });
 
@@ -108,7 +105,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     if debug_mode {
         DEBUG_CHECK_CONSISTENCY.store(true, ::std::sync::atomic::Ordering::Relaxed);
-        info!("DEBUG mode enabled");
+        log::info!("DEBUG mode enabled");
     }
 
     let test_mode = ::std::env::var("RAIN_TEST_MODE")
@@ -116,7 +113,7 @@ fn run_server(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         .unwrap_or(false);
 
     if test_mode {
-        info!("TESTING mode enabled");
+        log::info!("TESTING mode enabled");
     }
 
     let state = server::state::StateRef::new(
@@ -155,7 +152,7 @@ fn default_logging_directory(basename: &str) -> PathBuf {
 
 fn ensure_directory(dir: &Path, name: &str) -> Result<()> {
     if !dir.exists() {
-        debug!("{} not found, creating ... {:?}", name, dir);
+        log::debug!("{} not found, creating ... {:?}", name, dir);
         if let Err(e) = std::fs::create_dir_all(dir) {
             bail!(format!(
                 "{} {:?} cannot by created: {}",
@@ -193,7 +190,7 @@ impl GovernorConfig {
 }
 
 fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
-    info!("Starting Rain {} governor", VERSION);
+    log::info!("Starting Rain {} governor", VERSION);
     let ready_file = cmd_args.value_of("READY_FILE");
     let listen_address = parse_listen_arg("LISTEN_ADDRESS", cmd_args, DEFAULT_GOVERNOR_PORT);
     let mut tokio_core = tokio_core::reactor::Core::new().unwrap();
@@ -205,12 +202,12 @@ fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let server_addr = match server_address.to_socket_addrs() {
         Err(_) => {
-            error!("Cannot resolve server address: ");
+            log::error!("Cannot resolve server address: ");
             exit(1);
         }
         Ok(mut addrs) => match addrs.next() {
             None => {
-                error!("Cannot resolve server address");
+                log::error!("Cannot resolve server address");
                 exit(1);
             }
             Some(ref addr) => *addr,
@@ -219,18 +216,18 @@ fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
     let state = {
         let config = cmd_args.value_of("GOVERNOR_CONFIG").map(|path| {
-            info!("Reading config file: {}", path);
+            log::info!("Reading config file: {}", path);
             GovernorConfig::read_file(Path::new(path)).unwrap_or_else(|e| {
-                error!("Reading config file failed: {}", e.description());
+                log::error!("Reading config file failed: {}", e.description());
                 exit(1);
             })
         });
 
         fn detect_cpus() -> i32 {
-            debug!("Detecting number of cpus");
+            log::debug!("Detecting number of cpus");
             let cpus = num_cpus::get();
             if cpus < 1 {
-                error!("Autodetection of CPUs failed. Use --cpus with a positive argument.");
+                log::error!("Autodetection of CPUs failed. Use --cpus with a positive argument.");
                 exit(1);
             }
             cpus as i32
@@ -241,7 +238,7 @@ fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
             if value < 0 {
                 let cpus = detect_cpus();
                 if cpus <= -value {
-                    error!(
+                    log::error!(
                         "{} cpus detected and {} is subtracted via --cpus. No cpus left.",
                         cpus, -value
                     );
@@ -262,7 +259,7 @@ fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
             .unwrap_or_else(default_working_directory);
 
         ensure_directory(&work_dir, "working directory").unwrap_or_else(|e| {
-            error!("{}", e);
+            log::error!("{}", e);
             exit(1);
         });
 
@@ -272,13 +269,13 @@ fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
             .unwrap_or_else(|| default_logging_directory("governor"));
 
         ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
-            error!("{}", e);
+            log::error!("{}", e);
             exit(1);
         });
 
-        info!("Resources: {} cpus", cpus);
-        info!("Working directory: {:?}", work_dir);
-        info!(
+        log::info!("Resources: {} cpus", cpus);
+        log::info!("Working directory: {:?}", work_dir);
+        log::info!(
             "Server address {} was resolved as {}",
             server_address, server_addr
         );
@@ -297,8 +294,8 @@ fn run_governor(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
 
         config.map(|config| {
             for (name, swconfig) in &config.executors {
-                info!("Registering executor {}", name);
-                debug!("Executor command: {}", swconfig.command);
+                log::info!("Registering executor {}", name);
+                log::debug!("Executor command: {}", swconfig.command);
                 executors.insert(
                     name.to_string(),
                     swconfig.command.split(" ").map(|s| s.to_string()).collect(),
@@ -333,18 +330,18 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         .map(PathBuf::from)
         .unwrap_or_else(|| default_logging_directory("rain"));
 
-    info!("Starting Rain {}", VERSION);
-    info!("Log directory: {}", log_dir.to_str().unwrap());
+    log::info!("Starting Rain {}", VERSION);
+    log::info!("Log directory: {}", log_dir.to_str().unwrap());
 
     ensure_directory(&log_dir, "logging directory").unwrap_or_else(|e| {
-        error!("{}", e);
+        log::error!("{}", e);
         exit(1);
     });
 
     let mut local_governors = Vec::new();
 
     if cmd_args.is_present("SIMPLE") && cmd_args.is_present("LOCAL_GOVERNORS") {
-        error!("--simple and --local-governors are mutually exclusive");
+        log::error!("--simple and --local-governors are mutually exclusive");
         exit(1);
     }
 
@@ -359,7 +356,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
                 cpus.iter().map(|x| Some(*x)).collect()
             }
             Err(_) => {
-                error!("Invalid format for --local-governors");
+                log::error!("Invalid format for --local-governors");
                 exit(1);
             }
         }
@@ -371,7 +368,7 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         .unwrap_or_else(Vec::new);
 
     if !run_prefix.is_empty() {
-        info!("Command prefix: {:?}", run_prefix);
+        log::info!("Command prefix: {:?}", run_prefix);
     }
 
     let mut config = start::starter::StarterConfig::new(
@@ -392,11 +389,11 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
         None => Ok(()),
         Some("pbs") => config.autoconf_pbs(),
         Some(name) => {
-            error!("Unknown autoconf environment '{}'", name);
+            log::error!("Unknown autoconf environment '{}'", name);
             exit(1)
         }
     }.map_err(|e| {
-        error!("Autoconf failed: {}", e.description());
+        log::error!("Autoconf failed: {}", e.description());
         exit(1);
     })
         .unwrap();
@@ -405,11 +402,11 @@ fn run_starter(_global_args: &ArgMatches, cmd_args: &ArgMatches) {
     let mut starter = start::starter::Starter::new(config);
 
     match starter.start() {
-        Ok(()) => info!("Rain started. \u{1F327}"),
+        Ok(()) => log::info!("Rain started. \u{1F327}"),
         Err(e) => {
-            error!("{}", e.description());
+            log::error!("{}", e.description());
             if starter.has_processes() {
-                info!("Error occurs; clean up started processes ...");
+                log::info!("Error occurs; clean up started processes ...");
                 starter.kill_all();
             }
         }
@@ -585,7 +582,7 @@ fn main() {
         ("governor", Some(cmd_args)) => run_governor(&args, cmd_args),
         ("start", Some(cmd_args)) => run_starter(&args, cmd_args),
         _ => {
-            error!("No subcommand provided.");
+            log::error!("No subcommand provided.");
             ::std::process::exit(1);
         }
     }

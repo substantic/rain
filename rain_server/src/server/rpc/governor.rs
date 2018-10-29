@@ -1,4 +1,5 @@
 use capnp::capability::Promise;
+use capnp_rpc::pry;
 use chrono::TimeZone;
 use rain_core::governor_capnp::governor_upstream;
 use rain_core::{types::*, utils::*};
@@ -22,7 +23,7 @@ impl GovernorUpstreamImpl {
 
 impl Drop for GovernorUpstreamImpl {
     fn drop(&mut self) {
-        error!("Connection to governor {} lost", self.governor.get_id());
+        log::error!("Connection to governor {} lost", self.governor.get_id());
         let mut s = self.state.get_mut();
         s.remove_governor(&self.governor)
             .expect("dropping governor upstream");

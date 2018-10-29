@@ -3,6 +3,7 @@ use std::fmt;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
+use error_chain::bail;
 
 use super::{Graph, TaskRef};
 use governor::data::Data;
@@ -152,7 +153,7 @@ impl DataObjectRef {
         state: DataObjectState,
         assigned: bool,
     ) -> Self {
-        debug!("New object id={}", spec.id);
+        log::debug!("New object id={}", spec.id);
 
         match graph.objects.entry(spec.id) {
             ::std::collections::hash_map::Entry::Vacant(e) => {

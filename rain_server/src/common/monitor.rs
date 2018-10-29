@@ -23,11 +23,11 @@ pub struct Monitor {
 impl Monitor {
     pub fn new() -> Self {
         if cfg!(not(target_os = "linux")) {
-            warn!("Resource monitoring may not work properly on non-linux systems");
+            log::warn!("Resource monitoring may not work properly on non-linux systems");
         }
         Monitor {
             clk_tck: sysconf::sysconf(sysconf::SysconfVariable::ScClkTck).unwrap_or_else(|_| {
-                warn!("Syscall sysconf(CLK_TCK) failed. Set to default value 100");
+                log::warn!("Syscall sysconf(CLK_TCK) failed. Set to default value 100");
                 100isize
             }),
             last_timestamp: Utc::now(),
@@ -68,7 +68,7 @@ impl Monitor {
         let time_diff = timestamp.signed_duration_since(self.last_timestamp);
         let mut millis = time_diff.num_milliseconds();
         if millis < 1 {
-            warn!(
+            log::warn!(
                 "get_cpu_usage() called too often ({}ms since the last measurements)",
                 millis
             );

@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use futures::Future;
 use rain_core::{comm::*, errors::*};
+use error_chain::bail;
 
 use governor::graph::{ExecutorRef, TaskRef, TaskState};
 use governor::rpc::executor::data_output_from_spec;
@@ -132,12 +133,12 @@ impl TaskInstance {
                                 for output in &task.outputs {
                                     state.object_is_finished(output);
                                 }
-                                debug!("Task was successfully finished");
+                                log::debug!("Task was successfully finished");
                                 task.state = TaskState::Finished;
                             }
                         }
                         Ok((false, _)) => {
-                            debug!("Task {} was terminated", task.spec.id);
+                            log::debug!("Task {} was terminated", task.spec.id);
                             task.set_failed("Task terminated by server".into());
                         }
                         Err((e, _)) => {
@@ -154,7 +155,7 @@ impl TaskInstance {
         if let Some(sender) = cancel_sender {
             sender.send(()).unwrap();
         } else {
-            debug!("Task stopping is already in progress");
+            log::debug!("Task stopping is already in progress");
         }
     }
 
@@ -192,7 +193,7 @@ impl TaskInstance {
                             assert!(task.spec.id == task_id);
                             task.info = info;
                             if success {
-                                debug!("Task id={} finished in executor", task.spec.id);
+                                log::debug!("Task id={} finished in executor", task.spec.id);
                                 for (co, output) in outputs.into_iter().zip(&task.outputs) {
                                     let mut o = output.get_mut();
                                     o.info = co.info.clone();
@@ -206,7 +207,7 @@ impl TaskInstance {
                                 }
                                 Ok(())
                             } else {
-                                debug!("Task id={} failed in executor", task.spec.id);
+                                log::debug!("Task id={} failed in executor", task.spec.id);
                                 Err("Task failed in executor".into())
                             }
                         };

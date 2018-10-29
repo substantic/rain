@@ -1,4 +1,5 @@
 use capnp::capability::Promise;
+use capnp_rpc::pry;
 use rain_core::{types::*, utils::*};
 
 use governor::StateRef;
@@ -32,7 +33,7 @@ impl governor_bootstrap::Server for GovernorBootstrapImpl {
         let mut results = results.get();
 
         if transport_view.is_none() {
-            debug!("Governor responding 'not here' for id={}", id);
+            log::debug!("Governor responding 'not here' for id={}", id);
             results.get_status().set_not_here(());
             return Promise::ok(());
         }
@@ -47,10 +48,10 @@ impl governor_bootstrap::Server for GovernorBootstrapImpl {
             } else {
                 slice.len()
             };
-            debug!("Sending range [{}..{}]", offset, end);
+            log::debug!("Sending range [{}..{}]", offset, end);
             results.set_data(slice[offset..end].into());
         } else {
-            debug!("Fetch out of range");
+            log::debug!("Fetch out of range");
         }
 
         if params.get_include_info() {

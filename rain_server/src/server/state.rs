@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
+use error_chain::bail;
 
 use rain_core::logging::events;
 use futures::{Future, Stream};
@@ -68,7 +69,7 @@ impl State {
         control: Option<::rain_core::governor_capnp::governor_control::Client>,
         resources: Resources,
     ) -> Result<GovernorRef> {
-        debug!("New governor {}", address);
+        log::debug!("New governor {}", address);
         if self.graph.governors.contains_key(&address) {
             bail!("State already contains governor {}", address);
         }
@@ -84,7 +85,7 @@ impl State {
     pub fn remove_governor(&mut self, _governor: &GovernorRef) -> Result<()> {
         unimplemented!() /*
             pub fn delete(self, graph: &mut Graph) {
-        debug!("Deleting governor {}", self.get_id());
+        log::debug!("Deleting governor {}", self.get_id());
         // remove from objects
         for o in self.get_mut().assigned_objects.iter() {
             assert!(o.get_mut().assigned.remove(&self));
@@ -108,7 +109,7 @@ impl State {
 
     /// Add new client, register it in the graph
     pub fn add_client(&mut self, address: SocketAddr) -> Result<ClientRef> {
-        debug!("New client {}", address);
+        log::debug!("New client {}", address);
         if self.graph.clients.contains_key(&address) {
             bail!("State already contains client {}", address);
         }
@@ -151,7 +152,7 @@ impl State {
     /// objects and cancel all finish hooks.
     fn clear_session(&mut self, s: &SessionRef) -> Result<()> {
         let session_id = s.get().id.clone();
-        debug!("Clearing session {}", session_id);
+        log::debug!("Clearing session {}", session_id);
         self.scheduler.clear_session(&s);
 
         let state_ref = self.self_ref.clone().unwrap();
@@ -160,7 +161,7 @@ impl State {
         let duration = ::std::time::Duration::from_secs(IGNORE_ID_TIME_SECONDS);
         let clean_id_future = ::tokio_timer::Delay::new(now + duration)
             .map(move |()| {
-                debug!("Cleaning ignored session id {}", session_id);
+                log::debug!("Cleaning ignored session id {}", session_id);
                 state_ref.get_mut().ignored_sessions.remove(&session_id);
             })
             .map_err(|e| panic!("Cleaning ignored id failed {:?}", e));
@@ -186,7 +187,7 @@ impl State {
     /// Remove a session and all the tasks and objects, both from the graph and from the governors,
     /// cancel all the finish hooks.
     pub fn remove_session(&mut self, session: &SessionRef) -> Result<()> {
-        debug!(
+        log::debug!(
             "Removing session {} of client {}",
             session.get_id(),
             session.get().client.get_id()
@@ -218,7 +219,7 @@ impl State {
         debug: String,
         task_id: TaskId,
     ) -> Result<()> {
-        debug!(
+        log::debug!(
             "Failing session {} of client {} with cause {:?}",
             session.get_id(),
             session.get().client.get_id(),
@@ -474,7 +475,7 @@ impl State {
     /// Unassign an object from a governor and send the unassign call.
     /// Panics if the object is not assigned on the governor.
     pub fn unassign_object(&mut self, object: &DataObjectRef, wref: &GovernorRef) {
-        debug!("unassign_object {:?} at {:?}", object, wref);
+        log::debug!("unassign_object {:?} at {:?}", object, wref);
         assert!(object.get().assigned.contains(wref));
         object.check_consistency_opt().unwrap(); // non-recoverable
         wref.check_consistency_opt().unwrap(); // non-recoverable
@@ -536,7 +537,7 @@ impl State {
             t.assigned = Some(wref.clone());
             let governor_id = wref.get_id();
             let empty_governor_id = ::rain_core::types::id::empty_governor_id();
-            debug!("Assiging task id={} to governor={}", t.id(), governor_id);
+            log::debug!("Assiging task id={} to governor={}", t.id(), governor_id);
 
             for input in t.inputs.iter() {
                 let o = input.get_mut();
@@ -779,7 +780,7 @@ impl State {
         obj_updates: Vec<(DataObjectRef, DataObjectState, ObjectInfo)>,
         task_updates: Vec<(TaskRef, TaskState, TaskInfo)>,
     ) {
-        debug!(
+        log::debug!(
             "Update states for {:?}, objs: {}, tasks: {}",
             governor,
             obj_updates.len(),
@@ -837,7 +838,7 @@ impl State {
                         .add_task_started_event(t.id(), info);
                 }
                 TaskState::Failed => {
-                    debug!(
+                    log::debug!(
                         "Task {:?} failed on {:?} with info {:?}",
                         *tref.get(),
                         governor,
@@ -944,7 +945,7 @@ impl State {
         if self.underload_governors.is_empty() {
             return;
         }
-        debug!("Distributing tasks");
+        log::debug!("Distributing tasks");
         for wref in &::std::mem::replace(&mut self.underload_governors, Default::default()) {
             //let mut w = wref.get_mut();
             // TODO: Customize the overbook limit
@@ -966,7 +967,7 @@ impl State {
 
     /// Run the scheduler and do any immediate updates the assignments.
     pub fn run_scheduler(&mut self) {
-        debug!("Running scheduler");
+        log::debug!("Running scheduler");
 
         if self.test_mode {
             testmode::test_scheduler(self);
@@ -997,7 +998,7 @@ impl State {
 impl ConsistencyCheck for State {
     /// Check consistency of all tasks, objects, governors, clients and sessions. Quite slow.
     fn check_consistency(&self) -> Result<()> {
-        debug!("Checking State consistency");
+        log::debug!("Checking State consistency");
         for tr in self.graph.tasks.values() {
             tr.check_consistency()?;
         }
@@ -1029,7 +1030,7 @@ impl StateRef {
         test_mode: bool,
     ) -> Self {
         let (logger, last_session) = SQLiteLogger::new(&log_dir).unwrap();
-        debug!("Session counter set to {}", last_session);
+        log::debug!("Session counter set to {}", last_session);
         let graph = Graph::new(last_session);
 
         let s = Self::wrap(State {
@@ -1081,7 +1082,7 @@ impl StateRef {
             http_server
                 .for_each(move |conn| {
                     handle1.spawn(conn.map(|_| ()).map_err(|e| {
-                        error!("Http connection error: {:?}", e);
+                        log::error!("Http connection error: {:?}", e);
                     }));
                     Ok(())
                 })
@@ -1089,12 +1090,12 @@ impl StateRef {
         );
 
         let hostname = get_hostname();
-        info!(
+        log::info!(
             "Dashboard: http://{}:{}/",
             hostname,
             http_listen_address.port()
         );
-        info!(
+        log::info!(
             "Lite dashboard: http://{}:{}/lite/",
             hostname,
             http_listen_address.port()
@@ -1110,7 +1111,7 @@ impl StateRef {
                 state.get_mut().logger.flush_events();
                 Ok(())
             })
-            .map_err(|e| error!("Logging error {}", e));
+            .map_err(|e| log::error!("Logging error {}", e));
         handle.spawn(logging);
     }
 
@@ -1130,7 +1131,7 @@ impl StateRef {
     fn on_connection(&self, stream: TcpStream, address: SocketAddr) {
         // Handle an incoming connection; spawn gate object for it
 
-        info!("New connection from {}", address);
+        log::info!("New connection from {}", address);
         stream.set_nodelay(true).unwrap();
         let bootstrap = ::rain_core::server_capnp::server_bootstrap::ToClient::new(
             ServerBootstrapImpl::new(self, address),

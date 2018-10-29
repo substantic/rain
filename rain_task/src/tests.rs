@@ -22,7 +22,7 @@ fn dummy_governor(
     let name: String = name.into();
     spawn(move || {
         let (mut socket, addr) = main_socket.accept().unwrap();
-        debug!("Dummy governor accepted connection from {:?}", addr);
+        log::debug!("Dummy governor accepted connection from {:?}", addr);
         let data = socket.read_frame().unwrap();
         let msg = serde_cbor::from_slice::<ExecutorToGovernorMessage>(&data).unwrap();
         if let ExecutorToGovernorMessage::Register(ref reg) = msg {

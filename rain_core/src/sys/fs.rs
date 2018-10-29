@@ -14,10 +14,10 @@ pub fn create_ready_file(path: &Path) {
     match ::std::fs::File::create(path) {
         Ok(mut file) => {
             file.write_all(b"ready\n").unwrap();
-            debug!("Ready file {:?} created", path);
+            log::debug!("Ready file {:?} created", path);
         }
         Err(e) => {
-            error!("Cannot create ready file: {}", e.description());
+            log::error!("Cannot create ready file: {}", e.description());
             exit(1);
         }
     }

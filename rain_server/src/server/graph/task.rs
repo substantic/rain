@@ -2,6 +2,7 @@ use futures::unsync::oneshot;
 pub use rain_core::common_capnp::TaskState;
 use rain_core::{errors::*, types::*, utils::*};
 use std::fmt;
+use error_chain::bail;
 
 use super::{DataObjectRef, DataObjectState, GovernorRef, SessionRef};
 use wrapped::WrappedRcRefCell;
@@ -75,7 +76,7 @@ impl Task {
                 Ok(()) => { /* Do nothing */ }
                 Err(_) => {
                     /* Just log error, it is non fatal */
-                    debug!("Failed to inform about finishing task");
+                    log::debug!("Failed to inform about finishing task");
                 }
             }
         }
@@ -236,7 +237,7 @@ impl ConsistencyCheck for TaskRef {
     /// Check for state and relationships consistency. Only explores adjacent objects but still
     /// may be slow.
     fn check_consistency(&self) -> Result<()> {
-        debug!("Checking Task {:?} consistency", self);
+        log::debug!("Checking Task {:?} consistency", self);
         let s = self.get();
         // ID consistency
         if s.spec.id.get_session_id() != s.session.get_id() {

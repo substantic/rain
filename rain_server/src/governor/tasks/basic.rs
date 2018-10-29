@@ -2,6 +2,8 @@ use futures::{future, Future};
 use rain_core::{errors::*, types::*};
 use std::path::Path;
 use std::sync::Arc;
+use serde_derive::Deserialize;
+use error_chain::bail;
 
 use super::TaskResult;
 use governor::data::{Data, DataBuilder};
@@ -46,7 +48,7 @@ pub fn task_sleep(_state: &mut State, task_ref: TaskRef) -> TaskResult {
         task.spec.parse_config()?
     };
     let now = ::std::time::Instant::now();
-    debug!("Starting sleep task for {}s", sleep_s);
+    log::debug!("Starting sleep task for {}s", sleep_s);
     let duration = ::std::time::Duration::from_millis((sleep_s * 1_000f32).round() as u64);
     Ok(Box::new(
         ::tokio_timer::Delay::new(now + duration)

@@ -1,6 +1,7 @@
 use std::fmt;
 use std::net::SocketAddr;
 use std::rc::Rc;
+use error_chain::bail;
 
 use common::new_rpc_system;
 use futures::Future;

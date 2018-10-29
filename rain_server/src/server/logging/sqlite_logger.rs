@@ -5,6 +5,8 @@ use futures::Stream;
 use rusqlite::Connection;
 use serde_json;
 use std::path::PathBuf;
+use error_chain::bail;
+
 
 use rain_core::errors::{Error, Result};
 use rain_core::logging::{Event, events};
@@ -31,7 +33,7 @@ enum LoggerMessage {
 }
 
 fn save_events(conn: &mut Connection, events: Vec<EventWrapper>) -> Result<()> {
-    debug!("Saving {} events into log", events.len());
+    log::debug!("Saving {} events into log", events.len());
     let tx = conn.transaction()?;
     {
         let mut stmt = tx.prepare_cached(
@@ -69,7 +71,7 @@ fn cleanup_old_sessions(mut conn: &mut Connection)
         events
     };
     if !events.is_empty() {
-        warn!("It seems that previous instance of server was killed with active sessions. We are now closing {} unclosed session(s). If old server is still running than it will cause troubles.",
+        log::warn!("It seems that previous instance of server was killed with active sessions. We are now closing {} unclosed session(s). If old server is still running than it will cause troubles.",
                 events.len());
         save_events(&mut conn, events).unwrap();
     }
@@ -109,14 +111,14 @@ fn load_events(conn: &mut Connection, search_criteria: &SearchCriteria) -> Resul
         )
     };
 
-    debug!("Running query: {}", query_str);
+    log::debug!("Running query: {}", query_str);
     let mut query = conn.prepare_cached(&query_str)?;
     //query.execute(&[])?;
     let iter = query
         .query_map(&args, |row| (row.get(0), row.get(1), row.get(2)))?
         .map(|e| e.unwrap());
     let results: Vec<_> = iter.collect();
-    debug!("Logger query response: {} rows", results.len());
+    log::debug!("Logger query response: {} rows", results.len());
     Ok(results)
 }
 
@@ -155,7 +157,7 @@ impl SQLiteLogger {
         let (sx, rx) = mpsc::unbounded();
 
         ::std::thread::spawn(move || {
-            debug!("Logger thread started");
+            log::debug!("Logger thread started");
             cleanup_old_sessions(&mut conn);
             let mut core = ::tokio_core::reactor::Core::new().unwrap();
             let future = rx.for_each(move |m| {
@@ -166,7 +168,7 @@ impl SQLiteLogger {
                     LoggerMessage::LoadEvents(search_criteria, sender) => {
                         match load_events(&mut conn, &search_criteria) {
                             Ok(result) => sender.send(result).unwrap(),
-                            Err(e) => info!("Event query error: {}", e.description()),
+                            Err(e) => log::info!("Event query error: {}", e.description()),
                         };
                     }
                 }
@@ -205,7 +207,7 @@ impl Logger for SQLiteLogger {
     }
 
     fn flush_events(&mut self) {
-        debug!("Flushing {} events", self.events.len());
+        log::debug!("Flushing {} events", self.events.len());
         self.queue
             .unbounded_send(LoggerMessage::SaveEvents(::std::mem::replace(
                 &mut self.events,

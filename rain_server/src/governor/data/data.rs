@@ -24,7 +24,7 @@ fn isolate_symlink(path: &Path, prefix_path: &Path, metadata: &::std::fs::Metada
     let link_target_path = ::std::fs::read_link(path).unwrap();
     if link_target_path.starts_with(prefix_path) {
         ::std::fs::remove_file(path).unwrap();
-        debug!(
+        log::debug!(
             "Expanding symlink to data dir {:?} to {:?}",
             link_target_path, path
         );

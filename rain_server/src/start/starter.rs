@@ -7,6 +7,7 @@ use std::io::BufReader;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use error_chain::bail;
 
 use start::common::Readiness;
 use start::process::Process;
@@ -62,7 +63,7 @@ impl StarterConfig {
     }
 
     pub fn autoconf_pbs(&mut self) -> Result<()> {
-        info!("Configuring PBS environment");
+        log::info!("Configuring PBS environment");
         if self.governor_host_file.is_some() {
             bail!("Options --autoconf=pbs and --governor_host_file are not compatible");
         }
@@ -191,7 +192,7 @@ impl Starter {
         let server_http_address = format!("{}", self.config.server_http_listen_address);
         let http_port = self.config.server_http_listen_address.port();
 
-        info!("Starting local server ({})", server_address);
+        log::info!("Starting local server ({})", server_address);
         let log_dir = self.config.log_dir.join("server");
         self.server_pid = {
             let process = self.spawn_process(
@@ -211,21 +212,21 @@ impl Starter {
             )?;
             let server_pid = process.id();
             let hostname = get_hostname();
-            info!("Dashboard: http://{}:{}/", hostname, http_port);
-            info!("Server pid = {}", server_pid);
+            log::info!("Dashboard: http://{}:{}/", hostname, http_port);
+            log::info!("Server pid = {}", server_pid);
             server_pid
         };
         Ok(())
     }
 
     fn start_remote_governors(&mut self, governor_hosts: &[String]) -> Result<()> {
-        info!("Starting {} remote governor(s)", governor_hosts.len());
+        log::info!("Starting {} remote governor(s)", governor_hosts.len());
         let (program, program_args) = self.local_rain_command();
         let dir = ::std::env::current_dir().unwrap(); // TODO: Do it configurable
         let server_address = self.server_address(false);
 
         for (i, host) in governor_hosts.iter().enumerate() {
-            info!(
+            log::info!(
                 "Connecting to {} (remote log dir: {:?})",
                 host, self.config.log_dir
             );
@@ -286,7 +287,7 @@ impl Starter {
     }
 
     fn start_local_governors(&mut self) -> Result<()> {
-        info!(
+        log::info!(
             "Starting {} local governor(s)",
             self.config.local_governors.len()
         );
@@ -362,14 +363,14 @@ impl Starter {
         for mut process in ::std::mem::replace(&mut self.processes, Vec::new()) {
             match process.kill() {
                 Ok(()) => {}
-                Err(e) => debug!("Kill failed: {}", e.description()),
+                Err(e) => log::debug!("Kill failed: {}", e.description()),
             };
         }
 
         for mut process in ::std::mem::replace(&mut self.remote_processes, Vec::new()) {
             match process.kill() {
                 Ok(()) => {}
-                Err(e) => debug!("Kill failed: {}", e.description()),
+                Err(e) => log::debug!("Kill failed: {}", e.description()),
             };
         }
     }

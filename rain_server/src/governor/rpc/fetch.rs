@@ -117,7 +117,7 @@ pub fn fetch(context: FetchContext) -> Box<Future<Item = Data, Error = Error>> {
                         }
                         ::rain_core::common_capnp::fetch_result::status::Ignored(()) => {
                             assert!(context.remote.is_none()); // The response is from the server
-                            debug!("Datastore ignore occured; id={}", id);
+                            log::debug!("Datastore ignore occured; id={}", id);
                             Either::A(
                                 Err(Error::from(ErrorKind::Ignored))
                                     .into_future()
