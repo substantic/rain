@@ -65,7 +65,7 @@ impl Executor {
         let message = GovernorToExecutorMessage::DropCached(DropCachedMsg {
             objects: object_ids.into(),
         });
-        control.send(::serde_cbor::to_vec(&message).unwrap());
+        control.send(::serde_cbor::to_vec(&message).unwrap().into());
     }
 
     pub fn send_task(
@@ -85,7 +85,7 @@ impl Executor {
                 .map(|o| o.get().create_output_spec())
                 .collect(),
         });
-        control.send(::serde_cbor::to_vec(&message).unwrap());
+        control.send(::serde_cbor::to_vec(&message).unwrap().into());
 
         assert!(self.finish_sender.is_none()); // Not task is running
         let (sender, receiver) = ::futures::unsync::oneshot::channel();

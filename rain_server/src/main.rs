@@ -32,6 +32,7 @@ extern crate sys_info;
 extern crate sysconf;
 extern crate tar;
 extern crate tempdir;
+extern crate tokio;
 extern crate tokio_core;
 extern crate tokio_io;
 extern crate tokio_process;

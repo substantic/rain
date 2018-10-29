@@ -1,12 +1,13 @@
 use bytes::BytesMut;
 use futures::{Future, Stream};
-use tokio_io::codec::length_delimited::{Builder, Framed};
+use tokio::codec::length_delimited::{Builder, LengthDelimitedCodec};
+use tokio::codec::{Framed};
 use tokio_io::AsyncRead;
 use tokio_io::AsyncWrite;
 
 use rain_core::errors::{Error, Result};
 
-pub type SendType = Vec<u8>;
+pub type SendType = bytes::Bytes;
 
 #[derive(Debug)]
 pub struct Sender {
@@ -19,7 +20,7 @@ impl Sender {
     }
 }
 
-pub fn create_protocol_stream<S>(stream: S) -> Framed<S, SendType>
+pub fn create_protocol_stream<S>(stream: S) -> Framed<S, LengthDelimitedCodec>
 where
     S: AsyncRead + AsyncWrite + 'static,
 {
@@ -33,7 +34,7 @@ pub struct Connection<S>
 where
     S: AsyncRead + AsyncWrite + 'static,
 {
-    stream: Framed<S, SendType>,
+    stream: Framed<S, LengthDelimitedCodec>,
     channel_receiver: ::futures::unsync::mpsc::UnboundedReceiver<SendType>,
     channel_sender: ::futures::unsync::mpsc::UnboundedSender<SendType>,
 }
@@ -42,7 +43,7 @@ impl<S> Connection<S>
 where
     S: AsyncRead + AsyncWrite + 'static,
 {
-    pub fn from(stream: Framed<S, SendType>) -> Self {
+    pub fn from(stream: Framed<S, LengthDelimitedCodec>) -> Self {
         let (channel_sender, channel_receiver) = ::futures::unsync::mpsc::unbounded();
         Connection {
             stream,
