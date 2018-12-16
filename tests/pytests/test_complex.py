@@ -4,12 +4,10 @@ from rain.client import remote
 from rain.client import blob, Program, tasks, Input
 import string
 import random
-import pytest
 
 CHARS = string.ascii_letters + string.digits
 
 
-@pytest.fixture
 def test_rnd():
     return random.Random("Rain")
 

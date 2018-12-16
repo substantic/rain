@@ -2,3 +2,4 @@
 [flake8]
 max-line-length = 100
 max-complexity = 16
+ignore = E252, W504 # Broken in tests, annoying

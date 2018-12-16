@@ -24,4 +24,3 @@ python3 setup.py install
 ```
 
 To run the python tests, you need to build binaries of the Rust and C++ code first, see our [testing Dockerfile](https://github.com/substantic/rain/blob/master/Dockerfile). You may need to get a recent version of [rust](https://www.rust-lang.org/) from [rustup](https://rustup.rs/).
-
