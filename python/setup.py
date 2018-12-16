@@ -31,14 +31,13 @@ with open('requirements.txt') as reqs:
 
 now = datetime.datetime.now()
 
-long_desc = """
-This is a Python part of Rain. Rain is distributed computational framework.
-See https://github.com/substantic/rain for more details."""
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 setup(name='rain-python',
       version=load_version(),
       description='Distributed Computational Framework',
-      long_description=long_desc,
+      long_description=long_description,
       url='https://github.com/substantic/rain',
       author='Stanislav Bohm, Vojtech Cima, Tomas Gavenciak',
       author_email='rain@substantic.net',

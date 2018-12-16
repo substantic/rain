@@ -1,6 +1,10 @@
-[![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)[![Build Status](https://travis-ci.org/substantic/rain.svg?branch=master)](https://travis-ci.org/substantic/rain)
-
 # Rain
+
+[![](https://img.shields.io/github/license/substantic/rain.svg)](https://github.com/substantic/rain/blob/master/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/rain-python.svg)](https://pypi.org/project/rain-python/)
+[![Crates.io](https://img.shields.io/crates/v/rain_core.svg)](https://www.crates.io/crates/rain_core)
+[![Build Status](https://travis-ci.org/substantic/rain.svg?branch=master)](https://travis-ci.org/substantic/rain)
+[![Gitter](https://badges.gitter.im/substantic/rain.svg)](https://gitter.im/substantic/rain?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 <img align="right" width="35%" src="docs/imgs/logo.svg?sanitize=true">
 
