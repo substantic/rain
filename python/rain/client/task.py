@@ -43,7 +43,7 @@ class Task(metaclass=TaskMeta):
         task_type (`str`): Task-type name known to rain governors.
         config: Any task-specific config.
         inputs (`LabeledList` or sequence): Sequence of `Input` or `DataObject`.
-        outputs (`LabeledList` or sequence): Specification of `Output`\ s for the task.
+        outputs (`LabeledList` or sequence): Specification of `Output` s for the task.
         session (`Session` or `None`): Session to create the task in.
             If not specified, the current `Session` is used.
         cpus (`int`): Number of cpus.

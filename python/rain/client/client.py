@@ -57,7 +57,7 @@ def check_result(sessions, result):
 class Client:
     """
     A client connection object. Can hold multiple
-    :py:class:`Session`\ s.
+    :py:class:`Session` s.
     """
 
     def __init__(self, address, port):
