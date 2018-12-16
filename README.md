@@ -68,7 +68,7 @@ $ pip3 install rain-python
 - Start server & a single local governor
 
 ```
-$ ./rain-v0.4.0-linux-x86/rain start --simple
+$ ./rain-v0.4.0-linux-x64/rain start --simple
 ```
 
 - Rain "Hello world" in Python
