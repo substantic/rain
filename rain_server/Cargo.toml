@@ -47,7 +47,7 @@ serde_json = "1"
 tar = "0.4"
 tempdir = "0.3"
 rusqlite = { version = "0.14.0", features = ["chrono", "serde_json"] }
-sys-info = "0.5"
+sys-info = "0.8"
 sysconf = "0.3"
 tokio="0.1"
 tokio-core="0.1"
