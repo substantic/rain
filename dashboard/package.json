@@ -12,7 +12,7 @@
     "react-dom": "^16.2.0",
     "react-icons": "^3.0.4",
     "react-router-dom": "^4.2.2",
-    "react-scripts-ts": "2.16.0",
+    "react-scripts-ts": "4.0.8",
     "reactstrap": "^5.0.0-alpha.4"
   },
   "devDependencies": {
