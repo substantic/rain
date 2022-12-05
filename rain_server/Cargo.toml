@@ -25,7 +25,7 @@ path = "src/main.rs"
 [dependencies]
 atty="0.2"
 bytes = "0.4"
-capnp = "0.8"
+capnp = "0.13"
 capnp-rpc = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
 clap = "2"
