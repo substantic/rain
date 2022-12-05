@@ -23,7 +23,7 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 arrayref = "0.3"
 bytes = "0.4"
-capnp = "0.8"
+capnp = "0.13"
 capnp-rpc = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
 error-chain="0.11"
